@@ -205,8 +205,6 @@ const App = () => {
     </div>
   );
 };
-
-
 export default App;
 
 
@@ -216,10 +214,9 @@ export default App;
 
 
 
-
-
-
 // 'use client'
+
+
 
 // import { useEffect, useState } from 'react'
 // import { WebApp } from '@twa-dev/types'
