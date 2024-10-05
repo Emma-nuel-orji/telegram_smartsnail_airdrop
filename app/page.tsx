@@ -1,9 +1,9 @@
-// smartsnail telegram airdrop testing page 1
 'use client'
 
 import { useEffect, useState } from 'react';
 import { WebApp } from '@twa-dev/types';
 import { Link } from 'react-router-dom';
+
 
 declare global {
   interface Window {
@@ -11,19 +11,6 @@ declare global {
       WebApp: WebApp;
     };
   }
-}
-
-// Define Click interface
-interface Click {
-  id: string; // Unique identifier for each click
-  x: number;  // X coordinate of the click
-  y: number;  // Y coordinate of the click
-}
-
-// Define User interface
-interface User {
-  points: number;
-  level: string;
 }
 
 export default function Home() {
@@ -68,71 +55,30 @@ export default function Home() {
     }
   }, []);
 
-  const [clicks, setClicks] = useState<Click[]>([]);
+  const handleIncreasePoints = async () => {
+    if (!user || energy <= 0) return;
 
-  // Define pointsToAdd
-  const pointsToAdd: number = 10; // Example value, you can change it based on your logic
-
-  // Your existing handleIncreasePoints function (assuming it increases points when clicked)
-  const handleIncreasePoints = () => {
-    // Increase points logic goes here
-    // For example: setPoints(points + pointsToAdd);
-    console.log('Points increased!');
-  };
-
-  // Function to handle click event on video
-  const handleClick = (e: React.MouseEvent) => {
-    // Call handleIncreasePoints when the video is clicked
-    handleIncreasePoints();
-
-    // Get the click position
-    const { clientX, clientY } = e;
-
-    // Create a new click object
-    const newClick: Click = {
-      id: Math.random().toString(), // Unique ID for each click
-      x: clientX,
-      y: clientY,
-    };
-
-    // Add the new click to the state
-    setClicks((prevClicks: Click[]) => [...prevClicks, newClick]);
-  };
-
-  // Change the state variable names to avoid conflicts
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  
-  // Function to calculate the level based on points
-  const calculateLevel = (points: number): string => {
-    if (points >= 10000) return 'God NFT/African Giant';
-    if (points >= 5000) return 'Fast';
-    if (points >= 2000) return 'Sensory';
-    if (points >= 1000) return 'Strong';
-    return 'Camouflage'; // default level
-  };
-  
-  // Update the effect to use the new state variable names and provide a type for prevUser
-  useEffect(() => {
-    if (currentUser) {
-      const newLevel = calculateLevel(currentUser.points);
-      setCurrentUser((prevUser: User | null) => {
-        if (!prevUser) return null; // Safety check if prevUser is null
-        return { ...prevUser, level: newLevel };
+    try {
+      const res = await fetch('/api/increase-points', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ telegramId: user.telegramId }),
       });
+      const data = await res.json();
+      if (data.success) {
+        setUser({ ...user, points: data.points });
+        setNotification('Points increased successfully!');
+        setTimeout(() => setNotification(''), 3000);
+      } else {
+        setError('Failed to increase points');
+      }
+    } catch (err) {
+      setError('An error occurred while increasing points');
     }
-  }, [currentUser?.points]);
-  
-  useEffect(() => {
-    const rechargeEnergy = setInterval(() => {
-      setEnergy((prevEnergy) => (prevEnergy < maxEnergy ? prevEnergy + 1 : maxEnergy));
-    }, 3000); // Restores 1 energy every 3 seconds
-  
-    return () => clearInterval(rechargeEnergy);
-  }, []);
+  };
 
-  setEnergy((prevEnergy) => Math.max(prevEnergy - 1, 0));
-
-  // ends here 
   if (error) {
     return <div className="container mx-auto p-4 text-red-500">{error}</div>;
   }
@@ -160,14 +106,6 @@ export default function Home() {
             <img src="/images/coin.png" width={44} height={44} />
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
-
-          <div className="text-base mt-2 flex items-center">
-            <img src="/images/trophy.png" width={24} height={24} />
-            <span className="ml-1">
-              {user?.level} 
-            </span>
-          </div>
-
         </div>
 
         {/* Progress bar for energy */}
@@ -181,54 +119,65 @@ export default function Home() {
           <div className="w-full flex justify-between gap-2 mt-4">
             <div className="w-1/3 flex items-center justify-start max-w-32">
               <div className="flex items-center justify-center">
-                <img src="/images/highVoltage.png" width={44} height={44} alt="High Voltage" />
+                <img src="/images/high-voltage.png" width={44} height={44} alt="High Voltage" />
                 <div className="ml-2 text-left">
                   <span className="text-white text-2xl font-bold block">{energy}</span>
                   <span className="text-white text-large opacity-75">/ {maxEnergy}</span>
                 </div>
               </div>
             </div>
-
             <div className="flex-grow flex items-center max-w-60 text-sm">
               <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
                 <button className="flex flex-col items-center gap-1">
-                  <img src="/images/bear.png" width={24} height={24} alt="Frens" />
+                  <img src="/images/bear.png"  width={24} height={24} alt="Frens" />
                   <Link to="/referral"><span>Frens</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
-                  <img src="/images/coin.png" width={24} height={24} alt="Earn" />
+                  <img src="/images/coin.png"  width={24} height={24} alt="Earn" />
                   <Link to="/task"><span>Earn</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
-                  <img src="/images/heart.png" width={24} height={24} alt="More" />
-                  <Link to="/more"><span>More</span></Link>
+                  <img src="/images/rocket.png"  width={24} height={24} alt="Boosts" />
+                  <Link to="/boost"><span>Game</span></Link>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex-grow flex items-center justify-center relative z-10 mt-20">
-          <video
-            className="rounded-2xl overflow-hidden"
-            src="/videos/unload.mp4"
-            autoPlay
-            muted
-            loop
-            onClick={handleClick} // Trigger click event when the video is clicked
-            width="600"
-            height="400"
-          />
-        </div>
-
-        {notification && (
-          <div className="notification fixed bottom-20 right-10 bg-yellow-500 text-white rounded p-4 shadow-lg">
-            {notification}
+        <div className="flex-grow flex items-center justify-center">
+        <div className="relative mt-4" onClick={handleIncreasePoints}>
+            <video src="/images/snails.mp4"  autoPlay muted loop />
+            {/* {clicks.map((click) => (
+              <div
+                key={click.id}
+                className="absolute text-5xl font-bold opacity-0"
+                style={{
+                  top: `${click.y - 42}px`,
+                  left: `${click.x - 28}px`,
+                  animation: `float 1s ease-out`
+                }}
+                onAnimationEnd={() => setClicks((prevClicks) => prevClicks.filter(c => c.id !== click.id))}
+              >
+                +{pointsToAdd}
+              </div>
+            ))} */}
           </div>
-        )}
+          {/* <button
+            onClick={handleIncreasePoints}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
+          >
+            Increase Points
+          </button> */}
+        </div>
       </div>
+      {notification && (
+        <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
+          {notification}
+        </div>
+      )}
     </div>
   );
 }
