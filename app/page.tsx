@@ -149,7 +149,11 @@ export default function Home() {
 
         <div className="flex-grow flex items-center justify-center">
         <div className="relative mt-4" onClick={handleIncreasePoints}>
-            <video src="/images/snails.mp4"  autoPlay muted loop />
+        <video autoPlay muted loop>
+          <source src="/images/snails.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+            {/* <video src="/images/snails.mp4"  autoPlay muted loop /> */}
             {/* {clicks.map((click) => (
               <div
                 key={click.id}
