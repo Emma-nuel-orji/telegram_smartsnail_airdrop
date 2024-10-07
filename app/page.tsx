@@ -102,11 +102,11 @@ export default function Home() {
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
         <div className="fixed top-0 left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
           <div className="mt-12 text-5xl font-bold flex items-center">
-            <img src="/images/shell.png" width={49} height={49} alt="Coin" />
+            <img src="/images/shell.png" width={50} height={50} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
           <div className="text-base mt-2 flex items-center">
-            <img src="trophy.png" width={24} height={24} />
+            <img src="/image/trophy.png" width={24} height={24} />
             <span className="ml-1">
               Camouflage 
               {/* {level} <Arrow size={18} className="ml-0 mb-1 inline-block" /> */}
