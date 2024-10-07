@@ -106,7 +106,7 @@ export default function Home() {
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
           <div className="text-base mt-2 flex items-center">
-            <img src="/image/trophy.png" width={24} height={24} />
+            <img src="/images/trophy.png" width={24} height={24} />
             <span className="ml-1">
               Camouflage 
               {/* {level} <Arrow size={18} className="ml-0 mb-1 inline-block" /> */}
