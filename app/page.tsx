@@ -102,7 +102,7 @@ export default function Home() {
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
         <div className="fixed top-0 left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
           <div className="mt-12 text-5xl font-bold flex items-center">
-            <img src="/images/shell.png" width={50} height={50} alt="Coin" />
+            <img src="/images/shell.png" width={65} height={65} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
           <div className="text-base mt-2 flex items-center">
@@ -125,7 +125,7 @@ export default function Home() {
           <div className="w-full flex justify-between gap-2 mt-4">
             <div className="w-1/3 flex items-center justify-start max-w-32">
               <div className="flex items-center justify-center">
-                <img src="/images/turbosnail-1.png" width={68} height={68} alt="High Voltage" />
+                <img src="/images/turbosnail-1.png" width={98} height={98} alt="High Voltage" />
                 <div className="ml-2 text-left">
                   <span className="text-white text-2xl font-bold block">{energy}</span>
                   <span className="text-white text-large opacity-75">/ {maxEnergy}</span>
