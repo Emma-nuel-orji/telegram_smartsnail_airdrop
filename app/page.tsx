@@ -125,7 +125,7 @@ export default function Home() {
           <div className="w-full flex justify-between gap-2 mt-4">
             <div className="w-1/3 flex items-center justify-start max-w-32">
               <div className="flex items-center justify-center">
-                <img src="/images/turbosnail-1.png" width={98} height={98} alt="High Voltage" />
+                <img src="/images/turbosnail-1.png" width={44} height={44} alt="High Voltage" />
                 <div className="ml-2 text-left">
                   <span className="text-white text-2xl font-bold block">{energy}</span>
                   <span className="text-white text-large opacity-75">/ {maxEnergy}</span>
