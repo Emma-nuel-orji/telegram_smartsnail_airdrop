@@ -105,7 +105,7 @@ export default function Home() {
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
         <div className="fixed top-0 left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
           <div className="mt-12 text-5xl font-bold flex items-center">
-            <img src="/images/shell.png" width={65} height={65} alt="Coin" />
+            <img src="/images/shell.png" width={24} height={24} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
           <div className="text-base mt-2 flex items-center">
@@ -140,7 +140,7 @@ export default function Home() {
               <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
                 <button className="flex flex-col items-center gap-1">
                   <img src="/images/bear.png" width={24} height={24} alt="Frens" />
-                  <Link href="/referral"><span>Frens</span></Link>
+                  <Link href="/referral.tsx"><span>Frens</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
