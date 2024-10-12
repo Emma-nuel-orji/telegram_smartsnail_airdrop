@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { WebApp } from '@twa-dev/types';
+
+import Link from 'next/link';
+
 // import { Link } from 'react-router-dom';
 
 declare global {
@@ -132,24 +135,27 @@ export default function Home() {
                 </div>
               </div>
             </div>
+
             <div className="flex-grow flex items-center max-w-60 text-sm">
               <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
                 <button className="flex flex-col items-center gap-1">
                   <img src="/images/bear.png" width={24} height={24} alt="Frens" />
-                  {/* <Link to="/referral"><span>Frens</span></Link> */}
+                  <Link href="/referral"><span>Frens</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
                   <img src="/images/coin.png" width={24} height={24} alt="Earn" />
-                  {/* <Link to="/task"><span>Earn</span></Link> */}
+                  <Link href="/task"><span>Earn</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
                   <img src="/images/rocket.png" width={24} height={24} alt="Boosts" />
-                  {/* <Link to="/boost"><span>Game</span></Link> */}
+                  <Link href="/boost"><span>Game</span></Link>
                 </button>
               </div>
             </div>
+
+
           </div>
         </div>
 
