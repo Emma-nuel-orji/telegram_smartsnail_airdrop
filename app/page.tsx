@@ -5,7 +5,7 @@ import { WebApp } from '@twa-dev/types';
 
 import Link from 'next/link';
 
-import referral from '@/components/ReferralSystem'
+
 
 // import { Link } from 'react-router-dom';
 
@@ -143,7 +143,7 @@ export default function Home() {
                 <button className="flex flex-col items-center gap-1">
                   <img src="/images/bear.png" width={24} height={24} alt="Frens" />
                   
-                  <Link href="/components/ReferralSysterm.tsx"><span>Frens</span></Link>
+                  <Link href="/referral-systerm"><span>Frens</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
