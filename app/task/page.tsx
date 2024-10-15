@@ -1,6 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
-import './task.css';
+// import './task.css';
 
 type Task = {
   id: number;
