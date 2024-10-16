@@ -40,7 +40,7 @@ const Tasks: React.FC = () => {
       <h3>Season One</h3>
 
       {tasks.map((task) => (
-        <div key={task.id} className="task-containers">
+        <div key={task.id} className="task-containers" style={{ width: '100%' }}>
           <div className="referral-invite-boxs">
             <img src="/images/daily.png" width={44} height={44} alt="Daily task icon" />
             <div>
