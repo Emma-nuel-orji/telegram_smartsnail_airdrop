@@ -66,7 +66,9 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
   return (
     <div className="referral-container">
       {referrer && (
+        <div className="referral-invite-box">
         <p className="referrer-message">You were referred by user {referrer}</p>
+        </div>
       )}
       <div className="button-group">
         <button onClick={handleInviteFriend} className="invite-button">
