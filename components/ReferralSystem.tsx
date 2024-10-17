@@ -1,18 +1,19 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { initUtils } from '@telegram-apps/sdk';
 
 
-
 interface ReferralSystemProps {
-  initData: string
-  userId: string
-  startParam: string
+  initData: string;
+  userId: string;
+  startParam: string;
 }
 
 const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, startParam }) => {
-  const [referrals, setReferrals] = useState<string[]>([])
-  const [referrer, setReferrer] = useState<string | null>(null)
-  const INVITE_URL = "https://t.me/referral_showcase_bot/start"
+  const [referrals, setReferrals] = useState<string[]>([]);
+  const [referrer, setReferrer] = useState<string | null>(null);
+  const INVITE_URL = "https://t.me/referral_showcase_bot/start";
 
   useEffect(() => {
     const checkReferral = async () => {
@@ -28,7 +29,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
           console.error('Error saving referral:', error);
         }
       }
-    }
+    };
 
     const fetchReferrals = async () => {
       if (userId) {
@@ -42,51 +43,45 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
           console.error('Error fetching referrals:', error);
         }
       }
-    }
+    };
 
     checkReferral();
     fetchReferrals();
-  }, [userId, startParam])
+  }, [userId, startParam]);
 
   const handleInviteFriend = () => {
-    const utils = initUtils()
-    const inviteLink = `${INVITE_URL}?startapp=${userId}`
-    const shareText = `Join me on this awesome Telegram mini app!`
-    const fullUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`
-    utils.openTelegramLink(fullUrl)
-  }
+    const utils = initUtils();
+    const inviteLink = `${INVITE_URL}?startapp=${userId}`;
+    const shareText = `Join me on this awesome Telegram mini app!`;
+    const fullUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
+    utils.openTelegramLink(fullUrl);
+  };
 
   const handleCopyLink = () => {
-    const inviteLink = `${INVITE_URL}?startapp=${userId}`
-    navigator.clipboard.writeText(inviteLink)
-    alert('Invite link copied to clipboard!')
-  }
+    const inviteLink = `${INVITE_URL}?startapp=${userId}`;
+    navigator.clipboard.writeText(inviteLink);
+    alert('Invite link copied to clipboard!');
+  };
 
   return (
-    <div className="w-full max-w-md">
+    <div className="referral-container">
       {referrer && (
-        <p className="text-green-500 mb-4">You were referred by user {referrer}</p>
+        <p className="referrer-message">You were referred by user {referrer}</p>
       )}
-      <div className="flex flex-col space-y-4">
-        <button
-          onClick={handleInviteFriend}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Invite Friends
+      <div className="button-group">
+        <button onClick={handleInviteFriend} className="invite-button">
+          Invite Friend
         </button>
-        <button
-          onClick={handleCopyLink}
-          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Copy Invite Links
+        <button onClick={handleCopyLink} className="copy-button">
+          Copy Invite Link
         </button>
       </div>
       {referrals.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Your Referrals</h2>
+        <div className="referrals-list">
+          <h2 className="referrals-title">Your Referrals</h2>
           <ul>
             {referrals.map((referral, index) => (
-              <li key={index} className="bg-gray-100 p-2 mb-2 rounded">
+              <li key={index} className="referral-item">
                 User {referral}
               </li>
             ))}
@@ -94,7 +89,8 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ReferralSystem
+export default ReferralSystem;
+

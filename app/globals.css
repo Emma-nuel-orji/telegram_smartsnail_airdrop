@@ -176,3 +176,69 @@ body {
 .back-arrow {
   margin-bottom: 20px; /* Adds some space below the back arrow */
 }
+
+
+/* referral page css  */
+
+.referral-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.referrer-message {
+  color: #4CAF50;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.invite-button, .copy-button {
+  background-color: #1E90FF;
+  color: white;
+  font-size: 16px;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.invite-button:hover {
+  background-color: #1C86EE;
+}
+
+.copy-button {
+  background-color: #32CD32;
+}
+
+.copy-button:hover {
+  background-color: #2EB82E;
+}
+
+.referrals-list {
+  margin-top: 20px;
+}
+
+.referrals-title {
+  font-size: 20px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.referral-item {
+  background-color: #e0e0e0;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  text-align: center;
+}
