@@ -23,8 +23,9 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-8">Telegram Referral Demo</h1>
+    <main className="refer">
+      <h1 className="h text-4xl font-bold mb-8">Invite friends!</h1>
+      <p className="p">You and your friend will recieve bonuses</p>
       <ReferralSystem initData={initData} userId={userId} startParam={startParam} />
     </main>
   )

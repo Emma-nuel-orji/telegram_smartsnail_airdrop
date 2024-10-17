@@ -266,3 +266,15 @@ body {
   /* justify-content: space-between; */
   cursor: pointer;
 }
+
+.h{
+  color: #ffffff;
+}
+
+.p{
+  color: #ffffff;
+}
+
+.refer{
+  background-color: #050505;
+}
