@@ -212,14 +212,15 @@ body {
   align-items: center;
 }
 
-.referral-invite-box {
 
-
-  padding: 15px;
-
-  display: inline-flex;
-  align-items: center;
+.referral-invite-botton {
+  display: flex;
+  gap: 10px; 
+  justify-content: center;
+  align-items: center; 
 }
+  
+
 
 .invite-button, .copy-button {
   background-color: #1E90FF;
