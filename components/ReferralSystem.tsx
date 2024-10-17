@@ -72,13 +72,13 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
           onClick={handleInviteFriend}
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
-          Invite Friend
+          Invite Friends
         </button>
         <button
           onClick={handleCopyLink}
           className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
         >
-          Copy Invite Link
+          Copy Invite Links
         </button>
       </div>
       {referrals.length > 0 && (
