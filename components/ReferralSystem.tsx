@@ -68,10 +68,10 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
       <div className="referral-invite-box">
         <img src="/images/daily.png" width={44} height={44} />
         <div>
-          <p >Invite a friend to our airdrop</p>
+          <p className="p" >Invite a friend to our airdrop</p>
           <div className="coin flex">
             <img src="/images/coin.png" width={24} height={24} />
-            <span className="ml-1">+10,000 for you and your friend</span>
+            <span className="p ml-1">+10,000 for you and your friend</span>
           </div>
         </div>
         
