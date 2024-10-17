@@ -69,7 +69,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
         <img src="/images/daily.png" width={44} height={44} />
         <div>
           <p >Invite a friend to our airdrop</p>
-          <div className="/images/coin flex">
+          <div className="coin flex">
             <img src="/images/coin.png" width={24} height={24} />
             <span className="ml-1">+10,000 for you and your friend</span>
           </div>
