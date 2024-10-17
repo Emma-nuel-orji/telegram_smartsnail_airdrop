@@ -77,11 +77,13 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
         
         {/* <img src={coin} width={44} height={44} /> */}
       </div>
+      <br />
       {referrer && (
         <div className="referral-invite-box">
         <p className="referrer-message">You were referred by user {referrer}</p>
         </div>
       )}
+      <br />
       <div className="referral-invite-botton">
         <button onClick={handleInviteFriend} className="invite-button">
           Invite Friend
@@ -90,6 +92,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
           Copy Invite Link
         </button>
       </div>
+      <br />
       {referrals.length > 0 && (
         <div className="referrals-list">
           <h2 className="referrals-title">Your Referrals</h2>
