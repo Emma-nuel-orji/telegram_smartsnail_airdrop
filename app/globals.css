@@ -228,11 +228,11 @@ body {
 }
 
 .copy-button {
-  background-color: #32CD32;
+  background-color: #ba11db;
 }
 
 .copy-button:hover {
-  background-color: #2EB82E;
+  background-color: #8b05b4;
 }
 
 .referrals-list {
@@ -277,4 +277,11 @@ body {
 
 .refer{
   background-color: #050505;
+  min-height: 100vh;
+    /* padding: 20px; */
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
