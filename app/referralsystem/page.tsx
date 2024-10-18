@@ -2,6 +2,7 @@
 
 import ReferralSystem from '@/components/ReferralSystem'
 import { useEffect, useState } from 'react'
+import Link from 'next/link';
 
 export default function Home() {
   const [initData, setInitData] = useState('')
@@ -25,6 +26,9 @@ export default function Home() {
   return (
     <main className="refer">
       <h1 className="h text-4xl font-bold mb-8">Invite friends!</h1>
+      <Link href="/">
+        <a className="back-arrow bg-light">&#8592;</a>
+      </Link>
       <p className="p">You and your friend will recieve bonuses</p>
       <ReferralSystem initData={initData} userId={userId} startParam={startParam} />
     </main>
