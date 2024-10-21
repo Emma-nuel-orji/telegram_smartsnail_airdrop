@@ -65,7 +65,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
 
   return (
     <div className="referral-container">
-      <div className="referral-invite-box">
+      <div className="ref">
         <img className="imag"  src="/images/taskshell.jpeg"  />
         
         
