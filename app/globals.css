@@ -213,6 +213,12 @@ body {
   align-items: center;
 }
 
+.imag{
+  width: 100%;
+  height: 110px;
+  padding: 15px;
+  border-radius: 8px;
+}
 
 .referral-invite-botton {
   display: flex;
