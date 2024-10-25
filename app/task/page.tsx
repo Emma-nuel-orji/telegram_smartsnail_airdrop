@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 
 type Task = {
@@ -22,15 +20,6 @@ const Tasks: React.FC = () => {
   const [totalCoins, setTotalCoins] = useState(0);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [showPopup, setShowPopup] = useState(false);
-
-  useEffect(() => {
-    if (selectedTask) {
-      setShowPopup(true);
-    } else {
-      setShowPopup(false);
-    }
-  }, [selectedTask]);
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -42,7 +31,7 @@ const Tasks: React.FC = () => {
       setTotalCoins((prevTotal) => prevTotal + completedTask.reward);
       setCompletedTasks((prevCompleted) => [...prevCompleted, completedTask]);
       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-      setSelectedTask(null);
+      setSelectedTask(null); // Close the pop-up after completion
     }
   };
 
@@ -58,6 +47,7 @@ const Tasks: React.FC = () => {
       {tasks.map((task) => (
         <div key={task.id} className="task-containers" style={{ width: '100%' }}>
           <div className="referral-invite-boxs" onClick={() => handleTaskClick(task)}>
+            {/* Replace with your custom image */}
             <img src="/images/tasks/Alex Telegam.png" width="100%" alt="Task preview" />
           </div>
         </div>
@@ -77,9 +67,9 @@ const Tasks: React.FC = () => {
         </div>
       ))}
 
-      {/* Animated Pop-up for task details */}
+      {/* Pop-up for task details */}
       {selectedTask && (
-        <div className={`task-popup ${showPopup ? 'show' : 'hide'}`}>
+        <div className="task-popup">
           <p>{selectedTask.description}</p>
           <button onClick={() => handleComplete(selectedTask.id)}>Complete Task</button>
           <button onClick={() => setSelectedTask(null)}>Close</button>
