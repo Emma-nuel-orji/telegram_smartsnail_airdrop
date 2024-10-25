@@ -96,26 +96,7 @@ body {
   background-color: #862b7f;
 }
 
-.task-containers {
-  /* background-color: #862b7f; */
-  /* color: #fff; */
-  /* min-height: 100vh;
-  padding: 20px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center; */
-  /* width: 100%; */
 
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  margin-bottom: 20px; /* Adds space between each container */
-  border: 1px solid #ddd; /* Optional: adds a border to separate each task */
-  border-radius: 8px;
-  background-color: #f9f9f9;
-}
 
 .referral-invite-boxs {
   background-color: #222;
@@ -309,14 +290,32 @@ body {
 
 .task-popup {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
+  left: 50%;
+  bottom: 50%;
+  transform: translate(-50%, 50%);
+  width: 90%;
+  max-width: 500px;
   background-color: white;
   padding: 20px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 20px 20px 0 0;
   text-align: center;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
   z-index: 100;
+  transition: all 0.5s ease;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.task-popup.show {
+  transform: translate(-50%, -50%);
+  opacity: 1;
+  visibility: visible;
+}
+
+.task-popup.hide {
+  transform: translate(-50%, 50%);
+  opacity: 0;
+  visibility: hidden;
 }
 
 .task-popup p {
