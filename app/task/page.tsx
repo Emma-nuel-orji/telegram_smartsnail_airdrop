@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-// import './task.css';
 
 type Task = {
   id: number;
@@ -20,6 +19,11 @@ const Tasks: React.FC = () => {
 
   const [totalCoins, setTotalCoins] = useState(0);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+  };
 
   const handleComplete = (taskId: number) => {
     const completedTask = tasks.find((task) => task.id === taskId);
@@ -27,6 +31,7 @@ const Tasks: React.FC = () => {
       setTotalCoins((prevTotal) => prevTotal + completedTask.reward);
       setCompletedTasks((prevCompleted) => [...prevCompleted, completedTask]);
       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+      setSelectedTask(null); // Close the pop-up after completion
     }
   };
 
@@ -41,16 +46,9 @@ const Tasks: React.FC = () => {
 
       {tasks.map((task) => (
         <div key={task.id} className="task-containers" style={{ width: '100%' }}>
-          <div className="referral-invite-boxs">
-            <img src="/images/daily.png" width={44} height={44} alt="Daily task icon" />
-            <div>
-              <p>{task.description}</p>
-              <div className="coin flex">
-                <img src="/images/coin.png" width={24} height={24} alt="Coin icon" />
-                <span className="ml-1">+{task.reward.toLocaleString()}</span>
-              </div>
-            </div>
-            <button onClick={() => handleComplete(task.id)}>Complete Task</button>
+          <div className="referral-invite-boxs" onClick={() => handleTaskClick(task)}>
+            {/* Replace with your custom image */}
+            <img src="/images/tasks/Alex Telegam.png" width="100%" alt="Task preview" />
           </div>
         </div>
       ))}
@@ -68,11 +66,26 @@ const Tasks: React.FC = () => {
           </div>
         </div>
       ))}
+
+      {/* Pop-up for task details */}
+      {selectedTask && (
+        <div className="task-popup">
+          <p>{selectedTask.description}</p>
+          <button onClick={() => handleComplete(selectedTask.id)}>Complete Task</button>
+          <button onClick={() => setSelectedTask(null)}>Close</button>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Tasks;
+
+
+
+
+
+
 
 
 // 'use client';
