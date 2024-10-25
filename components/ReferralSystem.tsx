@@ -13,7 +13,7 @@ interface ReferralSystemProps {
 const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, startParam }) => {
   const [referrals, setReferrals] = useState<string[]>([]);
   const [referrer, setReferrer] = useState<string | null>(null);
-  const INVITE_URL = "https://t.me/referral_showcase_bot/start";
+  const INVITE_URL = "https://t.me/SmartSnails_Bot";
 
   useEffect(() => {
     const checkReferral = async () => {
@@ -66,9 +66,11 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
   return (
     <div className="referral-container">
       <div className="ref">
-        <img className="imag"  src="/images/taskshell.jpeg"  />
-        
-        
+        <img className="imag"  src="/images/20241024_83161.png"  />
+        {/* <img src={coin} width={44} height={44} /> */}
+      </div>
+      <div className="ref">
+        <img className="imag"  src="/images/20241024_83160.png"  />
         {/* <img src={coin} width={44} height={44} /> */}
       </div>
       <br />
