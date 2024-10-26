@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -8,37 +6,27 @@ type Task = {
   description: string;
   completed: boolean;
   reward: number;
-  category: 'main' | 'daily' | 'partner';
+  section: 'main' | 'daily' | 'partners';
+  image: string;
 };
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, description: 'Invite 3 friends', completed: false, reward: 1000000, category: 'main' },
-    { id: 2, description: 'Play the game for 10 minutes', completed: false, reward: 500000, category: 'daily' },
-    { id: 3, description: 'Share on social media', completed: false, reward: 200000, category: 'partner' },
+    { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/main1.png' },
+    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/tasks/main2.png' },
+    { id: 3, description: 'Daily Task 1', completed: false, reward: 200000, section: 'daily', image: '/images/tasks/daily1.png' },
+    { id: 4, description: 'Partner Task 1', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
     // Add more tasks as needed
   ]);
 
-  const [selectedCategory, setSelectedCategory] = useState<'main' | 'daily' | 'partner'>('main');
-  const [totalCoins, setTotalCoins] = useState(0);
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [selectedSection, setSelectedSection] = useState<'main' | 'daily' | 'partners'>('main');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
   };
 
-  const handleComplete = (taskId: number) => {
-    const completedTask = tasks.find((task) => task.id === taskId);
-    if (completedTask) {
-      setTotalCoins((prevTotal) => prevTotal + completedTask.reward);
-      setCompletedTasks((prevCompleted) => [...prevCompleted, completedTask]);
-      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-      setSelectedTask(null); // Close the pop-up after completion
-    }
-  };
-
-  const filteredTasks = tasks.filter(task => task.category === selectedCategory);
+  const filteredTasks = tasks.filter((task) => task.section === selectedSection);
 
   return (
     <div className="task-container" style={{ width: '100%' }}>
@@ -47,42 +35,25 @@ const Tasks: React.FC = () => {
         <a className="back-arrow">&#8592;</a>
       </Link>
 
-      {/* Task Categories */}
-      <div className="category-selector">
-        <button onClick={() => setSelectedCategory('main')}>Main Tasks</button>
-        <button onClick={() => setSelectedCategory('daily')}>Daily Tasks</button>
-        <button onClick={() => setSelectedCategory('partner')}>Partner Tasks</button>
+      <div className="task-buttons">
+        <button onClick={() => setSelectedSection('main')} className={`task-button ${selectedSection === 'main' ? 'active' : ''}`}>Main Tasks</button>
+        <button onClick={() => setSelectedSection('daily')} className={`task-button ${selectedSection === 'daily' ? 'active' : ''}`}>Daily</button>
+        <button onClick={() => setSelectedSection('partners')} className={`task-button ${selectedSection === 'partners' ? 'active' : ''}`}>Partners</button>
       </div>
 
-      {/* Task List */}
-      <h3>{selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Tasks</h3>
-      {filteredTasks.map((task) => (
-        <div key={task.id} className="task-containers" style={{ width: '100%' }}>
-          <div className="referral-invite-boxs" onClick={() => handleTaskClick(task)}>
-            <img src="/images/tasks/Alex Telegam.png" width="100%" alt="Task preview" />
-          </div>
-        </div>
-      ))}
-
-      <h3>Completed Tasks</h3>
-      {completedTasks.map((task) => (
-        <div key={task.id} className="referral-invite-box">
-          <img src="/images/daily.png" width={44} height={44} alt="Completed task icon" />
-          <div>
-            <p>{task.description}</p>
-            <div className="coin flex">
-              <img src="/images/coin.png" width={24} height={24} alt="Coin icon" />
-              <span className="ml-1">+{task.reward.toLocaleString()}</span>
+      <div className="tasks-display">
+        {filteredTasks.map((task) => (
+          <div key={task.id} className="task-containers" style={{ width: '100%' }}>
+            <div className="referral-invite-boxs" onClick={() => handleTaskClick(task)}>
+              <img src={task.image} width="100%" alt={task.description} />
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
-      {/* Pop-up for task details */}
       {selectedTask && (
         <div className="task-popup">
           <p>{selectedTask.description}</p>
-          <button onClick={() => handleComplete(selectedTask.id)}>Complete Task</button>
           <button onClick={() => setSelectedTask(null)}>Close</button>
         </div>
       )}
@@ -91,6 +62,7 @@ const Tasks: React.FC = () => {
 };
 
 export default Tasks;
+
 
 
 
