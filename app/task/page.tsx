@@ -8,15 +8,18 @@ type Task = {
   description: string;
   completed: boolean;
   reward: number;
+  category: 'main' | 'daily' | 'partner';
 };
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, description: 'Invite 3 friends', completed: false, reward: 1000000 },
-    { id: 2, description: 'Play the game for 10 minutes', completed: false, reward: 500000 },
-    { id: 3, description: 'Share on social media', completed: false, reward: 200000 },
+    { id: 1, description: 'Invite 3 friends', completed: false, reward: 1000000, category: 'main' },
+    { id: 2, description: 'Play the game for 10 minutes', completed: false, reward: 500000, category: 'daily' },
+    { id: 3, description: 'Share on social media', completed: false, reward: 200000, category: 'partner' },
+    // Add more tasks as needed
   ]);
 
+  const [selectedCategory, setSelectedCategory] = useState<'main' | 'daily' | 'partner'>('main');
   const [totalCoins, setTotalCoins] = useState(0);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -35,6 +38,8 @@ const Tasks: React.FC = () => {
     }
   };
 
+  const filteredTasks = tasks.filter(task => task.category === selectedCategory);
+
   return (
     <div className="task-container" style={{ width: '100%' }}>
       <h2>Complete Tasks to Earn Rewards!</h2>
@@ -42,12 +47,18 @@ const Tasks: React.FC = () => {
         <a className="back-arrow">&#8592;</a>
       </Link>
 
-      <h3>Season One</h3>
+      {/* Task Categories */}
+      <div className="category-selector">
+        <button onClick={() => setSelectedCategory('main')}>Main Tasks</button>
+        <button onClick={() => setSelectedCategory('daily')}>Daily Tasks</button>
+        <button onClick={() => setSelectedCategory('partner')}>Partner Tasks</button>
+      </div>
 
-      {tasks.map((task) => (
+      {/* Task List */}
+      <h3>{selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Tasks</h3>
+      {filteredTasks.map((task) => (
         <div key={task.id} className="task-containers" style={{ width: '100%' }}>
           <div className="referral-invite-boxs" onClick={() => handleTaskClick(task)}>
-            {/* Replace with your custom image */}
             <img src="/images/tasks/Alex Telegam.png" width="100%" alt="Task preview" />
           </div>
         </div>
@@ -80,6 +91,7 @@ const Tasks: React.FC = () => {
 };
 
 export default Tasks;
+
 
 
 
