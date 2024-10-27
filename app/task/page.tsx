@@ -14,10 +14,19 @@ type Task = {
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/main1.png' },
-    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/tasks/main2.png' },
-    { id: 3, description: 'Daily Task 1', completed: false, reward: 200000, section: 'daily', image: '/images/tasks/daily1.png' },
+    { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/fuckedupbags.png' },
+    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/tasks/human nature.png' },
+    { id: 3, description: 'Daily Task 1', completed: false, reward: 200000, section: 'daily', image: '/images/daily/human relations.png' },
     { id: 4, description: 'Partner Task 1', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
+    { id: 5, description: 'Partner Task 2', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
+    { id: 6, description: 'Partner Task 3', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
+    { id: 7, description: 'Partner Task 4', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
+    { id: 8, description: 'Partner Task 5', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
+    { id: 9, description: 'Partner Task 6', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
+    { id: 10, description: 'Daily Task 2', completed: false, reward: 300000, section: 'daily', image: '/images/daily/join discord.png' },
+    { id: 11, description: 'Daily Task 3', completed: false, reward: 300000, section: 'daily', image: '/images/daily/join twitter everyday.png' },
+    { id: 12, description: 'Daily Task 4', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCR thread.png' },
+    { id: 13, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS facebook.png' },
     // Add more tasks as needed
   ]);
 

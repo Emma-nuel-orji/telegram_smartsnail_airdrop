@@ -90,24 +90,8 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* tasks */
-.task-container {
-  width: 100%;
-  background-color: #862b7f;
-}
 
 
-/* .referral-invite-boxs {
-  background-color: #222;
-  width: 100%;
-  height: 90px;
-  padding: 15px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-} */
 
 .dropdown-content {
   background-color: #686868;
@@ -141,12 +125,7 @@ body {
   background-color: #f9f9f9; */
 }
 
-/* .referral-invite-boxs {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  justify-content: space-between;
-} */
+
 
 .coin.flex {
   display: flex;
@@ -326,8 +305,12 @@ body {
 /* task  */
 
 .task-container {
+  width: 100%;
+  background-color: #dd9acd;
   padding: 20px;
+
 }
+
 
 .category-selector {
   display: flex;
@@ -350,15 +333,16 @@ body {
 }
 
 .referral-invite-boxs {
-  background-color: #f9f9f9;
+  /* background-color: #f9f9f9;
   border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 10px;
-  display: flex;
+  border-radius: 8px; */
+  padding: 8px;
+  margin-bottom: 8px;
+  /* display: flex;
   align-items: center;
-  cursor: pointer;
+  cursor: pointer; */
 }
+
 .task-buttons {
   display: flex;
   gap: 10px; /* Add space between buttons */
