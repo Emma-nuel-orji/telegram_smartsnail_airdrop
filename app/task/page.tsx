@@ -10,6 +10,7 @@ type Task = {
   reward: number;
   section: 'main' | 'daily' | 'partners';
   image: string;
+  link: string;
 };
 
 const Tasks: React.FC = () => {
