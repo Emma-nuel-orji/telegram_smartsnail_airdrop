@@ -108,16 +108,14 @@ const Tasks: React.FC = () => {
 
       {selectedTask && (
         <div className="task-popup">
-          <img src={selectedTask.image} width="100%" />
-          <p>{selectedTask.description}</p>
-
-          <div>
-            <button onClick={() => setSelectedTask(null)}>Close</button>
-            <button onClick={() => window.open(selectedTask.link, '_blank')}>Perform Task</button>
-            <button onClick={handleValidateClick}>Validate and Reward</button>
-          </div>
-          
+        <button className="close-button" onClick={() => setSelectedTask(null)}>X</button>
+        <img src={selectedTask.image} width="100%" alt={selectedTask.description} />
+        <p>{selectedTask.description}</p>
+        <div className="popup-buttons">
+          <button onClick={() => window.open(selectedTask.link, '_blank')}>Perform Task</button>
+          <button onClick={handleValidateClick}>Validate and Reward</button>
         </div>
+      </div>
       )}
     </div>
   );
