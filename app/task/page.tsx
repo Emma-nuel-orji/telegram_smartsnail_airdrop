@@ -15,18 +15,45 @@ type Task = {
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
     { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/fuckedupbags.png' },
-    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/tasks/human nature.png' },
-    { id: 3, description: 'Daily Task 1', completed: false, reward: 200000, section: 'daily', image: '/images/daily/human relations.png' },
-    { id: 4, description: 'Partner Task 1', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
-    { id: 5, description: 'Partner Task 2', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
-    { id: 6, description: 'Partner Task 3', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
-    { id: 7, description: 'Partner Task 4', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
-    { id: 8, description: 'Partner Task 5', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
-    { id: 9, description: 'Partner Task 6', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
-    { id: 10, description: 'Daily Task 2', completed: false, reward: 300000, section: 'daily', image: '/images/daily/join discord.png' },
-    { id: 11, description: 'Daily Task 3', completed: false, reward: 300000, section: 'daily', image: '/images/daily/join twitter everyday.png' },
-    { id: 12, description: 'Daily Task 4', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCR thread.png' },
-    { id: 13, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS facebook.png' },
+    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/daily/human relations.png' },
+    { id: 3, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/Alex Telegam.png' },
+
+    { id: 4, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/alex twitter.png' },
+    { id: 5, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/alex youtube.png' },
+    { id: 6, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/invite a telegram premium friend.png' },
+    { id: 7, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/invite friend.png' },
+    { id: 8, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail instagram.png' },
+    { id: 9, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail medium.png' },
+
+    { id: 10, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/daily/join discord.png' },
+    { id: 11, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail telegram.png' },
+    { id: 12, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail thread.png' },
+    { id: 13, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail tiktok.png' },
+    { id: 14, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail twitter.png' },
+    { id: 15, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail youtube.png' },
+    { id: 16, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/web3chino facebook.png' },
+    { id: 17, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino instagram.png' },
+    { id: 18, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino thread.png' },
+    { id: 19, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino tiktok.png' },
+    { id: 20, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino twitter.png' },
+    { id: 21, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino youtube.png' },
+
+    
+    { id: 22, description: 'Daily Task 3', completed: false, reward: 300000, section: 'daily', image: '/images/daily/join twitter everyday.png' },
+    { id: 23, description: 'Daily Task 4', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCR thread.png' },
+    { id: 24, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS facebook.png' },
+    { id: 25, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS instagram.png' },
+    { id: 26, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS Tiktok.png' },
+    { id: 27, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/RCT Twitter.png' },
+    { id: 28, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/read Fxckedupbags.png' },
+    { id: 29, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/RR Medium.png' },
+    { id: 30, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/share on telegram story.png' },
+    { id: 31, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/watch youtube.png' },
+
+    { id: 32, description: 'Partner Task 1', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
+    
+    
+    
     // Add more tasks as needed
   ]);
 
@@ -64,6 +91,7 @@ const Tasks: React.FC = () => {
 
       {selectedTask && (
         <div className="task-popup">
+          <img src={selectedTask.image} width="100%" />
           <p>{selectedTask.description}</p>
           <button onClick={() => setSelectedTask(null)}>Close</button>
         </div>
