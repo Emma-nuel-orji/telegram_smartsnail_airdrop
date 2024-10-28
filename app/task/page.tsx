@@ -58,8 +58,24 @@ const Tasks: React.FC = () => {
     // Add more tasks as needed
   ]);
 
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [validationAttempt, setValidationAttempt] = useState(0);
+  
   const [selectedSection, setSelectedSection] = useState<'main' | 'daily' | 'partners'>('main');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const handleValidateClick = () => {
+    if (validationAttempt === 0) {
+      alert("Error while validating. Make sure to perform your task before validating.");
+      setValidationAttempt(1);
+    } else if (validationAttempt === 1) {
+      setTasks(tasks.map(task => 
+        task.id === selectedTask?.id ? { ...task, completed: true } : task
+      ));
+      alert("Task validated successfully! Reward has been added.");
+      setSelectedTask(null); // Close the popup
+    }
+  };
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -94,7 +110,13 @@ const Tasks: React.FC = () => {
         <div className="task-popup">
           <img src={selectedTask.image} width="100%" />
           <p>{selectedTask.description}</p>
-          <button onClick={() => setSelectedTask(null)}>Close</button>
+
+          <div>
+            <button onClick={() => setSelectedTask(null)}>Close</button>
+            <button onClick={() => window.open(selectedTask.link, '_blank')}>Perform Task</button>
+            <button onClick={handleValidateClick}>Validate and Reward</button>
+          </div>
+          {/* <button onClick={() => setSelectedTask(null)}>Close</button>
           <a
             href={selectedTask.link}
             target="_blank"
@@ -102,7 +124,7 @@ const Tasks: React.FC = () => {
             className="task-link-button"
           >
             Go to Task
-          </a>
+          </a> */}
         </div>
       )}
     </div>
