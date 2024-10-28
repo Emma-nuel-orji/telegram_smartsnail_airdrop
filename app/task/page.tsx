@@ -15,8 +15,8 @@ type Task = {
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/fuckedupbags.png', link: 'https://socialmedia.com/profile1' },
-    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1' },
+    { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/smartsnail telegram.png', link: 'https://socialmedia.com/profile1' },
+    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/daily/join discord.png', link: 'https://socialmedia.com/profile1' },
     { id: 3, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1' },
 
     { id: 4, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/alex twitter.png', link: 'https://socialmedia.com/profile1' },
@@ -26,8 +26,8 @@ const Tasks: React.FC = () => {
     { id: 8, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail instagram.png' , link: 'https://socialmedia.com/profile1'},
     { id: 9, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail medium.png' , link: 'https://socialmedia.com/profile1'},
 
-    { id: 10, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/daily/join discord.png', link: 'https://socialmedia.com/profile1' },
-    { id: 11, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail telegram.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 10, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1' },
+    { id: 11, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/fuckedupbags.png' , link: 'https://socialmedia.com/profile1'},
     { id: 12, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail thread.png', link: 'https://socialmedia.com/profile1' },
     { id: 13, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail tiktok.png', link: 'https://socialmedia.com/profile1' },
     { id: 14, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail twitter.png', link: 'https://socialmedia.com/profile1' },

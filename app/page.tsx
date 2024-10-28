@@ -141,19 +141,23 @@ export default function Home() {
             <div className="flex-grow flex items-center max-w-60 text-sm">
               <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
                 <button className="flex flex-col items-center gap-1">
+                  <Link href="/referralsystem">
                   <img src="/images/bear.png" width={24} height={24} alt="Frens" />
                   
-                  <Link href="/referralsystem"><span>Frens</span></Link>
+                  <span>Frens</span>
+                  </Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
+                  <Link href="/task">
                   <img src="/images/coin.png" width={24} height={24} alt="Earn" />
-                  <Link href="/task"><span>Earn</span></Link>
+                  <span>Earn</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
+                  <Link href="/boost">
                   <img src="/images/rocket.png" width={24} height={24} alt="Boosts" />
-                  <Link href="/boost"><span>Game</span></Link>
+                  <span>Game</span></Link>
                 </button>
               </div>
             </div>

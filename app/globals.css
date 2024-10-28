@@ -144,7 +144,7 @@ body {
   min-height: 100vh;
   max-width: 400px;
   margin: 0 auto;
-  background-color: #a303a8;
+  background-color: #dd9acd;
   padding: 20px;
   /* border-radius: 10px; */
   box-shadow: 0 2px 8px rgb(151, 11, 151);
@@ -237,7 +237,7 @@ body {
 }
 
 .refer{
-  background-color: #050505;
+  background-color: #dd9acd;
   /* min-height: 100vh; */
     /* padding: 20px; */
   text-align: center;

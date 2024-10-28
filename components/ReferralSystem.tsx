@@ -66,11 +66,11 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
   return (
     <div className="referral-container">
       <div className="ref">
-        <img className="imag"  src="/images/20241024_83161.png"  />
+        <img className="imag"  src="/images/tasks/invite a telegram premium friend.png"  />
         {/* <img src={coin} width={44} height={44} /> */}
       </div>
       <div className="ref">
-        <img className="imag"  src="/images/20241024_83160.png"  />
+        <img className="imag"  src="/images/tasks/invite friend.png"  />
         {/* <img src={coin} width={44} height={44} /> */}
       </div>
       <br />
