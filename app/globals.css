@@ -369,7 +369,7 @@ body {
 }
 
 .task-popup {
-  position: relative;
+  /* position: relative; */
   /* background: #6f0058; */
   /* padding: 20px;
   border-radius: 8px;
@@ -377,7 +377,7 @@ body {
   margin: 0 auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 
-  /* position: fixed; */
+  position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
