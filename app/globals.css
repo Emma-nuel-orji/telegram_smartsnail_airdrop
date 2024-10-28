@@ -306,6 +306,7 @@ body {
 
 .task-container {
   width: 100%;
+  height: 350px;
   background-color: #dd9acd;
   padding: 20px;
 
