@@ -395,23 +395,15 @@ body {
 }
 
 /* new */
-/* .task-popup {
-  position: relative;
-  background: #6f0058;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 300px;
-  margin: 0 auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-} */
+
 
 .close-button {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 7px;
+  right: 7px;
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 13px;
   cursor: pointer;
   color: #888;
 }
