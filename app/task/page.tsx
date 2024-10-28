@@ -84,7 +84,7 @@ const Tasks: React.FC = () => {
   const filteredTasks = tasks.filter((task) => task.section === selectedSection);
 
   return (
-    <div className="task-container" style={{ width: '100%', height: '350px' }}>
+    <div className="task-container" style={{ width: '100%', height: '1350px' }}>
       <h2>Complete Tasks to Earn Rewards!</h2>
       <Link href="/">
         <a className="back-arrow">&#8592;</a>
