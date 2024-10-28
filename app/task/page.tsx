@@ -62,7 +62,7 @@ const Tasks: React.FC = () => {
   const [validationAttempt, setValidationAttempt] = useState(0);
   
   const [selectedSection, setSelectedSection] = useState<'main' | 'daily' | 'partners'>('main');
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  // const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const handleValidateClick = () => {
     if (validationAttempt === 0) {
@@ -116,15 +116,7 @@ const Tasks: React.FC = () => {
             <button onClick={() => window.open(selectedTask.link, '_blank')}>Perform Task</button>
             <button onClick={handleValidateClick}>Validate and Reward</button>
           </div>
-          {/* <button onClick={() => setSelectedTask(null)}>Close</button>
-          <a
-            href={selectedTask.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="task-link-button"
-          >
-            Go to Task
-          </a> */}
+          
         </div>
       )}
     </div>
