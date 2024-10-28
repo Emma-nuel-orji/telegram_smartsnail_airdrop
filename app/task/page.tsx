@@ -14,43 +14,43 @@ type Task = {
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/fuckedupbags.png' },
-    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/daily/human relations.png' },
-    { id: 3, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/Alex Telegam.png' },
+    { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/fuckedupbags.png', link: 'https://socialmedia.com/profile1' },
+    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1' },
+    { id: 3, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1' },
 
-    { id: 4, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/alex twitter.png' },
-    { id: 5, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/alex youtube.png' },
-    { id: 6, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/invite a telegram premium friend.png' },
-    { id: 7, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/invite friend.png' },
-    { id: 8, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail instagram.png' },
-    { id: 9, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail medium.png' },
+    { id: 4, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/alex twitter.png', link: 'https://socialmedia.com/profile1' },
+    { id: 5, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/alex youtube.png', link: 'https://socialmedia.com/profile1' },
+    { id: 6, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/invite a telegram premium friend.png', link: 'https://socialmedia.com/profile1' },
+    { id: 7, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/invite friend.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 8, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail instagram.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 9, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail medium.png' , link: 'https://socialmedia.com/profile1'},
 
-    { id: 10, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/daily/join discord.png' },
-    { id: 11, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail telegram.png' },
-    { id: 12, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail thread.png' },
-    { id: 13, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail tiktok.png' },
-    { id: 14, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail twitter.png' },
-    { id: 15, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail youtube.png' },
-    { id: 16, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/web3chino facebook.png' },
-    { id: 17, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino instagram.png' },
-    { id: 18, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino thread.png' },
-    { id: 19, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino tiktok.png' },
-    { id: 20, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino twitter.png' },
-    { id: 21, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino youtube.png' },
+    { id: 10, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/daily/join discord.png', link: 'https://socialmedia.com/profile1' },
+    { id: 11, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail telegram.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 12, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail thread.png', link: 'https://socialmedia.com/profile1' },
+    { id: 13, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail tiktok.png', link: 'https://socialmedia.com/profile1' },
+    { id: 14, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail twitter.png', link: 'https://socialmedia.com/profile1' },
+    { id: 15, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail youtube.png', link: 'https://socialmedia.com/profile1' },
+    { id: 16, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/web3chino facebook.png', link: 'https://socialmedia.com/profile1' },
+    { id: 17, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino instagram.png', link: 'https://socialmedia.com/profile1' },
+    { id: 18, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino thread.png', link: 'https://socialmedia.com/profile1' },
+    { id: 19, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino tiktok.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 20, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino twitter.png', link: 'https://socialmedia.com/profile1' },
+    { id: 21, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino youtube.png' , link: 'https://socialmedia.com/profile1'},
 
     
-    { id: 22, description: 'Daily Task 3', completed: false, reward: 300000, section: 'daily', image: '/images/daily/join twitter everyday.png' },
-    { id: 23, description: 'Daily Task 4', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCR thread.png' },
-    { id: 24, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS facebook.png' },
-    { id: 25, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS instagram.png' },
-    { id: 26, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS Tiktok.png' },
-    { id: 27, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/RCT Twitter.png' },
-    { id: 28, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/read Fxckedupbags.png' },
-    { id: 29, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/RR Medium.png' },
-    { id: 30, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/share on telegram story.png' },
-    { id: 31, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/watch youtube.png' },
+    { id: 22, description: 'Daily Task 3', completed: false, reward: 300000, section: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://socialmedia.com/profile1' },
+    { id: 23, description: 'Daily Task 4', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCR thread.png', link: 'https://socialmedia.com/profile1' },
+    { id: 24, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://socialmedia.com/profile1' },
+    { id: 25, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://socialmedia.com/profile1' },
+    { id: 26, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS Tiktok.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 27, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1' },
+    { id: 28, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1' },
+    { id: 29, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/RR Medium.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 30, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1' },
+    { id: 31, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1' },
 
-    { id: 32, description: 'Partner Task 1', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png' },
+    { id: 32, description: 'Partner Task 1', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1' },
     
     
     
@@ -94,6 +94,14 @@ const Tasks: React.FC = () => {
           <img src={selectedTask.image} width="100%" />
           <p>{selectedTask.description}</p>
           <button onClick={() => setSelectedTask(null)}>Close</button>
+          <a
+            href={selectedTask.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="task-link-button"
+          >
+            Go to Task
+          </a>
         </div>
       )}
     </div>
