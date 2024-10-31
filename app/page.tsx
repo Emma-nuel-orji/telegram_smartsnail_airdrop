@@ -107,16 +107,30 @@ export default function Home() {
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
         <div className="fixed top-0 left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
           <div className="mt-12 text-5xl font-bold flex items-center">
-            <img src="/images/shell.png" width={24} height={24} alt="Coin" />
+            <img src="/images/shell.png" width={40} height={40} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
           <div className="text-base mt-2 flex items-center">
+          <button className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md mr-2">
+          <Link href="/referralsystem"> 
+          View Levels
+          </Link>
+          </button>
+
+          <img src="/images/trophy.png" width={24} height={24} />
+          <span className="ml-1">
+            Camouflage 
+            {/* {level} <Arrow size={18} className="ml-0 mb-1 inline-block" /> */}
+          </span>
+        </div>
+
+
+          {/* <div className="text-base mt-2 flex items-center">
             <img src="/images/trophy.png" width={24} height={24} />
             <span className="ml-1">
               Camouflage 
-              {/* {level} <Arrow size={18} className="ml-0 mb-1 inline-block" /> */}
             </span>
-          </div>
+          </div> */}
         </div>
 
         {/* Progress bar for energy */}
@@ -150,7 +164,7 @@ export default function Home() {
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
                   <Link href="/task">
-                  <img src="/images/coin.png" width={24} height={24} alt="Earn" />
+                  <img src="/images/shell.png" width={24} height={24} alt="Earn" />
                   <span>Earn</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>

@@ -402,7 +402,7 @@ body {
   right: 7px;
   background: none;
   border: none;
-  font-size: 13px;
+  font-size: 18px;
   cursor: pointer;
   color: #888;
 }
@@ -413,7 +413,7 @@ body {
   width: 100%;
   padding: 10px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
 }
 
