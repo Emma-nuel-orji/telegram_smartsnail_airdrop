@@ -107,7 +107,7 @@ export default function Home() {
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
         <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
           <div className="mt-8 text-5xl font-bold flex items-center">
-            <img src="/images/shell.png" width={40} height={40} alt="Coin" />
+            <img src="/images/shell.png" width={48} height={48} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
           
@@ -120,7 +120,7 @@ export default function Home() {
     <Link href="/referralsystem">Levels:</Link>
   </button>
 
-  <img src="/images/trophy.png" width={24} height={24} />
+  <img src="/images/trophy.png" width={24} height={24} className="ml-8" />
   <span className="ml-1">Camouflage</span>
 </div>
 
