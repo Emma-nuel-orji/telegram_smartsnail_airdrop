@@ -117,7 +117,7 @@ export default function Home() {
             boxShadow: "0px 0px 8px 4px rgba(0, 160, 255, 0.6)",
           }}>
           <Link href="/referralsystem">
-            View Levels
+            Levels:
           </Link>
         </button>
         <img src="/images/trophy.png" width={24} height={24} />
