@@ -427,3 +427,27 @@ body {
   background-color: #28a745;
   color: #fff;
 }
+
+
+/* button  */
+
+@keyframes glowing {
+  0% {
+    background-color: yellow;
+    box-shadow: 0 0 5px yellow, 0 0 10px yellow, 0 0 15px yellow, 0 0 20px yellow;
+  }
+  50% {
+    background-color: green;
+    box-shadow: 0 0 5px green, 0 0 10px green, 0 0 15px green, 0 0 20px green;
+  }
+  100% {
+    background-color: yellow;
+    box-shadow: 0 0 5px yellow, 0 0 10px yellow, 0 0 15px yellow, 0 0 20px yellow;
+  }
+}
+
+.animate-glow {
+  animation: glowing 3s infinite;
+  box-shadow: 0px 0px 8px 4px rgba(0, 160, 255, 0.6) ;
+
+}

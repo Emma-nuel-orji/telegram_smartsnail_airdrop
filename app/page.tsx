@@ -105,24 +105,25 @@ export default function Home() {
       </div>
 
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
-        <div className="fixed top-[-3rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+        <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
           <div className="mt-8 text-5xl font-bold flex items-center">
             <img src="/images/shell.png" width={40} height={40} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
           
-          <div className="text-base mt-2 flex items-center">
-            <button className="ml-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md transition-all duration-300 transform hover:shadow-lg hover:scale-105"
-          style={{
-            boxShadow: "0px 0px 8px 4px rgba(0, 160, 255, 0.6)",
-          }}>
-          <Link href="/referralsystem">
-            Levels:
-          </Link>
-        </button>
-        <img src="/images/trophy.png" width={24} height={24} />
-        <span className="ml-1">Camouflage</span>
-           </div>
+          <div className="text-base mt-2 flex items-center justify-between">
+  <button
+    className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-auto
+               transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow"
+    
+  >
+    <Link href="/referralsystem">Levels:</Link>
+  </button>
+
+  <img src="/images/trophy.png" width={24} height={24} />
+  <span className="ml-1">Camouflage</span>
+</div>
+
         </div>
 
         {/* Progress bar for energy */}
