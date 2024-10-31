@@ -113,7 +113,7 @@ export default function Home() {
           
           <div className="text-base mt-2 flex items-center justify-between">
   <button
-    className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-auto
+    className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-5
                transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow"
     
   >
