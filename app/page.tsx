@@ -110,20 +110,19 @@ export default function Home() {
             <img src="/images/shell.png" width={40} height={40} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
+          
           <div className="text-base mt-2 flex items-center">
-          <button className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md mr-2">
-          <Link href="/referralsystem"> 
-          View Levels
+            <button className="ml-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md transition-all duration-300 transform hover:shadow-lg hover:scale-105"
+          style={{
+            boxShadow: "0px 0px 8px 4px rgba(0, 160, 255, 0.6)",
+          }}>
+          <Link href="/referralsystem">
+            View Levels
           </Link>
-          </button>
-
-          <img src="/images/trophy.png" width={24} height={24} />
-          <span className="ml-1">
-            Camouflage 
-            {/* {level} <Arrow size={18} className="ml-0 mb-1 inline-block" /> */}
-          </span>
-        </div>
-
+        </button>
+        <img src="/images/trophy.png" width={24} height={24} />
+        <span className="ml-1">Camouflage</span>
+           </div>
 
           {/* <div className="text-base mt-2 flex items-center">
             <img src="/images/trophy.png" width={24} height={24} />
