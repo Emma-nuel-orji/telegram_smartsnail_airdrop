@@ -125,13 +125,16 @@ export default function Home() {
           </div>
           
           <div className="text-base mt-4 flex items-center justify-between">
-  <button
-    className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-10
-               transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow"
-    
-  > <img src="/images/trophy.png" width={24} height={24} className="ml-3" />
+          <button
+  className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-10
+             transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow flex items-center"
+>
+  <div className="flex items-center">
+    <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-2" />
     <Link href="/referralsystem">Levels:</Link>
-  </button>
+  </div>
+</button>
+
 
   
   <span className="ml-1">Camouflage</span>
