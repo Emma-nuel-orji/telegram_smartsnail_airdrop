@@ -126,18 +126,18 @@ export default function Home() {
           
           <div className="text-base mt-2 flex items-center justify-between">
           <button
-  className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-10
+  className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4
              transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow flex items-center"
 >
   <div className="flex items-center">
     <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
-    <Link href="/referralsystem">Levels:</Link>
+    <Link href="/referralsystem">Level:</Link>
   </div>
 </button>
 
 
   
-  <span className="ml-1">Camouflage</span>
+  <span className="ml-0">Camouflage</span>
 </div>
 
         </div>
@@ -173,7 +173,7 @@ export default function Home() {
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
                   <Link href="/task">
-                  <img src="/images/shell.png" width={24} height={24} alt="Earn" />
+                  <img src="/images/shell.png" width={40} height={40} alt="Earn" />
                   <span>Earn</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
