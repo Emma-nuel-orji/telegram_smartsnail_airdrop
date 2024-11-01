@@ -434,15 +434,15 @@ body {
 @keyframes glowing {
   0% {
     background-color: rgb(223, 193, 25);
-    border: 0 0 5px solid rgb(223, 193, 25), 0 0 10px solid rgb(223, 193, 25), 0 0 15px solid rgb(223, 193, 25), 0 0 20px solid rgb(223, 193, 25);
+    border: 0 0 0px solid rgb(223, 193, 25), 0 0 1px solid rgb(223, 193, 25), 0 0 2px solid solid rgb(223, 193, 25), 0 0 3px solid solid rgb(223, 193, 25);
   }
   50% {
     background-color: green;
-    box-shadow: 0 0 5px green, 0 0 10px green, 0 0 15px green, 0 0 20px green;
+    border: 0 0 1px solid green, 0 0 1px solid green, 0 0 2px solid green, 0 0 3px solid green;
   }
   100% {
     background-color: rgb(223, 193, 25);
-    box-shadow: 0 0 5px rgb(223, 193, 25), 0 0 10px rgb(223, 193, 25), 0 0 15px rgb(223, 193, 25), 0 0 20px rgb(223, 193, 25);
+    border: 0 0 0px solid rgb(223, 193, 25), 0 0 1px solid rgb(223, 193, 25), 0 0 2px solid rgb(223, 193, 25), 0 0 3px solid rgb(223, 193, 25);
   }
 }
 
