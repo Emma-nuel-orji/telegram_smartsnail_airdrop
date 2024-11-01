@@ -105,8 +105,20 @@ export default function Home() {
       </div>
 
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
-        <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+        <div className="fixed top-[-1rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
           
+            {/* New section for smartsnail with icons */}
+          <div className="flex items-center justify-between w-full px-4 mb-4">
+            <span className="text-2xl font-semibold">Smartsnail</span>
+
+            <div className="flex space-x-4">
+              <img src="/images/icons/setting.png" width={24} height={24} alt="Settings" />
+              <img src="/images/icons/wallet.png" width={24} height={24} alt="Wallet" />
+              <img src="/images/icons/profile.png" width={24} height={24} alt="Profile" />
+            </div>
+          </div>
+
+          {/* Original section */}
           <div className="mt-8 text-5xl font-bold flex items-center">
             <img src="/images/shell.png" width={48} height={48} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
