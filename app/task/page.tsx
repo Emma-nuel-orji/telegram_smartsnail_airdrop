@@ -3,6 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+import 'izitoast/dist/css/iziToast.min.css';
+import iziToast from 'izitoast';
+
+
 type Task = {
   id: number;
   description: string;
@@ -66,16 +70,29 @@ const Tasks: React.FC = () => {
 
   const handleValidateClick = () => {
     if (validationAttempt === 0) {
-      alert("Error while validating. Make sure to perform your task before validating.");
+      iziToast.error({
+        title: 'Validation Error',
+        message: 'Error while validating. Make sure to perform your task before validating.',
+        position: 'topRight',
+        timeout: 5000,
+        transitionIn: 'fadeInDown'
+      });
       setValidationAttempt(1);
     } else if (validationAttempt === 1) {
       setTasks(tasks.map(task => 
         task.id === selectedTask?.id ? { ...task, completed: true } : task
       ));
-      alert("Task validated successfully! Reward has been added.");
+      iziToast.success({
+        title: 'Task Validated',
+        message: 'Task validated successfully! Reward has been added.',
+        position: 'topRight',
+        timeout: 5000,
+        transitionIn: 'fadeInUp'
+      });
       setSelectedTask(null); // Close the popup
     }
   };
+  
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);

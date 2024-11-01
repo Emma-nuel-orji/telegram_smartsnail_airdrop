@@ -106,6 +106,7 @@ export default function Home() {
 
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
         <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+          
           <div className="mt-8 text-5xl font-bold flex items-center">
             <img src="/images/shell.png" width={48} height={48} alt="Coin" />
             <span className="ml-2">{user.points.toLocaleString()}</span>
@@ -113,7 +114,7 @@ export default function Home() {
           
           <div className="text-base mt-2 flex items-center justify-between">
   <button
-    className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-5
+    className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-10
                transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow"
     
   >
