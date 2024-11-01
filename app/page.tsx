@@ -112,9 +112,9 @@ export default function Home() {
             <span className="text-2xl font-semibold">Smartsnail</span>
 
             <div className="flex space-x-4">
-              <img src="/images/sett.jpeg" width={24} height={24} alt="Settings" />
-              <img src="/images/wallet.jpeg" width={24} height={24} alt="Wallet" />
-              <img src="/images/wallet.jpeg" width={24} height={24} alt="Profile" />
+              <Link href="/referralsystem"><img src="/images/sett.jpeg" width={24} height={24} alt="Settings" /></Link>
+              <Link href="/referralsystem"><img src="/images/wallet.jpeg" width={24} height={24} alt="Wallet" /></Link>
+              <Link href="/referralsystem"><img src="/images/wallet.jpeg" width={24} height={24} alt="Profile" /></Link>
             </div>
           </div>
 
@@ -124,7 +124,7 @@ export default function Home() {
             <span className="ml-2">{user.points.toLocaleString()}</span>
           </div>
           
-          <div className="text-base mt-2 flex items-center justify-between">
+          <div className="text-base mt-4 flex items-center justify-between">
   <button
     className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-10
                transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow"
@@ -133,7 +133,7 @@ export default function Home() {
     <Link href="/referralsystem">Levels:</Link>
   </button>
 
-  <img src="/images/trophy.png" width={24} height={24} className="ml-8" />
+  <img src="/images/trophy.png" width={24} height={24} className="ml-3" />
   <span className="ml-1">Camouflage</span>
 </div>
 
