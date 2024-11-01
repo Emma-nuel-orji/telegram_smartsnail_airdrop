@@ -33,7 +33,7 @@ const Tasks: React.FC = () => {
     { id: 19, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino tiktok.png' , link: 'https://socialmedia.com/profile1'},
     { id: 20, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino twitter.png', link: 'https://socialmedia.com/profile1' },
     { id: 21, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino youtube.png' , link: 'https://socialmedia.com/profile1'},
-    { id: 21, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/connect wallet.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 21, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/connect wallet.png' , link: '/wallet'},
     { id: 3, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1' },
 
     { id: 4, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/alex twitter.png', link: 'https://socialmedia.com/profile1' },
