@@ -433,16 +433,16 @@ body {
 
 @keyframes glowing {
   0% {
-    background-color: yellow;
-    box-shadow: 0 0 5px yellow, 0 0 10px yellow, 0 0 15px yellow, 0 0 20px yellow;
+    background-color: rgb(223, 193, 25);
+    box-shadow: 0 0 5px rgb(223, 193, 25), 0 0 10px rgb(223, 193, 25), 0 0 15px rgb(223, 193, 25), 0 0 20px rgb(223, 193, 25);
   }
   50% {
     background-color: green;
     box-shadow: 0 0 5px green, 0 0 10px green, 0 0 15px green, 0 0 20px green;
   }
   100% {
-    background-color: yellow;
-    box-shadow: 0 0 5px yellow, 0 0 10px yellow, 0 0 15px yellow, 0 0 20px yellow;
+    background-color: rgb(223, 193, 25);
+    box-shadow: 0 0 5px rgb(223, 193, 25), 0 0 10px rgb(223, 193, 25), 0 0 15px rgb(223, 193, 25), 0 0 20px rgb(223, 193, 25);
   }
 }
 
