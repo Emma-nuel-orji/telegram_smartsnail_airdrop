@@ -112,9 +112,9 @@ export default function Home() {
             <span className="text-2xl font-semibold">Smartsnail</span>
 
             <div className="flex space-x-4">
-              <img src="/images/icons/setting.png" width={24} height={24} alt="Settings" />
-              <img src="/images/icons/wallet.png" width={24} height={24} alt="Wallet" />
-              <img src="/images/icons/profile.png" width={24} height={24} alt="Profile" />
+              <img src="/images/sett.jpeg" width={24} height={24} alt="Settings" />
+              <img src="/images/wallet.jpeg" width={24} height={24} alt="Wallet" />
+              <img src="/images/wallet.jpeg" width={24} height={24} alt="Profile" />
             </div>
           </div>
 
