@@ -114,7 +114,7 @@ export default function Home() {
             <div className="flex space-x-4">
               <Link href="/referralsystem"><img src="/images/sett.jpeg" width={24} height={24} alt="Settings" /></Link>
               <Link href="/referralsystem"><img src="/images/wallet.jpeg" width={24} height={24} alt="Wallet" /></Link>
-              <Link href="/referralsystem"><img src="/images/wallet.jpeg" width={24} height={24} alt="Profile" /></Link>
+              <Link href="/wallet"><img src="/images/wallet.jpeg" width={24} height={24} alt="Profile" /></Link>
             </div>
           </div>
 
@@ -129,11 +129,11 @@ export default function Home() {
     className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-10
                transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow"
     
-  >
+  > <img src="/images/trophy.png" width={24} height={24} className="ml-3" />
     <Link href="/referralsystem">Levels:</Link>
   </button>
 
-  <img src="/images/trophy.png" width={24} height={24} className="ml-3" />
+  
   <span className="ml-1">Camouflage</span>
 </div>
 
@@ -162,7 +162,7 @@ export default function Home() {
               <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
                 <button className="flex flex-col items-center gap-1">
                   <Link href="/referralsystem">
-                  <img src="/images/bear.png" width={24} height={24} alt="Frens" />
+                  <img src="/images/friend.png" width={24} height={24} alt="Frens" />
                   
                   <span>Frens</span>
                   </Link>
@@ -200,6 +200,8 @@ export default function Home() {
     </div>
   );
 }
+
+
 
 
 
