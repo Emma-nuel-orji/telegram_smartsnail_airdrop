@@ -85,10 +85,11 @@ const Tasks: React.FC = () => {
 
   return (
     <div className="task-container" style={{ width: '100%' }}>
-      <h2>Complete Tasks to Earn Rewards!</h2>
       <Link href="/">
         <a className="back-arrow">&#8592;</a>
       </Link>
+      <h2>Complete Tasks to Earn Rewards!</h2>
+      
 
       <div className="task-buttons">
         <button onClick={() => setSelectedSection('main')} className={`task-button ${selectedSection === 'main' ? 'active' : ''}`}>Main Tasks</button>

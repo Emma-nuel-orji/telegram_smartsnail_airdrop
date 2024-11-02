@@ -112,9 +112,9 @@ export default function Home() {
             <span className="text-2xl font-semibold">Smartsnail</span>
 
             <div className="flex space-x-4">
-              <Link href="/referralsystem"><img src="/images/sett.jpeg" width={24} height={24} alt="Settings" /></Link>
-              <Link href="/referralsystem"><img src="/images/wallet.jpeg" width={24} height={24} alt="Wallet" /></Link>
-              <Link href="/wallet"><img src="/images/wallet.jpeg" width={24} height={24} alt="Profile" /></Link>
+              <Link href="/referralsystem"><img src="/images/leaderboard.png" width={24} height={24} alt="Leaderboard" /></Link>
+              <Link href="/wallet"><img src="/images/wallet.png" width={24} height={24} alt="Wallet" /></Link>
+              <Link href="/referralsystem"><img src="/images/information.png" width={24} height={24} alt="Profile" /></Link>
             </div>
           </div>
 
@@ -173,7 +173,7 @@ export default function Home() {
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
                 <button className="flex flex-col items-center gap-1">
                   <Link href="/task">
-                  <img src="/images/shell.png" width={40} height={40} alt="Earn" />
+                  <img src="/images/shell.png" width={30} height={30} alt="Earn" />
                   <span>Earn</span></Link>
                 </button>
                 <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
