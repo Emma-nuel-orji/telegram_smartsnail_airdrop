@@ -112,9 +112,9 @@ export default function Home() {
             <span className="text-2xl font-semibold">Smartsnail</span>
 
             <div className="flex space-x-4">
-              <Link href="/referralsystem"><img src="/images/leaderboard.png" width={24} height={24} alt="Leaderboard" /></Link>
-              <Link href="/wallet"><img src="/images/wallet.png" width={24} height={24} alt="Wallet" /></Link>
-              <Link href="/referralsystem"><img src="/images/information.png" width={24} height={24} alt="Profile" /></Link>
+              <Link href="/referralsystem"><img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" /></Link>
+              <Link href="/wallet"><img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" /></Link>
+              <Link href="/referralsystem"><img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" /></Link>
             </div>
           </div>
 
