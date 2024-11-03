@@ -25,10 +25,8 @@ export default function Home() {
 
   return (
     <main className="refer">
+      <Link href="/"><img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="Profile" /></Link>
       <h1 className="h text-4xl font-bold mb-8">Invite friends!</h1>
-      <Link href="/">
-        <a className="back-arrow bg-light">&#8592;</a>
-      </Link>
       <p className="p">You and your friend will recieve bonuses</p>
       <ReferralSystem initData={initData} userId={userId} startParam={startParam} />
     </main>
