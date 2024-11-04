@@ -241,13 +241,23 @@ body {
   /* min-height: 100vh; */
     /* padding: 20px; */
   width: 100%;
-  /* text-align: center;
+
+}
+
+.hhh{
+  text-align: center;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center; */
+  align-items: center;
 }
-
+.ppp{
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
 
 /* the task page  */
 
