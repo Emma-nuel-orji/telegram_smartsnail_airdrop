@@ -72,7 +72,6 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">
-      <Link href="/"><img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" /></Link>
       {/* <h1 className="text-4xl font-bold mb-8">TON Connect Demo</h1> */}
       {tonWalletAddress ? (
         <div className="flex flex-col items-center">
