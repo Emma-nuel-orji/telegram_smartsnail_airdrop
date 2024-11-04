@@ -78,7 +78,7 @@ export default function Home() {
         <img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" />
       </Link>
     </div>
-      {/* <h1 className="text-4xl font-bold mb-8">TON Connect Demo</h1> */}
+      <h1 className="text-4xl font-bold mb-8">TON Connect Demo</h1>
       {tonWalletAddress ? (
         <div className="flex flex-col items-center">
           <p className="mb-4">Connected: {formatAddress(tonWalletAddress)}</p>
