@@ -157,7 +157,7 @@ export default function Home() {
         </div>
 
         {/* Original section */}
-        <div className="mt-[-0rem] text-5xl font-bold flex items-center">
+        <div className="mt-[-1rem] text-5xl font-bold flex items-center">
           <img src="/images/shell.png" width={48} height={48} alt="Coin" />
           <span className="ml-2">{user.points.toLocaleString()}</span>
         </div>
