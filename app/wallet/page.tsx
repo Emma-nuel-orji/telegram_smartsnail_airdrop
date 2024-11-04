@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { Address } from "@ton/core";
+import Link from 'next/link';
 
 export default function Home() {
   const [tonConnectUI] = useTonConnectUI();

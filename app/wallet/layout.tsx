@@ -2,6 +2,7 @@
 
 import "./globals.css";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
+import Link from 'next/link';
 
 export default function RootLayout({
   children,
