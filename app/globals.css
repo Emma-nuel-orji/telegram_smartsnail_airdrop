@@ -240,6 +240,7 @@ body {
   background-color: #dd9acd;
   /* min-height: 100vh; */
     /* padding: 20px; */
+  width: 100%;
   text-align: center;
   display: flex;
   flex-direction: column;

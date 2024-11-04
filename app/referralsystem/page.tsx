@@ -24,7 +24,7 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="refer task-container" style={{ width: '100%' }}>
+    <main className="refer task-container" >
     
       <Link href="/"><img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" /></Link>
       <h1 className="h text-4xl font-bold mb-4">Invite friends!</h1>
