@@ -218,7 +218,7 @@ className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-
               <button className="flex flex-col items-center gap-1">
                 <Link href="/boost">
                 <img src="/images/startup.png" width={30} height={30} alt="Boosts" />
-                <span>Game</span></Link>
+                <span>Boost</span></Link>
               </button>
             </div>
           </div>
