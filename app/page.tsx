@@ -111,7 +111,6 @@ export default function Home() {
       <div className="loading-container">
         <video autoPlay muted loop>
           <source src="/videos/unload.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
         </video>
       </div>
     );
@@ -144,7 +143,7 @@ export default function Home() {
 
       <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
         {/* Existing home page content */}
-        <div className="fixed top-[-1rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+        <div className="fixed top-[-2rem] left-0 w-full px-4 pt-4 z-10 flex flex-col items-center text-white">
           
           {/* New section for smartsnail with icons */}
         <div className="flex items-center justify-between w-full px-4 mb-4">
@@ -158,7 +157,7 @@ export default function Home() {
         </div>
 
         {/* Original section */}
-        <div className="mt-0 text-5xl font-bold flex items-center">
+        <div className="mt-[-2rem] text-5xl font-bold flex items-center">
           <img src="/images/shell.png" width={48} height={48} alt="Coin" />
           <span className="ml-2">{user.points.toLocaleString()}</span>
         </div>
@@ -204,7 +203,7 @@ className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-
             <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
               <button className="flex flex-col items-center gap-1">
                 <Link href="/referralsystem">
-                <img src="/images/friend.png" width={24} height={24} alt="Frens" />
+                <img src="/images/friend.png" width={30} height={30} alt="Frens" />
                 
                 <span>Frens</span>
                 </Link>
@@ -218,7 +217,7 @@ className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-
               <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
               <button className="flex flex-col items-center gap-1">
                 <Link href="/boost">
-                <img src="/images/rocket.png" width={24} height={24} alt="Boosts" />
+                <img src="/images/startup.png" width={30} height={30} alt="Boosts" />
                 <span>Game</span></Link>
               </button>
             </div>

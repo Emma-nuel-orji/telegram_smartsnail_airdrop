@@ -85,7 +85,7 @@ const Tasks: React.FC = () => {
 
   return (
     <div className="task-container" style={{ width: '100%' }}>
-      <Link href="/"><img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="Profile" /></Link>
+      <Link href="/"><img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" /></Link>
 
       {/* <Link href="/">
       
