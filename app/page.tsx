@@ -13,7 +13,55 @@ declare global {
 }
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null);
+
+  const [clicks, setClicks] = useState<any[]>([]);
+  const [user, setUser] = useState<any>({ points: 0 });
+
+// Adjusted function for animation and incrementing points
+const handleAnimatedPointsIncrease = async (e: React.MouseEvent) => {
+  const { clientX, clientY } = e;
+  const id = Date.now();
+
+  // Add click to the array with animation position
+  setClicks((prevClicks) => [
+    ...prevClicks,
+    { id, x: clientX, y: clientY }
+  ]);
+
+  // Increment points in the frontend
+  setUser((prevUser: typeof user) => ({ ...prevUser, points: prevUser.points + 12 }));
+
+  // Send request to update points in the database
+  try {
+    const res = await fetch('/api/increase-points', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ telegramId: user.telegramId }),
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      setUser({ ...user, points: data.points }); // Update user points with response
+    } else {
+      setError('Failed to update points in database');
+    }
+  } catch (err) {
+    setError('An error occurred while updating points in database');
+  }
+};
+
+
+
+  const handleAnimationEnd = (id: number) => {
+    // Remove the animation div after it finishes
+    setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
+  };
+  // Animation ends here
+
+
+  // const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState('');
   const [energy, setEnergy] = useState(1500);
@@ -78,29 +126,29 @@ export default function Home() {
     }
   };
 
-  const handleIncreasePoints = async () => {
-    if (!user || energy <= 0) return;
+  // const handleIncreasePoints = async () => {
+  //   if (!user || energy <= 0) return;
 
-    try {
-      const res = await fetch('/api/increase-points', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ telegramId: user.telegramId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUser({ ...user, points: data.points });
-        setNotification('Points increased successfully!');
-        setTimeout(() => setNotification(''), 3000);
-      } else {
-        setError('Failed to increase points');
-      }
-    } catch (err) {
-      setError('An error occurred while increasing points');
-    }
-  };
+  //   try {
+  //     const res = await fetch('/api/increase-points', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ telegramId: user.telegramId }),
+  //     });
+  //     const data = await res.json();
+  //     if (data.success) {
+  //       setUser({ ...user, points: data.points });
+  //       setNotification('Points increased successfully!');
+  //       setTimeout(() => setNotification(''), 3000);
+  //     } else {
+  //       setError('Failed to increase points');
+  //     }
+  //   } catch (err) {
+  //     setError('An error occurred while increasing points');
+  //   }
+  // };
 
   if (error) {
     return <div className="container mx-auto p-4 text-red-500">{error}</div>;
@@ -228,12 +276,51 @@ className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-
         </div>
       </div>
 
-      <div className="flex-grow flex items-center justify-center">
+      {/* <div className="flex-grow flex items-center justify-center">
         <div className="relative mt-4" onClick={handleIncreasePoints}>
           <video src="/images/snails.mp4" autoPlay muted loop />
         </div>
+      </div> */}
+
+    
+      <div className="flex-grow flex items-center justify-center" >
+        {/* Video with Click Handler */}
+        <div className="relative mt-4" onClick={handleAnimatedPointsIncrease}>
+          <video src="/images/snails.mp4" autoPlay muted loop />
+          
+          {/* Floating Clicks Animation */}
+          {clicks.map((click) => (
+            <div
+              key={click.id}
+              className="absolute text-5xl font-bold text-white opacity-0"
+              style={{
+                top: `${click.y - 42}px`,
+                left: `${click.x - 28}px`,
+                animation: 'float 1s ease-out'
+              }}
+              onAnimationEnd={() => handleAnimationEnd(click.id)}
+            >
+              +12
+            </div>
+          ))}
+        </div>
       </div>
-  
+      <style jsx>{`
+        @keyframes float {
+          0% {
+            transform: translateY(0);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-50px);
+            opacity: 0;
+          }
+        }
+      `}</style>
+    
+
+
+
         {/* ... */}
       </div>
       {notification && (
