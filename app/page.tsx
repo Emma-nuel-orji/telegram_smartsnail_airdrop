@@ -199,6 +199,7 @@ className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-
             </div>
           </div>
 
+
           <div className="flex-grow flex items-center max-w-60 text-sm">
             <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
               <button className="flex flex-col items-center gap-1">
