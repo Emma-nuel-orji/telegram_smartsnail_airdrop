@@ -17,40 +17,41 @@ export default function Home() {
   const [clicks, setClicks] = useState<any[]>([]);
   const [user, setUser] = useState<any>({ points: 0 });
 
-// Adjusted function for animation and incrementing points
-const handleAnimatedPointsIncrease = async (e: React.MouseEvent) => {
-  const { clientX, clientY } = e;
-  const id = Date.now();
-
-  // Add click to the array with animation position
-  setClicks((prevClicks) => [
-    ...prevClicks,
-    { id, x: clientX, y: clientY }
-  ]);
-
-  // Increment points in the frontend
-  setUser((prevUser: typeof user) => ({ ...prevUser, points: prevUser.points + 12 }));
-
-  // Send request to update points in the database
-  try {
-    const res = await fetch('/api/increase-points', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ telegramId: user.telegramId }),
-    });
-    
-    const data = await res.json();
-    if (data.success) {
-      setUser({ ...user, points: data.points }); // Update user points with response
-    } else {
-      setError('Failed to update points in database');
+  const handleIncreasePoints = async (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const id = Date.now();
+  
+    // Add click to the array with animation position
+    setClicks((prevClicks) => [
+      ...prevClicks,
+      { id, x: clientX, y: clientY }
+    ]);
+  
+    if (!user || energy <= 0) return;
+  
+    try {
+      const res = await fetch('/api/increase-points', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ telegramId: user.telegramId }),
+      });
+  
+      const data = await res.json();
+      if (data.success) {
+        // Update user points from database response
+        setUser({ ...user, points: data.points });
+        setNotification('Points increased successfully!');
+        setTimeout(() => setNotification(''), 3000);
+      } else {
+        setError('Failed to increase points');
+      }
+    } catch (err) {
+      setError('An error occurred while increasing points');
     }
-  } catch (err) {
-    setError('An error occurred while updating points in database');
-  }
-};
+  };
+  
 
 
 
@@ -285,7 +286,7 @@ className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-
     
       <div className="flex-grow flex items-center justify-center" >
         {/* Video with Click Handler */}
-        <div className="relative mt-4" onClick={handleAnimatedPointsIncrease}>
+        <div className="relative mt-4" onClick={handleIncreasePoints}>
           <video src="/images/snails.mp4" autoPlay muted loop />
           
           {/* Floating Clicks Animation */}
