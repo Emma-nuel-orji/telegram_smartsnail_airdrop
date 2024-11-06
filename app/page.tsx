@@ -14,118 +14,240 @@ declare global {
 
 export default function Home() {
 
-  const [clicks, setClicks] = useState<any[]>([]);
-  const [user, setUser] = useState<any>({ points: 0 });
-
-  const handleIncreasePoints = async (e: React.MouseEvent) => {
-    const { clientX, clientY } = e;
-    const id = Date.now();
-  
-    // Add click to the array with animation position
-    setClicks((prevClicks) => [
-      ...prevClicks,
-      { id, x: clientX, y: clientY }
-    ]);
-  
-    if (!user || energy <= 0) return;
-  
-    try {
-      const res = await fetch('/api/increase-points', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ telegramId: user.telegramId }),
-      });
-  
-      const data = await res.json();
-      if (data.success) {
-        // Update user points from database response
-        setUser({ ...user, points: data.points });
-        setNotification('Points increased successfully!');
-        setTimeout(() => setNotification(''), 3000);
-      } else {
-        setError('Failed to increase points');
-      }
-    } catch (err) {
-      setError('An error occurred while increasing points');
-    }
-  };
-  
-
-
-
-  const handleAnimationEnd = (id: number) => {
-    // Remove the animation div after it finishes
-    setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
-  };
-  // Animation ends here
-
-
-  // const [user, setUser] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notification, setNotification] = useState('');
-  const [energy, setEnergy] = useState(1500);
   const maxEnergy = 1500;
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-
-      const initDataUnsafe = tg.initDataUnsafe || {};
-
-      if (initDataUnsafe.user) {
-        fetch('/api/user', {
+ 
+    const [clicks, setClicks] = useState<any[]>([]);
+    const [user, setUser] = useState<any>({ points: 0 });
+    const [error, setError] = useState<string | null>(null);
+    const [notification, setNotification] = useState('');
+    const [energy, setEnergy] = useState(maxEnergy);
+    const [isClicking, setIsClicking] = useState(false);
+    const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  
+    const handleIncreasePoints = async (e: React.MouseEvent) => {
+      const { clientX, clientY } = e;
+      const id = Date.now();
+  
+      setClicks((prevClicks) => [
+        ...prevClicks,
+        { id, x: clientX, y: clientY }
+      ]);
+  
+      if (!user || energy <= 0) return;
+  
+      try {
+        const res = await fetch('/api/increase-points', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(initDataUnsafe.user),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.error) {
-              setError(data.error);
-            } else {
-              setUser(data);
-              // Show welcome popup if the user is logging in for the first time
-              setShowWelcomePopup(data.isFirstTime);
-            }
+          body: JSON.stringify({ telegramId: user.telegramId }),
+        });
+  
+        const data = await res.json();
+        if (data.success) {
+          setUser({ ...user, points: data.points });
+          setNotification('Points increased successfully!');
+          setTimeout(() => setNotification(''), 3000);
+        } else {
+          setError('Failed to increase points');
+        }
+      } catch (err) {
+        setError('An error occurred while increasing points');
+      }
+  
+      // Reduce energy by 50 per click
+      setEnergy((prev) => Math.max(0, prev - 50));
+    };
+  
+    const handleAnimationEnd = (id: number) => {
+      setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
+    };
+  
+    // Effect to refill energy when user stops clicking
+    useEffect(() => {
+      if (!isClicking && energy < maxEnergy) {
+        const refillInterval = setInterval(() => {
+          setEnergy((prev) => Math.min(maxEnergy, prev + 10));
+        }, 500);
+  
+        return () => clearInterval(refillInterval);
+      }
+    }, [isClicking, energy]);
+  
+    useEffect(() => {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+  
+        const initDataUnsafe = tg.initDataUnsafe || {};
+  
+        if (initDataUnsafe.user) {
+          fetch('/api/user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(initDataUnsafe.user),
           })
-          .catch(() => {
-            setError('Failed to fetch user data');
-          });
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.error) {
+                setError(data.error);
+              } else {
+                setUser(data);
+                setShowWelcomePopup(data.isFirstTime);
+              }
+            })
+            .catch(() => {
+              setError('Failed to fetch user data');
+            });
+        } else {
+          setError('No user data available');
+        }
       } else {
-        setError('No user data available');
+        setError('This app should be opened in Telegram');
       }
-    } else {
-      setError('This app should be opened in Telegram');
-    }
-  }, []);
+    }, []);
+  
+    const handleClaim = async () => {
+      try {
+        const res = await fetch('/api/claim-welcome', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ telegramId: user.telegramId }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUser({ ...user, points: data.points });
+          setShowWelcomePopup(false);
+          setNotification('Welcome bonus claimed!');
+        } else {
+          setError('Failed to claim bonus');
+        }
+      } catch (err) {
+        setError('An error occurred while claiming bonus');
+      }
+    };
 
-  const handleClaim = async () => {
-    try {
-      const res = await fetch('/api/claim-welcome', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ telegramId: user.telegramId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUser({ ...user, points: data.points });
-        setShowWelcomePopup(false);
-        setNotification('Welcome bonus claimed!');
-      } else {
-        setError('Failed to claim bonus');
-      }
-    } catch (err) {
-      setError('An error occurred while claiming bonus');
-    }
-  };
+  // const [clicks, setClicks] = useState<any[]>([]);
+  // const [user, setUser] = useState<any>({ points: 0 });
+
+  // const handleIncreasePoints = async (e: React.MouseEvent) => {
+  //   const { clientX, clientY } = e;
+  //   const id = Date.now();
+  
+  //   // Add click to the array with animation position
+  //   setClicks((prevClicks) => [
+  //     ...prevClicks,
+  //     { id, x: clientX, y: clientY }
+  //   ]);
+  
+  //   if (!user || energy <= 0) return;
+  
+  //   try {
+  //     const res = await fetch('/api/increase-points', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ telegramId: user.telegramId }),
+  //     });
+  
+  //     const data = await res.json();
+  //     if (data.success) {
+  //       // Update user points from database response
+  //       setUser({ ...user, points: data.points });
+  //       setNotification('Points increased successfully!');
+  //       setTimeout(() => setNotification(''), 3000);
+  //     } else {
+  //       setError('Failed to increase points');
+  //     }
+  //   } catch (err) {
+  //     setError('An error occurred while increasing points');
+  //   }
+  // };
+  
+
+
+
+  // const handleAnimationEnd = (id: number) => {
+  //   // Remove the animation div after it finishes
+  //   setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
+  // };
+  // // Animation ends here
+
+  
+  // // progress bar code 
+  
+
+  // // const [user, setUser] = useState<any>(null);
+  // const [error, setError] = useState<string | null>(null);
+  // const [notification, setNotification] = useState('');
+  // const [energy, setEnergy] = useState(1500);
+  // const maxEnergy = 1500;
+  // const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+
+  // useEffect(() => {
+  //   if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+  //     const tg = window.Telegram.WebApp;
+  //     tg.ready();
+
+  //     const initDataUnsafe = tg.initDataUnsafe || {};
+
+  //     if (initDataUnsafe.user) {
+  //       fetch('/api/user', {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //         },
+  //         body: JSON.stringify(initDataUnsafe.user),
+  //       })
+  //         .then((res) => res.json())
+  //         .then((data) => {
+  //           if (data.error) {
+  //             setError(data.error);
+  //           } else {
+  //             setUser(data);
+  //             // Show welcome popup if the user is logging in for the first time
+  //             setShowWelcomePopup(data.isFirstTime);
+  //           }
+  //         })
+  //         .catch(() => {
+  //           setError('Failed to fetch user data');
+  //         });
+  //     } else {
+  //       setError('No user data available');
+  //     }
+  //   } else {
+  //     setError('This app should be opened in Telegram');
+  //   }
+  // }, []);
+
+  // const handleClaim = async () => {
+  //   try {
+  //     const res = await fetch('/api/claim-welcome', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ telegramId: user.telegramId }),
+  //     });
+  //     const data = await res.json();
+  //     if (data.success) {
+  //       setUser({ ...user, points: data.points });
+  //       setShowWelcomePopup(false);
+  //       setNotification('Welcome bonus claimed!');
+  //     } else {
+  //       setError('Failed to claim bonus');
+  //     }
+  //   } catch (err) {
+  //     setError('An error occurred while claiming bonus');
+  //   }
+  // };
 
   // const handleIncreasePoints = async () => {
   //   if (!user || energy <= 0) return;
