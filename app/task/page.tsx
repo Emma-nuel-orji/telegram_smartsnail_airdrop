@@ -58,11 +58,34 @@ const Tasks: React.FC = () => {
     // Add more tasks as needed
   ]);
 
+  // const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  // const [validationAttempt, setValidationAttempt] = useState(0);
+  
+  // const [selectedSection, setSelectedSection] = useState<'main' | 'daily' | 'partners'>('main');
+  // // const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // const handleValidateClick = () => {
+  //   if (validationAttempt === 0) {
+  //     alert("Error while validating. Make sure to perform your task before validating.");
+  //     setValidationAttempt(1);
+  //   } else if (validationAttempt === 1) {
+  //     setTasks(tasks.map(task => 
+  //       task.id === selectedTask?.id ? { ...task, completed: true } : task
+  //     ));
+  //     alert("Task validated successfully! Reward has been added.");
+  //     setSelectedTask(null); // Close the popup
+  //   }
+  // };
+
+  // const handleTaskClick = (task: Task) => {
+  //   setSelectedTask(task);
+  // };
+
+  // const filteredTasks = tasks.filter((task) => task.section === selectedSection);
+
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [validationAttempt, setValidationAttempt] = useState(0);
-  
   const [selectedSection, setSelectedSection] = useState<'main' | 'daily' | 'partners'>('main');
-  // const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const handleValidateClick = () => {
     if (validationAttempt === 0) {
@@ -74,11 +97,13 @@ const Tasks: React.FC = () => {
       ));
       alert("Task validated successfully! Reward has been added.");
       setSelectedTask(null); // Close the popup
+      setValidationAttempt(0); // Reset validation for future tasks
     }
   };
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
+    setValidationAttempt(0); // Reset for each task click
   };
 
   const filteredTasks = tasks.filter((task) => task.section === selectedSection);
