@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 type Task = {
@@ -83,23 +83,35 @@ const Tasks: React.FC = () => {
 
   // const filteredTasks = tasks.filter((task) => task.section === selectedSection);
 
+
+
+  // Load completed tasks from localStorage on mount
+  useEffect(() => {
+    const storedCompletedTasks = JSON.parse(localStorage.getItem('completedTasks') || '[]');
+    const updatedTasks = tasks.map(task =>
+      storedCompletedTasks.includes(task.id) ? { ...task, completed: true } : task
+    );
+    setTasks(updatedTasks);
+  }, []);
+
+
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [validationAttempt, setValidationAttempt] = useState(0);
   const [selectedSection, setSelectedSection] = useState<'main' | 'daily' | 'partners'>('main');
 
-  const handleValidateClick = () => {
-    if (validationAttempt === 0) {
-      alert("Error while validating. Make sure to perform your task before validating.");
-      setValidationAttempt(1);
-    } else if (validationAttempt === 1) {
-      setTasks(tasks.map(task => 
-        task.id === selectedTask?.id ? { ...task, completed: true } : task
-      ));
-      alert("Task validated successfully! Reward has been added.");
-      setSelectedTask(null); // Close the popup
-      setValidationAttempt(0); // Reset validation for future tasks
-    }
-  };
+  // const handleValidateClick = () => {
+  //   if (validationAttempt === 0) {
+  //     alert("Error while validating. Make sure to perform your task before validating.");
+  //     setValidationAttempt(1);
+  //   } else if (validationAttempt === 1) {
+  //     setTasks(tasks.map(task => 
+  //       task.id === selectedTask?.id ? { ...task, completed: true } : task
+  //     ));
+  //     alert("Task validated successfully! Reward has been added.");
+  //     setSelectedTask(null); // Close the popup
+  //     setValidationAttempt(0); // Reset validation for future tasks
+  //   }
+  // };
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -107,6 +119,44 @@ const Tasks: React.FC = () => {
   };
 
   const filteredTasks = tasks.filter((task) => task.section === selectedSection);
+
+
+  // main task here 
+
+
+  // Load completed tasks from localStorage on mount
+  useEffect(() => {
+    const storedCompletedTasks = JSON.parse(localStorage.getItem('completedTasks') || '[]');
+    const updatedTasks = tasks.map(task =>
+      storedCompletedTasks.includes(task.id) ? { ...task, completed: true } : task
+    );
+    setTasks(updatedTasks);
+  }, []);
+
+  const handleValidateClick = () => {
+    if (validationAttempt === 0) {
+      alert("Error while validating. Make sure to perform your task before validating.");
+      setValidationAttempt(1);
+    } else if (validationAttempt === 1 && selectedTask) {
+      const updatedTasks = tasks.map(task =>
+        task.id === selectedTask.id ? { ...task, completed: true } : task
+      );
+
+      // Update tasks in state and store completed task IDs in localStorage
+      setTasks(updatedTasks);
+      const completedTaskIds = updatedTasks
+        .filter(task => task.completed)
+        .map(task => task.id);
+      localStorage.setItem('completedTasks', JSON.stringify(completedTaskIds));
+      
+      alert("Task validated successfully! Reward has been added.");
+      setSelectedTask(null);
+      setValidationAttempt(0);
+    }
+  };
+
+  const completedTasks = tasks.filter(task => task.completed);
+
 
   return (
     <div className="task-container" style={{ width: '100%' }}>
@@ -146,6 +196,18 @@ const Tasks: React.FC = () => {
         </div>
       </div>
       )}
+
+<div className="tasks-display">
+      <h3>Completed Tasks</h3>
+      {completedTasks.map(task => (
+        <div key={task.id} className="task-containers" style={{ width: '100%' }}>
+        
+          <div className="referral-invite-boxs">
+          <img src={task.image} width="100%" alt={task.description} />
+          </div>
+        </div>
+      ))}
+    </div>
     </div>
   );
 };
