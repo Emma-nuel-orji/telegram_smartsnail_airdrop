@@ -1,7 +1,7 @@
 .boost-page {
     font-family: Arial, sans-serif;
     padding: 20px;
-    color: #333;
+    color: #dd9acd;
     max-width: 600px;
     margin: 0 auto;
   }
@@ -11,7 +11,12 @@
     text-align: center;
     color: #4A90E2;
   }
-  
+
+.test {
+    font-size: 24px;
+    text-align: center;
+    color: #ffffff;
+  }
   .books-container {
     display: flex;
     flex-direction: column;

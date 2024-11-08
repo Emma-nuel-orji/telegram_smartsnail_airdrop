@@ -21,7 +21,7 @@ const BoostPage: React.FC = () => {
   return (
     <div className="boost-page">
       <h1>Boost Your Tapping Power!</h1>
-      <p>Choose a book to enhance your tapping rate and earn more coins!</p>
+      <p className='test'>Choose a book to enhance your tapping rate and earn more coins!</p>
 
       <div className="books-container">
         {/* Book Card 1 */}
@@ -70,7 +70,7 @@ const BoostPage: React.FC = () => {
 
       {/* Unique Code Entry Section */}
       <div className="code-section">
-        <h3>Redeem with Unique Code</h3>
+        <h3 className='test'>Redeem with Unique Code</h3>
         <input type="text" placeholder="Unique Code" />
         <input type="text" placeholder="Referral ID" />
         <input
