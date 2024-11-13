@@ -14,7 +14,9 @@ h1 {
 }
 
 .tests {
- color: #ffffff;
+  /* font-size: 24px;
+  text-align: center; */
+  color: #ffffff;
 }
 
 .books-container {
