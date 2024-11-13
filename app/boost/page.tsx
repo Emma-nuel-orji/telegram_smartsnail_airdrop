@@ -47,7 +47,8 @@ const BoostPage: React.FC = () => {
           <p className='pp'>+100,000 Shells per copy</p>
           <input
             type="number"
-            value={fuckedUpBagsQty}
+            value={fuckedUpBagsQty === 0 ? '' : fuckedUpBagsQty}
+            placeholder="0" // Display "0" as a placeholder
             onChange={(e) => setFuckedUpBagsQty(Number(e.target.value))}
           />
         </div>
@@ -100,7 +101,7 @@ const BoostPage: React.FC = () => {
       <div className="or-divider">OR</div>
 
         {/* Unique Code Entry Section */}
-        <div className="code-sections">
+        <div className="code-section">
         <h3 className="tests">Redeem with Unique Code</h3>
         <input type="text" placeholder="Unique Code" />
         <input type="text" placeholder="Referral ID" />
