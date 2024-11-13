@@ -66,13 +66,15 @@ const BoostPage: React.FC = () => {
               </div>
             )}
           </div>
-          <p className='pp'>+2 tapping rate. </p>
-          <p className='pp'>+70,000 Shells per copy</p>
-          <input
-            type="number"
-            value={humanNatureQty}
-            onChange={(e) => setHumanNatureQty(Number(e.target.value))}
-          />
+          <p className='pp'>+2 tapping rate.</p>
+<p className='pp'>+70,000 Shells per copy</p>
+<input
+  type="number"
+  placeholder="0" // Display "0" as a placeholder
+  value={humanNatureQty === 0 ? '' : humanNatureQty} // If 0, show empty input
+  onChange={(e) => setHumanNatureQty(Number(e.target.value))}
+/>
+
         </div>
       </div>
 
