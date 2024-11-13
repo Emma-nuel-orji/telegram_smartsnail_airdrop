@@ -55,9 +55,9 @@ const BoostPage: React.FC = () => {
         {/* Book Card 2 */}
         <div className="book-card">
           <div className="book-header">
-            <h2 className='fontss'>Human Nature</h2>
             <img  src="/images/human.jpg" width={24} height={24} alt="human" />
-          
+            <h2 className='fontss'>Human Nature</h2>
+            
             <span className="info-icon" onClick={() => setShowHumanNatureInfo(!showHumanNatureInfo)}>ℹ️</span>
             {showHumanNatureInfo && (
               <div className="info-popup">

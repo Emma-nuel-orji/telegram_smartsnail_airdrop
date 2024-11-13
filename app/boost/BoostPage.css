@@ -133,7 +133,7 @@ h1 {
 }
 
 .info-icon {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   cursor: pointer;
   margin-left: 8px;
 }
@@ -166,11 +166,11 @@ h1 {
 
 .fontss {
   font-weight: bold;
+  font-weight: 900;
+  padding-left: 8px;
 }
   
-.fontss {
-  font-weight: 900;
-}
+
  .pp{
   color: #757474;
  }
