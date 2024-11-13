@@ -32,11 +32,9 @@ const BoostPage: React.FC = () => {
         {/* Book Card 1 */}
         <div className="book-card">
           <div className="book-header">
-            <div>
-               <h2>Fxckedupbags (Undo Yourself)</h2>
+            <h2>Fxckedupbags (Undo Yourself)</h2>
+            <img  src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" />
             <span className="info-icon" onClick={() => setShowFuckedUpInfo(!showFuckedUpInfo)}>ℹ️</span>
-            </div>
-           
             {showFuckedUpInfo && (
               <div className="info-popup">
                 <button onClick={() => setShowFuckedUpInfo(false)}>X</button>
@@ -56,6 +54,7 @@ const BoostPage: React.FC = () => {
         <div className="book-card">
           <div className="book-header">
             <h2>Human Nature</h2>
+            <img  src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" />
             <span className="info-icon" onClick={() => setShowHumanNatureInfo(!showHumanNatureInfo)}>ℹ️</span>
             {showHumanNatureInfo && (
               <div className="info-popup">
