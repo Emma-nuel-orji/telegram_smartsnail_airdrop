@@ -99,3 +99,64 @@ h1 {
   border: 1px solid #ccc;
   border-radius: 5px;
 }
+
+
+
+.boost-page {
+
+    font-family: Arial, sans-serif;
+    background-color: #dd9acd;
+    padding: 20px;
+    color: #333;
+    max-width: 600px;
+    margin: 0 auto;
+
+  padding: 20px;
+}
+
+.books-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.book-card {
+  border: 1px solid #ccc;
+  padding: 15px;
+  position: relative;
+}
+
+.book-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-icon {
+  font-size: 1.5rem;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.info-popup {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 250px;
+  padding: 10px;
+  background-color: #333;
+  color: #fff;
+  border-radius: 5px;
+  z-index: 100;
+}
+
+.summary-container {
+  margin-top: 20px;
+  font-size: 1.1rem;
+}
+
+.payment-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
