@@ -32,8 +32,9 @@ const BoostPage: React.FC = () => {
         {/* Book Card 1 */}
         <div className="book-card">
           <div className="book-header">
-            <h2 className='fontss'>Fxckedupbags (Undo Yourself)</h2>
             <img  src="/images/fuckedup.jpg" width={24} height={24} alt="fuckedup" />
+            <h2 className='fontss'>Fxckedupbags (Undo Yourself)</h2>
+          
             <span className="info-icon" onClick={() => setShowFuckedUpInfo(!showFuckedUpInfo)}>ℹ️</span>
             {showFuckedUpInfo && (
               <div className="info-popup">
@@ -56,6 +57,7 @@ const BoostPage: React.FC = () => {
           <div className="book-header">
             <h2 className='fontss'>Human Nature</h2>
             <img  src="/images/human.jpg" width={24} height={24} alt="human" />
+          
             <span className="info-icon" onClick={() => setShowHumanNatureInfo(!showHumanNatureInfo)}>ℹ️</span>
             {showHumanNatureInfo && (
               <div className="info-popup">
