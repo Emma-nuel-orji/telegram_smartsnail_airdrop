@@ -94,7 +94,8 @@ const BoostPage: React.FC = () => {
         <button onClick={() => handlePurchase('Ton')}>Pay with Ton</button>
         <button onClick={() => handlePurchase('Card')}>Pay with Card</button>
       </div>
-<p>Or</p>
+      <div className="or-divider">OR</div>
+
         {/* Unique Code Entry Section */}
         <div className="code-section">
         <h3 className="test">Redeem with Unique Code</h3>

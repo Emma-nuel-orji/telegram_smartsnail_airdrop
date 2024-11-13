@@ -84,7 +84,29 @@ h1 {
 .code-section {
   margin-top: 30px;
   padding: 15px;
-  border-top: 1px solid #ddd;
+  /* border-top: 1px solid #ddd; */
+}
+
+
+.or-divider {
+  position: relative;
+  text-align: center;
+}
+
+.or-divider:before, .or-divider:after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  border-top: 1px solid #000;
+}
+
+.or-divider:before {
+  left: 0;
+}
+
+.or-divider:after {
+  right: 0;
 }
 
 .code-section h3 {
