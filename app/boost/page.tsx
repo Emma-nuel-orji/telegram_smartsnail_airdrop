@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './BoostPage.css';
 import Link from 'next/link';
 
@@ -20,6 +20,23 @@ const BoostPage: React.FC = () => {
     console.log(`Purchasing with ${paymentMethod}`);
     console.log(`Email: ${email}, Unique Codes for ${totalBooks} books`);
   };
+
+  // countdown section 
+
+  const [fuckedUpBagsAvailable, setFuckedUpBagsAvailable] = useState(5000);
+  const [humanNatureAvailable, setHumanNatureAvailable] = useState(7000);
+
+  useEffect(() => {
+    const fetchSoldCount = () => {
+      const fuckedUpBagsSold = 1500;
+      const humanNatureSold = 2000;
+
+      setFuckedUpBagsAvailable(5000 - fuckedUpBagsSold);
+      setHumanNatureAvailable(7000 - humanNatureSold);
+    };
+
+    fetchSoldCount();
+  }, []);
 
   return (
     <div className="boost-page">
@@ -51,6 +68,7 @@ const BoostPage: React.FC = () => {
             placeholder="0" // Display "0" as a placeholder
             onChange={(e) => setFuckedUpBagsQty(Number(e.target.value))}
           />
+          <span className="counter-text">{`${5000 - fuckedUpBagsAvailable}/5000 sold`}</span>
         </div>
 
         {/* Book Card 2 */}
@@ -68,14 +86,13 @@ const BoostPage: React.FC = () => {
             )}
           </div>
           <p className='pp'>+2 tapping rate.</p>
-<p className='pp'>+70,000 Shells per copy</p>
-<input
-  type="number"
-  placeholder="0" // Display "0" as a placeholder
-  value={humanNatureQty === 0 ? '' : humanNatureQty} // If 0, show empty input
-  onChange={(e) => setHumanNatureQty(Number(e.target.value))}
-/>
-
+          <p className='pp'>+70,000 Shells per copy</p>
+          <input type="number" 
+          placeholder="0" // Display "0" as a placeholder 
+          value={humanNatureQty === 0 ? '' : humanNatureQty} // If 0, show empty input 
+          onChange={(e) => setHumanNatureQty(Number(e.target.value))} 
+          />
+          <span className="counter-text">{`${7000 - humanNatureAvailable}/7000 sold`}</span>
         </div>
       </div>
 
@@ -90,6 +107,7 @@ const BoostPage: React.FC = () => {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
         />
+        
       </div>
 
       {/* Payment Options */}
@@ -108,7 +126,6 @@ const BoostPage: React.FC = () => {
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
         />
 
