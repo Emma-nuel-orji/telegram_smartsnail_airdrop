@@ -125,7 +125,6 @@ const BoostPage: React.FC = () => {
         <input type="text" placeholder="Referral ID" />
         <input
           type="email"
-          value={email}
           placeholder="Enter your email"
         />
 
