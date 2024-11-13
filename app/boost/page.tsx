@@ -39,7 +39,7 @@ const BoostPage: React.FC = () => {
             {showFuckedUpInfo && (
               <div className="info-popup">
                 <button onClick={() => setShowFuckedUpInfo(false)}>X</button>
-                <p>Fxckedupbags boosts tapping rate by +5 and grants 100,000 coins per copy.</p>
+                <p>FxckedUpBags by AlexanderTheSage explores personal transformation and self-discipline, focusing on how mindset and choices shape success. It challenges readers to confront ways they may be sabotaging their goals or "messing up their bags" by missing opportunities or wealth. Through practical strategies, the book emphasizes shifting language from "I will" to "I am going to," helping readers take control and align actions with long-term goals. It also critiques hustle culture and encourages a balanced approach to ambition, empowering readers to unlock their true potential.</p>
               </div>
             )}
           </div>
@@ -56,13 +56,13 @@ const BoostPage: React.FC = () => {
         <div className="book-card">
           <div className="book-header">
             <img  src="/images/human.jpg" width={24} height={24} alt="human" />
-            <h2 className='fontss'>Human Nature</h2>
-            
+            <h2 className='fontss'>Human Relations</h2>
+
             <span className="info-icon" onClick={() => setShowHumanNatureInfo(!showHumanNatureInfo)}>ℹ️</span>
             {showHumanNatureInfo && (
               <div className="info-popup">
                 <button onClick={() => setShowHumanNatureInfo(false)}>X</button>
-                <p>Human Nature boosts tapping rate by +2 and grants 70,000 coins per copy.</p>
+                <p>The book Human Relations by Kennedy E. O. wass inspired by the need to properly educate individuals about the nature of life and its existence using the principles of human relations. The book which is in fourteen chapters discusses in detail the process of human relations as a tool for a better life and the best tool to deal with all individuals you meet in life, while using the principles of human relations as basis for achieving greatness. It also explores many solutions to the challenges we face as humans in making ourselves sociable and accepted.</p>
               </div>
             )}
           </div>
@@ -93,6 +93,18 @@ const BoostPage: React.FC = () => {
       <div className="payment-buttons">
         <button onClick={() => handlePurchase('Ton')}>Pay with Ton</button>
         <button onClick={() => handlePurchase('Card')}>Pay with Card</button>
+      </div>
+<p>Or</p>
+        {/* Unique Code Entry Section */}
+        <div className="code-section">
+        <h3 className="test">Redeem with Unique Code</h3>
+        <input type="text" placeholder="Unique Code" />
+        <input type="text" placeholder="Referral ID" />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
       </div>
     </div>
   );
