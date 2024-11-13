@@ -32,8 +32,8 @@ const BoostPage: React.FC = () => {
         {/* Book Card 1 */}
         <div className="book-card">
           <div className="book-header">
-            <h2>Fxckedupbags (Undo Yourself)</h2>
-            <img  src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" />
+            <h2 className='fontss'>Fxckedupbags (Undo Yourself)</h2>
+            {/* <img  src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" /> */}
             <span className="info-icon" onClick={() => setShowFuckedUpInfo(!showFuckedUpInfo)}>ℹ️</span>
             {showFuckedUpInfo && (
               <div className="info-popup">
@@ -42,7 +42,8 @@ const BoostPage: React.FC = () => {
               </div>
             )}
           </div>
-          <p>+5 tapping rate, 100,000 coins per copy</p>
+          <p className='pp'>+5 tapping rate. </p>
+          <p className='pp'>100,000 Shells per copy</p>
           <input
             type="number"
             value={fuckedUpBagsQty}
@@ -53,8 +54,8 @@ const BoostPage: React.FC = () => {
         {/* Book Card 2 */}
         <div className="book-card">
           <div className="book-header">
-            <h2>Human Nature</h2>
-            <img  src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" />
+            <h2 className='fontss'>Human Nature</h2>
+            {/* <img  src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" /> */}
             <span className="info-icon" onClick={() => setShowHumanNatureInfo(!showHumanNatureInfo)}>ℹ️</span>
             {showHumanNatureInfo && (
               <div className="info-popup">
@@ -63,7 +64,8 @@ const BoostPage: React.FC = () => {
               </div>
             )}
           </div>
-          <p>+2 tapping rate, 70,000 coins per copy</p>
+          <p className='pp'>+2 tapping rate, </p>
+          <p className='pp'>70,000 Shells per copy</p>
           <input
             type="number"
             value={humanNatureQty}
