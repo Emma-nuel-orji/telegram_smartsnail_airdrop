@@ -44,7 +44,7 @@ const BoostPage: React.FC = () => {
             )}
           </div>
           <p className='pp'>+5 tapping rate. </p>
-          <p className='pp'>100,000 Shells per copy</p>
+          <p className='pp'>+100,000 Shells per copy</p>
           <input
             type="number"
             value={fuckedUpBagsQty}
@@ -66,8 +66,8 @@ const BoostPage: React.FC = () => {
               </div>
             )}
           </div>
-          <p className='pp'>+2 tapping rate, </p>
-          <p className='pp'>70,000 Shells per copy</p>
+          <p className='pp'>+2 tapping rate. </p>
+          <p className='pp'>+70,000 Shells per copy</p>
           <input
             type="number"
             value={humanNatureQty}
@@ -98,14 +98,19 @@ const BoostPage: React.FC = () => {
 
         {/* Unique Code Entry Section */}
         <div className="code-section">
-        <h3 className="test">Redeem with Unique Code</h3>
+        <h3 className="tests">Redeem with Unique Code</h3>
         <input type="text" placeholder="Unique Code" />
         <input type="text" placeholder="Referral ID" />
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
         />
+
+      </div>
+      <div className="payment-buttons">
+        <button>Submit</button>
       </div>
     </div>
   );
