@@ -32,12 +32,15 @@ const BoostPage: React.FC = () => {
         {/* Book Card 1 */}
         <div className="book-card">
           <div className="book-header">
-            <h2>Fxckedupbags (Undo Yourself)</h2>
+            <div>
+               <h2>Fxckedupbags (Undo Yourself)</h2>
             <span className="info-icon" onClick={() => setShowFuckedUpInfo(!showFuckedUpInfo)}>ℹ️</span>
+            </div>
+           
             {showFuckedUpInfo && (
               <div className="info-popup">
+                <button onClick={() => setShowFuckedUpInfo(false)}>X</button>
                 <p>Fxckedupbags boosts tapping rate by +5 and grants 100,000 coins per copy.</p>
-                <button onClick={() => setShowFuckedUpInfo(false)}>Close</button>
               </div>
             )}
           </div>
@@ -56,8 +59,8 @@ const BoostPage: React.FC = () => {
             <span className="info-icon" onClick={() => setShowHumanNatureInfo(!showHumanNatureInfo)}>ℹ️</span>
             {showHumanNatureInfo && (
               <div className="info-popup">
+                <button onClick={() => setShowHumanNatureInfo(false)}>X</button>
                 <p>Human Nature boosts tapping rate by +2 and grants 70,000 coins per copy.</p>
-                <button onClick={() => setShowHumanNatureInfo(false)}>Close</button>
               </div>
             )}
           </div>
