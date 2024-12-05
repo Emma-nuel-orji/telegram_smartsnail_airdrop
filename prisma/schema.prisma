@@ -8,12 +8,94 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  telegramId Int     @unique
-  username   String?
-  firstName  String?
-  lastName   String?
-  points     Int     @default(0)
+  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
+  telegramId  String   @unique
+  username    String?
+  firstName   String?
+  lastName    String?
+  tasks: Task[]
+  email       String?  @unique
+  points      Int      @default(0)
+  tappingRate Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  referrals  Referral[] @relation("Referrer") // A User can refer many other Users
+  referredBy Referral[] @relation("ReferredBy") // A User can be referred by many users (i.e., other referrers)
+  purchases  Purchase[] // All purchases made by this user
+}
+
+model Task {
+  id             Int      @id @default(autoincrement())
+  description    String
+  completed      Boolean  @default(false)
+  completedTime  DateTime?
+  reward         Int
+  section        String
+  type           String
+  image          String
+  link           String
+  userId         String
+}
+
+
+model Referral {
+  id         String   @id @default(cuid()) @map("_id") @db.ObjectId
+  referredBy String   @db.ObjectId // Foreign key to User (referrer)
+  referredTo String   @db.ObjectId // Foreign key to User (referred user)
+  userId     String   @db.ObjectId // Foreign key to User (referring user)
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+
+  // Relations
+  referredByUser User @relation("ReferredBy", fields: [referredBy], references: [id]) // Referring user
+  user           User @relation("Referrer", fields: [userId], references: [id]) // Referred user
+}
+
+model GeneratedCode {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  code       String    @unique
+  batchId    String
+  isRedeemed Boolean   @default(false)
+  redeemedAt DateTime?
+  redeemedBy String?   @db.ObjectId
+  assignedTo String?   @db.ObjectId
+  bookId     String   @map("bookId") 
+  purchaseId String?   @db.ObjectId
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  book     Book?     @relation(fields: [bookId], references: [id])
+  purchase Purchase? @relation(fields: [purchaseId], references: [id])
+}
+
+model Book {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  priceTon    Float
+  priceCard   Float
+  coinsReward Int
+  tappingRate Int
+  stockLimit  Int
+  createdAt   DateTime @default(now())
+
+  // Relations
+  generatedCodes GeneratedCode[] // One-to-many relation to GeneratedCode
+  purchases      Purchase[] // One-to-many relation to Purchase
+}
+
+model Purchase {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  bookId      String   @db.ObjectId
+  paymentType String
+  amountPaid  Float
+  booksBought Int
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user  User            @relation(fields: [userId], references: [id])
+  book  Book            @relation(fields: [bookId], references: [id])
+  codes GeneratedCode[] // One-to-many relation to GeneratedCode
 }

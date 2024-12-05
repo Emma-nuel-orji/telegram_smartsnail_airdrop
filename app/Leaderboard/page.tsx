@@ -25,7 +25,7 @@ const Tasks: React.FC = () => {
     { id: 9, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail medium.png' , link: 'https://socialmedia.com/profile1'},
     { id: 7, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/invite friend.png' , link: 'https://socialmedia.com/profile1'},
     { id: 10, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1' },
-    { id: 11, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/fuckedupbags.png' , link: 'https://socialmedia.com/profile1'},
+    { id: 11, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/fxckedUpBags.png' , link: 'https://socialmedia.com/profile1'},
 
     { id: 16, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/web3chino facebook.png', link: 'https://socialmedia.com/profile1' },
     { id: 17, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino instagram.png', link: 'https://socialmedia.com/profile1' },
@@ -154,14 +154,14 @@ export default Tasks;
 //     { id: 3, description: 'Share on social media', completed: false, reward: 200000 },
 //   ]);
 
-//   const [totalCoins, setTotalCoins] = useState(0);
+//   const [totalPoints, settotalPoints] = useState(0);
 //   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
 //   const [openDropdowns, setOpenDropdowns] = useState<number[]>([]);
 
 //   const handleComplete = (taskId: number) => {
 //     const completedTask = tasks.find((task) => task.id === taskId);
 //     if (completedTask) {
-//       setTotalCoins((prevTotal) => prevTotal + completedTask.reward);
+//       settotalPoints((prevTotal) => prevTotal + completedTask.reward);
 //       setCompletedTasks((prevCompleted) => [...prevCompleted, completedTask]);
 //       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
 //     }
@@ -250,14 +250,14 @@ export default Tasks;
 //     { id: 3, description: 'Share on social media', completed: false, reward: 200000 },
 //   ]);
 
-//   const [totalCoins, setTotalCoins] = useState(0);
+//   const [totalPoints, settotalPoints] = useState(0);
 //   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
 //   const [openDropdowns, setOpenDropdowns] = useState<number[]>([]);
 
 //   const handleComplete = (taskId: number) => {
 //     const completedTask = tasks.find((task) => task.id === taskId);
 //     if (completedTask) {
-//       setTotalCoins((prevTotal) => prevTotal + completedTask.reward);
+//       settotalPoints((prevTotal) => prevTotal + completedTask.reward);
 //       setCompletedTasks((prevCompleted) => [...prevCompleted, completedTask]);
 //       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
 //     }

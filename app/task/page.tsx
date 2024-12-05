@@ -1,413 +1,336 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from "react";
+import "./task.css";
+import Link from "next/link";
 
-type Task = {
+// Task interface
+interface Task {
   id: number;
   description: string;
   completed: boolean;
   reward: number;
-  section: 'main' | 'daily' | 'partners';
+  section: "main" | "daily" | "partners";
+  type: "daily" | "permanent";
   image: string;
   link: string;
+  completedTime?: string | null;
+  batchId?: string;
+}
+
+// FallingShellsEffect Component
+const FallingShellsEffect: React.FC<{ trigger: boolean; onComplete: () => void }> = ({
+  trigger,
+  onComplete,
+}) => {
+  const [shells, setShells] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (trigger) {
+      const newShells = Array.from({ length: 30 }, (_, i) => i);
+      setShells(newShells);
+
+      const timeout = setTimeout(() => {
+        setShells([]);
+        onComplete();
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [trigger, onComplete]);
+
+  return (
+    <div className="falling-shells-container">
+      {shells.map((shell, index) => (
+        <div
+          key={index}
+          className="shell"
+          style={{
+            left: `${Math.random() * 100}%`,
+            animationDuration: `${2 + Math.random() * 2}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
 };
 
+// Tasks Component
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, description: 'Main Task 1', completed: false, reward: 1000000, section: 'main', image: '/images/tasks/smartsnail telegram.png', link: 'https://socialmedia.com/profile1' },
-    { id: 2, description: 'Main Task 2', completed: false, reward: 500000, section: 'main', image: '/images/daily/join discord.png', link: 'https://socialmedia.com/profile1' },
-    { id: 3, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail instagram.png' , link: 'https://socialmedia.com/profile1'},
-    { id: 4, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail thread.png', link: 'https://socialmedia.com/profile1' },
-    { id: 5, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail tiktok.png', link: 'https://socialmedia.com/profile1' },
-    { id: 6, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail twitter.png', link: 'https://socialmedia.com/profile1' },
-    { id: 7, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail youtube.png', link: 'https://socialmedia.com/profile1' },
-    { id: 8, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/smartsnail medium.png' , link: 'https://socialmedia.com/profile1'},
-    { id: 9, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/invite friend.png' , link: 'https://socialmedia.com/profile1'},
-    { id: 10, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1' },
-    { id: 11, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/fuckedupbags.png' , link: 'https://socialmedia.com/profile1'},
-
-    { id: 12, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/web3chino facebook.png', link: 'https://socialmedia.com/profile1' },
-    { id: 13, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino instagram.png', link: 'https://socialmedia.com/profile1' },
-    { id: 14, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino thread.png', link: 'https://socialmedia.com/profile1' },
-    { id: 15, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino tiktok.png' , link: 'https://socialmedia.com/profile1'},
-    { id: 16, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino twitter.png', link: 'https://socialmedia.com/profile1' },
-    { id: 17, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/web3chino youtube.png' , link: 'https://socialmedia.com/profile1'},
-    { id: 18, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/connect wallet.png' , link: '/wallet'},
-    { id: 19, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1' },
-
-    { id: 20, description: 'Main Task 2', completed: false, reward: 300000, section: 'main', image: '/images/tasks/alex twitter.png', link: 'https://socialmedia.com/profile1' },
-    { id: 21, description: 'Main Task 3', completed: false, reward: 200000, section: 'main', image: '/images/tasks/alex youtube.png', link: 'https://socialmedia.com/profile1' },
-
-    
-    { id: 22, description: 'Daily Task 3', completed: false, reward: 300000, section: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://socialmedia.com/profile1' },
-    { id: 23, description: 'Daily Task 4', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCR thread.png', link: 'https://socialmedia.com/profile1' },
-    { id: 24, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://socialmedia.com/profile1' },
-    { id: 25, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://socialmedia.com/profile1' },
-    { id: 26, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/LCS Tiktok.png' , link: 'https://socialmedia.com/profile1'},
-    { id: 27, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1' },
-    { id: 28, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1' },
-    { id: 29, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/RR Medium.png' , link: 'https://socialmedia.com/profile1'},
-    { id: 30, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1' },
-    { id: 31, description: 'Daily Task 5', completed: false, reward: 300000, section: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1' },
-
-    { id: 32, description: 'Partner Task 1', completed: false, reward: 300000, section: 'partners', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1' },
-    
-    
-    
-    // Add more tasks as needed
-  ]);
-
-  // const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  // const [validationAttempt, setValidationAttempt] = useState(0);
+    { id: 1, description: "Main Task 1", completed: false, reward: 5000, section: "main", type: "permanent", image: "/images/tasks/smartsnail telegram.png", link: "https://t.me/smartsnails", completedTime: null },
+    { id: 2, description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/daily/join discord.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 3, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 4, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 5, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 6, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail twitter.png', link: 'https://x.com/SmartSnail_NFT?t=YXkXoCWpGUBKQ9u_zqfC4g&s=09', completedTime: null },
+    { id: 7, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 8, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 9, description: 'Main Task 3', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 10, description: 'Main Task 2', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 11, description: 'Main Task 3', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fxckedUpBags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 12, description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino facebook.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 13, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 14, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 15, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 16, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3?t=sS-KKVwkz3C_stZqs8syzA&s=09', completedTime: null },
+    { id: 17, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 18, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/connect wallet.png', link: '/wallet', completedTime: null },
+    { id: 19, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 20, description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex twitter.png', link: 'https://x.com/CaptainSage_?t=EZ0s5eeh1igkYDym_M_U-Q&s=09', completedTime: null },
+    { id: 21, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 22, description: 'Daily Task 3', completed: false, reward: 1, section: 'daily', type: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://socialmedia.com/profile1', batchId: 'batch_2024_001', completedTime: null },
+    { id: 23, description: 'Daily Task 4', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCR thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 24, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 25, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 26, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS Tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 27, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 28, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 29, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 30, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 31, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1', completedTime: null},
   
-  // const [selectedSection, setSelectedSection] = useState<'main' | 'daily' | 'partners'>('main');
-  // // const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  // const handleValidateClick = () => {
-  //   if (validationAttempt === 0) {
-  //     alert("Error while validating. Make sure to perform your task before validating.");
-  //     setValidationAttempt(1);
-  //   } else if (validationAttempt === 1) {
-  //     setTasks(tasks.map(task => 
-  //       task.id === selectedTask?.id ? { ...task, completed: true } : task
-  //     ));
-  //     alert("Task validated successfully! Reward has been added.");
-  //     setSelectedTask(null); // Close the popup
-  //   }
-  // };
+  ]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [validationAttempt, setValidationAttempt] = useState(0);
+  const [totalPoints, setTotalPoints] = useState<number>(0);
+  const [selectedSection, setSelectedSection] = useState<"main" | "daily" | "partners">("main");
+  const [taskCompleted, setTaskCompleted] = useState(false);
+  const [inputCode, setInputCode] = useState("");
+  const [message, setMessage] = useState<string>("");
+  const [reward, setReward] = useState(0);
+  const [userPoints, setUserPoints] = useState(0);
+  const [loading, setLoading] = useState(false);
+  // Additional Tasks
+  const taskData: Task[] = [
+    {
+      id: 22,
+      description: "Join X(Twitter) Space",
+      image: "/images/daily/join twitter everyday.png",
+      batchId: "batch_2024_001",
+      completed: false,
+      reward: 5000,
+      section: "daily",
+      type: "daily",
+      link: "https://x.com/some_space",
+      completedTime: null,
+    },
+  ];
 
-  // const handleTaskClick = (task: Task) => {
-  //   setSelectedTask(task);
-  // };
+  // Filter tasks based on the selected section
+  const filteredTasks = tasks.filter((task) => task.section === selectedSection);
 
-  // const filteredTasks = tasks.filter((task) => task.section === selectedSection);
-
-
-
-  // Load completed tasks from localStorage on mount
-  useEffect(() => {
-    const storedCompletedTasks = JSON.parse(localStorage.getItem('completedTasks') || '[]');
-    const updatedTasks = tasks.map(task =>
+   // Load tasks and points from localStorage on component mount
+   useEffect(() => {
+    const storedCompletedTasks = JSON.parse(localStorage.getItem("completedTasks") || "[]");
+    const storedPoints = parseInt(localStorage.getItem("totalPoints") || "0", 10);
+    const updatedTasks = tasks.map((task) =>
       storedCompletedTasks.includes(task.id) ? { ...task, completed: true } : task
     );
     setTasks(updatedTasks);
+    setTotalPoints(storedPoints);
   }, []);
 
+  // Reset daily tasks after 20 hours
+  useEffect(() => {
+    const updateDailyTasks = () => {
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => {
+          if (task.type === "daily" && task.completed && task.completedTime) {
+            const taskCompletionTime = new Date(task.completedTime).getTime();
+            const currentTime = Date.now();
+            const timeDifference = currentTime - taskCompletionTime;
 
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [validationAttempt, setValidationAttempt] = useState(0);
-  const [selectedSection, setSelectedSection] = useState<'main' | 'daily' | 'partners'>('main');
+            if (timeDifference > 20 * 60 * 60 * 1000) {
+              return { ...task, completed: false, completedTime: null };
+            }
+          }
+          return task;
+        })
+      );
+    };
 
-  // const handleValidateClick = () => {
-  //   if (validationAttempt === 0) {
-  //     alert("Error while validating. Make sure to perform your task before validating.");
-  //     setValidationAttempt(1);
-  //   } else if (validationAttempt === 1) {
-  //     setTasks(tasks.map(task => 
-  //       task.id === selectedTask?.id ? { ...task, completed: true } : task
-  //     ));
-  //     alert("Task validated successfully! Reward has been added.");
-  //     setSelectedTask(null); // Close the popup
-  //     setValidationAttempt(0); // Reset validation for future tasks
-  //   }
-  // };
+    updateDailyTasks();
+    const intervalId = setInterval(updateDailyTasks, 60 * 60 * 1000); // Check every hour
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, []);
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
-    setValidationAttempt(0); // Reset for each task click
+    setValidationAttempt(0);
   };
 
-  const filteredTasks = tasks.filter((task) => task.section === selectedSection);
+  const handleValidateClick = async () => {
+    setValidationAttempt((prevAttempt) => prevAttempt + 1);
 
-
-  // main task here 
-
-
-  // Load completed tasks from localStorage on mount
-  useEffect(() => {
-    const storedCompletedTasks = JSON.parse(localStorage.getItem('completedTasks') || '[]');
-    const updatedTasks = tasks.map(task =>
-      storedCompletedTasks.includes(task.id) ? { ...task, completed: true } : task
-    );
-    setTasks(updatedTasks);
-  }, []);
-
-  const handleValidateClick = () => {
     if (validationAttempt === 0) {
-      alert("Error while validating. Make sure to perform your task before validating.");
-      setValidationAttempt(1);
-    } else if (validationAttempt === 1 && selectedTask) {
-      const updatedTasks = tasks.map(task =>
-        task.id === selectedTask.id ? { ...task, completed: true } : task
-      );
+      alert("Please complete the task before validating.");
+      return;
+    }
 
-      // Update tasks in state and store completed task IDs in localStorage
-      setTasks(updatedTasks);
-      const completedTaskIds = updatedTasks
-        .filter(task => task.completed)
-        .map(task => task.id);
-      localStorage.setItem('completedTasks', JSON.stringify(completedTaskIds));
-      
-      alert("Task validated successfully! Reward has been added.");
-      setSelectedTask(null);
-      setValidationAttempt(0);
+    if (validationAttempt === 1) {
+      alert("Bruuh!!, you haven't performed the task yet.");
+    } else if (validationAttempt >= 2 && selectedTask) {
+      try {
+        const response = await fetch("/api/increase-points", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            taskId: selectedTask.id,
+            reward: selectedTask.reward,
+          }),
+        });
+
+        if (response.ok) {
+          const updatedTasks = tasks.map((task) =>
+            task.id === selectedTask.id
+              ? { ...task, completed: true, completedTime: new Date().toISOString() }
+              : task
+          );
+          setTasks(updatedTasks);
+
+          setTotalPoints((prev) => {
+            const newPoints = prev + selectedTask.reward;
+            localStorage.setItem("totalPoints", newPoints.toString());
+            return newPoints;
+          });
+
+          const completedTaskIds = updatedTasks
+            .filter((task) => task.completed)
+            .map((task) => task.id);
+          localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
+
+          setTaskCompleted(true);
+          setSelectedTask(null);
+          setValidationAttempt(0);
+        } else {
+          alert("Something went wrong. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error completing task:", error);
+        alert("Failed to connect to the server. Please try again.");
+      }
     }
   };
 
-  const completedTasks = tasks.filter(task => task.completed);
+  const handleRedeemCode = async () => {
+    if (!inputCode) {
+      setMessage("Please enter a valid code.");
+      return;
+    }
 
+    setLoading(true);
+    try {
+      const response = await fetch("/api/redeemCodeTask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: inputCode,
+          telegramId: "123456", // Replace with actual Telegram ID logic
+          batchId: selectedTask?.batchId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setReward(data.reward);
+        setUserPoints((prevPoints) => prevPoints + data.reward);
+        setMessage(data.message || `You received ${data.reward} coins!`);
+      } else {
+        setMessage(data.error || "Redemption failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error redeeming code:", error);
+      setMessage("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+      setInputCode("");
+    }
+  };
 
   return (
-    <div className="task-container" style={{ width: '100%' }}>
-      <Link href="/"><img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" /></Link>
-
-      {/* <Link href="/">
-      
-        <a className="back-arrow">&#8592;</a>
-      </Link> */}
-      <h2>Complete Tasks to Earn Rewards!</h2>
-      
+    <div className="task-container" style={{ width: "100%" }}>
+      <h2>Perform tasks to earn more Shells!</h2>
 
       <div className="task-buttons">
-        <button onClick={() => setSelectedSection('main')} className={`task-button ${selectedSection === 'main' ? 'active' : ''}`}>Main Tasks</button>
-        <button onClick={() => setSelectedSection('daily')} className={`task-button ${selectedSection === 'daily' ? 'active' : ''}`}>Daily</button>
-        <button onClick={() => setSelectedSection('partners')} className={`task-button ${selectedSection === 'partners' ? 'active' : ''}`}>Partners</button>
+        <button onClick={() => setSelectedSection("main")}>Main Tasks</button>
+        <button onClick={() => setSelectedSection("daily")}>Daily</button>
+        <button onClick={() => setSelectedSection("partners")}>Partners</button>
       </div>
 
       <div className="tasks-display">
-        {filteredTasks.map((task) => (
-          <div key={task.id} className="task-containers" style={{ width: '100%' }}>
-            <div className="referral-invite-boxs" onClick={() => handleTaskClick(task)}>
-              <img src={task.image} width="100%" alt={task.description} />
+        {tasks
+          .filter((task) => task.type === selectedSection)
+          .map((task) => (
+            <div key={task.id} onClick={() => handleTaskClick(task)}>
+              <img src={task.image} alt={task.description} />
+              {task.completed && <span>✔</span>}
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       {selectedTask && (
         <div className="task-popup">
-        <button className="close-button" onClick={() => setSelectedTask(null)}>X</button>
-        <img src={selectedTask.image} width="100%" alt={selectedTask.description} />
-        <p>{selectedTask.description}</p>
-        <div className="popup-buttons">
-          <button onClick={() => window.open(selectedTask.link, '_blank')}>Perform Task</button>
-          <button onClick={handleValidateClick}>Validate and Reward</button>
+          <button onClick={() => setSelectedTask(null)}>X</button>
+          <p>{selectedTask.description}</p>
+          {selectedTask.completed ? (
+            <button disabled>Completed</button>
+          ) : (
+            <>
+              <button onClick={() => window.open(selectedTask.link, "_blank")}>Perform Task</button>
+              <button onClick={handleValidateClick}>Validate and Reward</button>
+            </>
+          )}
         </div>
-      </div>
       )}
 
-<div className="tasks-display">
-      <h3>Completed Tasks</h3>
-      {completedTasks.map(task => (
-        <div key={task.id} className="task-containers" style={{ width: '100%' }}>
-        
-          <div className="referral-invite-boxs">
-          <img src={task.image} width="100%" alt={task.description} />
-          </div>
+       {/* Popup for Selected Task */}
+       {selectedTask && (
+        <div className="task-popup">
+          <button onClick={() => setSelectedTask(null)}>Close</button>
+          <p>{selectedTask.description}</p>
+
+          {/* Unique popup for task ID 22 */}
+          {selectedTask.id === 22 ? (
+            <>
+              <input
+                type="text"
+                value={inputCode}
+                onChange={(e) => setInputCode(e.target.value)}
+                placeholder="Insert unique code"
+                disabled={loading}
+              />
+              <button onClick={handleRedeemCode} disabled={loading}>
+                {loading ? "Redeeming..." : "Redeem"}
+              </button>
+              {message && <p>{message}</p>}
+              {reward > 0 && <p>You earned: {reward} coins!</p>}
+            </>
+          ) : (
+            <>
+              {/* Standard popup for other tasks */}
+              <button onClick={() => window.open(selectedTask.link, "_blank")}>
+                Perform Task
+              </button>
+              <button onClick={handleValidateClick}>Validate and Reward</button>
+            </>
+          )}
         </div>
-      ))}
-    </div>
+      )}
+
+
+      <FallingShellsEffect
+        trigger={taskCompleted}
+        onComplete={() => setTaskCompleted(false)}
+      />
     </div>
   );
 };
 
 export default Tasks;
-
-
-
-
-
-
-
-
-// 'use client';
-
-// import { useState } from 'react';
-// import Link from 'next/link';
-// // import './task.css';
-
-// type Task = {
-//   id: number;
-//   description: string;
-//   completed: boolean;
-//   reward: number;
-// };
-
-// const Tasks: React.FC = () => {
-//   const [tasks, setTasks] = useState<Task[]>([
-//     { id: 1, description: 'Invite 3 friends', completed: false, reward: 1000000 },
-//     { id: 2, description: 'Play the game for 10 minutes', completed: false, reward: 500000 },
-//     { id: 3, description: 'Share on social media', completed: false, reward: 200000 },
-//   ]);
-
-//   const [totalCoins, setTotalCoins] = useState(0);
-//   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-//   const [openDropdowns, setOpenDropdowns] = useState<number[]>([]);
-
-//   const handleComplete = (taskId: number) => {
-//     const completedTask = tasks.find((task) => task.id === taskId);
-//     if (completedTask) {
-//       setTotalCoins((prevTotal) => prevTotal + completedTask.reward);
-//       setCompletedTasks((prevCompleted) => [...prevCompleted, completedTask]);
-//       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-//     }
-//   };
-
-//   const toggleDropdown = (taskId: number) => {
-//     if (openDropdowns.includes(taskId)) {
-//       setOpenDropdowns(openDropdowns.filter((id) => id !== taskId));
-//     } else {
-//       setOpenDropdowns([...openDropdowns, taskId]);
-//     }
-//   };
-
-//   const isDropdownOpen = (taskId: number) => openDropdowns.includes(taskId);
-
-//   return (
-//     <div className="task-container">
-//       <h2>Complete Tasks to Earn Rewards!</h2>
-//       <Link href="/">
-//         <a className="back-arrow">&#8592;</a>
-//       </Link>
-
-//       <h3>Season One</h3>
-
-//       {tasks.map((task) => (
-//         <div key={task.id} className="task-containers">
-//           <div className="referral-invite-boxs" onClick={() => toggleDropdown(task.id)}>
-//             <img src="/images/daily.png" width={44} height={44} alt="Daily task icon" />
-//             <div>
-//               <p>{task.description}</p>
-//               <div className="coin flex">
-//                 <img src="/images/coin.png" width={24} height={24} alt="Coin icon" />
-//                 <span className="ml-1">+{task.reward.toLocaleString()}</span>
-//               </div>
-//             </div>
-//             <span className="dropdown-arrow">{isDropdownOpen(task.id) ? '▲' : '▼'}</span>
-//           </div>
-
-//           {isDropdownOpen(task.id) && (
-//             <div className="dropdown-content">
-//               <p>Details: {task.description} and earn {task.reward.toLocaleString()} coins!</p>
-//               <button onClick={() => handleComplete(task.id)}>Complete Task</button>
-//             </div>
-//           )}
-//         </div>
-//       ))}
-
-//       <h3>Completed Tasks</h3>
-//       {completedTasks.map((task) => (
-//         <div key={task.id} className="referral-invite-box">
-//           <img src="/images/daily.png" width={44} height={44} alt="Completed task icon" />
-//           <div>
-//             <p>{task.description}</p>
-//             <div className="coin flex">
-//               <img src="/images/coin.png" width={24} height={24} alt="Coin icon" />
-//               <span className="ml-1">+{task.reward.toLocaleString()}</span>
-//             </div>
-//           </div>
-//         </div>
-//       ))}
-//     </div>
-//   );
-// };
-
-// export default Tasks;
-
-
-
-// import { useState } from 'react';
-// import Link from 'next/link';
-// import './task.css';
- 
-// // Import your images appropriately
-
-// type Task = {
-//   id: number;
-//   description: string;
-//   completed: boolean;
-//   reward: number;
-// };
-
-// const Tasks: React.FC = () => {
-//   const [tasks, setTasks] = useState<Task[]>([
-//     { id: 1, description: 'Invite 3 friends', completed: false, reward: 1000000 },
-//     { id: 2, description: 'Play the game for 10 minutes', completed: false, reward: 500000 },
-//     { id: 3, description: 'Share on social media', completed: false, reward: 200000 },
-//   ]);
-
-//   const [totalCoins, setTotalCoins] = useState(0);
-//   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-//   const [openDropdowns, setOpenDropdowns] = useState<number[]>([]);
-
-//   const handleComplete = (taskId: number) => {
-//     const completedTask = tasks.find((task) => task.id === taskId);
-//     if (completedTask) {
-//       setTotalCoins((prevTotal) => prevTotal + completedTask.reward);
-//       setCompletedTasks((prevCompleted) => [...prevCompleted, completedTask]);
-//       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-//     }
-//   };
-
-//   const toggleDropdown = (taskId: number) => {
-//     if (openDropdowns.includes(taskId)) {
-//       setOpenDropdowns(openDropdowns.filter((id) => id !== taskId));
-//     } else {
-//       setOpenDropdowns([...openDropdowns, taskId]);
-//     }
-//   };
-
-//   const isDropdownOpen = (taskId: number) => openDropdowns.includes(taskId);
-
-//   return (
-//     <div className="task-container">
-//       <h2>Complete Tasks to Earn Rewards!</h2>
-//       <Link href="/" className="back-arrow">
-//         &#8592;
-//       </Link>
-
-//       <h3>Season One</h3>
-
-//       {tasks.map((task) => (
-//         <div key={task.id} className="task-containers">
-//           <div className="referral-invite-boxs" onClick={() => toggleDropdown(task.id)}>
-//             <img src="/images/daily.png" width={44} height={44} />
-//             <div>
-//               <p>{task.description}</p>
-//               <div className="coin flex">
-//                 <img src="/images/coin.png" width={24} height={24} />
-//                 <span className="ml-1">+{task.reward.toLocaleString()}</span>
-//               </div>
-//             </div>
-//             <span className="dropdown-arrow">{isDropdownOpen(task.id) ? '▲' : '▼'}</span>
-//           </div>
-
-//           {isDropdownOpen(task.id) && (
-//             <div className="dropdown-content">
-//               <p>Details: {task.description} and earn {task.reward.toLocaleString()} coins!</p>
-//               <button onClick={() => handleComplete(task.id)}>Complete Task</button>
-//             </div>
-//           )}
-//         </div>
-//       ))}
-
-//       <h3>Completed Tasks</h3>
-//       {completedTasks.map((task) => (
-//         <div key={task.id} className="referral-invite-box">
-//           <img src="/images/daily.png" width={44} height={44} />
-//           <div>
-//             <p>{task.description}</p>
-//             <div className="coin flex">
-//               <img src="/images/coin.png" width={24} height={24} />
-//               <span className="ml-1">+{task.reward.toLocaleString()}</span>
-//             </div>
-//           </div>
-//         </div>
-//       ))}
-//     </div>
-//   );
-// };
-
-// export default Tasks;
-

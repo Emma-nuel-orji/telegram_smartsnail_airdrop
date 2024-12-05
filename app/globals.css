@@ -214,6 +214,26 @@ body {
   text-align: center;
 }
 
+/* .referral-code-box {
+  margin: 20px 0;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  text-align: center;
+  background-color: #f9f9f9;
+}
+
+.referral-code-box h2 {
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.referral-code {
+  font-size: 16px;
+  color: #555;
+} */
+
 
 /* new referral box  */
 /* .referral-invite-box {
@@ -587,4 +607,38 @@ h1 {
   font-size: 14px;
   color: #666;
   white-space: nowrap;
+}
+
+
+.error-message {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #ff6b6b;
+  border-radius: 5px;
+  background-color: #ffe5e5;
+  color: #d9534f;
+  animation: fade-in 0.3s ease-in-out;
+}
+
+.error-icon {
+  margin-right: 10px;
+  font-size: 20px;
+}
+
+.error-text {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
