@@ -13,7 +13,7 @@ model User {
   username    String?
   firstName   String?
   lastName    String?
-  tasks: Task[]
+  tasks     Task[]   @relation("UserTasks")
   email       String?  @unique
   points      Int      @default(0)
   tappingRate Int      @default(1)
@@ -27,7 +27,7 @@ model User {
 }
 
 model Task {
-  id             Int      @id @default(autoincrement())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   description    String
   completed      Boolean  @default(false)
   completedTime  DateTime?
@@ -37,6 +37,7 @@ model Task {
   image          String
   link           String
   userId         String
+  user        User     @relation(fields: [userId], references: [id], name: "UserTasks")
 }
 
 
