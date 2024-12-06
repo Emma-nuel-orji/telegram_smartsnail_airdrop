@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma.js';
-import { sendRedemptionEmail } from '../../../../src/utils/emailUtils.js';
+import { prisma } from '@prisma';
+
+ 
+import { sendRedemptionEmail } from '../../../src/utils/emailUtils.js'; 
+
 
 export async function POST(request) {
   try {

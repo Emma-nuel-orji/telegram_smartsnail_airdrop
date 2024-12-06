@@ -141,38 +141,43 @@ export default function Home() {
   }, [isClicking, energy]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-
-      const initDataUnsafe = tg.initDataUnsafe || {};
-
-      if (initDataUnsafe.user) {
-        fetch('/api/user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(initDataUnsafe.user),
-        })
-          .then((res) => res.json())
-          .then((data) => {
+    const initializeTelegram = async () => {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+  
+        const { user } = tg.initDataUnsafe || {};
+  
+        if (user) {
+          try {
+            const res = await fetch('/api/user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(user),
+            });
+  
+            const data = await res.json();
+  
             if (data.error) {
               setError(data.error);
             } else {
               setUser(data);
               setShowWelcomePopup(data.isFirstTime);
             }
-          })
-          .catch(() => {
+          } catch {
             setError('Failed to fetch user data');
-          });
+          }
+        } else {
+          setError('No user data available');
+        }
       } else {
-        setError('No user data available');
+        setError('This app should be opened in Telegram');
       }
-    } else {
-      setError('This app should be opened in Telegram');
-    }
+    };
+  
+    initializeTelegram();
   }, []);
-
+  
   // Handle claiming welcome bonus
   const handleClaim = async () => {
     try {

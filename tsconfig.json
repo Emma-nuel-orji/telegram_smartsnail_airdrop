@@ -3,10 +3,10 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "target": "ESNext",         // Supports modern JS features
-    "outDir": "./dist",         
+    "target": "ESNext",
+    "outDir": "./dist",
     "strict": true,
-    "noEmit": false,  // Allow emitting JS files
+    "noEmit": false,
     "esModuleInterop": true,
     "module": "CommonJS",
     "moduleResolution": "node",
@@ -19,10 +19,23 @@
         "name": "next"
       }
     ],
+    "baseUrl": "./",
     "paths": {
-      "@/*": ["./*"] // Path alias to simplify imports, if you use @ for your custom paths
+      "@/*": ["./*"],
+      "@loader": ["./loader.js"],
+      "@prisma": ["./lib/prisma.ts"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "testConnection.ts"],
-  "exclude": ["node_modules/.prisma/client/deno"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "testConnection.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",  // Exclude the dist folder from being compiled
+    "build"
+  ]
 }

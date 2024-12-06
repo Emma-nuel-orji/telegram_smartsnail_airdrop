@@ -11,18 +11,28 @@ export default function Home() {
 
   useEffect(() => {
     const initWebApp = async () => {
+      // Ensure this runs only in the browser
       if (typeof window !== 'undefined') {
-        const WebApp = (await import('@twa-dev/sdk')).default;
-        WebApp.ready();
-        setInitData(WebApp.initData);
-        setUserId(WebApp.initDataUnsafe.user?.id.toString() || '');
-        setStartParam(WebApp.initDataUnsafe.start_param || '');
+        try {
+          // Dynamically import the SDK to avoid issues during SSR
+          const WebApp = (await import('@twa-dev/sdk')).default;
+  
+          // Signal that the WebApp is ready
+          WebApp.ready();
+  
+          // Set initialization data safely
+          setInitData(WebApp.initData || '');
+          setUserId(WebApp.initDataUnsafe?.user?.id?.toString() || '');
+          setStartParam(WebApp.initDataUnsafe?.start_param || '');
+        } catch (error) {
+          console.error('Failed to initialize Telegram WebApp:', error);
+        }
       }
     };
-
+  
     initWebApp();
-  }, [])
-
+  }, []);
+  
   return (
     <main className="refer" >
     

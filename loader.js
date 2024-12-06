@@ -1,6 +1,6 @@
 // Loader.js
 import React from 'react';
-import './Loader.css'; // Style as needed
+// import './Loader.css'; // Style as needed
 
 const Loader = () => {
   return (

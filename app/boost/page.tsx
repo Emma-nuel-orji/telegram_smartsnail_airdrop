@@ -1,11 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import crypto from "crypto";
+
+
 import axios from "axios";
-import Loader from "../../Loader";
+import Loader from '@loader';
 import "./BoostPage.css";
 import WebApp from "@twa-dev/sdk";
+
+
 
 
 interface StockLimit {
@@ -18,11 +21,12 @@ interface StockLimit {
 }
 
 const BoostPage: React.FC = () => {
+  const [isClient, setIsClient] = useState(false);
   const [fxckedUpBagsQty, setFxckedUpBagsQty] = useState(0);
   const [humanRelationsQty, setHumanRelationsQty] = useState(0);
   const [email, setEmail] = useState("");
   const [uniqueCode, setUniqueCode] = useState("");
-  const [referralId, setreferralId] = useState("");
+  const [referrerId, setreferrerId] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [telegramId, setTelegramId] = useState<string | null>(null);
@@ -71,19 +75,32 @@ const BoostPage: React.FC = () => {
       console.error("Error fetching stock data:", error);
     }
   };
-
   useEffect(() => {
-    fetchStockData();
-  
-
-    // Fetch Telegram user details (if available)
-    const telegramUser = Telegram.WebApp.initDataUnsafe?.user;
-    if (telegramUser) {
-      setTelegramId(telegramUser.id.toString());
-    }
+    setIsClient(true);
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      console.log("Telegram WebApp available", tg);
+      tg.ready();
+      const initData = tg.initDataUnsafe;
+      if (initData?.user?.id) {
+        setTelegramId(initData.user.id.toString());
+      } else {
+        setMessage("This app should be opened in Telegram.");
+      }
+    } else {
+      console.log("Telegram.WebApp is undefined or app is not in Telegram.");
+    }
+  }, [isClient]);
+  
 
+
+  if (!isClient) {
+    return <Loader />; 
+  }
+  
 
   const handlePurchaseHelper = async (
     paymentMethod: string,
@@ -97,10 +114,10 @@ const BoostPage: React.FC = () => {
       if (response.status === 200) {
         alert("Purchase successful! Check your email for details.");
   
-        if (response.data.redirectUrl) {
-          // Redirect to the URL if provided
+        if (typeof window !== 'undefined' && response.data.redirectUrl) {
           window.location.href = response.data.redirectUrl;
         }
+        
   
         return response.data; // Return response data for further use if needed
       } else {
@@ -204,15 +221,22 @@ const BoostPage: React.FC = () => {
   };
   
 
-  const [referrerId, setReferrerId] = useState<string | null>(null);
+  // const [referrerId, setReferrerId] = useState<string | null>(null);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const ref = urlParams.get("ref");
-    if (ref) {
-      setReferrerId(ref);
+    if (isClient) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ref = urlParams.get("ref");
+      if (ref) {
+        setreferrerId(ref);
+      }
     }
-  }, []);
+  }, [isClient]);
+
+  if (!isClient) {
+    return <Loader />; 
+  }
+  
 
 
   const handleCodeRedemption = async () => {
@@ -269,6 +293,7 @@ const BoostPage: React.FC = () => {
       // Check if the provided referrerId is "SMARTSNAIL" (bypass referral logic)
       if (referrerId === 'SMARTSNAIL') {
         setMessage("Code redeemed successfully! You have earned 100,000 Shells!");
+        
       } else {
         // Regular redemption with referral check
         const response = await axios.post("/api/redeemCode", {
@@ -280,10 +305,10 @@ const BoostPage: React.FC = () => {
   
         if (response.status === 200) {
           setMessage("Code redeemed successfully! You have earned 100,000 Shells!");
-          if (response.data.redirectUrl) {
-            // Redirect to the URL returned from the backend
+          if (typeof window !== 'undefined' && response.data.redirectUrl) {
             window.location.href = response.data.redirectUrl;
           }
+          
         } else {
           setMessage(response.data.error || "An error occurred. Please try again.");
         }
