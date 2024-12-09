@@ -250,46 +250,59 @@ export default function Home() {
         </div>
       )}
 
-      <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
-        {/* Existing home page content */}
-        <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
-          
-          {/* New section for smartsnail with icons */}
-        <div className="flex items-center justify-between w-full px-4 mb-4">
-          <span className="text-2xl font-semibold">SmartSnail</span>
+<div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
+  {/* Existing home page content */}
+  <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+    
+    {/* New section for smartsnail with icons */}
+    <div className="flex items-center justify-between w-full px-4 mb-4">
+      <span className="text-2xl font-semibold">SmartSnail</span>
 
-          <div className="flex space-x-4">
-            <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" /></Link>
-            <Link href="/wallet"><img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" /></Link>
-            <Link href="/Profile"><img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" /></Link>
-          </div>
-        </div>
-      <p>Points: {user.points}</p>
-      <p>Energy: {energy}</p>
-
-       {/* Original section */}
-       <div className="mt-[-1rem] text-5xl font-bold flex items-center">
-          <img src="/images/shell.png" width={48} height={48} alt="Coin" />
-          <span className="ml-2">{user.points.toLocaleString()}</span>
-        </div>
-        
-        <div className="text-base mt-2 flex items-center justify-between">
-        <button
-className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4
-           transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow flex items-center"
->
-<div className="flex items-center">
-  <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
-  <Link href="/level">Level:</Link>
-</div>
-</button>
-
-
-
-<span className="ml-0">Camouflage</span>
-</div>
-
+      <div className="flex space-x-4">
+        <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" /></Link>
+        <Link href="/wallet"><img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" /></Link>
+        <Link href="/Profile"><img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" /></Link>
       </div>
+    </div>
+
+    {/* User Stats Section */}
+    <p>Points: {user.points}</p>
+    <p>Energy: {energy}</p>
+
+    {/* Original section */}
+    <div className="mt-[-1rem] text-5xl font-bold flex items-center">
+      <img src="/images/shell.png" width={48} height={48} alt="Coin" />
+      <span className="ml-2">{user.points.toLocaleString()}</span>
+    </div>
+
+    {/* Level and Camouflage Logic */}
+    <div className="text-base mt-2 flex items-center justify-between">
+      <button
+        className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow flex items-center"
+      >
+        <div className="flex items-center">
+          <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
+          <Link href="/level">Level:</Link>
+        </div>
+      </button>
+
+      {/* Display Camouflage Level */}
+      <span className="ml-0">
+        {user.points < 1000000
+          ? 'Level 1 Camouflage'
+          : user.points <= 3000000
+          ? 'Level 2 Speedy'
+          : user.points <= 6000000
+          ? 'Level 3 Strong'
+          : user.points <= 10000000
+          ? 'Level 4 Sensory'
+          : 'Level 5 African Giant/God NFT'}
+      </span>
+    </div>
+
+  </div>
+
+
 
 
       {notification && <div className="notification">{notification}</div>}

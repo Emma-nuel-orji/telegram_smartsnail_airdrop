@@ -19,6 +19,8 @@ model User {
   tappingRate Int      @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  nft        Boolean  @default(false) // Assuming a field to track NFT winners
+
 
   // Relations
   referrals  Referral[] @relation("Referrer") // A User can refer many other Users

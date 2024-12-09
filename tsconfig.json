@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "target": "ESNext",
@@ -8,11 +12,11 @@
     "strict": true,
     "noEmit": false,
     "esModuleInterop": true,
-    "module": "CommonJS",
+    "module": "ESNext", // Changed from CommonJS
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "preserve", // Changed to react-jsx for better compatibility with Next.js
     "incremental": true,
     "plugins": [
       {
@@ -21,9 +25,15 @@
     ],
     "baseUrl": "./",
     "paths": {
-      "@/*": ["./*"],
-      "@loader": ["./loader.js"],
-      "@prisma": ["./lib/prisma.ts"]
+      "@/*": [
+        "./*"
+      ],
+      "@loader": [
+        "./loader.js"
+      ],
+      "@prisma": [
+        "./lib/prisma.ts"
+      ]
     }
   },
   "include": [
@@ -31,11 +41,13 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "testConnection.ts"
+    "testConnection.ts",
+    "global.d.ts",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",  // Exclude the dist folder from being compiled
+    "dist", // Exclude the dist folder from being compiled
     "build"
   ]
 }

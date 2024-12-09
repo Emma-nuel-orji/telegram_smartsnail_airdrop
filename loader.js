@@ -1,8 +1,15 @@
-// Loader.js
-import React from 'react';
-// import './Loader.css'; // Style as needed
+"use client";
+import React, { useEffect, useState } from "react";
 
 const Loader = () => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null;
+
   return (
     <div className="loading-container">
       <video autoPlay muted loop>

@@ -44,13 +44,61 @@ export default function LevelsPage() {
           <li>Level 5 African Giant/God NFT: 10,000,001 - ♾️ shells</li>
         </ul>
 
-        <h2 className="text-xl font-semibold mt-6 mb-2 text-indigo-500">Level Rewards:</h2>
-        <ul className="list-disc ml-6 mb-6">
-          <li>The first 20 to reach Level 2 (Speedy) will receive a SmartSnail NFT (Speedy tier).</li>
-          <li>The first 15 to reach Level 3 (Strong) will receive a SmartSnail NFT (Strong tier).</li>
-          <li>The first 10 to reach Level 4 (Sensory) will receive a SmartSnail NFT (Sensory tier).</li>
-          <li>The first 5 to reach Level 5 (God NFT) will receive a SmartSnail NFT (African Giant tier).</li>
-        </ul>
+        <h2 className="text-3xl font-bold text-purple-600 mt-8 mb-4 text-center">
+  <span className="underline decoration-wavy decoration-purple-400">Level Rewards</span>
+</h2>
+
+<p className="text-lg text-gray-600 mb-6 text-center">
+  500 SmartSnail NFTs are up for grabs! Here's how the distribution works across levels, with a few lucky users being randomly selected at the lower levels!
+</p>
+
+<div className="bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 rounded-lg shadow-lg mb-6">
+  <h3 className="text-xl font-semibold mb-4 text-center">NFT Distribution Breakdown:</h3>
+  <ul className="list-inside space-y-3 text-lg">
+  <li className="flex items-center">
+      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">1</span>
+      <div>
+        <span className="font-semibold">Camouflage Level - 10 NFTs</span><br />
+        10 (randomly chosen) from the first 500 players on this level will receive a SmartSnail NFT (Camouflage tier). 
+      </div>
+    </li>
+
+
+    <li className="flex items-center">
+      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">1</span>
+      <div>
+        <span className="font-semibold">Level 2 (Speedy) - 200 NFTs</span><br />
+        The first 20 players to reach this level will get a SmartSnail NFT (Speedy tier).
+      </div>
+    </li>
+    <li className="flex items-center">
+      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">2</span>
+      <div>
+        <span className="font-semibold">Level 3 (Strong) - 150 NFTs</span><br />
+        The first 15 players to reach this level will get a SmartSnail NFT (Strong tier).
+      </div>
+    </li>
+    <li className="flex items-center">
+      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">3</span>
+      <div>
+        <span className="font-semibold">Level 4 (Sensory) - 100 NFTs</span><br />
+        The first 10 players to reach this level will get a SmartSnail NFT (Sensory tier).
+      </div>
+    </li>
+    <li className="flex items-center">
+      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">4</span>
+      <div>
+        <span className="font-semibold">Level 5 (God NFT) - 50 NFTs</span><br />
+        The first 5 players to reach this level will get a SmartSnail NFT (African Giant tier).
+      </div>
+    </li>
+  </ul>
+</div>
+
+<p className="text-lg text-gray-600 text-center mt-4">
+  Keep progressing and collect NFTs as you rise through the levels. The competition is on!
+</p>
+
 
         <div className="text-center mt-8">
           <p className="text-lg font-semibold">Start picking shells now!</p>
