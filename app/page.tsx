@@ -141,37 +141,45 @@ export default function Home() {
   }, [isClicking, energy]);
 
   useEffect(() => {
+    // Add these lines at the top of your useEffect
+    console.log('Page is loading');
+    console.log('Telegram available:', !!window.Telegram);
+  
     const initializeTelegram = async () => {
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      if (window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
         tg.ready();
   
         const { user } = tg.initDataUnsafe || {};
   
         if (user) {
+          console.log('Telegram user found:', user);
           try {
-            const res = await fetch('/api/user', {
+            const response = await fetch('/api/user', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(user),
+              body: JSON.stringify(user)
             });
   
-            const data = await res.json();
+            console.log('API response status:', response.status);
+            const data = await response.json();
   
             if (data.error) {
+              console.error('User API error:', data.error);
               setError(data.error);
             } else {
+              console.log('User data received:', data);
               setUser(data);
-              setShowWelcomePopup(data.isFirstTime);
             }
-          } catch {
+          } catch (error) {
+            console.error('Fetch error:', error);
             setError('Failed to fetch user data');
           }
         } else {
-          setError('No user data available');
+          setError('No user data from Telegram');
         }
       } else {
-        setError('This app should be opened in Telegram');
+        setError('This app must be opened in Telegram');
       }
     };
   

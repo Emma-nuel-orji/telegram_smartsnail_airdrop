@@ -1,15 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
-    try {
-        const userData = await req.json()
+    console.log('User API route hit!');
+    console.log('Request received'); // Log when the route is accessed
 
-        // Check for the necessary user data
+    try {
+        const userData = await req.json();
+        console.log('User data received:', userData); // Log received user data
+
+        // Validate the user data
         if (!userData || !userData.id) {
-            return NextResponse.json({ error: 'Invalid user data' }, { status: 400 })
+            console.warn('Invalid user data:', userData); // Log invalid data
+            return NextResponse.json({ error: 'Invalid user data' }, { status: 400 });
         }
 
+        // Upsert user data in the database
         const user = await prisma.user.upsert({
             where: { telegramId: userData.id },
             update: {
@@ -26,9 +32,11 @@ export async function POST(req: NextRequest) {
                 email: userData.email || '', // Create with email if provided
             },
         });
-        return NextResponse.json(user)
+
+        console.log('User successfully upserted:', user); // Log success
+        return NextResponse.json(user);
     } catch (error) {
-        console.error('Error processing user data:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        console.error('Error processing user data:', error); // Log any errors
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

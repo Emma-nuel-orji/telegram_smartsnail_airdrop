@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import Redis from 'ioredis';
+import NodeCache from 'node-cache';
 
-const redis = new Redis({ host: 'localhost', port: 6379 }); // Adjust Redis host & port if needed
+// Initialize cache with a TTL of 60 seconds
+const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
 
-// Define levels and their respective point ranges and colors
 const levels = [
   { name: 'Level 1 Camouflage', minPoints: 0, maxPoints: 1000000, color: '#d1c4e9' },
   { name: 'Level 2 Speedy', minPoints: 1000001, maxPoints: 3000000, color: '#9c27b0' },
@@ -13,37 +13,12 @@ const levels = [
   { name: 'Level 5 African Giant/God NFT', minPoints: 10000001, maxPoints: Infinity, color: '#4a148c' },
 ];
 
-interface User {
-  telegramId: string;
-  username: string | null; // Use nullable since the `username` is potentially null
-  points: number;
-  referrals?: {
-    id: string;
-    createdAt: Date;
-    referredBy: string;
-    referredTo: string;
-    userId: string;
-  }[];
-}
-
-type UserWithDetails = {
-  telegramId: string;
-  username: string;
-  points: number;
-  referrals?: User['referrals'];
-  color: string;
-  rank: number;
-};
-
-// Helper function to map users with additional details like color and rank
-const mapUserWithDetails = (level: typeof levels[number], skip: number) => (user: User, index: number): UserWithDetails => {
-  return {
-    ...user,
-    username: user.username || '', // Ensure username is a string, defaulting to empty if null
-    color: level.color,
-    rank: skip + index + 1, // Explicitly typed index as number
-  };
-};
+const mapUserWithDetails = (level: typeof levels[number], skip: number) => (user: any, index: number) => ({
+  ...user,
+  username: user.username || '',
+  color: level.color,
+  rank: skip + index + 1,
+});
 
 export async function GET(req: NextRequest) {
   console.log('Leaderboard API hit');
@@ -54,13 +29,16 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const skip = (page - 1) * limit;
 
-    const cacheKey = `leaderboard:${page}:${limit}`;
-    let cachedLeaderboard = await redis.get(cacheKey);
+    // Generate a unique cache key based on page and limit
+    const cacheKey = `leaderboard-page-${page}-limit-${limit}`;
+    const cachedData = cache.get(cacheKey);
 
-    if (cachedLeaderboard) {
-      console.log('Cache hit for leaderboard data');
-      return NextResponse.json(JSON.parse(cachedLeaderboard));
+    if (cachedData) {
+      console.log('Cache hit');
+      return NextResponse.json(cachedData);
     }
+
+    console.log('Cache miss, fetching from database');
 
     const leaderboard = await Promise.all(
       levels.map(async (level) => {
@@ -77,9 +55,7 @@ export async function GET(req: NextRequest) {
             points: true,
             referrals: true,
           },
-          orderBy: {
-            points: 'desc',
-          },
+          orderBy: { points: 'desc' },
           take: limit,
           skip,
         });
@@ -88,14 +64,22 @@ export async function GET(req: NextRequest) {
           level: level.name,
           levelColor: level.color,
           users: users.map(mapUserWithDetails(level, skip)),
-          totalUsersInLevel: users.length,
+          totalUsersInLevel: await prisma.user.count({
+            where: {
+              points: {
+                gte: level.minPoints,
+                ...(level.maxPoints !== Infinity && { lte: level.maxPoints }),
+              },
+            },
+          }),
         };
       })
     );
 
     const filteredLeaderboard = leaderboard.filter((level) => level.users.length > 0);
 
-    await redis.set(cacheKey, JSON.stringify(filteredLeaderboard), 'EX', 3600); // Cache expires in 1 hour
+    // Cache the fetched leaderboard data
+    cache.set(cacheKey, filteredLeaderboard);
 
     return NextResponse.json(filteredLeaderboard);
   } catch (error) {
