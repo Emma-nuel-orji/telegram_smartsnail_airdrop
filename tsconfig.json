@@ -10,6 +10,7 @@
     "target": "ESNext",
     "outDir": "./dist",
     "strict": true,
+    "strictNullChecks": true,
     "noEmit": false,
     "esModuleInterop": true,
     "module": "ESNext", // Changed from CommonJS
