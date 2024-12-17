@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { initUtils } from '@telegram-apps/sdk';
+import  WebApp from '@twa-dev/sdk'; // Correct import
 import './referral.css';
 
 interface ReferralSystemProps {
@@ -16,14 +16,13 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
   const INVITE_URL = "https://t.me/SmartSnails_Bot";
 
   useEffect(() => {
-    // Check if the user is referred via the 'start' parameter and save the referral
     const checkReferral = async () => {
       if (startParam && userId) {
         try {
           const response = await fetch('/api/referrals', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, referralId: startParam }), // Sending the user and referral ID to backend
+            body: JSON.stringify({ userId, referralId: startParam }),
           });
           if (!response.ok) throw new Error('Failed to save referral');
         } catch (error) {
@@ -32,7 +31,6 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
       }
     };
 
-    // Fetch the user's referral list and the referrer information
     const fetchReferrals = async () => {
       if (userId) {
         try {
@@ -47,29 +45,33 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
       }
     };
 
-    checkReferral(); // Execute referral saving on mount
-    fetchReferrals(); // Fetch referral data on mount
+    WebApp.ready(); // Notify Telegram that the app is ready
+    checkReferral();
+    fetchReferrals();
   }, [userId, startParam]);
 
-  // Generate the invite link and open Telegram
   const handleInviteFriend = () => {
-    const utils = initUtils();
-    const inviteLink = `${INVITE_URL}?startapp=${userId}`; // Construct invite link with the user's ID
-    const shareText = `Join me on this awesome Telegram mini app!`;
-    const fullUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
-    utils.openTelegramLink(fullUrl); // Open the Telegram link for sharing
+    try {
+      const inviteLink = `${INVITE_URL}?start=${userId}`;
+      const shareText = `Join me on this awesome Telegram mini app!`;
+      const fullUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
+      WebApp.openTelegramLink(fullUrl); // Use WebApp to open the link
+    } catch (error) {
+      console.error('Error opening Telegram link:', error);
+    }
   };
 
-  // Copy the invite link to the clipboard
   const handleCopyLink = () => {
-    const inviteLink = `${INVITE_URL}?startapp=${userId}`;
-    navigator.clipboard.writeText(inviteLink);
-    alert('Invite link copied to clipboard!'); // Inform the user that the link has been copied
+    const inviteLink = `${INVITE_URL}?start=${userId}`;
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      alert('Invite link copied to clipboard!');
+    }).catch(() => {
+      alert('Failed to copy the invite link.');
+    });
   };
 
   return (
     <div className="referral-container">
-      {/* Images for referral system */}
       <div className="ref">
         <img className="imag" src="/images/tasks/invite_a_telegram_premium_friend.png" alt="Invite a friend" />
       </div>
@@ -78,7 +80,6 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
       </div>
       <br />
 
-      {/* Display referrer if available */}
       {referrer && (
         <div className="referral-invite-box">
           <p className="referrer-message">
@@ -87,7 +88,6 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
         </div>
       )}
 
-      {/* Buttons for inviting or copying the referral link */}
       <div className="referral-actions">
         <button onClick={handleInviteFriend} className="invite-button">
           <i className="fa fa-user-plus"></i> Invite Friend
@@ -97,7 +97,6 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
         </button>
       </div>
 
-      {/* Display the list of referrals */}
       {referrals.length > 0 && (
         <div className="referrals-box">
           <h2 className="referrals-title">Your Referrals</h2>

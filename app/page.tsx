@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { WebApp } from '@twa-dev/types';
+import WebApp from '@twa-dev/sdk';
+import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
+import '/Welcome.css';
 
 declare global {
   interface Window {
     Telegram?: {
-      WebApp: WebApp;
+      WebApp: WebAppType;
     };
   }
 }
@@ -189,18 +191,29 @@ export default function Home() {
   // Handle claiming welcome bonus
   const handleClaim = async () => {
     try {
+      if (!user) {
+        // Early return if user is not defined
+        setError('User is not defined.');
+        return;
+      }
+  
       const res = await fetch('/api/claim-welcome', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ telegramId: user!.telegramId }),
+        body: JSON.stringify({ telegramId: user.telegramId }),
       });
+  
       const data = await res.json();
+  
       if (data.success) {
-        setUser({ ...user!, points: data.points });
+        setUser({ ...user, points: data.points });
         setShowWelcomePopup(false);
         setNotification('Welcome bonus claimed!');
+  
+        // Trigger falling shells animation after successful claim
+        triggerFallingShellsAnimation();
       } else {
         setError('Failed to claim bonus');
       }
@@ -208,30 +221,45 @@ export default function Home() {
       setError('An error occurred while claiming bonus');
     }
   };
-
+  
+  // Function to trigger falling shells animation
+  const triggerFallingShellsAnimation = () => {
+    // Example implementation of triggering the falling shells animation
+    const animationElement = document.querySelector('.falling-shells-container');
+    if (animationElement) {
+      animationElement.classList.add('animate-falling-shells'); // CSS class to handle animation
+    }
+  };
+  
   // Handle rendering based on state
- {/* Notification */}
-{notification && <div className="notification">{notification}</div>}
-
-{/* Error */}
-{error && (
-  <div className="error-message">
-    <span className="error-icon">🐌</span>
-    <span className="error-text">{error}</span>
-  </div>
-)}
-
-  if (!user) {
-    return (
-      <div className="loading-container">
-        <video autoPlay muted loop>
-          <source src="/videos/unload.mp4" type="video/mp4" />
-        </video>
+  {/* Notification */}
+  {notification && <div className="notification">{notification}</div>}
+  
+  {/* Error */}
+  {error && (
+    <div className="error-message">
+      <span className="error-icon">🐌</span>
+      <span className="error-text">{error}</span>
+    </div>
+  )}
+  
+  {!user ? (
+    <div className="loading-container">
+      <video autoPlay muted loop>
+        <source src="/videos/unload.mp4" type="video/mp4" />
+      </video>
+    </div>
+  ) : (
+    <div className="welcome-container">
+      <button onClick={handleClaim}>Claim Welcome Bonus</button>
+  
+      {/* Falling shells animation container */}
+      <div className="falling-shells-container">
+        {/* Falling shells animation content here */}
       </div>
-    );
-  }
-
-
+    </div>
+  )}
+  
 
   return (
     <div className="bg-gradient-main min-h-screen px-4 flex flex-col items-center text-white font-medium">
@@ -244,7 +272,7 @@ export default function Home() {
       {showWelcomePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
           <div className="bg-white text-black p-6 rounded-md text-center">
-            <h2 className="text-2xl font-bold">Welcome onboard {user.firstName}!</h2>
+            <h2 className="text-2xl font-bold">Welcome onboard {user?.firstName}!</h2>
             <p className="mt-4">Now you're a Smart Snail!</p>
             <p>Some are farmers here, while some are Snailonauts, and over here we earn something more valuable than coins: Shells!</p>
             <p className="mt-4 text-lg font-semibold">Welcome token: 5,000 Shells</p>
@@ -274,37 +302,39 @@ export default function Home() {
     </div>
 
     {/* User Stats Section */}
-    <p>Points: {user.points}</p>
-    <p>Energy: {energy}</p>
+    {/* <p>Points: {user?.points}</p>
+    <p>Energy: {energy}</p> */}
 
     {/* Original section */}
     <div className="mt-[-1rem] text-5xl font-bold flex items-center">
-      <img src="/images/shell.png" width={48} height={48} alt="Coin" />
-      <span className="ml-2">{user.points.toLocaleString()}</span>
+      <img src="/images/shell.png"  width={50} height={50} alt="Coin" /> 
+      <span className="ml-2">{user?.points.toLocaleString()}</span>
     </div>
 
     {/* Level and Camouflage Logic */}
     <div className="text-base mt-2 flex items-center justify-between">
-      <button
-        className="glowing hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transition-all duration-300 transform hover:shadow-lg hover:scale-105 animate-glow flex items-center"
-      >
-        <div className="flex items-center">
-          <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
-          <Link href="/level">Level:</Link>
-        </div>
-      </button>
+    <button
+  className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center"
+>
+  <div className="flex items-center">
+    <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
+    <Link href="/level">Level  :</Link>
+  </div>
+</button>
+
+
 
       {/* Display Camouflage Level */}
       <span className="ml-0">
-        {user.points < 1000000
-          ? 'Level 1 Camouflage'
-          : user.points <= 3000000
-          ? 'Level 2 Speedy'
-          : user.points <= 6000000
-          ? 'Level 3 Strong'
-          : user.points <= 10000000
-          ? 'Level 4 Sensory'
-          : 'Level 5 African Giant/God NFT'}
+        {(user?.points ?? 0) < 1000000
+          ? 'Camouflage'
+          : (user?.points ?? 0) <= 3000000
+          ? 'Speedy'
+          : (user?.points ?? 0) <= 6000000
+          ? 'Strong'
+          : (user?.points ?? 0) <= 10000000
+          ? 'Sensory'
+          : 'African Giant/God NFT'}
       </span>
     </div>
 
@@ -338,7 +368,7 @@ export default function Home() {
             <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
               <button className="flex flex-col items-center gap-1">
                 <Link href="/referralsystem">
-                <img src="/images/SNAILNEW.png" width={30} height={30} alt="Frens" />
+                <img src="/images/SNAILNEW.png" width={50} height={50} alt="Frens" />
                 
                 <span>Frens</span>
                 </Link>

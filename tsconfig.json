@@ -5,6 +5,9 @@
       "dom.iterable",
       "esnext"
     ],
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
     "allowJs": true,
     "skipLibCheck": true,
     "target": "ESNext",
@@ -13,11 +16,11 @@
     "strictNullChecks": true,
     "noEmit": false,
     "esModuleInterop": true,
-    "module": "ESNext", // Changed from CommonJS
+    "module": "ESNext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve", // Changed to react-jsx for better compatibility with Next.js
+    "jsx": "preserve",
     "incremental": true,
     "plugins": [
       {
@@ -28,6 +31,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@telegram-apps/sdk": [
+        "./node_modules/@twa-dev/sdk/dist/index.js"
       ],
       "@loader": [
         "./loader.js"
@@ -43,12 +49,11 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "testConnection.ts",
-    "global.d.ts",
-    ".next/types/**/*.ts"
+    "global.d.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist", // Exclude the dist folder from being compiled
+    "dist",
     "build"
   ]
 }

@@ -1,46 +1,11 @@
-'use client'
+'use client';
+import dynamic from 'next/dynamic';
 
-import ReferralSystem from '@/components/ReferralSystem'
-import { useEffect, useState } from 'react'
-import Link from 'next/link';
+const Home = dynamic(() => import('./referralsystemcontent'), {
+  ssr: false,
+  loading: () => <div>Loading...</div>
+});
 
-export default function Home() {
-  const [initData, setInitData] = useState('')
-  const [userId, setUserId] = useState('')
-  const [startParam, setStartParam] = useState('')
-
-  useEffect(() => {
-    const initWebApp = async () => {
-      // Ensure this runs only in the browser
-      if (typeof window !== 'undefined') {
-        try {
-          // Dynamically import the SDK to avoid issues during SSR
-          const WebApp = (await import('@twa-dev/sdk')).default;
-  
-          // Signal that the WebApp is ready
-          WebApp.ready();
-  
-          // Set initialization data safely
-          setInitData(WebApp.initData || '');
-          setUserId(WebApp.initDataUnsafe?.user?.id?.toString() || '');
-          setStartParam(WebApp.initDataUnsafe?.start_param || '');
-        } catch (error) {
-          console.error('Failed to initialize Telegram WebApp:', error);
-        }
-      }
-    };
-  
-    initWebApp();
-  }, []);
-  
-  return (
-    <main className="refer" >
-    
-      <Link href="/"><img  src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" /></Link>
-      <h1 className="hhh text-4xl font-bold mb-4">Invite friends!</h1>
-      <p className="ppp">You and your friend will recieve bonuses</p>
-      <ReferralSystem initData={initData} userId={userId} startParam={startParam} />
-     
-    </main>
-  )
+export default function referralsystem() {
+  return <Home />;
 }

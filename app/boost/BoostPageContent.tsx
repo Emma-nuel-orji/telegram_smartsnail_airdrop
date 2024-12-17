@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'; console.log(BoostPageContent);  // Debugg
 
 import Link from "next/link";
 import axios from "axios";
-// import Loader from "@loader";
+import Loader from "@loader";
 import TelegramInit from "../../components/TelegramInit";
 import "./BoostPage.css";
 import WebApp from "@twa-dev/sdk";
@@ -87,9 +87,9 @@ export default function BoostPageContent() {
     }
   }, [isClient]);
 
-  // if (!isClient) {
-  //   return <Loader />;
-  // }
+  if (!isClient) {
+    return <Loader />;
+  }
 
   const handlePurchaseHelper = async (
     paymentMethod: string,
@@ -221,9 +221,9 @@ export default function BoostPageContent() {
   };
 
   // Only show loader if not client-side
-  // if (!isClient) {
-  //   return <Loader />;
-  // }
+  if (!isClient) {
+    return <Loader />;
+  }
 
   
   // Handle code redemption logic
@@ -314,9 +314,9 @@ export default function BoostPageContent() {
   };
 
   // Only render content if on client-side
-  // if (!isClient) {
-  //   return <Loader />;
-  // }
+  if (!isClient) {
+    return <Loader />;
+  }
 
   return (
     <div className="boost-page">
@@ -334,7 +334,7 @@ export default function BoostPageContent() {
       )}
 
       {/* Loading and back button */}
-      {/* {loading && <Loader />} */}
+      {loading && <Loader />}
       <Link href="/">
         <img
           src="/images/info/output-onlinepngtools (6).png"

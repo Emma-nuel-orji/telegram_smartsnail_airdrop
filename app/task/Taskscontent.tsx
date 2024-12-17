@@ -1,8 +1,9 @@
 "use client";
-
+import WebApp from "@twa-dev/sdk";
 import React, { useState, useEffect } from "react";
 import "./task.css";
 import Link from "next/link";
+
 
 // Task interface
 interface Task {
@@ -103,6 +104,20 @@ const Tasks: React.FC = () => {
   const [reward, setReward] = useState(0);
   const [userPoints, setUserPoints] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [telegramId, setTelegramId] = useState<number | null>(null);
+  // useEffect(() => {
+  //   // Fetch Telegram ID when the component mounts
+  //   setTelegramId(TelegramApps.getUserId());
+  // }, []);
+  
+
+  useEffect(() => {
+    // Explicitly use WebApp to initialize
+    WebApp.ready();
+
+    const userId = WebApp.initDataUnsafe?.user?.id;
+    setTelegramId(userId || null);
+  }, []);
   // Additional Tasks
   const taskData: Task[] = [
     {
@@ -142,7 +157,7 @@ const Tasks: React.FC = () => {
             const taskCompletionTime = new Date(task.completedTime).getTime();
             const currentTime = Date.now();
             const timeDifference = currentTime - taskCompletionTime;
-
+  
             if (timeDifference > 20 * 60 * 60 * 1000) {
               return { ...task, completed: false, completedTime: null };
             }
@@ -151,13 +166,13 @@ const Tasks: React.FC = () => {
         })
       );
     };
-
+  
     updateDailyTasks();
     const intervalId = setInterval(updateDailyTasks, 60 * 60 * 1000); // Check every hour
-
+  
     return () => clearInterval(intervalId); // Cleanup on unmount
   }, []);
-
+  
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     setValidationAttempt(0);
@@ -165,17 +180,17 @@ const Tasks: React.FC = () => {
 
   const handleValidateClick = async () => {
     setValidationAttempt((prevAttempt) => prevAttempt + 1);
-
+  
     if (validationAttempt === 0) {
       alert("Please complete the task before validating.");
       return;
     }
-
+  
     if (validationAttempt === 1) {
       alert("Bruuh!!, you haven't performed the task yet.");
     } else if (validationAttempt >= 2 && selectedTask) {
       try {
-        const response = await fetch("/api/increase-points", {
+        const response = await fetch("/api/tasks/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -183,7 +198,7 @@ const Tasks: React.FC = () => {
             reward: selectedTask.reward,
           }),
         });
-
+  
         if (response.ok) {
           const updatedTasks = tasks.map((task) =>
             task.id === selectedTask.id
@@ -191,23 +206,24 @@ const Tasks: React.FC = () => {
               : task
           );
           setTasks(updatedTasks);
-
+  
           setTotalPoints((prev) => {
             const newPoints = prev + selectedTask.reward;
             localStorage.setItem("totalPoints", newPoints.toString());
             return newPoints;
           });
-
+  
           const completedTaskIds = updatedTasks
             .filter((task) => task.completed)
             .map((task) => task.id);
           localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
-
+  
           setTaskCompleted(true);
           setSelectedTask(null);
           setValidationAttempt(0);
         } else {
-          alert("Something went wrong. Please try again.");
+          const errorData = await response.json();
+          alert(errorData.message || "Something went wrong. Please try again.");
         }
       } catch (error) {
         console.error("Error completing task:", error);
@@ -215,35 +231,38 @@ const Tasks: React.FC = () => {
       }
     }
   };
+  
 
   const handleRedeemCode = async () => {
     if (!inputCode) {
       setMessage("Please enter a valid code.");
       return;
     }
-
+  
     setLoading(true);
     try {
-      const response = await fetch("/api/redeemCodeTask", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code: inputCode,
-          telegramId: "123456", // Replace with actual Telegram ID logic
-          batchId: selectedTask?.batchId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setReward(data.reward);
-        setUserPoints((prevPoints) => prevPoints + data.reward);
-        setMessage(data.message || `You received ${data.reward} coins!`);
-      } else {
-        setMessage(data.error || "Redemption failed. Please try again.");
+      if (typeof window !== 'undefined') {
+        const response = await fetch("/api/redeemCodeTask", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            code: inputCode,
+            telegramId,
+            batchId: selectedTask?.batchId,
+          }),
+        });
+  
+        const data = await response.json();
+  
+        if (response.ok) {
+          setReward(data.reward);
+          setUserPoints((prevPoints) => prevPoints + data.reward);
+          setMessage(data.message || `You received ${data.reward} coins!`);
+        } else {
+          setMessage(data.error || "Redemption failed. Please try again.");
+        }
       }
     } catch (error) {
       console.error("Error redeeming code:", error);
@@ -253,7 +272,7 @@ const Tasks: React.FC = () => {
       setInputCode("");
     }
   };
-
+  
   return (
     <div className="task-container" style={{ width: "100%" }}>
       <h2>Perform tasks to earn more Shells!</h2>
@@ -264,66 +283,36 @@ const Tasks: React.FC = () => {
         <button onClick={() => setSelectedSection("partners")}>Partners</button>
       </div>
 
-      <div className="tasks-display">
-        {tasks
-          .filter((task) => task.type === selectedSection)
-          .map((task) => (
-            <div key={task.id} onClick={() => handleTaskClick(task)}>
-              <img src={task.image} alt={task.description} />
-              {task.completed && <span>✔</span>}
-            </div>
-          ))}
-      </div>
-
       {selectedTask && (
-        <div className="task-popup">
-          <button onClick={() => setSelectedTask(null)}>X</button>
-          <p>{selectedTask.description}</p>
-          {selectedTask.completed ? (
-            <button disabled>Completed</button>
-          ) : (
-            <>
-              <button onClick={() => window.open(selectedTask.link, "_blank")}>Perform Task</button>
-              <button onClick={handleValidateClick}>Validate and Reward</button>
-            </>
-          )}
-        </div>
-      )}
+  <div className="task-popup">
+    <button onClick={() => setSelectedTask(null)}>Close</button>
+    <p>{selectedTask.description}</p>
 
-       {/* Popup for Selected Task */}
-       {selectedTask && (
-        <div className="task-popup">
-          <button onClick={() => setSelectedTask(null)}>Close</button>
-          <p>{selectedTask.description}</p>
-
-          {/* Unique popup for task ID 22 */}
-          {selectedTask.id === 22 ? (
-            <>
-              <input
-                type="text"
-                value={inputCode}
-                onChange={(e) => setInputCode(e.target.value)}
-                placeholder="Insert unique code"
-                disabled={loading}
-              />
-              <button onClick={handleRedeemCode} disabled={loading}>
-                {loading ? "Redeeming..." : "Redeem"}
-              </button>
-              {message && <p>{message}</p>}
-              {reward > 0 && <p>You earned: {reward} coins!</p>}
-            </>
-          ) : (
-            <>
-              {/* Standard popup for other tasks */}
-              <button onClick={() => window.open(selectedTask.link, "_blank")}>
-                Perform Task
-              </button>
-              <button onClick={handleValidateClick}>Validate and Reward</button>
-            </>
-          )}
-        </div>
-      )}
-
+    {selectedTask.id === 22 ? (
+      <>
+        <input
+          type="text"
+          value={inputCode}
+          onChange={(e) => setInputCode(e.target.value)}
+          placeholder="Insert unique code"
+          disabled={loading}
+        />
+        <button onClick={handleRedeemCode} disabled={loading}>
+          {loading ? "Redeeming..." : "Redeem"}
+        </button>
+        {message && <p>{message}</p>}
+        {reward > 0 && <p>You earned: {reward} coins!</p>}
+      </>
+    ) : (
+      <>
+        <button onClick={() => window.open(selectedTask.link, "_blank")}>
+          Perform Task
+        </button>
+        <button onClick={handleValidateClick}>Validate and Reward</button>
+      </>
+    )}
+  </div>
+)}
 
       <FallingShellsEffect
         trigger={taskCompleted}

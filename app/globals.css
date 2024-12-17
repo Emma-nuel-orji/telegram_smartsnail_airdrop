@@ -2,9 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: sans-serif;
+
+@font-face {
+  font-family: 'Inter Variable';
+  src: url('/public/fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
 }
+
+
+/* Apply the font to your body or other elements */
+body {
+  font-family: 'Inter', Arial, sans-serif;
+}
+
 
 @keyframes float {
   0% {
