@@ -3,7 +3,7 @@
 import "./globals.css";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import Link from 'next/link';
-
+import Loader from "@/loader";
 export default function RootLayout({
   children,
 }: Readonly<{

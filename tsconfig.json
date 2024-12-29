@@ -1,23 +1,14 @@
 {
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "target": "ESNext",
-    "outDir": "./dist",
     "strict": true,
-    "strictNullChecks": true,
-    "noEmit": false,
+    "noEmit": true,
     "esModuleInterop": true,
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -27,33 +18,24 @@
         "name": "next"
       }
     ],
-    "baseUrl": "./",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@telegram-apps/sdk": [
-        "./node_modules/@twa-dev/sdk/dist/index.js"
-      ],
-      "@loader": [
-        "./loader.js"
-      ],
-      "@prisma": [
-        "./lib/prisma.ts"
-      ]
+      "@/*": ["./*", "./src/*"],
+      "@telegram-apps/sdk": ["./node_modules/@twa-dev/sdk/dist/index.js"],
+      "@loader": ["./loader", "./src/loader"],
+      "@prisma": ["./node_modules/@prisma/client"],
+      "@/lib/*": ["./lib/*"],
+      "@/components/*": ["./components/*"],
+      "@contexts/*": ["./app/api/context/*"]
     }
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "**/*.d.ts",
     ".next/types/**/*.ts",
     "testConnection.ts",
     "global.d.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build"
-  ]
+  "exclude": ["node_modules"]
 }

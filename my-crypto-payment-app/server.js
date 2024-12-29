@@ -1,43 +1,54 @@
+import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
+// import purchaseController from './controllers/purchaseController.js';
+// import redeemController from './controllers/redeemController.js';
+// import referralController from './controllers/referralController.ts';
+// import taskController from './controllers/taskController.ts';
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const dotenv = require("dotenv");
-const boostRoutes = require("./app/api/purchase/boostRoutes");
-
-dotenv.config(); // Load environment variables from .env file
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: { origin: '*' },
+});
 
-// Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 // Middleware to parse JSON
 app.use(express.json());
-app.use('/api/purchase', bookPurchaseRoutes);
-// Example route
-app.get('/api/stock', (req, res) => {
-  res.json({ stockDetails: "Sample Data" });
+app.use(express.urlencoded({ extended: true }));
+
+app.use('/api/purchase', purchaseController);
+app.use('/api/redeem', redeemController);
+app.use('/api/referrals', referralController);
+app.use('/api/tasks', taskController);
+
+// Mock function to get stock data
+const getCurrentStockData = () => ({
+  fxckedUpBagsLimit: 5000,
+  fxckedUpBagsUsed: Math.floor(Math.random() * 5000),
+  humanRelationsLimit: 5000,
+  humanRelationsUsed: Math.floor(Math.random() * 5000),
 });
 
+// WebSocket logic
+io.on('connection', (socket) => {
+  console.log('A user connected');
 
-// Routes
-app.use("/api/boost", boostRoutes);
+  socket.emit('stockUpdate', getCurrentStockData());
 
-// Health Check Route
-app.get("/", (req, res) => {
-  res.status(200).send("Server is running.");
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack); // Log the full error for debugging
-  const statusCode = err.status || 500;
-  const message = err.message || 'Internal Server Error';
-  res.status(statusCode).json({ error: message });
-});
+// Broadcast stock updates periodically
+setInterval(() => {
+  const stockData = getCurrentStockData();
+  io.emit('stockUpdate', stockData);
+}, 5000);
 
-// Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });

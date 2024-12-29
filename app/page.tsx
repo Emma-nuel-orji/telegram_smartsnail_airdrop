@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
-import '/Welcome.css';
+import '../welcome.css';
 
 declare global {
   interface Window {
@@ -178,7 +178,7 @@ export default function Home() {
             setError('Failed to fetch user data');
           }
         } else {
-          setError('No user data from Telegram');
+          setError('');
         }
       } else {
         setError('This app must be opened in Telegram');
@@ -297,7 +297,7 @@ export default function Home() {
       <div className="flex space-x-4">
         <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" /></Link>
         <Link href="/wallet"><img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" /></Link>
-        <Link href="/Profile"><img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" /></Link>
+        <Link href="/info"><img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" /></Link>
       </div>
     </div>
 
@@ -334,7 +334,7 @@ export default function Home() {
           ? 'Strong'
           : (user?.points ?? 0) <= 10000000
           ? 'Sensory'
-          : 'African Giant/God NFT'}
+          : 'African Giant Snail/god NFT'}
       </span>
     </div>
 
@@ -365,28 +365,23 @@ export default function Home() {
 
 
           <div className="flex-grow flex items-center max-w-60 text-sm">
-            <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
-              <button className="flex flex-col items-center gap-1">
-                <Link href="/referralsystem">
-                <img src="/images/SNAILNEW.png" width={50} height={50} alt="Frens" />
-                
-                <span>Frens</span>
-                </Link>
-              </button>
-              <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
-              <button className="flex flex-col items-center gap-1">
-                <Link href="/task">
-                <img src="/images/shell.png" width={30} height={30} alt="Earn" />
-                <span>Earn</span></Link>
-              </button>
-              <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
-              <button className="flex flex-col items-center gap-1">
-                <Link href="/boost">
-                <img src="/images/startup.png" width={30} height={30} alt="Boosts" />
-                <span>Boost</span></Link>
-              </button>
-            </div>
-          </div>
+  <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
+    <Link href="/referralsystem" className="flex flex-col items-center gap-1">
+      <img src="/images/SNAILNEW.png" width={50} height={50} alt="Frens" />
+      <span>Frens</span>
+    </Link>
+    <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
+    <Link href="/task" className="flex flex-col items-center gap-1">
+      <img src="/images/shell.png" width={30} height={30} alt="Earn" />
+      <span>Earn</span>
+    </Link>
+    <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
+    <Link href="/boost" className="flex flex-col items-center gap-1">
+      <img src="/images/startup.png" width={30} height={30} alt="Boosts" />
+      <span>Boost</span>
+    </Link>
+  </div>
+</div>
 
 
         </div>

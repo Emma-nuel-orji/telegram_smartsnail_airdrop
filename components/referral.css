@@ -1,116 +1,88 @@
-/* Overall container styling */
 .referral-container {
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    padding: 30px;
-    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.1);
-    max-width: 600px;
-    margin: 0 auto;
-    font-family: 'Arial', sans-serif;
-    overflow: hidden;
-  }
-  
-  /* Style for referral invite box */
-  .referral-invite-box {
-    background-color: #e0e0e0;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
-  .referrer-message {
-    font-size: 18px;
-    color: #333;
-    font-weight: 600;
-  }
-  
-  .referrer-name {
-    color: #4caf50; /* Green color to highlight the referrer */
-    font-weight: bold;
-  }
-  
-  /* Actions buttons styling */
-  .referral-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 30px;
-  }
-  
-  .invite-button, .copy-button {
-    background-color: #6200ea; /* Purple background */
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-    width: 48%; /* Adjust width for two buttons */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .invite-button:active, .copy-button:active {
-    transform: scale(0.98); /* Provide feedback on press */
-  }
-  
-  .invite-button i, .copy-button i {
-    margin-right: 8px; /* Space between icon and text */
-  }
-  
-  /* Referrals list section */
-  .referrals-box {
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  }
-  
-  .referrals-title {
-    font-size: 22px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 15px;
-    text-align: center;
-  }
-  
-  .referrals-list {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .referral-item {
-    font-size: 16px;
-    color: #333;
-    background-color: #f1f1f1;
-    margin: 8px 0;
-    padding: 10px;
-    border-radius: 5px;
-    text-align: center;
-    transition: transform 0.2s ease;
-  }
-  
-  .referral-item:active {
-    transform: scale(0.98); /* Feedback on tap */
-  }
-  
-  /* Add responsiveness for smaller screens */
-  @media (max-width: 600px) {
-    .referral-actions {
-      flex-direction: column;
-      align-items: center;
-    }
-  
-    .invite-button, .copy-button {
-      width: 90%; /* Make buttons take more space on mobile */
-      margin-bottom: 10px; /* Space between buttons */
-    }
-  
-    .referral-container {
-      padding: 20px;
-    }
-  }
-  
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.ref {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.imag {
+  max-width: 100%;
+  height: auto;
+}
+
+.referral-invite-box {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.referrer-message {
+  font-size: 16px;
+  color: #333;
+}
+
+.referrer-name {
+  font-weight: bold;
+  color: #0088cc;
+}
+
+.referral-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.invite-button,
+.copy-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invite-button {
+  background-color: #0088cc;
+  color: white;
+}
+
+.copy-button {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.referrals-box {
+  background-color: #f5f5f5;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.referrals-title {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.referrals-list {
+  list-style: none;
+  padding: 0;
+}
+
+.referral-item {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  color: #666;
+}
+
+.referral-item:last-child {
+  border-bottom: none;
+}

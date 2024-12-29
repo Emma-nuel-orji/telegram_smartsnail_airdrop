@@ -5,68 +5,86 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
+// User model
 model User {
-  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
-  telegramId  String   @unique
-  username    String   // Ensure no `?`
-  firstName   String?
-  lastName    String?
-  tasks     Task[]   @relation("UserTasks")
-  email       String?  @unique
-  points      Int      @default(0)
-  tappingRate Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  nft        Boolean  @default(false) // Assuming a field to track NFT winners
-   // Add indexes
-  @@index([points], name: "points_asc_index") // Ascending order index
- 
+  id             String          @id @default(cuid()) @map("_id") @db.ObjectId
+  telegramId     String          @unique
+  username       String
+  firstName      String?
+  lastName       String?
+  tasks          Task[]          @relation("UserTasks")
+  email          String?         @unique
+  points         Int             @default(0)
+  tappingRate    Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  nft            Boolean         @default(false)
+  referrals      Referral[]      @relation("Referrer") // Outgoing referrals
+  referredBy     Referral[]      @relation("ReferredBy") // Incoming referrals
+  purchases      Purchase[]
+  completedTasks CompletedTask[] // A User can have many completed tasks
 
+  // Indexes
+  @@index([points], name: "points_asc_index")
+}
+
+// CompletedTask model
+model CompletedTask {
+  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
+  taskId      String   @db.ObjectId
+  userId      String   @db.ObjectId
+  completedAt DateTime @default(now())
+
+  // Define relations
+  task Task @relation(fields: [taskId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+}
+
+// Task model
+model Task {
+  id            String    @id @default(cuid()) @map("_id") @db.ObjectId
+  description   String
+  completed     Boolean   @default(false)
+  completedTime DateTime?
+  reward        Int
+  section       String
+  type          String
+  image         String
+  link          String
+  userId        String    @db.ObjectId
 
   // Relations
-  referrals  Referral[] @relation("Referrer") // A User can refer many other Users
-  referredBy Referral[] @relation("ReferredBy") // A User can be referred by many users (i.e., other referrers)
-  purchases  Purchase[] // All purchases made by this user
+  user          User            @relation(fields: [userId], references: [id], name: "UserTasks")
+  CompletedTask CompletedTask[]
 }
 
-model Task {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  description    String
-  completed      Boolean  @default(false)
-  completedTime  DateTime?
-  reward         Int
-  section        String
-  type           String
-  image          String
-  link           String
-  userId         String
-  user        User     @relation(fields: [userId], references: [id], name: "UserTasks")
-}
-
-
+// Referral model
 model Referral {
   id         String   @id @default(cuid()) @map("_id") @db.ObjectId
-  referredBy String   @db.ObjectId // Foreign key to User (referrer)
-  referredTo String   @db.ObjectId // Foreign key to User (referred user)
-  userId     String   @db.ObjectId // Foreign key to User (referring user)
+  referrerId String   @db.ObjectId // Foreign key to User (referrer)
+  referredId String   @db.ObjectId // Foreign key to User (referred user)
   createdAt  DateTime @default(now())
+  
 
   // Relations
-  referredByUser User @relation("ReferredBy", fields: [referredBy], references: [id]) // Referring user
-  user           User @relation("Referrer", fields: [userId], references: [id]) // Referred user
+  referrer User @relation("Referrer", fields: [referrerId], references: [id]) // Referring user
+  referred User @relation("ReferredBy", fields: [referredId], references: [id]) // Referred user
 }
 
+// GeneratedCode model
 model GeneratedCode {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  id         String    @id @default(cuid()) @map("_id") @db.ObjectId
   code       String    @unique
   batchId    String
   isRedeemed Boolean   @default(false)
   redeemedAt DateTime?
   redeemedBy String?   @db.ObjectId
   assignedTo String?   @db.ObjectId
-  bookId     String   @map("bookId") 
+  bookId     String    @db.ObjectId
+  isUsed     Boolean   @default(false)
   purchaseId String?   @db.ObjectId
   createdAt  DateTime  @default(now())
 
@@ -75,10 +93,12 @@ model GeneratedCode {
   purchase Purchase? @relation(fields: [purchaseId], references: [id])
 }
 
+// Book model
 model Book {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
   title       String
   description String
+  author      String
   priceTon    Float
   priceCard   Float
   coinsReward Int
@@ -91,8 +111,9 @@ model Book {
   purchases      Purchase[] // One-to-many relation to Purchase
 }
 
+// Purchase model
 model Purchase {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId
   bookId      String   @db.ObjectId
   paymentType String
@@ -104,4 +125,37 @@ model Purchase {
   user  User            @relation(fields: [userId], references: [id])
   book  Book            @relation(fields: [bookId], references: [id])
   codes GeneratedCode[] // One-to-many relation to GeneratedCode
+}
+
+model Order {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId            String   @unique
+  paymentMethod      String
+  totalAmount        Float
+  status             String     // e.g., "PENDING", "COMPLETED"
+  createdAt          DateTime   @default(now())
+
+  // Relationship to pending transactions
+  pendingTransactions PendingTransaction[]  
+}
+
+model PendingTransaction {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  email             String
+  amount            Float
+  bookCount         Int
+  fxckedUpBagsQty   Int
+  humanRelationsQty Int
+  telegramId        String
+  referrerId        String?
+  totalTappingRate  Float
+  totalPoints       Float
+  payloadData       String
+  status            String    // e.g., "PENDING", "COMPLETED"
+
+  // Foreign key and relation
+  orderId           String   @db.ObjectId
+  order             Order    @relation(fields: [orderId], references: [id])
+
+  createdAt         DateTime @default(now())
 }

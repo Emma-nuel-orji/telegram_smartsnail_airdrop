@@ -1,9 +1,10 @@
 .boost-page {
-  font-family: Inter, Arial, sans-serif;
+  /* font-family: Inter, Arial, sans-serif; */
   background-color: #dd9acd;
   padding: 20px;
   color: #333;
   max-width: 600px;
+  flex-direction: column;
   margin: 0 auto;
 }
 
@@ -14,27 +15,25 @@ h1 {
 }
 
 .tests {
-  /* font-size: 24px;
-  text-align: center; */
   color: #ffffff;
 }
 
 .books-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-top: 20px;
+  gap: 20px;
 }
 
 .book-card {
-  border: 1px solid #ddd;
+  border: 1px solid #ccc;
   padding: 15px;
   border-radius: 5px;
   background-color: #f9f9f9;
+  position: relative;
 }
 
 .book-card h2 {
-  font-size: 18px;
+  /* font-size: 18px; */
   color: #333;
 }
 
@@ -46,12 +45,37 @@ h1 {
   border-radius: 5px;
 }
 
+.book-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-icon {
+  /* font-size: 1.2rem; */
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.info-popup {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
 .summary-container {
   margin-top: 20px;
   padding: 15px;
   background-color: #e4e3e3;
   border-radius: 5px;
   text-align: center;
+  font-size: 1.1rem;
 }
 
 .summary-container input {
@@ -64,7 +88,6 @@ h1 {
 
 .payment-buttons {
   display: flex;
-  /* justify-content: space-around; */
   margin-top: 20px;
   gap: 10px;
   justify-content: center;
@@ -74,7 +97,7 @@ h1 {
   padding: 10px 15px;
   border: none;
   border-radius: 5px;
-  background-color: #4A90E2  ;
+  background-color: #4A90E2;
   color: white;
   cursor: pointer;
 }
@@ -86,9 +109,7 @@ h1 {
 .code-section {
   margin-top: 30px;
   padding: 15px;
-  
 }
-
 
 .or-divider {
   position: relative;
@@ -124,93 +145,6 @@ h1 {
   border-radius: 5px;
 }
 
-
-
-.boost-page {
-
-    font-family: Arial, sans-serif;
-    background-color: #dd9acd;
-    padding: 20px;
-    color: #333;
-    max-width: 600px;
-    margin: 0 auto;
-
-  padding: 20px;
-}
-
-.books-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.book-card {
-  border: 1px solid #ccc;
-  padding: 15px;
-  position: relative;
-}
-
-.book-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.info-icon {
-  font-size: 1.2rem;
-  cursor: pointer;
-  margin-left: 8px;
-}
-
-.info-popup {
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  width: 250px;
-  padding: 15px;
-  background-color: #333;
-  color: #fff;
-  border-radius: 5px;
-  z-index: 100;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  font-size: 14px;
-}
-
-.info-popup button {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.info-popup {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  padding: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-}
-
-
-
-/* .info-popup {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background-color: #fff;
-  border: 1px solid #ccc;
-  padding: 10px;
-  z-index: 10;
-  border-radius: 4px;
-} */
-
 .loader {
   display: block;
   margin: auto;
@@ -226,43 +160,25 @@ h1 {
   }
 }
 
-
-/* .info-popup {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 250px;
-  padding: 10px;
-  background-color: #333;
-  color: #fff;
-  border-radius: 5px;
-  z-index: 100;
-} */
-
-.summary-container {
-  margin-top: 20px;
-  font-size: 1.1rem;
-}
-
-.payment-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-
-/* here  */
-
 .fontss {
   font-weight: bold;
-  font-weight: 900;
   padding-left: 8px;
 }
-  
-.spann{
+
+.spann {
   color: #f9f9f9;
 }
 
- .pp{
+.pp {
   color: #757474;
- }
+}
+
+input[type='number']::placeholder {
+  color: #ccc; /* Set the color of the placeholder text */
+  opacity: 1; /* Fully visible */
+  transition: opacity 0.3s ease-in-out; /* Fade-out effect */
+}
+
+input[type='number']:not(:placeholder-shown)::placeholder {
+  opacity: 0; /* Fades out once typing begins */
+}

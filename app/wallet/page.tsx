@@ -1,102 +1,39 @@
-'use client'
+'use client';
+import TonWalletPayment from '@/components/TonWalletPayment';
+import Loader from "@/loader";
+import { useSearchParams } from 'next/navigation';
+import { useRouter } from "next/navigation";
+import React, { Suspense } from 'react';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useTonConnectUI } from '@tonconnect/ui-react';
-import { Address } from "@ton/core";
-import Link from 'next/link';
+// Create a separate component for the content that uses useSearchParams
+function CheckoutContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get('orderId');
 
-export default function Home() {
-  const [tonConnectUI] = useTonConnectUI();
-  const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const handleWalletConnection = useCallback((address: string) => {
-    setTonWalletAddress(address);
-    console.log("Wallet connected successfully!");
-    setIsLoading(false);
-  }, []);
-
-  const handleWalletDisconnection = useCallback(() => {
-    setTonWalletAddress(null);
-    console.log("Wallet disconnected successfully!");
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    const checkWalletConnection = async () => {
-      if (tonConnectUI.account?.address) {
-        handleWalletConnection(tonConnectUI.account?.address);
-      } else {
-        handleWalletDisconnection();
-      }
-    };
-
-    checkWalletConnection();
-
-    const unsubscribe = tonConnectUI.onStatusChange((wallet) => {
-      if (wallet) {
-        handleWalletConnection(wallet.account.address);
-      } else {
-        handleWalletDisconnection();
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [tonConnectUI, handleWalletConnection, handleWalletDisconnection]);
-
-  const handleWalletAction = async () => {
-    if (tonConnectUI.connected) {
-      setIsLoading(true);
-      await tonConnectUI.disconnect();
-    } else {
-      await tonConnectUI.openModal();
-    }
+  const handlePaymentSuccess = (order: any) => {
+    console.log('Payment successful for order:', order);
+    router.push('/success');
   };
 
-  const formatAddress = (address: string) => {
-    const tempAddress = Address.parse(address).toString();
-    return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
+  const handlePaymentError = (error: any) => {
+    console.error('Payment failed:', error);
   };
-
-  if (isLoading) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center">
-        <div className="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded">
-          Loading...
-        </div>
-      </main>
-    );
-  }
-
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center">
-      <div className="back-button">
-      <Link href="/">
-        <img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" />
-      </Link>
-    </div>
-      {/* <h1 className="text-4xl font-bold mb-8">TON Connect Demo</h1> */}
-      {tonWalletAddress ? (
-        <div className="flex flex-col items-center">
-          <p className="mb-4">Connected: {formatAddress(tonWalletAddress)}</p>
-          <button
-            onClick={handleWalletAction}
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Disconnect Wallet
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={handleWalletAction}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Connect TON Wallet
-        </button>
-      )}
-    </main>
+    <TonWalletPayment
+      tonRecipientAddress={process.env.NEXT_PUBLIC_TON_RECIPIENT_ADDRESS!}
+      onPaymentSuccess={handlePaymentSuccess}
+      onPaymentError={handlePaymentError}
+    />
+  );
+}
+
+// Main page component
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<Loader />}>
+      <CheckoutContent />
+    </Suspense>
   );
 }

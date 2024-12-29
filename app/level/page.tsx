@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link';
+import NFTDistribution from './NFTDistribution'; 
 
 export default function LevelsPage() {
   return (
@@ -52,48 +53,7 @@ export default function LevelsPage() {
   500 SmartSnail NFTs are up for grabs! Here's how the distribution works across levels, with a few lucky users being randomly selected at the lower levels!
 </p>
 
-<div className="bg-gradient-to-r from-purple-600 to-indigo-500 text-white p-6 rounded-lg shadow-lg mb-6">
-  <h3 className="text-xl font-semibold mb-4 text-center">NFT Distribution Breakdown:</h3>
-  <ul className="list-inside space-y-3 text-lg">
-  <li className="flex items-center">
-      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">1</span>
-      <div>
-        <span className="font-semibold">Camouflage Level - 10 NFTs</span><br />
-        10 (randomly chosen) from the first 500 players on this level will receive a SmartSnail NFT (Camouflage tier). 
-      </div>
-    </li>
-
-
-    <li className="flex items-center">
-      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">1</span>
-      <div>
-        <span className="font-semibold">Level 2 (Speedy) - 200 NFTs</span><br />
-        The first 20 players to reach this level will get a SmartSnail NFT (Speedy tier).
-      </div>
-    </li>
-    <li className="flex items-center">
-      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">2</span>
-      <div>
-        <span className="font-semibold">Level 3 (Strong) - 150 NFTs</span><br />
-        The first 15 players to reach this level will get a SmartSnail NFT (Strong tier).
-      </div>
-    </li>
-    <li className="flex items-center">
-      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">3</span>
-      <div>
-        <span className="font-semibold">Level 4 (Sensory) - 100 NFTs</span><br />
-        The first 10 players to reach this level will get a SmartSnail NFT (Sensory tier).
-      </div>
-    </li>
-    <li className="flex items-center">
-      <span className="w-8 h-8 bg-purple-400 rounded-full text-center text-xl mr-4">4</span>
-      <div>
-        <span className="font-semibold">Level 5 (God NFT) - 50 NFTs</span><br />
-        The first 5 players to reach this level will get a SmartSnail NFT (African Giant tier).
-      </div>
-    </li>
-  </ul>
-</div>
+<NFTDistribution />
 
 <p className="text-lg text-gray-600 text-center mt-4">
   Keep progressing and collect NFTs as you rise through the levels. The competition is on!
@@ -102,10 +62,9 @@ export default function LevelsPage() {
 
         <div className="text-center mt-8">
           <p className="text-lg font-semibold">Start picking shells now!</p>
-          <Link href="/">
-            <a className="mt-4 inline-block bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md">
+          <Link className="mt-4 inline-block bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md" href="/">
               Back to Home
-            </a>
+            
           </Link>
         </div>
       </div>

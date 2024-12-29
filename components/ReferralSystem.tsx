@@ -1,37 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import  WebApp from '@twa-dev/sdk'; // Correct import
+import WebApp from '@twa-dev/sdk';
 import './referral.css';
 
 interface ReferralSystemProps {
-  initData: string;
   userId: string;
-  startParam: string;
 }
 
-const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, startParam }) => {
+const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
   const [referrals, setReferrals] = useState<string[]>([]);
   const [referrer, setReferrer] = useState<string | null>(null);
   const INVITE_URL = "https://t.me/SmartSnails_Bot";
 
   useEffect(() => {
-    const checkReferral = async () => {
-      if (startParam && userId) {
-        try {
-          const response = await fetch('/api/referrals', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, referralId: startParam }),
-          });
-          if (!response.ok) throw new Error('Failed to save referral');
-        } catch (error) {
-          console.error('Error saving referral:', error);
-        }
-      }
-    };
-
-    const fetchReferrals = async () => {
+    const fetchReferralData = async () => {
       if (userId) {
         try {
           const response = await fetch(`/api/referrals?userId=${userId}`);
@@ -40,22 +23,21 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
           setReferrals(data.referrals);
           setReferrer(data.referrer);
         } catch (error) {
-          console.error('Error fetching referrals:', error);
+          console.error('Error fetching referral data:', error);
         }
       }
     };
 
+    fetchReferralData();
     WebApp.ready(); // Notify Telegram that the app is ready
-    checkReferral();
-    fetchReferrals();
-  }, [userId, startParam]);
+  }, [userId]);
 
   const handleInviteFriend = () => {
     try {
       const inviteLink = `${INVITE_URL}?start=${userId}`;
       const shareText = `Join me on this awesome Telegram mini app!`;
       const fullUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
-      WebApp.openTelegramLink(fullUrl); // Use WebApp to open the link
+      WebApp.openTelegramLink(fullUrl);
     } catch (error) {
       console.error('Error opening Telegram link:', error);
     }
@@ -73,10 +55,18 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
   return (
     <div className="referral-container">
       <div className="ref">
-        <img className="imag" src="/images/tasks/invite_a_telegram_premium_friend.png" alt="Invite a friend" />
+        <img 
+          className="imag" 
+          src="/images/tasks/invite_a_telegram_premium_friend.png" 
+          alt="Invite a friend" 
+        />
       </div>
       <div className="ref">
-        <img className="imag" src="/images/tasks/invite_friend.png" alt="Invite friend" />
+        <img 
+          className="imag" 
+          src="/images/tasks/invite_friend.png" 
+          alt="Invite friend" 
+        />
       </div>
       <br />
 

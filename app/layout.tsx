@@ -3,6 +3,7 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import { Orbitron } from 'next/font/google';
 import Script from 'next/script';
+import { BoostProvider } from './api/context/BoostContext'; // Adjust the path if needed
 
 const inter = Inter({ subsets: ['latin'] });
 const orbitron = Orbitron({ weight: ['400', '500', '700'], subsets: ['latin'] });
@@ -32,8 +33,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} ${orbitron.className}`}>
-        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
-        {children}
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+        <BoostProvider>{children}</BoostProvider> {/* Wrap children */}
       </body>
     </html>
   );

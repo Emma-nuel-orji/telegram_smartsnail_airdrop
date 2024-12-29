@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { prisma } from '../../lib/prisma.js';
+import  prisma  from '@/lib/prisma';
 import 'dotenv/config';
 
 // Configure the transporter

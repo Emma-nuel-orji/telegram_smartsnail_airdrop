@@ -1,6 +1,6 @@
-import express, { Request, Response } from 'express';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
-import { books, calculateStock } from '../bookInfo/bookinfo.js';  // Import books and helper functions
+import { books, calculateStock } from '@/utils/bookinfo'; // Adjust path as needed
 
 // Define a type for the book object
 interface Book {
@@ -9,10 +9,15 @@ interface Book {
   stockLimit: number;
 }
 
+// Initialize Prisma Client
 const prisma = new PrismaClient();
-const app = express();
 
-app.get('/api/stock', async (req: Request, res: Response) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure only GET requests are allowed
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   try {
     const bookStocks = await Promise.all(
       Object.values(books).map(async (book: Book) => {
@@ -29,28 +34,45 @@ app.get('/api/stock', async (req: Request, res: Response) => {
         // Calculate remaining stock using the helper function
         const stockInfo = calculateStock(book, redeemedCodes);
 
-        // Return book-specific stock details
+        // Detailed stock information
         return {
           id: book.id,
           title: book.title,
-          stockLimit: book.stockLimit, // Capped limit per book
-          assigned: totalAssigned, // All generated codes
-          used: stockInfo.split('/')[0], // Extract used stock from the "used/total" string
-          remaining: book.stockLimit - Number(stockInfo.split('/')[0]), // Remaining stock
+          fxckedUpBagsLimit: book.id === 'fxckedUpBags' ? book.stockLimit : 10000,
+          humanRelationsLimit: book.id === 'humanRelations' ? book.stockLimit : 15000,
+          fxckedUpBagsUsed: book.id === 'fxckedUpBags' ? Number(stockInfo.split('/')[0]) : 0,
+          humanRelationsUsed: book.id === 'humanRelations' ? Number(stockInfo.split('/')[0]) : 0,
+          fxckedUpBags: book.id === 'fxckedUpBags' ? totalAssigned : 0,
+          humanRelations: book.id === 'humanRelations' ? totalAssigned : 0,
+          assigned: totalAssigned,
+          used: Number(stockInfo.split('/')[0]),
+          remaining: book.stockLimit - Number(stockInfo.split('/')[0]),
         };
       })
     );
 
-    // Respond with stock data for all books
-    res.status(200).json(bookStocks);
+    // Combine and transform the data to match the expected format
+    const stockData = bookStocks.reduce((acc, book) => {
+      acc.fxckedUpBagsLimit = Math.max(acc.fxckedUpBagsLimit, book.fxckedUpBagsLimit);
+      acc.humanRelationsLimit = Math.max(acc.humanRelationsLimit, book.humanRelationsLimit);
+      acc.fxckedUpBagsUsed += book.fxckedUpBagsUsed;
+      acc.humanRelationsUsed += book.humanRelationsUsed;
+      acc.fxckedUpBags += book.fxckedUpBags;
+      acc.humanRelations += book.humanRelations;
+      return acc;
+    }, {
+      fxckedUpBagsLimit: 0,
+      humanRelationsLimit: 0,
+      fxckedUpBagsUsed: 0,
+      humanRelationsUsed: 0,
+      fxckedUpBags: 0,
+      humanRelations: 0,
+    });
+
+    // Respond with aggregated stock data
+    res.status(200).json(stockData);
   } catch (error) {
     console.error('Error fetching stock data:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
-
-// Start the Express server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+}

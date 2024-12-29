@@ -1,5 +1,6 @@
+// loader.d.ts
 declare module 'loader' {
-    const Loader: React.FC;
-    export default Loader;
-  }
-  
+  import React from 'react';
+  const Loader: React.FC<{}>;  // Add empty props interface since component doesn't take props
+  export default Loader;
+}

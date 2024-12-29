@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma';
+import  prisma  from '@/lib/prisma';
 
 const generateUniqueCode = (): string => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

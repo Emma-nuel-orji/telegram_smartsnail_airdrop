@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import  prisma  from '@/lib/prisma';
 import NodeCache from 'node-cache';
+
+// At the top of your API route file
+const logError = (error: any, context: string) => {
+  console.error(`[Leaderboard API] ${context}:`, {
+    message: error.message,
+    stack: error.stack,
+    cause: error.cause
+  });
+};
 
 // Initialize cache with a TTL of 60 seconds
 const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
