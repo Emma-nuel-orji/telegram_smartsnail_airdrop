@@ -10,7 +10,6 @@ interface Task {
   id: number;
   description: string;
   completed: boolean;
-  reward: number;
   section: "main" | "daily" | "partners";
   type: "daily" | "permanent";
   image: string;
