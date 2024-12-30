@@ -4,9 +4,8 @@ import React, { useState, useEffect } from "react";
 import "./task.css";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
-// import Tasks from './task'; 
 
-// Task interface
+// Updated Task interface with story sharing properties
 interface Task {
   id: number;
   description: string;
@@ -18,14 +17,15 @@ interface Task {
   link: string;
   completedTime?: string | null;
   batchId?: string;
+  mediaUrl?: string;
+  isStoryTask?: boolean;
 }
 
-// FallingShellsEffect Component
+// FallingShellsEffect Component (unchanged)
 const FallingShellsEffect: React.FC<{ trigger: boolean; onComplete: () => void }> = ({
   trigger,
   onComplete,
 }) => {
-  // Define a type for shell properties
   type Shell = {
     id: number;
     left: number;
@@ -36,21 +36,19 @@ const FallingShellsEffect: React.FC<{ trigger: boolean; onComplete: () => void }
 
   useEffect(() => {
     if (trigger) {
-      // Generate shells with unique properties
       const newShells: Shell[] = Array.from({ length: 30 }, (_, i) => ({
         id: i,
-        left: Math.random() * 100, // Random horizontal position
-        duration: 2 + Math.random() * 2 // Random fall duration between 2-4 seconds
+        left: Math.random() * 100,
+        duration: 2 + Math.random() * 2
       }));
 
       setShells(newShells);
 
       const timeout = setTimeout(() => {
-        setShells([]); // Clear shells
-        onComplete(); // Call the completion callback
+        setShells([]);
+        onComplete();
       }, 3000);
 
-      // Cleanup function to clear timeout
       return () => clearTimeout(timeout);
     }
   }, [trigger, onComplete]);
@@ -59,7 +57,7 @@ const FallingShellsEffect: React.FC<{ trigger: boolean; onComplete: () => void }
     <div className="falling-shells-container">
       {shells.map((shell) => (
         <div
-          key={shell.id} // Use unique id instead of index
+          key={shell.id}
           className="shell"
           style={{
             left: `${shell.left}%`,
@@ -71,9 +69,7 @@ const FallingShellsEffect: React.FC<{ trigger: boolean; onComplete: () => void }
   );
 };
 
-
-
-// Tasks Component
+// Main TaskPageContent Component
 const TaskPageContent: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
     { id: 1, description: "Main Task 1", completed: false, reward: 5000, section: "main", type: "permanent", image: "/images/tasks/smartsnail telegram.png", link: "https://t.me/smartsnails", completedTime: null },
@@ -105,12 +101,13 @@ const TaskPageContent: React.FC = () => {
     { id: 27, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 28, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 29, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 30, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 30, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: 'https://your-video-url.mp4', // Replace with your video URL
+      mediaType: 'video' , isStoryTask: true, completedTime: null },
     { id: 31, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1', completedTime: null},
   
 
-  ]);
+  ]);  
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [validationAttempt, setValidationAttempt] = useState(0);
   const [totalPoints, setTotalPoints] = useState<number>(0);
@@ -122,20 +119,14 @@ const TaskPageContent: React.FC = () => {
   const [userPoints, setUserPoints] = useState(0);
   const [loading, setLoading] = useState(false);
   const [telegramId, setTelegramId] = useState<number | null>(null);
-  // useEffect(() => {
-  //   // Fetch Telegram ID when the component mounts
-  //   setTelegramId(TelegramApps.getUserId());
-  // }, []);
-  
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
-    // Explicitly use WebApp to initialize
     WebApp.ready();
-
     const userId = WebApp.initDataUnsafe?.user?.id;
     setTelegramId(userId || null);
   }, []);
-  // Additional Tasks
+
   const taskData: Task[] = [
     {
       id: 22,
@@ -143,7 +134,6 @@ const TaskPageContent: React.FC = () => {
       image: "/images/daily/join twitter everyday.png",
       batchId: "batch_2024_001",
       completed: false,
-      reward: 5000,
       section: "daily",
       type: "daily",
       link: "https://x.com/some_space",
@@ -153,9 +143,7 @@ const TaskPageContent: React.FC = () => {
 
   // Filter tasks based on the selected section
   const filteredTasks = tasks.filter((task) => task.section === selectedSection);
-
-   // Load tasks and points from localStorage on component mount
-   useEffect(() => {
+  useEffect(() => {
     const storedCompletedTasks = JSON.parse(localStorage.getItem("completedTasks") || "[]");
     const storedPoints = parseInt(localStorage.getItem("totalPoints") || "0", 10);
     const updatedTasks = tasks.map((task) =>
@@ -165,7 +153,6 @@ const TaskPageContent: React.FC = () => {
     setTotalPoints(storedPoints);
   }, []);
 
-  // Reset daily tasks after 20 hours
   useEffect(() => {
     const updateDailyTasks = () => {
       setTasks((prevTasks) =>
@@ -185,16 +172,82 @@ const TaskPageContent: React.FC = () => {
     };
   
     updateDailyTasks();
-    const intervalId = setInterval(updateDailyTasks, 60 * 60 * 1000); // Check every hour
-  
-    return () => clearInterval(intervalId); // Cleanup on unmount
+    const intervalId = setInterval(updateDailyTasks, 60 * 60 * 1000);
+    return () => clearInterval(intervalId);
   }, []);
-  
+
   const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
-    setValidationAttempt(0);
+    if (!task.completed) {
+      setSelectedTask(task);
+      setValidationAttempt(0);
+      setMessage("");
+    }
   };
 
+  // New story sharing handler
+  const handleShareToStory = async () => {
+    if (!selectedTask || !telegramId) {
+      WebApp.showAlert("Something went wrong. Please try again.");
+      return;
+    }
+
+    setSharing(true);
+    try {
+      if (WebApp.isVersionAtLeast('6.9')) {
+        await WebApp.showStory(selectedTask.mediaUrl);
+        
+        const response = await fetch("/api/share-telegram-story/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            taskId: selectedTask.id,
+            telegramId: telegramId,
+            reward: selectedTask.reward,
+          }),
+        });
+
+        if (response.ok) {
+          const updatedTasks = tasks.map((task) =>
+            task.id === selectedTask.id
+              ? { ...task, completed: true, completedTime: new Date().toISOString() }
+              : task
+          );
+          setTasks(updatedTasks);
+
+          setTotalPoints((prev) => {
+            const newPoints = prev + selectedTask.reward;
+            localStorage.setItem("totalPoints", newPoints.toString());
+            return newPoints;
+          });
+
+          const completedTaskIds = updatedTasks
+            .filter((task) => task.completed)
+            .map((task) => task.id);
+          localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
+
+          setTaskCompleted(true);
+          setSelectedTask(null);
+
+          WebApp.showPopup({
+            title: "Success!",
+            message: `Congratulations! You earned ${selectedTask.reward} shells!`,
+            buttons: [{ type: "ok" }]
+          });
+        } else {
+          throw new Error("Failed to complete task");
+        }
+      } else {
+        WebApp.showAlert("Please update your Telegram app to use this feature.");
+      }
+    } catch (error) {
+      console.error("Error sharing to story:", error);
+      WebApp.showAlert("Failed to share story. Please try again.");
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  // Existing validation handler
   const handleValidateClick = async () => {
     setValidationAttempt((prevAttempt) => prevAttempt + 1);
   
@@ -248,8 +301,8 @@ const TaskPageContent: React.FC = () => {
       }
     }
   };
-  
 
+  // Existing code redemption handler
   const handleRedeemCode = async () => {
     if (!inputCode) {
       setMessage("Please enter a valid code.");
@@ -289,49 +342,45 @@ const TaskPageContent: React.FC = () => {
       setInputCode("");
     }
   };
-  
+
+  const filteredTasks = tasks.filter((task) => task.section === selectedSection);
+
   return (
-
-
-    
     <div className="task-container">
-     <div className="task-header">
-    <Link href="/">
-      <img
-        src="/images/info/output-onlinepngtools (6).png"
-        width={40}
-        height={40}
-        alt="back"
-      />
-    </Link>
+      <div className="task-header">
+        <Link href="/">
+          <img
+            src="/images/info/output-onlinepngtools (6).png"
+            width={40}
+            height={40}
+            alt="back"
+          />
+        </Link>
+        <h2>Perform tasks to earn more Shells!</h2>
+      </div>
 
-    <h2>Perform tasks to earn more Shells!</h2>
-  </div>
       <div className="task-buttons">
-  <button 
-    className={selectedSection === "main" ? "active" : ""}
-    onClick={() => setSelectedSection("main")}
-  >
-    🎯 Main Tasks
-  </button>
-  <button 
-    className={selectedSection === "daily" ? "active" : ""}
-    onClick={() => setSelectedSection("daily")}
-  >
-    🌟 Daily
-  </button>
-  <button 
-    className={selectedSection === "partners" ? "active" : ""}
-    onClick={() => setSelectedSection("partners")}
-  >
-    🤝 Partners
-  </button>
-</div>
-      
-    
+        <button 
+          className={selectedSection === "main" ? "active" : ""}
+          onClick={() => setSelectedSection("main")}
+        >
+          🎯 Main Tasks
+        </button>
+        <button 
+          className={selectedSection === "daily" ? "active" : ""}
+          onClick={() => setSelectedSection("daily")}
+        >
+          🌟 Daily
+        </button>
+        <button 
+          className={selectedSection === "partners" ? "active" : ""}
+          onClick={() => setSelectedSection("partners")}
+        >
+          🤝 Partners
+        </button>
+      </div>
 
-    {/* Add the tasks display section */}
-    <div className="tasks-grid">
+      <div className="tasks-grid">
         {filteredTasks.map((task) => (
           <div
             key={task.id}
@@ -355,71 +404,79 @@ const TaskPageContent: React.FC = () => {
       </div>
 
       {selectedTask && (
-  <div className="popup-overlay">
-    <div className="task-popup">
-      <button 
-        className="popup-close" 
-        onClick={() => setSelectedTask(null)}
-      >
-        ×
-      </button>
-      
-      <p className="popup-description">{selectedTask.description}</p>
+        <div className="popup-overlay">
+          <div className="task-popup">
+            <button 
+              className="popup-close" 
+              onClick={() => setSelectedTask(null)}
+            >
+              ×
+            </button>
+            
+            <p className="popup-description">{selectedTask.description}</p>
 
-      {selectedTask.id === 22 ? (
-        <>
-          <input
-            className="popup-input"
-            type="text"
-            value={inputCode}
-            onChange={(e) => setInputCode(e.target.value)}
-            placeholder="Insert unique code"
-            disabled={loading}
-          />
-          <button 
-            className="popup-button"
-            onClick={handleRedeemCode} 
-            disabled={loading}
-          >
-            {loading ? "Redeeming..." : "Redeem Code"}
-          </button>
-          {message && (
-            <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
-              {message}
-            </p>
-          )}
-          {reward > 0 && (
-            <p className="popup-message reward">
-              🎉 You earned: {reward} coins!
-            </p>
-          )}
-        </>
-      ) : (
-        <>
-          <button 
-            className="popup-button"
-            onClick={() => window.open(selectedTask.link, "_blank")}
-          >
-            Perform Task
-          </button>
-          <button 
-            className="popup-button"
-            onClick={handleValidateClick}
-          >
-            Validate and Reward
-          </button>
-        </>
+            {selectedTask.id === 22 ? (
+              <>
+                <input
+                  className="popup-input"
+                  type="text"
+                  value={inputCode}
+                  onChange={(e) => setInputCode(e.target.value)}
+                  placeholder="Insert unique code"
+                  disabled={loading}
+                />
+                <button 
+                  className="popup-button"
+                  onClick={handleRedeemCode} 
+                  disabled={loading}
+                >
+                  {loading ? "Redeeming..." : "Redeem Code"}
+                </button>
+                {message && (
+                  <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
+                    {message}
+                  </p>
+                )}
+                {reward > 0 && (
+                  <p className="popup-message reward">
+                    🎉 You earned: {reward} coins!
+                  </p>
+                )}
+              </>
+            ) : selectedTask.isStoryTask ? (
+              <button 
+                className="popup-button"
+                onClick={handleShareToStory}
+                disabled={sharing}
+              >
+                {sharing ? "Sharing..." : "Share to Story"}
+              </button>
+            ) : (
+              <>
+                <button 
+                  className="popup-button"
+                  onClick={() => window.open(selectedTask.link, "_blank")}
+                >
+                  Perform Task
+                </button>
+                <button 
+                  className="popup-button"
+                  onClick={handleValidateClick}
+                >
+                  Validate and Reward
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       )}
-    </div>
-  </div>
-)}
 
-    <FallingShellsEffect
-      trigger={taskCompleted}
-      onComplete={() => setTaskCompleted(false)}
-    />
-  </div>
-);
+      <FallingShellsEffect
+        trigger={taskCompleted}
+        onComplete={() => setTaskCompleted(false)}
+      />
+    </div>
+  );
 };
 
-export default TaskPageContent
+export default TaskPageContent;

@@ -1,80 +1,121 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const axios = require('axios');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-const app = express();
-const PORT = 5000;
-
-app.use(bodyParser.json());
-
+import { NextResponse } from 'next/server'
+import axios from 'axios'
+import { prisma } from '@/prisma/client';
 
 // Your Telegram bot token and endpoint
-const TELEGRAM_API_URL = `https://api.telegram.org/bot<YOUR_BOT_TOKEN>`;
+const TELEGRAM_API_URL = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 
-// Function to check if a user has shared content (you may need to track user interaction here)
-const checkTelegramShare = async (userId) => {
+// Function to verify story share
+async function verifyStoryShare(telegramId) {
   try {
-    // Get updates from the bot
-    const response = await axios.get(`${TELEGRAM_API_URL}/getUpdates`);
+    // Get recent updates from Telegram
+    const response = await axios.get(`${TELEGRAM_API_URL}/getUpdates`, {
+      params: {
+        offset: -100, // Get last 100 updates
+        allowed_updates: ['story'], // Focus on story updates
+      }
+    });
+
     const updates = response.data.result;
 
-    // Check if any update matches the user ID and contains a story share
-    for (let update of updates) {
-      if (update.message && update.message.from.id === userId && update.message.text.includes('Join SmartSnail')) {
-        return true; // Return true if the user shared a story
-      }
-    }
+    // Look for story share from this user
+    const userShared = updates.some(update => 
+      update.story?.from?.id === telegramId &&
+      Date.now() - update.story.date * 1000 < 5 * 60 * 1000 // Within last 5 minutes
+    );
 
-    return false; // Return false if no story share was found
+    return userShared;
   } catch (error) {
-    console.error('Error checking Telegram share:', error);
+    console.error('Error verifying story share:', error);
     return false;
   }
-};
+}
 
-// Validate Task 30 (share on Telegram story)
-app.post('/api/validate-task', async (req, res) => {
-  const { taskId, userId } = req.body;
-
-  if (taskId === 30) {
-    // Check if the user has shared the video
-    const userShared = await checkTelegramShare(userId);
-
-    // If shared, update task completion
-    if (userShared) {
-      res.json({ validated: true });
-    } else {
-      res.json({ validated: false });
-    }
-  } else {
-    res.json({ validated: true });
-  }
-});
-
-// Update task completion in the database
-app.post('/api/update-task', async (req, res) => {
-  const { taskId, userId, completed } = req.body;
-
+export async function POST(request) {
   try {
-    // Update the task status in the database using Prisma
-    await prisma.task.update({
-      where: { id: taskId },
-      data: {
-        completed: completed,
-        completedTime: completed ? new Date() : null,
+    const body = await request.json();
+    const { taskId, telegramId, reward } = body;
+
+    // Validate required fields
+    if (!taskId || !telegramId || !reward) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user has already completed this task
+    const existingTask = await prisma.task.findFirst({
+      where: {
+        id: taskId,
+        userId: telegramId,
+        completed: true,
       },
     });
 
-    // Return success response
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error updating task in database:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+    if (existingTask) {
+      return NextResponse.json(
+        { error: 'Task already completed' },
+        { status: 400 }
+      );
+    }
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    // Verify the story share
+    const isShared = await verifyStoryShare(telegramId);
+
+    if (!isShared) {
+      return NextResponse.json(
+        { error: 'Story share not detected. Please try again.' },
+        { status: 400 }
+      );
+    }
+
+    // Update task completion status
+    await prisma.task.upsert({
+      where: {
+        id_userId: {
+          id: taskId,
+          userId: telegramId,
+        },
+      },
+      update: {
+        completed: true,
+        completedTime: new Date(),
+      },
+      create: {
+        id: taskId,
+        userId: telegramId,
+        completed: true,
+        completedTime: new Date(),
+      },
+    });
+
+    // Update user's rewards/points
+    await prisma.user.upsert({
+      where: { telegramId },
+      update: {
+        points: {
+          increment: reward
+        }
+      },
+      create: {
+        telegramId,
+        points: reward
+      }
+    });
+
+    // Return success response
+    return NextResponse.json({
+      success: true,
+      message: 'Task completed successfully',
+      reward
+    });
+
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
