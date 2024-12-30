@@ -142,6 +142,7 @@ const TaskPageContent: React.FC = () => {
   ];
 
   // Filter tasks based on the selected section
+  
   const filteredTasks = tasks.filter((task) => task.section === selectedSection);
   useEffect(() => {
     const storedCompletedTasks = JSON.parse(localStorage.getItem("completedTasks") || "[]");
@@ -343,7 +344,6 @@ const TaskPageContent: React.FC = () => {
     }
   };
 
-  const filteredTasks = tasks.filter((task) => task.section === selectedSection);
 
   return (
     <div className="task-container">
