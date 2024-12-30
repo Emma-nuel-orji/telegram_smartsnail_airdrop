@@ -19,6 +19,7 @@ interface Task {
   batchId?: string;
   mediaUrl?: string;
   isStoryTask?: boolean;
+  mediaType?: string;
 }
 
 // FallingShellsEffect Component (unchanged)
