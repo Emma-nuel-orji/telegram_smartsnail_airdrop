@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import  prisma  from '@/lib/prisma';
+import { prisma } from '@/prisma/client';
 import NodeCache from 'node-cache';
 
 // At the top of your API route file

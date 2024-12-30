@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from "zod";
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/prisma/client';
 
 
 import {
@@ -8,8 +8,8 @@ import {
   verifyTonPayment,
   initiateFlutterwavePayment,
   verifyPayment,
-} from "@/utils/paymentUtils";
-import { sendPurchaseEmail } from '@/utils/emailUtils';
+} from "@/src/utils/paymentUtils";
+import { sendPurchaseEmail } from '@/src/utils/emailUtils';
 import { PendingTransaction } from '@prisma/client'; 
 
 
@@ -23,7 +23,7 @@ interface Book {
   totalStock?: number;
 }
 
-const prisma = new PrismaClient();
+
 const secretKey = process.env.SECRET_KEY; 
 const requiredEnv = ["SECRET_KEY", "NEXT_PUBLIC_REDIRECT_URL"];
 const redirectUrl = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://default.redirect.url'

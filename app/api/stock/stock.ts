@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
-import { books, calculateStock } from '@/utils/bookinfo'; // Adjust path as needed
+import { prisma } from '@/prisma/client';
+import { books, calculateStock } from '@/src/utils/bookinfo'; // Adjust path as needed
 
 // Define a type for the book object
 interface Book {
@@ -10,7 +10,7 @@ interface Book {
 }
 
 // Initialize Prisma Client
-const prisma = new PrismaClient();
+
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Ensure only GET requests are allowed

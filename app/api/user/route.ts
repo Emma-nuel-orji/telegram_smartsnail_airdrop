@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import  prisma  from '@/lib/prisma';
+import { prisma } from '@/prisma/client';
 
 export async function POST(req: NextRequest) {
     console.log('User API route hit!');

@@ -19,13 +19,15 @@
       }
     ],
     "paths": {
-      "@/*": ["./*", "./src/*"],
+      "@/*": ["./*"],
       "@telegram-apps/sdk": ["./node_modules/@twa-dev/sdk/dist/index.js"],
       "@loader": ["./loader", "./src/loader"],
-      "@prisma": ["./node_modules/@prisma/client"],
+      "@/prisma/*": ["./lib/prisma.ts"],
       "@/lib/*": ["./lib/*"],
       "@/components/*": ["./components/*"],
-      "@contexts/*": ["./app/api/context/*"]
+      "@contexts/*": ["./app/api/context/*"],
+      "@/src/*": ["./src/*"],
+      "@/app/*": ["./app/*"]
     }
   },
   "include": [

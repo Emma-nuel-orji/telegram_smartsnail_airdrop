@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/prisma/client';
 
-const prisma = new PrismaClient();
+
 
 // Example: Save referral function
 export async function saveReferral(userId: string, referrerId: string) {

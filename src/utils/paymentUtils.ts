@@ -2,7 +2,7 @@ import crypto from "crypto";
 import axios from "axios";
 import TonWeb from "tonweb";
 import dotenv from "dotenv"; 
-import { redirectUrl } from "@/config/config";
+
 
 // Load environment variables
 dotenv.config();

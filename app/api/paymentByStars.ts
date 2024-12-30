@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
-import  prisma  from "@/lib/prisma";
-import { sendPurchaseEmail } from "@/utils/emailUtils";
+import { prisma } from '@/prisma/client';
+import { sendPurchaseEmail } from "@/src/utils/emailUtils";
 
 const TELEGRAM_BOT_TOKEN = process.env.BOT_API;
 const PROVIDER_TOKEN = process.env.PROVIDER_TOKEN; // Add this to your env variables

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import  prisma  from '@/lib/prisma';
-import { sendRedemptionEmail } from '@/utils/emailUtils';
+import { prisma } from '@/prisma/client';
+import { sendRedemptionEmail } from '@/src/utils/emailUtils';
 
 interface RedemptionRequest {
  userId: string;

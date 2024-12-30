@@ -1,5 +1,5 @@
 // test-db-connection.ts
-import  prisma  from '@/lib/prisma';
+import { prisma } from '@/prisma/client';
 
 async function testDatabaseConnection() {
   try {

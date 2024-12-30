@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updatePointsForTelegramId } from "@/utils/db";
+import { updatePointsForTelegramId } from "@/src/utils/db";
 
 export async function POST(req: NextRequest) {
   try {
