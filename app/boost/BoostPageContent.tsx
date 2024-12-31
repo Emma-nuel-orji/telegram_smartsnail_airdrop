@@ -54,6 +54,7 @@ export default function BoostPageContent() {
   const [referrerId, setReferrerId] = useState("");
   const [purchaseEmail, setPurchaseEmail] = useState("");
   const [redemptionEmail, setRedemptionEmail] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Book Quantities
   const [fxckedUpBagsQty, setFxckedUpBagsQty] = useState(0);
@@ -164,7 +165,7 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
       return;
     }
 
-    setLoading(true);
+    setIsProcessing(true);
 
     try {
       const payload = {
@@ -209,7 +210,7 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
       console.error("Purchase error:", error);
       alert("Purchase failed. Please try again.");
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -230,7 +231,7 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
         return;
       }
   
-      setLoading(true);
+      setIsProcessing(true);
   
       try {
         const payload = {
@@ -263,7 +264,7 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
     console.error("Payment failed:", error);
     alert("An error occurred during payment. Please try again.");
   } finally {
-    setLoading(false);
+    setIsProcessing(false);
   }
 };
 
@@ -418,9 +419,15 @@ const handlePaymentSuccess = async () => {
 
       {/* Payment Buttons */}
       <div className="payment-buttons">
-        <button onClick={() => handlePurchase("Ton")}>Pay with TON</button>
-        <button onClick={() => handlePurchase("Card")}>Pay with Card</button>
-        <button onClick={() => handlePaymentViaStars("Stars")}>Pay with Stars</button>
+        <button onClick={() => handlePurchase("Ton")} disabled={isProcessing}>
+          {isProcessing ? <span className="spinner-gear"></span> : "Pay with TON"}
+        </button>
+        <button onClick={() => handlePurchase("Card")} disabled={isProcessing}>
+          {isProcessing ? <span className="spinner-gear"></span> : "Pay with Card"}
+        </button>
+        <button onClick={() => handlePaymentViaStars("Stars")} disabled={isProcessing}>
+          {isProcessing ? <span className="spinner-gear"></span> : "Pay with Stars"}
+        </button>
       </div>
 
       {/* Code Redemption Section */}
@@ -445,8 +452,10 @@ const handlePaymentSuccess = async () => {
           placeholder="Your Email"
         />
         <div className="payment-buttons">
-        <button onClick={handleCodeRedemption}>Redeem Code</button>
-      </div></div>
+          <button onClick={handleCodeRedemption} disabled={isProcessing}>
+            {isProcessing ? <span className="spinner-gear"></span> : "Redeem Code"}
+          </button>
+        </div></div>
 
       {/* Message Display */}
       {message && <p className="message">{message}</p>}

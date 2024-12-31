@@ -7,23 +7,34 @@ const prisma = new PrismaClient();
  * @param telegramId The Telegram ID of the user.
  * @returns The updated points or null if the user is not found.
  */
-export async function updatePointsForTelegramId(telegramId: string): Promise<number | null> {
+export async function updatePointsForTelegramId(telegramId: string, amount: number = 0) {
   try {
     const user = await prisma.user.update({
       where: { telegramId },
       data: {
         points: {
-          increment: 5000, // Increment user points by 10
-        },
-      },
-      select: {
-        points: true, // Return only the updated points
+          increment: amount
+        }
       },
     });
-
-    return user.points; // Return the updated points
+    return user.points;
   } catch (error) {
     console.error("Error updating points:", error);
-    return null; // Return null if there is an error (e.g., user not found)
+    return null;
+  }
+}
+
+export async function markWelcomeBonusClaimed(telegramId: string) {
+  try {
+    await prisma.user.update({
+      where: { telegramId },
+      data: {
+        hasClaimedWelcome: true
+      }
+    });
+    return true;
+  } catch (error) {
+    console.error("Error marking welcome bonus claimed:", error);
+    return false;
   }
 }

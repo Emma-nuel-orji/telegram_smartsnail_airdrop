@@ -182,3 +182,23 @@ input[type='number']::placeholder {
 input[type='number']:not(:placeholder-shown)::placeholder {
   opacity: 0; /* Fades out once typing begins */
 }
+
+/* BoostPage.css */
+.spinner-gear {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid transparent;
+  border-top: 3px solid #e100ff; /* Spinning gear color */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

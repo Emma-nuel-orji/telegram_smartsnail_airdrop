@@ -20,6 +20,7 @@ model User {
   tappingRate    Int             @default(1)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  hasClaimedWelcome Boolean  @default(false)
   nft            Boolean         @default(false)
   referrals      Referral[]      @relation("Referrer") // Outgoing referrals
   referredBy     Referral[]      @relation("ReferredBy") // Incoming referrals
@@ -157,4 +158,14 @@ model PendingTransaction {
   order             Order    @relation(fields: [orderId], references: [id])
 
   createdAt         DateTime @default(now())
+}
+
+model StoryShare {
+  id          String   @id @default(cuid()) @map("_id") // Add @map("_id")
+  trackingId  String   @unique
+  userId      String
+  taskId      String
+  clicks      Int      @default(0)
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
 }

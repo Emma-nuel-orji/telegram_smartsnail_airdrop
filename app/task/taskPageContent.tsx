@@ -5,9 +5,24 @@ import "./task.css";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 
+interface ShowStoryOptions {
+  media: string;
+  mediaType: 'photo' | 'video';
+  sticker?: {
+    url: string;
+    width: number;
+    height: number;
+    position: {
+      x: number;
+      y: number;
+    };
+  };
+}
+
+// Update the WebApp type definition
 declare global {
   interface TelegramWebApp extends Omit<typeof WebApp, 'showStory'> {
-    showStory(mediaUrl: string): Promise<void>;
+    showStory(options: ShowStoryOptions): Promise<void>;
   }
 }
 
@@ -198,29 +213,52 @@ const TaskPageContent: React.FC = () => {
       return;
     }
   
-    // Type guard to ensure mediaUrl and reward exist
-    if (!selectedTask.mediaUrl || typeof selectedTask.reward !== 'number') {
-      WebApp.showAlert("Invalid task data. Please try again.");
+    // Type guard for mediaUrl at the beginning
+    if (!selectedTask.mediaUrl) {
+      WebApp.showAlert("Invalid media URL. Please try again.");
       return;
     }
   
     setSharing(true);
     try {
       if (WebApp.isVersionAtLeast('6.9')) {
-        // Cast WebApp to unknown first, then to TelegramWebApp
-        await (WebApp as unknown as TelegramWebApp).showStory(selectedTask.mediaUrl);
+        // Generate a unique tracking ID for this share
+        const trackingId = `${telegramId}-${Date.now()}`;
         
-        const response = await fetch("/api/share-telegram-story/route", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            taskId: selectedTask.id,
-            telegramId: telegramId,
-            reward: selectedTask.reward,
-          }),
+        // Create the story with referral link
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+        const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
+        
+        // Create story with both media and sticker
+        await (WebApp as unknown as TelegramWebApp).showStory({
+          media: selectedTask.mediaUrl, // Now we know this is defined
+          mediaType: 'video',
+          sticker: {
+            url: referralLink,
+            width: 100,
+            height: 100,
+            position: { x: 0.5, y: 0.9 }
+          }
         });
+        
+        // Store response in a let variable so we can check it later
+        let storyResponse;
+        try {
+          storyResponse = await fetch("/api/share-telegram-story/route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId: selectedTask.id,
+              telegramId: telegramId,
+              reward: selectedTask.reward,
+              trackingId: trackingId
+            }),
+          });
+        } catch (error) {
+          throw new Error("Failed to send story share data to server");
+        }
   
-        if (response.ok) {
+        if (storyResponse.ok) {
           const updatedTasks = tasks.map((task) =>
             task.id === selectedTask.id
               ? { ...task, completed: true, completedTime: new Date().toISOString() }
@@ -229,12 +267,12 @@ const TaskPageContent: React.FC = () => {
           setTasks(updatedTasks);
   
           setTotalPoints((prev) => {
-            const reward = selectedTask.reward ?? 0; // Use 0 if reward is undefined
+            const reward = selectedTask.reward ?? 0; 
             const newPoints = prev + reward;
             localStorage.setItem("totalPoints", newPoints.toString());
             return newPoints;
           });
-          
+  
           const completedTaskIds = updatedTasks
             .filter((task) => task.completed)
             .map((task) => task.id);
