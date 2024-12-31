@@ -3,40 +3,60 @@ import { prisma } from '@/prisma/client';
 
 export async function POST(req: NextRequest) {
     console.log('User API route hit!');
-    console.log('Request received'); // Log when the route is accessed
+    console.log('Request received');
 
     try {
         const userData = await req.json();
-        console.log('User data received:', userData); // Log received user data
+        console.log('User data received:', userData);
 
         // Validate the user data
         if (!userData || !userData.id) {
-            console.warn('Invalid user data:', userData); // Log invalid data
+            console.warn('Invalid user data:', userData);
             return NextResponse.json({ error: 'Invalid user data' }, { status: 400 });
         }
 
+        // Convert telegramId to string to match the schema
+        const telegramId = userData.id.toString();
+
+        // Add connection test
+        await prisma.$connect();
+        console.log('Database connected successfully');
+
         // Upsert user data in the database
         const user = await prisma.user.upsert({
-            where: { telegramId: userData.id },
+            where: { 
+                telegramId: telegramId  // Use the converted string
+            },
             update: {
-                email: userData.email || undefined, // Update email only if provided
+                email: userData.email || undefined,
                 username: userData.username || undefined,
                 firstName: userData.first_name || undefined,
                 lastName: userData.last_name || undefined,
+                updatedAt: new Date(), // Add this to track updates
             },
             create: {
-                telegramId: userData.id,
+                telegramId: telegramId, // Use the converted string
                 username: userData.username || '',
                 firstName: userData.first_name || '',
                 lastName: userData.last_name || '',
-                email: userData.email || '', // Create with email if provided
+                email: userData.email || '',
+                points: 0, // Add default values
+                tappingRate: 1,
+                nft: false
             },
         });
 
-        console.log('User successfully upserted:', user); // Log success
+        console.log('User successfully upserted:', user);
         return NextResponse.json(user);
     } catch (error) {
-        console.error('Error processing user data:', error); // Log any errors
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        console.error('Error processing user data:', error);
+        // Add more detailed error information
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json(
+            { error: 'Internal server error', details: errorMessage }, 
+            { status: 500 }
+        );
+    } finally {
+        await prisma.$disconnect();
     }
 }
