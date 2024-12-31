@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
-import '@/welcome.css';
-import Loader from '@/loader';
+import '../welcome.css';
 
 declare global {
   interface Window {
@@ -13,22 +13,18 @@ declare global {
     };
   }
 }
-
 type Click = {
   id: number;
   x: number;
   y: number;
 };
-
-type UserType = {
-  telegramId: string;
-  points: number;
-  tappingRate: number;
-  firstName: string;
-};
-
 export default function Home() {
-  const [user, setUser] = useState<UserType | null>(null);
+  const [user, setUser] = useState<null | {
+    telegramId: string;
+    points: number;
+    tappingRate: number;
+    firstName: string;
+  }>(null);
   const [notification, setNotification] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
@@ -36,109 +32,76 @@ export default function Home() {
   const [energy, setEnergy] = useState(1500);
   const [isClicking, setIsClicking] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const maxEnergy = 1500;
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const initializeTelegram = async () => {
-      try {
-        if (!window.Telegram?.WebApp) {
-          throw new Error('Telegram WebApp is not available');
-        }
-
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-
-        const initData = tg.initDataUnsafe;
-        if (!initData?.user) {
-          throw new Error('No user data available');
-        }
-
-        const response = await fetch('/api/user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(initData.user)
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data');
-        }
-
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        setUser(data);
-        setShowWelcomePopup(!data.hasClaimedWelcome);
-      } catch (error) {
-        console.error('Initialization error:', error);
-        setError(error instanceof Error ? error.message : 'Failed to initialize');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeTelegram();
-  }, []);
-
-  const handleIncreasePoints = async (e: React.MouseEvent) => {
-    if (!user || energy <= 0) {
+  const handleIncreasePoints = async () => {
+    if (energy <= 0) {
       setError('Not enough energy to click!');
       setTimeout(() => setError(null), 3000);
       return;
     }
 
-    handleSpeedAndAnimation(e);
-
-    const prevPoints = user.points;
+    const prevPoints = user!.points;
     const prevEnergy = energy;
 
-    setUser(prev => prev ? {
-      ...prev,
-      points: prev.points + prev.tappingRate
-    } : null);
-    setEnergy(prev => Math.max(0, prev - 50));
+    // Optimistic update
+    setUser((prevUser) => ({
+      ...prevUser!,
+      points: prevUser!.points + prevUser!.tappingRate,
+    }));
+
+    setEnergy((prev) => Math.max(0, prev - 50));
 
     try {
       const res = await fetch('/api/increase-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegramId: user.telegramId,
-          tappingRate: user.tappingRate,
+          telegramId: user!.telegramId,
+          tappingRate: user!.tappingRate,
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to increase points');
-
       const data = await res.json();
+
       if (data.success) {
-        setNotification(`+${user.tappingRate} shells!`);
-        setTimeout(() => setNotification(''), 1000);
+        setUser((prevUser) => ({
+          ...prevUser!,
+          points: data.points,
+        }));
+        setNotification(`Points increased by ${user!.tappingRate} per click!`);
+        setTimeout(() => setNotification(''), 3000);
       } else {
-        throw new Error('Failed to update points');
+        setUser((prevUser) => ({
+          ...prevUser!,
+          points: prevPoints,
+        }));
+        // setEnergy(prevEnergy);
+        setError('Failed to increase points');
+        setTimeout(() => setError(null), 2000);
       }
-    } catch (error) {
-      setUser(prev => prev ? { ...prev, points: prevPoints } : null);
-      setEnergy(prevEnergy);
-      setError('Failed to increase points');
+    } catch {
+      setUser((prevUser) => ({
+        ...prevUser!,
+        points: prevPoints,
+      }));
+      // setEnergy(prevEnergy);
+      setError('An error occurred while increasing points');
       setTimeout(() => setError(null), 3000);
     }
+    // Reduce energy by 50 per click
+    setEnergy((prev) => Math.max(0, prev - 50));
   };
 
   const handleSpeedAndAnimation = (e: React.MouseEvent) => {
     setIsClicking(true);
-    setSpeed(prev => Math.min(prev + 0.1, 5));
-    
-    const newClick = {
-      id: Date.now(),
-      x: e.clientX,
-      y: e.clientY
-    };
-    setClicks(prev => [...prev, newClick]);
+
+    setSpeed((prev) => Math.min(prev + 0.1, 5));
+    const newClick = { id: Date.now(), x: e.clientX, y: e.clientY };
+    setClicks((prev) => [...prev, newClick]);
 
     if (inactivityTimeout.current) {
       clearTimeout(inactivityTimeout.current);
@@ -146,214 +109,330 @@ export default function Home() {
 
     inactivityTimeout.current = setTimeout(() => {
       setIsClicking(false);
-      setSpeed(1);
+      reduceSpeed();
     }, 1000);
+
+    const reduceSpeed = () => {
+      const reduceInterval = setInterval(() => {
+        setSpeed((prev) => {
+          if (prev > 1) {
+            return prev - 0.2;
+          } else {
+            clearInterval(reduceInterval);
+            return 1;
+          }
+        });
+      }, 100);
+    };
+  
   };
 
-  const handleClaim = async () => {
-    if (!user) return;
-
-    try {
-      const res = await fetch('/api/claim-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId: user.telegramId }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setUser(prev => prev ? { ...prev, points: data.points } : null);
-        setShowWelcomePopup(false);
-        setNotification('Welcome bonus claimed! +5,000 shells');
-        setTimeout(() => setNotification(''), 3000);
-      } else {
-        throw new Error('Failed to claim bonus');
-      }
-    } catch (error) {
-      setError('Failed to claim welcome bonus');
-      setTimeout(() => setError(null), 3000);
-    }
+  const handleAnimationEnd = (id: number) => {
+    setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
   };
 
+  
   useEffect(() => {
     if (!isClicking && energy < maxEnergy) {
       const refillInterval = setInterval(() => {
-        setEnergy(prev => Math.min(maxEnergy, prev + 10));
+        setEnergy((prev) => Math.min(maxEnergy, prev + 10));
       }, 500);
 
       return () => clearInterval(refillInterval);
     }
   }, [isClicking, energy]);
 
-  if (isLoading) {
-    return (
-      <div className="loading-container">
-        <video autoPlay muted loop>
-          <source src="/videos/unload.mp4" type="video/mp4" />
-        </video>
+  useEffect(() => {
+    // Add these lines at the top of your useEffect
+    console.log('Page is loading');
+    console.log('Telegram available:', !!window.Telegram);
+  
+    const initializeTelegram = async () => {
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+  
+        const { user } = tg.initDataUnsafe || {};
+  
+        if (user) {
+          console.log('Telegram user found:', user);
+          try {
+            const response = await fetch('/api/user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(user)
+            });
+  
+            console.log('API response status:', response.status);
+            const data = await response.json();
+  
+            if (data.error) {
+              console.error('User API error:', data.error);
+              setError(data.error);
+            } else {
+              console.log('User data received:', data);
+              setUser(data);
+            }
+          } catch (error) {
+            console.error('Fetch error:', error);
+            setError('Failed to fetch user data');
+          }
+        } else {
+          setError('');
+        }
+      } else {
+        setError('This app must be opened in Telegram');
+      }
+    };
+  
+    initializeTelegram();
+  }, []);
+  
+  // Handle claiming welcome bonus
+  const handleClaim = async () => {
+    try {
+      if (!user) {
+        // Early return if user is not defined
+        setError('User is not defined.');
+        return;
+      }
+  
+      const res = await fetch('/api/claim-welcome', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ telegramId: user.telegramId }),
+      });
+  
+      const data = await res.json();
+  
+      if (data.success) {
+        setUser({ ...user, points: data.points });
+        setShowWelcomePopup(false);
+        setNotification('Welcome bonus claimed!');
+  
+        // Trigger falling shells animation after successful claim
+        triggerFallingShellsAnimation();
+      } else {
+        setError('Failed to claim bonus');
+      }
+    } catch (err) {
+      setError('An error occurred while claiming bonus');
+    }
+  };
+  
+  // Function to trigger falling shells animation
+  const triggerFallingShellsAnimation = () => {
+    // Example implementation of triggering the falling shells animation
+    const animationElement = document.querySelector('.falling-shells-container');
+    if (animationElement) {
+      animationElement.classList.add('animate-falling-shells'); // CSS class to handle animation
+    }
+  };
+  
+  // Handle rendering based on state
+  {/* Notification */}
+  {notification && <div className="notification">{notification}</div>}
+  
+  {/* Error */}
+  {error && (
+    <div className="error-message">
+      <span className="error-icon">🐌</span>
+      <span className="error-text">{error}</span>
+    </div>
+  )}
+  
+  {!user ? (
+    <div className="loading-container">
+      <video autoPlay muted loop>
+        <source src="/videos/unload.mp4" type="video/mp4" />
+      </video>
+    </div>
+  ) : (
+    <div className="welcome-container">
+      <button onClick={handleClaim}>Claim Welcome Bonus</button>
+  
+      {/* Falling shells animation container */}
+      <div className="falling-shells-container">
+        {/* Falling shells animation content here */}
       </div>
-    );
-  }
+    </div>
+  )}
+  
 
   return (
     <div className="bg-gradient-main min-h-screen px-4 flex flex-col items-center text-white font-medium">
+      <div className="absolute inset-0 h-1/2 bg-gradient-overlay z-0"></div>
+      <div className="absolute inset-0 flex items-center justify-center z-0">
+        <div className="radial-gradient-overlay"></div>
+      </div>
+
+      {/* Welcome Popup */}
       {showWelcomePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-          <div className="bg-white text-black p-6 rounded-md text-center max-w-lg w-full">
-            <div className="relative w-full aspect-video mb-4 rounded-lg overflow-hidden">
-              <video 
-                autoPlay 
-                muted 
-                loop 
-                className="w-full h-full object-cover"
-                playsInline
-              >
-                <source src="/videos/welcome.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-
-            <h2 className="text-2xl font-bold">Welcome {user?.firstName}!</h2>
+          <div className="bg-white text-black p-6 rounded-md text-center">
+            <h2 className="text-2xl font-bold">Welcome onboard {user?.firstName}!</h2>
             <p className="mt-4">Now you're a Smart Snail!</p>
-            <p className="mt-2">Some are farmers here, while some are Snailonauts, and over here we earn something more valuable than coins: Shells!</p>
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-lg font-semibold text-blue-600">Welcome Bonus:</p>
-              <p className="text-3xl font-bold text-blue-700">5,000 Shells</p>
-            </div>
+            <p>Some are farmers here, while some are Snailonauts, and over here we earn something more valuable than coins: Shells!</p>
+            <p className="mt-4 text-lg font-semibold">Welcome token: 5,000 Shells</p>
             <button
-              className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold w-full sm:w-auto"
+              className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               onClick={handleClaim}
             >
-              Claim Your Shells
+              Claim
             </button>
           </div>
         </div>
       )}
 
-      <div className="w-full z-10 min-h-screen flex flex-col items-center">
-        <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
-          <div className="flex items-center justify-between w-full px-4 mb-4">
-            <span className="text-2xl font-semibold">SmartSnail</span>
+<div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
+  {/* Existing home page content */}
+  <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+    
+    {/* New section for smartsnail with icons */}
+    <div className="flex items-center justify-between w-full px-4 mb-4">
+      <span className="text-2xl font-semibold">SmartSnail</span>
 
-            <div className="flex space-x-4">
-              <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" /></Link>
-              <Link href="/wallet"><img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" /></Link>
-              <Link href="/info"><img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" /></Link>
-            </div>
-          </div>
+      <div className="flex space-x-4">
+        <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" /></Link>
+        <Link href="/wallet"><img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" /></Link>
+        <Link href="/info"><img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" /></Link>
+      </div>
+    </div>
 
-          <div className="mt-[-1rem] text-5xl font-bold flex items-center">
-            <img src="/images/shell.png" width={50} height={50} alt="Coin" /> 
-            <span className="ml-2">{user?.points.toLocaleString()}</span>
-          </div>
+    {/* User Stats Section */}
+    {/* <p>Points: {user?.points}</p>
+    <p>Energy: {energy}</p> */}
 
-          <div className="text-base mt-2 flex items-center justify-between">
-            <button className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center">
-              <div className="flex items-center">
-                <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
-                <Link href="/level">Level :</Link>
-              </div>
-            </button>
+    {/* Original section */}
+    <div className="mt-[-1rem] text-5xl font-bold flex items-center">
+      <img src="/images/shell.png"  width={50} height={50} alt="Coin" /> 
+      <span className="ml-2">{user?.points.toLocaleString()}</span>
+    </div>
 
-            <span className="ml-0">
-              {(user?.points ?? 0) < 1000000
-                ? 'Camouflage'
-                : (user?.points ?? 0) <= 3000000
-                ? 'Speedy'
-                : (user?.points ?? 0) <= 6000000
-                ? 'Strong'
-                : (user?.points ?? 0) <= 10000000
-                ? 'Sensory'
-                : 'African Giant Snail/god NFT'}
-            </span>
-          </div>
+    {/* Level and Camouflage Logic */}
+    <div className="text-base mt-2 flex items-center justify-between">
+    <button
+  className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center"
+>
+  <div className="flex items-center">
+    <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
+    <Link href="/level">Level  :</Link>
+  </div>
+</button>
+
+
+
+      {/* Display Camouflage Level */}
+      <span className="ml-0">
+        {(user?.points ?? 0) < 1000000
+          ? 'Camouflage'
+          : (user?.points ?? 0) <= 3000000
+          ? 'Speedy'
+          : (user?.points ?? 0) <= 6000000
+          ? 'Strong'
+          : (user?.points ?? 0) <= 10000000
+          ? 'Sensory'
+          : 'African Giant Snail/god NFT'}
+      </span>
+    </div>
+
+  </div>
+
+
+
+
+      {notification && <div className="notification">{notification}</div>}
+      {error && <div className="error">{error}</div>}
+      <div className="fixed bottom-0 left-0 w-full px-4 pb-4 z-10">
+        <div className="w-full bg-[#f9c035] rounded-full mt-4">
+          <div
+            className="bg-gradient-to-r from-[#f3c45a] to-[#fffad0] h-4 rounded-full"
+            style={{ width: `${(energy / maxEnergy) * 100}%` }}
+          ></div>
         </div>
-
-        <div className="flex-grow flex items-center justify-center" onClick={handleIncreasePoints}>
-          <div className="relative mt-4">
-            <video src="/images/snails.mp4" autoPlay muted loop className="rounded-lg shadow-lg" />
-            {clicks.map((click) => (
-              <div
-                key={click.id}
-                className="absolute text-5xl font-bold text-white opacity-0"
-                style={{
-                  top: `${click.y - 42}px`,
-                  left: `${click.x - 28}px`,
-                  animation: 'float 1s ease-out'
-                }}
-                onAnimationEnd={() => setClicks(prev => prev.filter(c => c.id !== click.id))}
-              >
-                +{user?.tappingRate || 1}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {notification && (
-          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full z-50">
-            {notification}
-          </div>
-        )}
-        
-        {error && (
-          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-full z-50">
-            {error}
-          </div>
-        )}
-
-        <div className="fixed bottom-0 left-0 w-full px-4 pb-4 z-10">
-          <div className="w-full bg-[#f9c035] rounded-full mt-4">
-            <div
-              className="bg-gradient-to-r from-[#f3c45a] to-[#fffad0] h-4 rounded-full"
-              style={{ width: `${(energy / maxEnergy) * 100}%` }}
-            ></div>
-          </div>
-          
-          <div className="w-full flex justify-between gap-2 mt-4">
-            <div className="w-1/3 flex items-center justify-start max-w-32">
-              <div className="flex items-center justify-center">
-                <img src="/images/turbosnail-1.png" width={44} height={44} alt="High Voltage" />
-                <div className="ml-2 text-left">
-                  <span className="text-white text-2xl font-bold block">{energy}</span>
-                  <span className="text-white text-large opacity-75">/ {maxEnergy}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-grow flex items-center max-w-60 text-sm">
-              <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
-                <Link href="/referralsystem" className="flex flex-col items-center gap-1">
-                  <img src="/images/SNAILNEW.png" width={50} height={50} alt="Frens" />
-                  <span>Frens</span>
-                </Link>
-                <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
-                <Link href="/task" className="flex flex-col items-center gap-1">
-                  <img src="/images/shell.png" width={30} height={30} alt="Earn" />
-                  <span>Earn</span>
-                </Link>
-                <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
-                <Link href="/boost" className="flex flex-col items-center gap-1">
-                  <img src="/images/startup.png" width={30} height={30} alt="Boosts" />
-                  <span>Boost</span>
-                </Link>
+        <div className="w-full flex justify-between gap-2 mt-4">
+          <div className="w-1/3 flex items-center justify-start max-w-32">
+            <div className="flex items-center justify-center">
+              <img src="/images/turbosnail-1.png" width={44} height={44} alt="High Voltage" />
+              <div className="ml-2 text-left">
+                <span className="text-white text-2xl font-bold block">{energy}</span>
+                <span className="text-white text-large opacity-75">/ {maxEnergy}</span>
               </div>
             </div>
           </div>
+
+
+          <div className="flex-grow flex items-center max-w-60 text-sm">
+  <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
+    <Link href="/referralsystem" className="flex flex-col items-center gap-1">
+      <img src="/images/SNAILNEW.png" width={50} height={50} alt="Frens" />
+      <span>Frens</span>
+    </Link>
+    <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
+    <Link href="/task" className="flex flex-col items-center gap-1">
+      <img src="/images/shell.png" width={30} height={30} alt="Earn" />
+      <span>Earn</span>
+    </Link>
+    <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
+    <Link href="/boost" className="flex flex-col items-center gap-1">
+      <img src="/images/startup.png" width={30} height={30} alt="Boosts" />
+      <span>Boost</span>
+    </Link>
+  </div>
+</div>
+
+
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes float {
-          0% {
-            transform: translateY(0);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(-50px);
-            opacity: 0;
-          }
-        }
-      `}</style>
+
+      <div className="flex-grow flex items-center justify-center" >
+      {/* Video with Click Handler */}
+      <div className="relative mt-4" onClick={handleIncreasePoints}>
+        <video src="/images/snails.mp4" autoPlay muted loop />
+        
+        {/* Floating Clicks Animation */}
+        {clicks.map((click) => (
+          <div
+            key={click.id}
+            className="absolute text-5xl font-bold text-white opacity-0"
+            style={{
+              top: `${click.y - 42}px`,
+              left: `${click.x - 28}px`,
+              animation: 'float 1s ease-out'
+            }}
+            onAnimationEnd={() => handleAnimationEnd(click.id)}
+          >
+            +1
+        </div>
+      ))}
     </div>
-  );
+  </div>
+  <style jsx>{`
+    @keyframes float {
+      0% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+    }
+  `}</style>
+
+
+
+
+    {/* ... */}
+  </div>
+  {notification && (
+    <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
+      {notification}
+    </div>
+  )}
+</div>
+);
 }
