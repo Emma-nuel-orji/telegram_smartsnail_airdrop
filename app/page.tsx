@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
-import '../welcome.css';
+import '@/welcome.css';
 import Loader from '@/loader';
 
 declare global {
