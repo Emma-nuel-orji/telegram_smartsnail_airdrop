@@ -4,7 +4,7 @@ import Script from 'next/script';
 import { BoostProvider } from './api/context/BoostContext'; 
 
 // Import Geist font
-import './fonts/GeistMonoVF.woff'; 
+import './fonts'; 
 
 export const metadata: Metadata = {
   title: 'Telegram Mini App',
@@ -21,7 +21,7 @@ export default function RootLayout({
       <head>
         {/* Google Fonts link for GeistMonoVF font */}
         <link
-          href="/fonts/GeistMonoVF.woff"
+          href="./fonts"
           rel="stylesheet"
           type="font/woff"
         />
