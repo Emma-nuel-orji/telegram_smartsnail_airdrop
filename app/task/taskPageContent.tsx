@@ -5,6 +5,12 @@ import "./task.css";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 
+declare global {
+  interface TelegramWebApp extends Omit<typeof WebApp, 'showStory'> {
+    showStory(mediaUrl: string): Promise<void>;
+  }
+}
+
 // Updated Task interface with story sharing properties
 interface Task {
   id: number;
@@ -186,17 +192,23 @@ const TaskPageContent: React.FC = () => {
     }
   };
 
-  // New story sharing handler
   const handleShareToStory = async () => {
     if (!selectedTask || !telegramId) {
       WebApp.showAlert("Something went wrong. Please try again.");
       return;
     }
-
+  
+    // Type guard to ensure mediaUrl and reward exist
+    if (!selectedTask.mediaUrl || typeof selectedTask.reward !== 'number') {
+      WebApp.showAlert("Invalid task data. Please try again.");
+      return;
+    }
+  
     setSharing(true);
     try {
       if (WebApp.isVersionAtLeast('6.9')) {
-        await WebApp.showStory(selectedTask.mediaUrl);
+        // Cast WebApp to unknown first, then to TelegramWebApp
+        await (WebApp as unknown as TelegramWebApp).showStory(selectedTask.mediaUrl);
         
         const response = await fetch("/api/share-telegram-story/route", {
           method: "POST",
@@ -207,7 +219,7 @@ const TaskPageContent: React.FC = () => {
             reward: selectedTask.reward,
           }),
         });
-
+  
         if (response.ok) {
           const updatedTasks = tasks.map((task) =>
             task.id === selectedTask.id
@@ -215,21 +227,22 @@ const TaskPageContent: React.FC = () => {
               : task
           );
           setTasks(updatedTasks);
-
+  
           setTotalPoints((prev) => {
-            const newPoints = prev + selectedTask.reward;
+            const reward = selectedTask.reward ?? 0; // Use 0 if reward is undefined
+            const newPoints = prev + reward;
             localStorage.setItem("totalPoints", newPoints.toString());
             return newPoints;
           });
-
+          
           const completedTaskIds = updatedTasks
             .filter((task) => task.completed)
             .map((task) => task.id);
           localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
-
+  
           setTaskCompleted(true);
           setSelectedTask(null);
-
+  
           WebApp.showPopup({
             title: "Success!",
             message: `Congratulations! You earned ${selectedTask.reward} shells!`,
@@ -280,10 +293,12 @@ const TaskPageContent: React.FC = () => {
           setTasks(updatedTasks);
   
           setTotalPoints((prev) => {
-            const newPoints = prev + selectedTask.reward;
+            const reward = selectedTask.reward ?? 0; // Use 0 if reward is undefined
+            const newPoints = prev + reward;
             localStorage.setItem("totalPoints", newPoints.toString());
             return newPoints;
           });
+          
   
           const completedTaskIds = updatedTasks
             .filter((task) => task.completed)
