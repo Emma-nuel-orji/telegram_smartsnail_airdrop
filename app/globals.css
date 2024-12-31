@@ -6,23 +6,75 @@
 
 
 @font-face {
-  font-family: 'GeistMonoVF';
-  src: url('/fonts/GeistMonoVF.woff') format('woff');
-  font-weight: 100 900;
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-ExtraLight.ttf') format('truetype');
+  font-weight: 200;
   font-style: normal;
 }
+
 @font-face {
-  font-family: 'Inter Variable';
-  src: url('/fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype');
-  font-weight: 100 900;
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-Light.ttf') format('truetype');
+  font-weight: 300;
   font-style: normal;
 }
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('/fonts/GeistMono-Thin.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+}
+
 body {
   background-color: transparent; /* or your app's background color */
   margin: 0;
   padding: 0;
-  font-family:  'GeistMonoVF';
+  font-family: 'GeistMono', Arial, sans-serif;
 }
+
 
 
 

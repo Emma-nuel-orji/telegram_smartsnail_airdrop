@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import './globals.css';
-import Script from 'next/script';
-import { BoostProvider } from './api/context/BoostContext'; 
-
-// Import Geist font
-import './fonts'; 
+import Script from "next/script";
+import { BoostProvider } from './api/context/BoostContext';
 
 export const metadata: Metadata = {
   title: 'Telegram Mini App',
@@ -19,12 +16,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Google Fonts link for GeistMonoVF font */}
-        <link
-          href="./fonts"
-          rel="stylesheet"
-          type="font/woff"
-        />
         {/* Include Animate.css library */}
         <link
           rel="stylesheet"
@@ -35,8 +26,8 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body className="font-GeistMonoVF">
-        <BoostProvider>{children}</BoostProvider> {/* Wrap children */}
+      <body>
+        <BoostProvider>{children}</BoostProvider>
       </body>
     </html>
   );
