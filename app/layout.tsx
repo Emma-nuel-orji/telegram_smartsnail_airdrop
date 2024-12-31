@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import './globals.css';
 import Script from 'next/script';
-import { BoostProvider } from './api/context/BoostContext'; // Adjust the path if needed
+import { BoostProvider } from './api/context/BoostContext'; 
+
+// Import Geist font
+import './fonts/GeistMonoVF.woff'; 
 
 export const metadata: Metadata = {
   title: 'Telegram Mini App',
@@ -16,27 +19,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Google Fonts link for Inter Variable font */}
+        {/* Google Fonts link for GeistMonoVF font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter+Variable:wght@100..900&display=swap"
+          href="/fonts/GeistMonoVF.woff"
           rel="stylesheet"
+          type="font/woff"
         />
         {/* Include Animate.css library */}
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
         />
-        <link
-          href="/fonts/GeistMonoVF.woff"
-          rel="stylesheet"
-          type="font/woff"
-        />
-      </head>
-      <body className="Inter Variable GeistMonoVF">
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
+      </head>
+      <body className="font-GeistMonoVF">
         <BoostProvider>{children}</BoostProvider> {/* Wrap children */}
       </body>
     </html>
