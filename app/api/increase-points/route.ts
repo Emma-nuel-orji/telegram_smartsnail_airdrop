@@ -8,10 +8,11 @@ export async function POST(req: NextRequest) {
     if (!telegramId) {
       return NextResponse.json({ error: 'Invalid telegramId' }, { status: 400 });
     }
+    const telegramIdBigInt = BigInt(telegramId);
 
     // Fetch the user's tapping rate from the database
     const user = await prisma.user.findUnique({
-      where: { telegramId },
+      where: { telegramId: telegramIdBigInt },
       select: { points: true, tappingRate: true },
     });
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // Increment points based on the tapping rate
     const updatedUser = await prisma.user.update({
-      where: { telegramId },
+      where: { telegramId: telegramIdBigInt },
       data: { points: { increment: tappingRate } },
     });
 

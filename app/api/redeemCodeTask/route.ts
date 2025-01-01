@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { telegramId },
+      where: { telegramId: telegramIdBigInt },
     });
 
     if (!user) {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.$transaction([
       prisma.user.update({
-        where: { telegramId },
+        where: { telegramId: telegramIdBigInt },
         data: {
           points: { increment: rewardAmount },
         },

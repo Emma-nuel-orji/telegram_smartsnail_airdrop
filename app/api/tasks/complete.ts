@@ -8,10 +8,11 @@ export async function POST(req: NextRequest) {
     if (!telegramId || !taskId || typeof reward !== 'number') {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
+    const telegramIdBigInt = BigInt(telegramId);
 
     // Fetch the user based on telegramId
     const user = await prisma.user.findUnique({
-      where: { telegramId },
+      where: { telegramId: telegramIdBigInt },
       select: { points: true },
     });
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     // Increment the user's points based on the reward
     const updatedUser = await prisma.user.update({
-      where: { telegramId },
+      where: { telegramId: telegramIdBigInt },
       data: { points: { increment: reward } },
     });
 
