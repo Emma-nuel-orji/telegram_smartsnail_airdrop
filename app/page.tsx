@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
-import './welcome.css';
 
 declare global {
   interface Window {
