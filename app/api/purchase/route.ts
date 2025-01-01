@@ -283,28 +283,30 @@ async function updateDatabaseTransaction(
     });
 
     const user = await tx.user.upsert({
-      where: { telegramId },
+      where: { telegramId: BigInt(telegramId) }, // Convert to BigInt
       update: {
         tappingRate: { increment: totalTappingRate },
         points: { increment: totalPoints },
       },
       create: {
-        telegramId,
-        email,
+        telegramId: BigInt(telegramId), // Ensure the created entry also uses BigInt
         tappingRate: totalTappingRate,
         points: totalPoints,
-        username: 'default-username',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
+    
 
     if (referrerId && referrerId !== telegramId) {
       const totalBooksPurchased = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
       const referrerReward = totalBooksPurchased * 20000;
 
       await tx.user.update({
-        where: { telegramId: referrerId },
+        where: { telegramId: BigInt(referrerId) }, // Convert to BigInt
         data: { points: { increment: referrerReward } },
       });
+      
     }
 
      // Email sending with retry mechanism
