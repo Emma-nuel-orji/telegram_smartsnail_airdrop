@@ -184,8 +184,8 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
 
       const endpoint = 
         paymentMethod === "Ton" || paymentMethod === "Card"
-          ? "/api/purchase"
-          : "/api/paymentByStars";
+          ? "../api/purchase"
+          : "../api/paymentByStars";
 
       const response = await axios.post(endpoint, payload);
 

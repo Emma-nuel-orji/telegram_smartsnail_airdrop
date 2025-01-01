@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
-
+/* Font Face Declarations */
 @font-face {
   font-family: 'GeistMono';
   src: url('/fonts/GeistMono-ExtraLight.ttf') format('truetype');
@@ -68,25 +66,20 @@
   font-style: normal;
 }
 
+/* Base Styles */
 body {
-  background-color: transparent; /* or your app's background color */
+  background-color: transparent;
   margin: 0;
   padding: 0;
   font-family: 'GeistMono', Arial, sans-serif;
 }
 
-
-
-
-/* Ensure no unexpected white backgrounds */
 html, body, #__next, [data-nextjs] {
   background: transparent;
   color: inherit;
 }
 
-
-
-
+/* Animations */
 @keyframes float {
   0% {
     opacity: 1;
@@ -98,8 +91,44 @@ html, body, #__next, [data-nextjs] {
   }
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes glowing {
+  0% {
+    background-color: rgb(223, 193, 25);
+    box-shadow: 0 0 0px rgb(223, 193, 25);
+  }
+  50% {
+    background-color: green;
+    box-shadow: 0 0 10px green;
+  }
+  100% {
+    background-color: rgb(223, 193, 25);
+    box-shadow: 0 0 0px rgb(223, 193, 25);
+  }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Utility Classes */
 .bg-gradient-main {
-  /* background: linear-gradient(to top, #fba007, #ffc630); */
   background: linear-gradient(to top, #a107fb, #b330ff);
 }
 
@@ -114,11 +143,7 @@ html, body, #__next, [data-nextjs] {
   background: radial-gradient(circle, rgba(250, 214, 92, 0.8) 0%, rgba(250, 214, 92, 0) 60%);
 }
 
-
-
-
-/* LOADING PAGE */
-
+/* Loading Styles */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -138,14 +163,7 @@ html, body, #__next, [data-nextjs] {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-
-
-
+/* Component Styles */
 .dropdown-content {
   background-color: #686868;
   padding: 10px;
@@ -163,31 +181,20 @@ html, body, #__next, [data-nextjs] {
   font-size: 24px;
   text-decoration: none;
   cursor: pointer;
+  margin-bottom: 20px;
 }
 
-/* here  */
-
-
+/* Task Containers */
 .task-containers {
-  
   padding: 2px;
-
 }
-
-
 
 .coin.flex {
   display: flex;
   align-items: center;
 }
 
-.back-arrow {
-  margin-bottom: 20px; /* Adds some space below the back arrow */
-}
-
-
-/* referral page css  */
-
+/* Referral Styles */
 .referral-container {
   width: 100%;
   min-height: 100vh;
@@ -195,9 +202,9 @@ html, body, #__next, [data-nextjs] {
   margin: 0 auto;
   background-color: #dd9acd;
   padding: 20px;
-  /* border-radius: 10px; */
   box-shadow: 0 2px 8px rgb(151, 11, 151);
 }
+
 
 .referrer-message {
   color: #4CAF50;
