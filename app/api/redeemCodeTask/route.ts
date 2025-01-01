@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/prisma/client';
 
-
 interface RedeemRequest {
   code: string;
   telegramId: string;
@@ -15,6 +14,17 @@ export async function POST(request: NextRequest) {
     if (!code || !telegramId || !batchId) {
       return NextResponse.json(
         { error: "Missing required fields: code, telegramId, or batchId." },
+        { status: 400 }
+      );
+    }
+
+    // Convert telegramId to BigInt
+    let telegramIdBigInt: bigint;
+    try {
+      telegramIdBigInt = BigInt(telegramId);
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Invalid telegramId format. Must be a valid integer." },
         { status: 400 }
       );
     }
