@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
         // Add connection test
         await prisma.$connect();
         console.log('Database connected successfully');
-
+        
         // Upsert user data in the database
         const user = await prisma.user.upsert({
             where: { 

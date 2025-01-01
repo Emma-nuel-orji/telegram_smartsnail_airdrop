@@ -17,11 +17,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
+    const telegramIdBigInt = BigInt(telegramId);
     const result = await prisma.$transaction(async (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
       // Check if the user exists and if they've claimed the bonus
       const user = await tx.user.findUnique({
-        where: { telegramId },
+        where: { telegramId: telegramIdBigInt,},
         select: {
           hasClaimedWelcome: true,
           points: true,
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
       // Update user with welcome bonus and mark as claimed
       const updatedUser = await tx.user.update({
-        where: { telegramId },
+        where: { telegramId: telegramIdBigInt,},
         data: {
           points: {
             increment: WELCOME_BONUS_AMOUNT

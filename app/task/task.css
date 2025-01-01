@@ -72,9 +72,20 @@
 }
 
 /* Task card styling */
-.task-card {
+/* .task-card {
   border-radius: 8px;
   padding: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+} */
+
+
+.task-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.2s;
@@ -91,13 +102,23 @@
 }
 
 /* Task image styling */
-.task-image {
+/* .task-image {
   background-color: #dd9acd;
   width: 100%;
   height: 150px;
   object-fit: contain;
   border-radius: 4px;
   margin-bottom: 10px;
+} */
+
+
+.task-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Task information styling */
@@ -106,8 +127,14 @@
   position: relative;
 }
 
-.task-description {
+/* .task-description {
   margin: 0 0 8px 0;
+  font-weight: 500;
+} */
+
+.task-description {
+  margin: 0;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -129,7 +156,7 @@
 }
 
 /* Checkmark overlay */
-.checkmark-overlay {
+/* .checkmark-overlay {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -141,7 +168,22 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+} */
+
+.checkmark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
+
 
 .checkmark {
   color: white;
@@ -234,7 +276,12 @@
     font-size: 0.9rem;
   }
 }
-
+.task-image-container {
+  position: relative;
+  width: 100%;
+  padding-top: 75%; /* 4:3 aspect ratio */
+  overflow: hidden;
+}
 
 /* Popup overlay */
 .popup-overlay {

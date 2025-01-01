@@ -129,6 +129,7 @@ const TaskPageContent: React.FC = () => {
     { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1', completedTime: null},
   
 
+
   ]);  
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [validationAttempt, setValidationAttempt] = useState(0);
@@ -178,26 +179,43 @@ const TaskPageContent: React.FC = () => {
 
   useEffect(() => {
     const updateDailyTasks = () => {
+      const currentTime = Date.now();
+      
       setTasks((prevTasks) =>
         prevTasks.map((task) => {
-          if (task.type === "daily" && task.completed && task.completedTime) {
-            const taskCompletionTime = new Date(task.completedTime).getTime();
-            const currentTime = Date.now();
-            const timeDifference = currentTime - taskCompletionTime;
-  
-            if (timeDifference > 20 * 60 * 60 * 1000) {
-              return { ...task, completed: false, completedTime: null };
+          // Only process daily tasks
+          if (task.type !== "daily") return task;
+          
+          // If task is completed, check if it needs to be reset
+          if (task.completed && task.completedTime) {
+            const completionTime = new Date(task.completedTime).getTime();
+            const hoursSinceCompletion = (currentTime - completionTime) / (1000 * 60 * 60);
+            
+            // Reset if more than 20 hours have passed
+            if (hoursSinceCompletion > 20) {
+              return {
+                ...task,
+                completed: false,
+                completedTime: null
+              };
             }
           }
+          
           return task;
         })
       );
+      
+      // Update localStorage to reflect changes
+      const updatedTasks = tasks.filter(task => task.completed);
+      localStorage.setItem("completedTasks", JSON.stringify(updatedTasks.map(task => task.id)));
     };
   
+    // Run immediately and then every hour
     updateDailyTasks();
     const intervalId = setInterval(updateDailyTasks, 60 * 60 * 1000);
+    
     return () => clearInterval(intervalId);
-  }, []);
+  }, [tasks]); // Add tasks as dependency to ensure we're working with current state
 
   const handleTaskClick = (task: Task) => {
     if (!task.completed) {
