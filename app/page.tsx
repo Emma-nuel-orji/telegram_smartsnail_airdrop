@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
+import '../welcome.css';
 
 declare global {
   interface Window {
@@ -141,74 +142,51 @@ export default function Home() {
     }
   }, [isClicking, energy]);
 
-  // Modify your useEffect in Home component
-
-useEffect(() => {
-  const initializeTelegram = async () => {
-    try {
-      // Wait for Telegram WebApp to be available
-      if (!window.Telegram?.WebApp) {
-        console.error('Telegram WebApp not available');
-        setError('Please open this app in Telegram');
-        return;
-      }
-
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-
-      const { user } = tg.initDataUnsafe;
-      
-      if (!user?.id) {
-        console.error('No user ID available');
-        setError('Unable to get user information');
-        return;
-      }
-
-      console.log('Attempting to fetch user data for ID:', user.id);
-      
-      const response = await fetch('/api/user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: user.id,
-          first_name: user.first_name,
-          // Add any other relevant user data
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Received user data:', data);
-
-      if (data.error) {
-        setError(data.error);
-        return;
-      }
-
-      setUser({
-        ...data,
-        telegramId: data.telegramId.toString(),
-      });
+  useEffect(() => {
+    // Add these lines at the top of your useEffect
+    console.log('Page is loading');
+    console.log('Telegram available:', !!window.Telegram);
   
-      
-      // Show welcome popup for new users
-      if (data.points === 0) {
-        setShowWelcomePopup(true);
+    const initializeTelegram = async () => {
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+  
+        const { user } = tg.initDataUnsafe || {};
+  
+        if (user) {
+          console.log('Telegram user found:', user);
+          try {
+            const response = await fetch('/api/user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(user)
+            });
+  
+            console.log('API response status:', response.status);
+            const data = await response.json();
+  
+            if (data.error) {
+              console.error('User API error:', data.error);
+              setError(data.error);
+            } else {
+              console.log('User data received:', data);
+              setUser(data);
+            }
+          } catch (error) {
+            console.error('Fetch error:', error);
+            setError('Failed to fetch user data');
+          }
+        } else {
+          setError('');
+        }
+      } else {
+        setError('This app must be opened in Telegram');
       }
-
-    } catch (error) {
-      console.error('Error during initialization:', error);
-      setError('Failed to initialize app');
-    }
-  };
-
-  initializeTelegram();
-}, []);
+    };
+  
+    initializeTelegram();
+  }, []);
   
   // Handle claiming welcome bonus
   const handleClaim = async () => {
