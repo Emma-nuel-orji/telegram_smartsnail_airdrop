@@ -33,8 +33,8 @@ model User {
 
 // CompletedTask model
 model CompletedTask {
-  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
-  taskId      String   @db.ObjectId
+  id          String   @id @default(cuid()) @map("_id") 
+  taskId      String          
   userId      String   @db.ObjectId
   completedAt DateTime @default(now())
 
@@ -43,23 +43,29 @@ model CompletedTask {
   user User @relation(fields: [userId], references: [id])
 }
 
+
 // Task model
 model Task {
-  id            String    @id @default(cuid()) @map("_id") @db.ObjectId
+  id            String     @id @map("_id") 
   description   String
-  completed     Boolean   @default(false)
-  completedTime DateTime?
-  reward        Int
-  section       String
-  type          String
+  completed     Boolean @default(false)
+  section       String  // Will be constrained in TypeScript to "main" | "daily" | "partners"
+  type          String  // Will be constrained in TypeScript to "daily" | "permanent"
   image         String
   link          String
-  userId        String    @db.ObjectId
+  completedTime DateTime?
+  batchId       String?
+  mediaUrl      String?
+  isStoryTask   Boolean? @default(false)
+  mediaType     String?
+  reward        Int?
+  userId        String  @db.ObjectId
 
   // Relations
   user          User            @relation(fields: [userId], references: [id], name: "UserTasks")
   CompletedTask CompletedTask[]
 }
+
 
 // Referral model
 model Referral {

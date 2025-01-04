@@ -24,24 +24,21 @@ export default function Home() {
     tappingRate: number;
     firstName: string;
   }>(null);
-  const [notification, setNotification] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
   const [clicks, setClicks] = useState<Click[]>([]);
   const [energy, setEnergy] = useState(1500);
   const [isClicking, setIsClicking] = useState(false);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
 
   const maxEnergy = 1500;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+
 
   const handleIncreasePoints = async () => {
-    if (energy <= 0) {
-      setError('Not enough energy to click!');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
+    if (!user || energy <= 0) return;
 
     const prevPoints = user!.points;
     const prevEnergy = energy;
@@ -214,35 +211,40 @@ useEffect(() => {
   const handleClaim = async () => {
     try {
       if (!user) {
-        // Early return if user is not defined
         setError('User is not defined.');
+        setTimeout(() => setError(null), 3000);
         return;
       }
   
       const res = await fetch('/api/claim-welcome', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegramId: user.telegramId }),
       });
   
       const data = await res.json();
   
+      console.log(data); // Debug API response
+  
       if (data.success) {
         setUser({ ...user, points: data.points });
         setShowWelcomePopup(false);
         setNotification('Welcome bonus claimed!');
+        setTimeout(() => setNotification(null), 3000);
   
-        // Trigger falling shells animation after successful claim
+        // Trigger falling shells animation
         triggerFallingShellsAnimation();
       } else {
         setError('Failed to claim bonus');
+        setTimeout(() => setError(null), 3000);
       }
     } catch (err) {
+      console.error(err);
       setError('An error occurred while claiming bonus');
+      setTimeout(() => setError(null), 3000);
     }
   };
+  
   
   // Function to trigger falling shells animation
   const triggerFallingShellsAnimation = () => {
@@ -292,21 +294,48 @@ useEffect(() => {
 
       {/* Welcome Popup */}
       {showWelcomePopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-          <div className="bg-white text-black p-6 rounded-md text-center">
-            <h2 className="text-2xl font-bold">Welcome onboard {user?.firstName}!</h2>
-            <p className="mt-4">Now you're a Smart Snail!</p>
-            <p>Some are farmers here, while some are Snailonauts, and over here we earn something more valuable than coins: Shells!</p>
-            <p className="mt-4 text-lg font-semibold">Welcome token: 5,000 Shells</p>
-            <button
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
+
+    {/* Background Blur Effect */}
+    <div
+      className="absolute inset-0 bg-cover bg-center filter blur-lg transition-all duration-500 ease-in-out scale-110"
+      style={{ backgroundImage: 'url("/path/to/your/background-image.jpg")' }}
+    ></div>
+
+    {/* Solid Background Overlay for Popup */}
+    <div className="absolute inset-0 bg-black bg-opacity-60 z-10"></div> {/* Solid dark overlay */}
+
+    {/* Popup Content */}
+    <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
+      
+      {/* Welcome Heading */}
+      <h2 className="text-2xl font-bold mb-4">Welcome onboard {user?.firstName}!</h2>
+
+      {/* Video Section */}
+      <div className="mb-4 w-full">
+        <video className="rounded-md mx-auto" width="320" height="240" autoPlay loop muted>
+          <source src="/videos/speedsnail.mp4" type="video/mp4" />
+          
+          Your browser does not support the video tag.
+        </video>
+      </div>
+
+      {/* Content Below the Video */}
+      <p className="mt-4">Now you're a Smart Snail!</p>
+      <p>Some are farmers here, while some are Snailonauts. Over here we earn something more valuable than coins: Shells!</p>
+      <p className="mt-4 text-lg font-semibold">Earn your first 5,000 Shells</p>
+
+      {/* Claim Button */}
+      <button
               className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               onClick={handleClaim}
             >
               Claim
             </button>
-          </div>
-        </div>
-      )}
+    </div>
+  </div>
+)}
+
 
 <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
   {/* Existing home page content */}

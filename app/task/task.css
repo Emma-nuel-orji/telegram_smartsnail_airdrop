@@ -13,15 +13,60 @@
 /* Stylish header */
 .task-container h2 {
   text-align: center;
-  font-size: 2.5rem;
+  font-size: 1.5rem;
   font-weight: bold;
-  color: #2d1846;
-  margin: 2rem 0;
-  padding: 1rem;
+  color: #1c0f2c;
+  margin: 1rem 0;
+  /* padding: 1rem; */
 }
 
-/* Task buttons container with enhanced styling */
+
 .task-buttons {
+  display: flex; /* Align buttons horizontally */
+  flex-direction: row; /* Ensure horizontal alignment */
+  border: 1px solid #ddd; /* Border around the container for a "box" effect */
+  padding: 10px;
+  border-radius: 8px; /* Slightly rounded corners for modern look */
+  background-color: #f4f0ff; /* Light purple background for the box */
+  box-shadow: inset 0 0 5px rgba(128, 0, 128, 0.1); /* Subtle purple impressed effect */
+  gap: 10px; /* Space between buttons */
+}
+
+/* Buttons styling */
+.task-buttons button {
+  flex: 1; /* Make buttons equal width */
+  padding: 12px 18px;
+  border: 1px solid #d6b3ff; /* Purple border */
+  border-radius: 5px; /* Rounded corners for the buttons */
+  background-color: white; /* Default button background */
+  font-size: 14px;
+  color: #5c3a91; /* Dark purple text color */
+  cursor: pointer;
+  transition: all 0.2s ease; /* Smooth transitions for hover and active effects */
+}
+
+/* Hover effect */
+.task-buttons button:hover {
+  background-color: #f0e6ff; /* Light purple hover background */
+  box-shadow: 0 0 8px rgba(128, 0, 128, 0.2); /* Slight purple elevation effect on hover */
+}
+
+/* Active button styling */
+.task-buttons button.active {
+  background-color: #7e57c2; /* Purple active background */
+  color: white; /* White text for active button */
+  border-color: #6a2c98; /* Darker purple border for active state */
+  box-shadow: 0 0 12px rgba(126, 87, 194, 0.5); /* Purple glow effect for active button */
+}
+
+/* Click effect */
+.task-buttons button:active {
+  transform: scale(0.95); /* Click effect: shrink slightly */
+}
+
+
+
+/* .task-buttons {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -31,7 +76,7 @@
   width: fit-content;
 }
 
-/* Individual task buttons with new design */
+
 .task-buttons button {
   padding: 12px 18px;
   font-size: 1rem;
@@ -47,7 +92,7 @@
   box-shadow: 0 4px 15px rgba(89, 47, 147, 0.1);
 }
 
-/* Active state for buttons */
+
 .task-buttons button.active {
   color: white;
   border: none;
@@ -56,14 +101,14 @@
   box-shadow: 0 6px 20px rgba(89, 47, 147, 0.2);
 }
 
-/* Hover effects */
+
 .task-buttons button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(89, 47, 147, 0.2);
   color: #8a2be2;
-}
+} */
 
-/* Tasks grid layout */
+
 .tasks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -102,28 +147,28 @@
 }
 
 /* Task image styling */
-/* .task-image {
+.task-image {
   background-color: #dd9acd;
   width: 100%;
   height: 150px;
   object-fit: contain;
   border-radius: 4px;
   margin-bottom: 10px;
-} */
+}
 
 
-.task-image {
+/* .task-image {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-}
+  object-fit: contain;
+} */
 
 /* Task information styling */
 .task-info {
-  
+  background-color: rgb(219, 217, 217);
   position: relative;
 }
 
@@ -261,26 +306,23 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 480px) {
-  .task-container h2 {
-    font-size: 1.8rem;
-  }
-  
+@media (max-width: 768px) {
   .task-buttons {
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-direction: row; /* Stay horizontal on phones */
+    gap: 8px; /* Adjust spacing for smaller screens */
+    padding: 8px; /* Reduce padding slightly */
   }
-  
+
   .task-buttons button {
-    padding: 8px 15px;
-    font-size: 0.9rem;
+    font-size: 12px; /* Smaller font size for limited screen space */
+    padding: 10px 12px; /* Adjust padding for smaller buttons */
   }
 }
 .task-image-container {
   position: relative;
   width: 100%;
-  padding-top: 75%; /* 4:3 aspect ratio */
   overflow: hidden;
+  /* background-color: rgb(212, 212, 212); */
 }
 
 /* Popup overlay */

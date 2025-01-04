@@ -1,6 +1,6 @@
 .boost-page {
   /* font-family: Inter, Arial, sans-serif; */
-  background-color: #dd9acd;
+  background-color: #2b2529;
   padding: 20px;
   color: #333;
   max-width: 600px;
@@ -9,9 +9,17 @@
 }
 
 h1 {
-  font-size: 24px;
+  font-weight: bold;
+  font-size: 30px;
   text-align: center;
-  color: #4A90E2;
+  color: #f8daf7;
+}
+
+h3 {
+  font-size: 15px;
+  text-align: center;
+  color: #c0bcc0;
+
 }
 
 .tests {
@@ -97,7 +105,7 @@ h1 {
   padding: 10px 15px;
   border: none;
   border-radius: 5px;
-  background-color: #4A90E2;
+  background-color: #e24ada;
   color: white;
   cursor: pointer;
 }
@@ -189,7 +197,7 @@ input[type='number']:not(:placeholder-shown)::placeholder {
   width: 24px;
   height: 24px;
   border: 3px solid transparent;
-  border-top: 3px solid #e100ff; /* Spinning gear color */
+  border-top: 3px solid #ffffff; /* Spinning gear color */
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

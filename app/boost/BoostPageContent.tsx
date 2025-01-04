@@ -336,9 +336,9 @@ const handlePaymentSuccess = async () => {
         
       </Link>
 
-    <h1>Ahh.. I see you want some boost!</h1>
+    <h1>Ahh. I see you want some boost!</h1>
   </div>
-      <p>Easy peasy! Buy a book in our marketplace for a boost!</p>
+      <h3>Easy peasy! Buy one of the listed books in SmartSnail marketplace </h3>
       
       <div className="books-container">
         {/* Fxcked Up Bags */}

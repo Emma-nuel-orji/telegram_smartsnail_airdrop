@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import "./task.css";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
+import type { Task } from '@/types';
+
 
 interface ShowStoryOptions {
   media: string;
@@ -26,22 +28,7 @@ declare global {
   }
 }
 
-// Updated Task interface with story sharing properties
-interface Task {
-  id: number;
-  description: string;
-  completed: boolean;
-  section: "main" | "daily" | "partners";
-  type: "daily" | "permanent";
-  image: string;
-  link: string;
-  completedTime?: string | null;
-  batchId?: string;
-  mediaUrl?: string;
-  isStoryTask?: boolean;
-  mediaType?: string;
-  reward?: number;
-}
+
 
 // FallingShellsEffect Component (unchanged)
 const FallingShellsEffect: React.FC<{ trigger: boolean; onComplete: () => void }> = ({
@@ -123,7 +110,7 @@ const TaskPageContent: React.FC = () => {
     { id: 27, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 28, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 29, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 30, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: 'https://your-video-url.mp4', // Replace with your video URL
+    { id: 30, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: '/videos/speedsnail.mp4', // Replace with your video URL
       mediaType: 'video' , isStoryTask: true, completedTime: null },
     { id: 31, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1', completedTime: null},
@@ -133,7 +120,12 @@ const TaskPageContent: React.FC = () => {
   ]);  
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [validationAttempt, setValidationAttempt] = useState(0);
-  const [totalPoints, setTotalPoints] = useState<number>(0);
+  const [totalPoints, setTotalPoints] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return Number(localStorage.getItem('totalPoints')) || 0;
+    }
+    return 0;
+  });
   const [selectedSection, setSelectedSection] = useState<"main" | "daily" | "partners">("main");
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [inputCode, setInputCode] = useState("");
@@ -143,6 +135,9 @@ const TaskPageContent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [telegramId, setTelegramId] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
+
+ 
+
 
   useEffect(() => {
     WebApp.ready();
@@ -319,6 +314,7 @@ const TaskPageContent: React.FC = () => {
   };
 
   // Existing validation handler
+  
   const handleValidateClick = async () => {
     setValidationAttempt((prevAttempt) => prevAttempt + 1);
   
@@ -329,51 +325,108 @@ const TaskPageContent: React.FC = () => {
   
     if (validationAttempt === 1) {
       alert("Bruuh!!, you haven't performed the task yet.");
-    } else if (validationAttempt >= 2 && selectedTask) {
-      try {
-        const response = await fetch("/api/tasks/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            taskId: selectedTask.id,
-            reward: selectedTask.reward,
-          }),
-        });
-  
-        if (response.ok) {
-          const updatedTasks = tasks.map((task) =>
-            task.id === selectedTask.id
-              ? { ...task, completed: true, completedTime: new Date().toISOString() }
-              : task
-          );
-          setTasks(updatedTasks);
-  
-          setTotalPoints((prev) => {
-            const reward = selectedTask.reward ?? 0; // Use 0 if reward is undefined
-            const newPoints = prev + reward;
-            localStorage.setItem("totalPoints", newPoints.toString());
-            return newPoints;
-          });
-          
-  
-          const completedTaskIds = updatedTasks
-            .filter((task) => task.completed)
-            .map((task) => task.id);
-          localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
-  
-          setTaskCompleted(true);
-          setSelectedTask(null);
-          setValidationAttempt(0);
-        } else {
-          const errorData = await response.json();
-          alert(errorData.message || "Something went wrong. Please try again.");
-        }
-      } catch (error) {
-        console.error("Error completing task:", error);
-        alert("Failed to connect to the server. Please try again.");
-      }
+      return;
     }
-  };
+
+    if (!selectedTask) {
+      alert("No task selected.");
+      return;
+    }
+
+    // Get Telegram user ID from WebApp
+    const telegramId = WebApp.initDataUnsafe?.user?.id;
+    if (!telegramId) {
+      alert("Could not verify Telegram user. Please try again.");
+      return;
+    }
+  
+    try {
+      // Convert the numeric ID to string for the API request
+      const taskId = String(selectedTask.id);
+      
+      console.log('Attempting to complete task:', selectedTask);
+
+      const response = await fetch("/api/tasks/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskId,
+          reward: selectedTask.reward ?? 0,
+          telegramId
+        }),
+      });
+
+      // Handle non-OK responses before trying to parse JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Server error: ${response.status}`;
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (e) {
+          // If JSON parsing fails, use the raw error text
+          errorMessage = errorText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      // Update the local state only if the server update was successful
+      const updatedTasks = tasks.map((task) =>
+        task.id === selectedTask.id
+          ? { 
+              ...task, 
+              completed: true, 
+              completedTime: new Date().toISOString() 
+            }
+          : task
+      );
+      setTasks(updatedTasks);
+
+      // Update points using the returned points from the server
+      if (data.userPoints !== undefined) {
+        setTotalPoints(data.userPoints);
+        localStorage.setItem("totalPoints", data.userPoints.toString());
+      } else {
+        // Fallback to local calculation if server doesn't return points
+        setTotalPoints((prev) => {
+          const reward = selectedTask.reward ?? 0;
+          const newPoints = prev + reward;
+          localStorage.setItem("totalPoints", newPoints.toString());
+          return newPoints;
+        });
+      }
+
+      // Update completed tasks in localStorage
+      const completedTaskIds = updatedTasks
+        .filter((task) => task.completed)
+        .map((task) => task.id);
+      localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
+
+      // Reset UI state
+      setTaskCompleted(true);
+      setSelectedTask(null);
+      setValidationAttempt(0);
+
+    } catch (error: unknown) {
+      console.error("Error completing task:", error);
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An unknown error occurred';
+      
+      alert(
+        errorMessage.includes('Invalid task ID')
+          ? 'There was a problem with the task data. Please try again or refresh the page.'
+          : `Failed to complete task: ${errorMessage}`
+      );
+    }
+};
 
   // Existing code redemption handler
   const handleRedeemCode = async () => {
@@ -422,7 +475,8 @@ const TaskPageContent: React.FC = () => {
       <div className="task-header">
         <Link href="/">
           <img
-            src="/images/info/output-onlinepngtools (6).png"
+            src="/images/info/left-arrow.png" 
+            
             width={40}
             height={40}
             alt="back"
@@ -459,7 +513,7 @@ const TaskPageContent: React.FC = () => {
             className={`task-card ${task.completed ? 'completed' : ''}`}
             onClick={() => !task.completed && handleTaskClick(task)}
           >
-            <div className="task-image-container">
+            <div >
               <img src={task.image} alt={task.description} className="task-image" />
               {task.completed && (
                 <div className="checkmark-overlay">

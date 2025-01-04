@@ -344,7 +344,7 @@ html, body, #__next, [data-nextjs] {
 
 .task-container {
   width: 100%;
-  background-color: #181518;
+  /* background-color: #181518; */
   padding: 20px;
 
 }
@@ -449,7 +449,7 @@ html, body, #__next, [data-nextjs] {
 }
 
 .popup-buttons button:first-of-type {
-  background-color: #007bff;
+  background-color: #c024b8;
   color: #fff;
   margin-bottom: 5px;
 }

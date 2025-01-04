@@ -10,10 +10,11 @@ import {
   verifyPayment,
 } from "@/src/utils/paymentUtils";
 import { sendPurchaseEmail } from '@/src/utils/emailUtils';
-import { PendingTransaction } from '@prisma/client'; 
+import { PrismaClient, PendingTransaction, Book, Order } from '@prisma/client';
 
 
 // import { redirectUrl } from "@/config/config";
+type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>;
 
 interface Book {
   title: string;
@@ -236,8 +237,11 @@ async function updateDatabaseTransaction(
 ) {
   const MAX_RETRIES = 3;
 
-  return prisma.$transaction(async (tx) => {
-  const purchasedBooks: any[] = [];
+
+
+// For the transaction
+return prisma.$transaction(async (tx: PrismaTransaction) => {
+  const purchasedBooks: { bookId: string; quantity: number }[] = [];
 
   for (const { title, qty } of booksToPurchase) {
     const book = await tx.book.findFirst({ where: { title } });
