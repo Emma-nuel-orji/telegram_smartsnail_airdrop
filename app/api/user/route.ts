@@ -13,70 +13,90 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid user data' }, { status: 400 });
         }
 
+        let telegramId: bigint;
         try {
-            // Convert telegram ID to BigInt
-            const telegramId = BigInt(userData.id);
+            telegramId = BigInt(userData.id);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown conversion error';
+            return NextResponse.json(
+                { error: 'Invalid telegram ID format', details: errorMessage },
+                { status: 400 }
+            );
+        }
 
-            const user = await prisma.user.upsert({
-                where: {
-                    telegramId
-                },
-                update: {
-                    username: userData.username || undefined,
-                    firstName: userData.first_name || undefined,
-                    lastName: userData.last_name || undefined,
-                    email: userData.email || null,
-                    updatedAt: new Date()
-                },
-                create: {
+        try {
+            let user = await prisma.user.findUnique({
+                where: { telegramId }
+            });
+
+            if (user) {
+                // Update the user if it already exists
+                user = await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        username: userData.username || undefined,
+                        firstName: userData.first_name || undefined,
+                        lastName: userData.last_name || undefined,
+                        updatedAt: new Date(),
+                        ...(userData.email && { email: userData.email }) // Only include `email` if provided
+                    }
+                });
+            } else {
+                // Create a new user if it does not exist
+                const createData = {
                     telegramId,
                     username: userData.username || '',
                     firstName: userData.first_name || '',
                     lastName: userData.last_name || '',
-                    email: userData.email || null,
                     points: 0,
                     tappingRate: 1,
                     nft: false,
                     hasClaimedWelcome: false,
-                    tasks: {
-                        create: []
-                    },
-                    referrals: {
-                        create: []
-                    },
-                    referredBy: {
-                        create: []
-                    },
-                    purchases: {
-                        create: []
-                    },
-                    completedTasks: {
-                        create: []
-                    }
-                }
-            });
+                    ...(userData.email && { email: userData.email }) // Only include `email` if provided
+                };
 
-            // Convert BigInt to string for JSON response
+                user = await prisma.user.create({ data: createData });
+            }
+
+            // Serialize the response to include `telegramId` and `id` as strings
             const serializedUser = {
                 ...user,
                 telegramId: user.telegramId.toString(),
                 id: user.id.toString()
             };
 
-            console.log('User successfully upserted:', serializedUser);
+            console.log('User successfully processed:', serializedUser);
             return NextResponse.json(serializedUser);
 
-        } catch (conversionError) {
-            console.error('Error converting telegramId:', conversionError);
-            return NextResponse.json(
-                { error: 'Invalid telegram ID format' },
-                { status: 400 }
-            );
+        } catch (err) {
+            // Handle Prisma errors specifically
+            if (
+                err &&
+                typeof err === 'object' &&
+                'code' in err &&
+                'message' in err &&
+                'meta' in err
+            ) {
+                console.error('Database error:', {
+                    code: err.code,
+                    message: err.message,
+                    meta: err.meta
+                });
+                return NextResponse.json(
+                    { 
+                        error: 'Database operation failed', 
+                        details: `${String(err.code)}: ${String(err.message)}`,
+                        meta: err.meta
+                    },
+                    { status: 500 }
+                );
+            }
+            throw err;
         }
 
-    } catch (error) {
-        console.error('Error processing user data:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    } catch (err) {
+        console.error('Error:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         return NextResponse.json(
             { error: 'Internal server error', details: errorMessage },
             { status: 500 }
