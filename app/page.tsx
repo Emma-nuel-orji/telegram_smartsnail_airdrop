@@ -207,43 +207,43 @@ useEffect(() => {
   initializeTelegram();
 }, []);
   
-  // Handle claiming welcome bonus
-  const handleClaim = async () => {
-    try {
-      if (!user) {
-        setError('User is not defined.');
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-  
-      const res = await fetch('/api/claim-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId: user.telegramId }),
-      });
-  
-      const data = await res.json();
-  
-      console.log(data); // Debug API response
-  
-      if (data.success) {
-        setUser({ ...user, points: data.points });
-        setShowWelcomePopup(false);
-        setNotification('Welcome bonus claimed!');
-        setTimeout(() => setNotification(null), 3000);
-  
-        // Trigger falling shells animation
-        triggerFallingShellsAnimation();
-      } else {
-        setError('Failed to claim bonus');
-        setTimeout(() => setError(null), 3000);
-      }
-    } catch (err) {
-      console.error(err);
-      setError('An error occurred while claiming bonus');
+const handleClaim = async () => {
+  try {
+    // Ensure user is defined before proceeding
+    if (!user || !user.telegramId) {
+      setError('User is not defined.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    const res = await fetch('/api/claim-welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegramId: user.telegramId }),
+    });
+
+    const data = await res.json();
+    console.log(data); // Debug API response
+
+    if (data.success) {
+      setUser({ ...user, points: data.points });
+      setShowWelcomePopup(false);
+      setNotification('Welcome bonus claimed!');
+      setTimeout(() => setNotification(null), 3000);
+
+      // Trigger falling shells animation
+      triggerFallingShellsAnimation();
+    } else {
+      setError('Failed to claim bonus');
       setTimeout(() => setError(null), 3000);
     }
-  };
+  } catch (err) {
+    console.error(err);
+    setError('An error occurred while claiming bonus');
+    setTimeout(() => setError(null), 3000);
+  }
+};
+
   
   
   // Function to trigger falling shells animation
