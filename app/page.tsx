@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
-
+import Loader from "@/loader";
 declare global {
   interface Window {
     Telegram?: {
@@ -30,7 +30,7 @@ export default function Home() {
   const [energy, setEnergy] = useState(1500);
   const [isClicking, setIsClicking] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
-
+  const [isLoading, setIsLoading] = useState(true);
   const maxEnergy = 1500;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -141,74 +141,59 @@ export default function Home() {
   // Modify your useEffect in Home component
 
   useEffect(() => {
+    setIsLoading(true);
     const initializeTelegram = async () => {
       try {
-        // Wait for Telegram WebApp to be available
-        if (!window.Telegram?.WebApp) {
-          console.error('Telegram WebApp not available');
-          setError('Please open this app in Telegram');
-          return;
-        }
+        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+          const tg = window.Telegram.WebApp;
+          tg.ready();
   
-        const tg = window.Telegram.WebApp;
+          console.log('Telegram WebApp initialized', tg.initDataUnsafe); // Add logging
   
-        // Make sure Telegram WebApp is fully initialized
-        tg.ready();
+          const initDataUnsafe = tg.initDataUnsafe || {};
+          
+          if (initDataUnsafe.user) {
+            console.log('Sending user data:', initDataUnsafe.user); // Add logging
+            
+            const response = await fetch('/api/user', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(initDataUnsafe.user),
+            });
   
-        const { user } = tg.initDataUnsafe;
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
   
-        // Check if user.id is available
-        if (!user?.id) {
-          console.error('No user ID available');
-          setError('Unable to get user information');
-          return;
-        }
+            const data = await response.json();
+            console.log('Response data:', data); // Add logging
   
-        console.log('Attempting to fetch user data for ID:', user.id);
-  
-        // Make sure the user data is passed properly
-        const response = await fetch('/api/user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: user.id,
-            first_name: user.first_name,
-            username: user.username || '',
-            last_name: user.last_name || '',
-          }),
-        });
-  
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-  
-        const data = await response.json();
-        console.log('Received user data:', data);
-  
-        if (data.error) {
-          setError(data.error);
-          return;
-        }
-  
-        setUser({
-          ...data,
-          telegramId: data.telegramId.toString(),
-        });
-  
-        // Show welcome popup for new users
-        if (data.points === 0) {
-          setShowWelcomePopup(true);
+            if (data.error) {
+              setError(data.error);
+            } else {
+              setUser(data);
+            }
+          } else {
+            console.warn('No user data in initDataUnsafe:', initDataUnsafe); // Add logging
+            setError('No user data available');
+          }
+        } else {
+          console.warn('Telegram WebApp not available'); // Add logging
+          setError('This app should be opened in Telegram');
         }
       } catch (error) {
-        console.error('Error during initialization:', error);
-        setError('Failed to initialize app');
+        console.error('Initialization error:', error); // Add logging
+        setError('Failed to fetch user data');
       }
     };
-
-  initializeTelegram();
-}, []);
+  
+    initializeTelegram();
+    setIsLoading(false);
+  }, []);
+  
   
 const handleClaim = async () => {
   try {
@@ -287,10 +272,14 @@ const handleClaim = async () => {
         {/* Falling shells animation content here */}
       </div>
     </div>
+    
   )}
   
-
+if (isLoading) {
+  return <Loader />;
+}
   return (
+  
     <div className="bg-gradient-main min-h-screen px-4 flex flex-col items-center text-white font-medium">
       <div className="absolute inset-0 h-1/2 bg-gradient-overlay z-0"></div>
       <div className="absolute inset-0 flex items-center justify-center z-0">

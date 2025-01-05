@@ -15,7 +15,7 @@ model User {
   firstName      String?
   lastName       String?
   tasks          Task[]          @relation("UserTasks")
-  email       String?   @default("")
+  email       String?   @unique
   points         Int             @default(0)
   tappingRate    Int             @default(1)
   createdAt      DateTime        @default(now())

@@ -154,7 +154,7 @@ async function validateStockAndCalculateTotals(
     codes.push(...availableCodes.map((code: { code: string }) => code.code));
 
     // Calculate total amount based on payment method
-    totalAmount += qty * (paymentMethod === "TON" ? 1 : 3);
+    totalAmount += qty * (paymentMethod === "TON" ? 1 : 2.3);
 
     // Simplified title handling (assuming you want to map long titles to shorter versions)
     const simplifiedTitle = title === "FxckedUpBags (Undo Yourself)" ? "FxckedUpBags" : title;

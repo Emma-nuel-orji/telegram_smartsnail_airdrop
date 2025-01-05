@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           id: book.id,
           title: book.title,
           fxckedUpBagsLimit: book.id === 'fxckedUpBags' ? book.stockLimit : 10000,
-          humanRelationsLimit: book.id === 'humanRelations' ? book.stockLimit : 15000,
+          humanRelationsLimit: book.id === 'humanRelations' ? book.stockLimit : 10000,
           fxckedUpBagsUsed: book.id === 'fxckedUpBags' ? Number(stockInfo.split('/')[0]) : 0,
           humanRelationsUsed: book.id === 'humanRelations' ? Number(stockInfo.split('/')[0]) : 0,
           fxckedUpBags: book.id === 'fxckedUpBags' ? totalAssigned : 0,
