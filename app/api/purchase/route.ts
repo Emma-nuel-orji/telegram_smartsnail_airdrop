@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from "zod";
-import { prisma } from '@/prisma/client';
-
+import { prisma } from '@/lib/prisma';
+import { PrismaClient, Book } from '@prisma/client';
 
 import {
   validateTransaction,
@@ -10,31 +10,8 @@ import {
   verifyPayment,
 } from "@/src/utils/paymentUtils";
 import { sendPurchaseEmail } from '@/src/utils/emailUtils';
-import { PrismaClient, PendingTransaction, Book, Order } from '@prisma/client';
 
-
-// import { redirectUrl } from "@/config/config";
-type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>;
-
-interface Book {
-  title: string;
-  author: string;
-  description: string;
-  id: string;
-  totalStock?: number;
-}
-
-
-const secretKey = process.env.SECRET_KEY; 
-const requiredEnv = ["SECRET_KEY", "NEXT_PUBLIC_REDIRECT_URL"];
-const redirectUrl = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://default.redirect.url'
-
-requiredEnv.forEach((env) => {
-  if (!process.env[env]) {
-    throw new Error(`Environment variable ${env} is missing`);
-  }
-});
-
+// Type definitions
 
 interface Order {
   id: string;
@@ -42,19 +19,43 @@ interface Order {
   paymentMethod: string;
   totalAmount: number;
   status: string;
-  createdAt: Date;
   email?: string;
   telegramId?: string;
-  fxckedUpBagsQty?: number;
-  humanRelationsQty?: number;
+  fxckedUpBagsQty: number;
+  humanRelationsQty: number;
   referrerId?: string;
   transactionId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface PendingTransaction {
+  id: string;
+  orderId: string;
+  status: string;
+  amount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface OrderWithTransactions extends Order {
   pendingTransactions?: PendingTransaction[];
 }
 
-export async function GET(request: NextRequest) {
-  return NextResponse.json({ message: "Purchase API is working" });
-}
+// Environment variables validation
+const requiredEnv = ["SECRET_KEY", "NEXT_PUBLIC_REDIRECT_URL"];
+const secretKey = process.env.SECRET_KEY;
+const redirectUrl = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://default.redirect.url';
+
+requiredEnv.forEach((env) => {
+  if (!process.env[env]) {
+    throw new Error(`Environment variable ${env} is missing`);
+  }
+});
+
+// Initialize empty arrays with proper typing
+const books: Book[] = [];
+const orders: OrderWithTransactions[] = [];
 
 // Zod schema for request validation
 const requestSchema = z.object({
@@ -68,9 +69,24 @@ const requestSchema = z.object({
   referrerId: z.string().optional(),
 });
 
-// Helper Functions
+interface BookPurchaseInfo {
+  title: string;
+  qty: number;
+}
+
+interface BookDetails {
+  tappingRate: number;
+  points: number;
+}
+
+const bookDetails: Record<string, BookDetails> = {
+  'FxckedUpBags (Undo Yourself)': { tappingRate: 5, points: 100000 },
+  'Human Relations': { tappingRate: 2, points: 70000 },
+};
+
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
-  const booksToPurchase = [];
+  const booksToPurchase: BookPurchaseInfo[] = [];
+  
   if (fxckedUpBagsQty > 0) {
     booksToPurchase.push({ title: "FxckedUpBags (Undo Yourself)", qty: fxckedUpBagsQty });
   }
@@ -78,50 +94,54 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
     booksToPurchase.push({ title: "Human Relations", qty: humanRelationsQty });
   }
 
-  const bookTitles = booksToPurchase.map((book) => book.title);
+  const bookTitles = booksToPurchase.map(book => book.title);
   const books = await prisma.book.findMany({
     where: { title: { in: bookTitles } },
-  });
+  }) as unknown as Book[];
 
   if (books.length === 0) {
     throw new Error("No valid books found for purchase.");
   }
 
-  const bookMap: { [key: string]: Book } = books.reduce((map: { [key: string]: Book }, book: Book) => {
-    map[book.title] = book;
-    return map;
+  const bookMap = books.reduce<Record<string, Book>>((acc, book) => {
+    acc[book.title] = book;
+    return acc;
   }, {});
-  
+
   return { booksToPurchase, bookMap };
 }
 
-type BookDetails = {
-  tappingRate: number;
-  points: number;
-};
-
-const details: Record<string, BookDetails> = {
-  FxckedUpBags: { tappingRate: 5, points: 100000 },
-  HumanRelations: { tappingRate: 2, points: 70000 },
-};
+interface StockCalculationResult {
+  totalAmount: number;
+  totalTappingRate: number;
+  totalPoints: number;
+  codes: string[];
+  updatedStocks: Array<{
+    title: string;
+    stockStatus: string;
+  }>;
+}
 
 async function validateStockAndCalculateTotals(
-  booksToPurchase: any[], 
-  bookMap: any, 
+  booksToPurchase: BookPurchaseInfo[],
+  bookMap: Record<string, Book>,
   paymentMethod: string
-) {
+): Promise<StockCalculationResult> {
   let totalAmount = 0;
   let totalTappingRate = 0;
   let totalPoints = 0;
   const codes: string[] = [];
-  const updatedStocks: any[] = [];
+  const updatedStocks: Array<{ title: string; stockStatus: string }> = [];
 
   for (const book of booksToPurchase) {
     const { title, qty } = book;
     const bookDetails = bookMap[title];
 
-    if (!bookDetails) throw new Error(`Book details not found for ${title}`);
+    if (!bookDetails) {
+      throw new Error(`Book details not found for ${title}`);
+    }
 
+    // Check if enough codes are available
     const availableCodes = await prisma.generatedCode.findMany({
       where: { bookId: bookDetails.id, isUsed: false },
       take: qty,
@@ -133,16 +153,26 @@ async function validateStockAndCalculateTotals(
 
     codes.push(...availableCodes.map((code: { code: string }) => code.code));
 
+    // Calculate total amount based on payment method
     totalAmount += qty * (paymentMethod === "TON" ? 1 : 3);
-    const { tappingRate, points } = details[title];
 
+    // Simplified title handling (assuming you want to map long titles to shorter versions)
+    const simplifiedTitle = title === "FxckedUpBags (Undo Yourself)" ? "FxckedUpBags" : title;
+    
+    // Get tappingRate and points directly from bookDetails
+    const tappingRate = bookDetails.tappingRate || 0;
+    const points = bookDetails.coinsReward || 0; // Assuming `coinsReward` maps to points
+
+    // Update totals
     totalTappingRate += qty * tappingRate;
     totalPoints += qty * points;
 
-    const totalStock = bookDetails.totalStock || 0;
+    // Calculate stock status
+    const totalStock = bookDetails.stockLimit || 0;
     const usedStock = await prisma.generatedCode.count({
       where: { bookId: bookDetails.id, isUsed: true },
     });
+
     updatedStocks.push({
       title,
       stockStatus: `${usedStock + qty}/${totalStock}`,
@@ -152,6 +182,9 @@ async function validateStockAndCalculateTotals(
   return { totalAmount, totalTappingRate, totalPoints, codes, updatedStocks };
 }
 
+export async function GET(request: NextRequest) {
+  return NextResponse.json({ message: "Purchase API is working" });
+}
 async function processPayment(
   paymentMethod: string,
   paymentReference: string | null, // Optional before payment
@@ -240,7 +273,7 @@ async function updateDatabaseTransaction(
 
 
 // For the transaction
-return prisma.$transaction(async (tx: PrismaTransaction) => {
+return prisma.$transaction(async (tx) => {
   const purchasedBooks: { bookId: string; quantity: number }[] = [];
 
   for (const { title, qty } of booksToPurchase) {

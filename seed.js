@@ -1,6 +1,6 @@
-import { prisma } from '@/prisma/client';
+import prisma from './lib/prisma.js';
 
-const prisma = new PrismaClient();
+ // Use the shared Prisma instance
 
 async function main() {
   await prisma.book.createMany({
@@ -8,25 +8,27 @@ async function main() {
       {
         id: 'FxckedUpBags',
         title: 'FxckedUpBags (Undo Yourself)',
-        description: '<p>FxckedUpBags by <b>AlexanderTheSage</b> explores personal transformation and self-discipline, focusing on how mindset and choices shape success.',
+        description: 'FxckedUpBags by <b>AlexanderTheSage</b> explores personal transformation and self-discipline, focusing on how mindset and choices shape success.',
         priceTon: 1.0,
-        priceCard: 3.0,
+        priceCard: 2.3,
         priceStars: 100,
+        author: 'AlexanderTheSage',
         coinsReward: 100000,
         tappingRate: 5,
-        stockLimit: 15000,
+        stockLimit: 10000,
         usedStock: 0,
       },
       {
         id: 'HumanRelations',
         title: 'Human Relations',
-        description: 'The book Human Relations by <b>Kennedy E. O.</b> was inspired by the need to properly educate individuals about the nature of life and its existence using the principles of human relations. The book which is in fourteen chapters discusses in detail the process of human relations as a tool for a better life and the best tool to deal with all individuals you meet in life',
+        description: 'The book Human Relations by <b>Kennedy E. O.</b> was inspired by the need to properly educate individuals about the nature of life and its existence using the principles of human relations. The book which is in fourteen chapters discusses in detail the process of human relations as a tool for a better life and the best tool to deal with all individuals you meet in life.',
         priceTon: 1.0,
+        author: 'Kennedy E. O.',
         priceStars: 100,
-        priceCard: 3.0,
-        coinsReward: 100000,
+        priceCard: 2.3,
+        coinsReward: 70000,
         tappingRate: 2,
-        stockLimit: 20000,
+        stockLimit: 10000,
         usedStock: 0,
       },
     ],
@@ -36,12 +38,6 @@ async function main() {
 }
 
 main()
-  .then(() => {
-    console.log('Seeding completed');
-  })
-  .catch((e) => {
-    console.error('Error seeding data:', e);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .then(() => console.log('Seeding completed'))
+  .catch((e) => console.error('Error seeding data:', e))
+  .finally(async () => await prisma.$disconnect());

@@ -101,14 +101,16 @@ model GeneratedCode {
 
 // Book model
 model Book {
-  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
+  id          String   @id @default(cuid()) @map("_id")
   title       String
   description String
   author      String
   priceTon    Float
   priceCard   Float
+  priceStars   Int
   coinsReward Int
   tappingRate Int
+  usedStock    Int
   stockLimit  Int
   createdAt   DateTime @default(now())
 

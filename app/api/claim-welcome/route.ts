@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import type { PrismaClient } from '@prisma/client';
 
 
 const WELCOME_BONUS_AMOUNT = 5000;
