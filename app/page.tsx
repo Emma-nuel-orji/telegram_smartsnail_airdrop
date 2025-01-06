@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import WebApp from '@twa-dev/sdk';
+// import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
+import { WebApp } from '@twa-dev/types';
 import Link from 'next/link';
 import Loader from "@/loader";
 declare global {
   interface Window {
     Telegram?: {
-      WebApp: WebAppType;
+      WebApp: any;
     };
   }
 }
@@ -19,7 +20,7 @@ type Click = {
 };
 export default function Home() {
   const [user, setUser] = useState<null | {
-    telegramId: string;
+    telegramId: number | bigint; 
     points: number;
     tappingRate: number;
     firstName: string;
@@ -36,6 +37,74 @@ export default function Home() {
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
 
+  useEffect(() => {
+    setIsLoading(true);
+    const initializeTelegram = async () => {
+      try {
+        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+          const tg = window.Telegram.WebApp;
+          tg.ready();
+  
+          console.log('Telegram WebApp initialized', tg.initDataUnsafe); // Add logging
+  
+          const initDataUnsafe = tg.initDataUnsafe || {};
+          
+          if (initDataUnsafe.user) {
+            console.log('Sending user data:', initDataUnsafe.user); // Add logging
+            
+            const response = await fetch('/api/user', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(initDataUnsafe.user),
+            });
+  
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+  
+            const data = await response.json();
+            console.log('Response data:', data); // Add logging
+  
+            if (data.error) {
+              setError(data.error);
+            } else {
+              setUser({
+                telegramId: data.telegramId,
+                points: data.points,
+                tappingRate: data.tappingRate,
+                firstName: data.firstName,
+              });
+            }
+          } else {
+            console.warn('No user data in initDataUnsafe:', initDataUnsafe); // Add logging
+            setError('No user data available');
+          }
+        } else {
+          console.warn('Telegram WebApp not available'); // Add logging
+          setError('This app should be opened in Telegram');
+        }
+      } catch (error) {
+        console.error('Initialization error:', error); // Add logging
+        setError('Failed to fetch user data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    initializeTelegram();
+    setIsLoading(false);
+  }, []);
+  
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   const handleIncreasePoints = async () => {
     if (!user || energy <= 0) return;
@@ -140,99 +209,50 @@ export default function Home() {
 
   // Modify your useEffect in Home component
 
-  useEffect(() => {
-    setIsLoading(true);
-    const initializeTelegram = async () => {
-      try {
-        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-          const tg = window.Telegram.WebApp;
-          tg.ready();
   
-          console.log('Telegram WebApp initialized', tg.initDataUnsafe); // Add logging
   
-          const initDataUnsafe = tg.initDataUnsafe || {};
-          
-          if (initDataUnsafe.user) {
-            console.log('Sending user data:', initDataUnsafe.user); // Add logging
-            
-            const response = await fetch('/api/user', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify(initDataUnsafe.user),
-            });
-  
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-  
-            const data = await response.json();
-            console.log('Response data:', data); // Add logging
-  
-            if (data.error) {
-              setError(data.error);
-            } else {
-              setUser(data);
-            }
-          } else {
-            console.warn('No user data in initDataUnsafe:', initDataUnsafe); // Add logging
-            setError('No user data available');
-          }
-        } else {
-          console.warn('Telegram WebApp not available'); // Add logging
-          setError('This app should be opened in Telegram');
-        }
-      } catch (error) {
-        console.error('Initialization error:', error); // Add logging
-        setError('Failed to fetch user data');
+  const handleClaim = async () => {
+    try {
+      if (!user || !user.telegramId) {
+        console.log('Current user state:', user); // Debug log
+        setError('User is not defined.');
+        setTimeout(() => setError(null), 3000);
+        return;
       }
-    };
+      const telegramIdString = user.telegramId.toString();
   
-    initializeTelegram();
-    setIsLoading(false);
-  }, []);
+      const res = await fetch('/api/claim-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: telegramIdString }),
+      });
   
+      console.log('Response status:', res.status); // Debug log
+      const data = await res.json();
+      console.log('Response data:', data);
   
-const handleClaim = async () => {
-  try {
-    // Ensure user is defined before proceeding
-    if (!user || !user.telegramId) {
-      console.error('User or telegramId is undefined');
-      setError('User is not defined.');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    const res = await fetch('/api/claim-welcome', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegramId: user.telegramId }),
-    });
-
-    const data = await res.json();
-    console.log(data); // Debug API response
-
-    if (data.success) {
-      setUser({ ...user, points: data.points });
-      setShowWelcomePopup(false);
-      setNotification('Welcome bonus claimed!');
-      setTimeout(() => setNotification(null), 3000);
-
-      // Trigger falling shells animation
-      triggerFallingShellsAnimation();
-    } else {
-      setError('Failed to claim bonus');
+      if (data.success) {
+        setUser({ ...user, points: data.points });
+        setShowWelcomePopup(false);
+        setNotification('Welcome bonus claimed!');
+        setTimeout(() => setNotification(null), 3000);
+  
+        // Trigger falling shells animation
+        if (typeof triggerFallingShellsAnimation === 'function') {
+          triggerFallingShellsAnimation();
+        }
+      } else {
+        console.error('Failed to claim bonus:', data.error);
+        setError(data.error || 'Failed to claim bonus');
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err) {
+      console.error('Error in handleClaim:', err);
+      setError('An error occurred while claiming bonus');
       setTimeout(() => setError(null), 3000);
     }
-  } catch (err) {
-    console.error(err);
-    setError('An error occurred while claiming bonus');
-    setTimeout(() => setError(null), 3000);
-  }
-};
-
+  };
+  
 
   
   
