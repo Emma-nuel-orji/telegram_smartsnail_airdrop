@@ -6,13 +6,14 @@ import type { WebApp as WebAppType } from '@twa-dev/types';
 import { WebApp } from '@twa-dev/types';
 import Link from 'next/link';
 import Loader from "@/loader";
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: any;
-    };
-  }
-}
+
+
+type TelegramUser = {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+};
 type Click = {
   id: number;
   x: number;
@@ -41,62 +42,52 @@ export default function Home() {
     setIsLoading(true);
     const initializeTelegram = async () => {
       try {
-        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-          const tg = window.Telegram.WebApp;
-          tg.ready();
-  
-          console.log('Telegram WebApp initialized', tg.initDataUnsafe); // Add logging
-  
-          const initDataUnsafe = tg.initDataUnsafe || {};
-          
-          if (initDataUnsafe.user) {
-            console.log('Sending user data:', initDataUnsafe.user); // Add logging
-            
-            const response = await fetch('/api/user', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify(initDataUnsafe.user),
-            });
-  
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-  
-            const data = await response.json();
-            console.log('Response data:', data); // Add logging
-  
-            if (data.error) {
-              setError(data.error);
-            } else {
-              setUser({
-                telegramId: data.telegramId,
-                points: data.points,
-                tappingRate: data.tappingRate,
-                firstName: data.firstName,
-              });
-            }
-          } else {
-            console.warn('No user data in initDataUnsafe:', initDataUnsafe); // Add logging
-            setError('No user data available');
-          }
-        } else {
-          console.warn('Telegram WebApp not available'); // Add logging
+        const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined;
+        if (!webApp) {
           setError('This app should be opened in Telegram');
+          setIsLoading(false);
+          return;
         }
+
+        webApp.ready();
+        const userData = webApp.initDataUnsafe?.user as TelegramUser;
+        
+        if (!userData) {
+          setError('No user data available');
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await fetch('/api/user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(userData),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setUser({
+          telegramId: data.telegramId,
+          points: data.points,
+          tappingRate: data.tappingRate,
+          firstName: data.firstName,
+        });
+
       } catch (error) {
-        console.error('Initialization error:', error); // Add logging
+        console.error('Initialization error:', error);
         setError('Failed to fetch user data');
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
-  
+
     initializeTelegram();
-    setIsLoading(false);
   }, []);
+
   
   if (isLoading) {
     return <Loader />;

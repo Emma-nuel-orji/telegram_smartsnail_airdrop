@@ -10,6 +10,7 @@ declare namespace Telegram {
     }
 
     interface WebApp {
+        ready(): unknown;
         initDataUnsafe: {
             user?: WebAppUser;
         };
