@@ -39,64 +39,104 @@ export default function Home() {
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsLoading(true);
+    let mounted = true;
+
     const initializeTelegram = async () => {
       try {
-        const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined;
-        if (!webApp) {
-          setError('This app should be opened in Telegram');
-          setIsLoading(false);
-          return;
-        }
-
-        webApp.ready();
-        const userData = webApp.initDataUnsafe?.user as TelegramUser;
+        // Wait for Telegram WebApp to be available
+        let attempts = 0;
+        const maxAttempts = 10;
         
-        if (!userData) {
-          setError('No user data available');
-          setIsLoading(false);
-          return;
+        while (!window.Telegram?.WebApp && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          attempts++;
         }
 
+        const webApp = window.Telegram?.WebApp;
+        if (!webApp) {
+          throw new Error('Telegram WebApp is not available');
+        }
+
+        // Initialize WebApp
+        webApp.ready();
+
+        // Get user data
+        const userData = webApp.initDataUnsafe?.user;
+        if (!userData) {
+          throw new Error('No user data available');
+        }
+
+        console.log('Telegram user data:', userData);
+
+        // Send user data to your API
         const response = await fetch('/api/user', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(userData),
+          body: JSON.stringify({
+            id: userData.id,
+            first_name: userData.first_name,
+            username: userData.username,
+            // Add any other needed user data
+          }),
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`API error: ${response.status}`);
         }
 
         const data = await response.json();
-        setUser({
-          telegramId: data.telegramId,
-          points: data.points,
-          tappingRate: data.tappingRate,
-          firstName: data.firstName,
-        });
+        
+        if (mounted) {
+          setUser({
+            telegramId: data.telegramId.toString(),
+            points: data.points || 0,
+            tappingRate: data.tappingRate || 1,
+            firstName: data.firstName,
+          });
+          setIsLoading(false);
+        }
 
       } catch (error) {
         console.error('Initialization error:', error);
-        setError('Failed to fetch user data');
+        if (mounted) {
+          setError(error instanceof Error ? error.message : 'Failed to initialize app');
+          setIsLoading(false);
+        }
       }
-      setIsLoading(false);
     };
 
     initializeTelegram();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  
   if (isLoading) {
-    return <Loader />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader />
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500">
+        {error}
+      </div>
+    );
   }
 
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Unable to load user data
+      </div>
+    );
+  }
   const handleIncreasePoints = async () => {
     if (!user || energy <= 0) return;
 

@@ -8,7 +8,7 @@ import Loader from "@/loader";
 import TelegramInit from "@/components/TelegramInit";
 import "./BoostPage.css";
 import { useRouter } from "next/navigation";
-
+import { generateHMACSignature } from "@/src/utils/paymentUtils"
 
 // Context
 // import { BoostContext, StockLimit } from "@/context/BoostContext";
@@ -83,7 +83,7 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
   // Fetch Stock Data
   const fetchStockData = useCallback(async () => {
     try {
-      const stockResponse = await axios.get("/api/stock");
+      const stockResponse = await axios.get("/api/stok");
       setStockLimit(stockResponse.data);
     } catch (error) {
       console.error("Error fetching stock data:", error);
@@ -122,10 +122,10 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
         } catch (error) {
           console.error("Polling error:", error);
         }
-      }, 10000); // Poll every 10 seconds
+      }, 100000);// Poll every 10 se
     };
 
-    const socket = new WebSocket("wss://your-backend-url");
+    const socket = new WebSocket("ws://localhost:3000/socket");
 
     socket.onopen = () => {
       console.log("WebSocket connection established.");
@@ -155,22 +155,34 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
 
   // Purchase Handler
   const handlePurchase = async (paymentMethod: string) => {
-    if (!purchaseEmail) {
-      alert("Please enter your email to proceed with the purchase.");
+    if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
+      alert("Please enter a valid email to proceed with the purchase.");
       return;
     }
-
+  
     if (totalBooks === 0) {
       alert("Please select at least one book to purchase.");
       return;
     }
-
+  
     setIsProcessing(true);
-
+  
+    // Ensure paymentMethod is correctly capitalized
+    const formattedPaymentMethod = paymentMethod.toUpperCase();
+    const paymentReference = `TX-${Date.now()}`;
+    
+    const hmacSignature = generateHMACSignature(
+      `${telegramId}:${paymentMethod}:${paymentReference}`, 
+    
+      process.env.SECRET_KEY || ''
+    );
+  
+  
+  
     try {
       const payload = {
         email: purchaseEmail,
-        paymentMethod,
+        paymentMethod: formattedPaymentMethod,
         bookCount: totalBooks,
         totalTappingRate,
         totalPoints,
@@ -178,31 +190,33 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
         starsAmount,
         fxckedUpBagsQty,
         humanRelationsQty,
-        telegramId,
+        telegramId: telegramId || "",  // Ensure telegramId is not null or undefined
         referrerId,
+        hmacSignature,                // Include the HMAC signature
+        paymentReference,             // Include the payment reference
       };
-
-      const endpoint = 
-        paymentMethod === "Ton" || paymentMethod === "Card"
+  
+      const endpoint =
+        formattedPaymentMethod === "TON" || formattedPaymentMethod === "CARD"
           ? "../api/purchase"
           : "../api/paymentByStars";
-
+  
       const response = await axios.post(endpoint, payload);
-
+  
       if (response.status === 200) {
-        if (paymentMethod === "Ton") {
+        if (formattedPaymentMethod === "TON") {
           // Redirect to TON wallet payment page with order ID
           router.push(`/wallet?orderId=${response.data.orderId}`);
           return;
         }
-
+  
         // For other payment methods, continue with existing success flow
         alert("Purchase successful! Check your email for details.");
-        
+  
         // Reset quantities
         setFxckedUpBagsQty(0);
         setHumanRelationsQty(0);
-
+  
         // Refresh stock
         await fetchStockData();
       }

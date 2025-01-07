@@ -89,7 +89,7 @@ model GeneratedCode {
   redeemedAt DateTime?
   redeemedBy String?   @db.ObjectId
   assignedTo String?   @db.ObjectId
-  bookId     String    @db.ObjectId
+  bookId     String    
   isUsed     Boolean   @default(false)
   purchaseId String?   @db.ObjectId
   createdAt  DateTime  @default(now())

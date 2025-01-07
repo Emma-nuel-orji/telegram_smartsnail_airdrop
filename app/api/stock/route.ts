@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';  // Corrected import from 'next/server'
 import { prisma } from '@/prisma/client';
 import { books, calculateStock } from '@/src/utils/bookinfo'; // Adjust path as needed
 
@@ -9,15 +9,8 @@ interface Book {
   stockLimit: number;
 }
 
-// Initialize Prisma Client
-
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Ensure only GET requests are allowed
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
+// GET handler
+export async function GET(req: NextRequest) {
   try {
     const bookStocks = await Promise.all(
       Object.values(books).map(async (book: Book) => {
@@ -70,9 +63,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Respond with aggregated stock data
-    res.status(200).json(stockData);
+    return NextResponse.json(stockData);
   } catch (error) {
     console.error('Error fetching stock data:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
