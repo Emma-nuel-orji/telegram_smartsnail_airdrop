@@ -84,7 +84,7 @@ const requestSchema = z.object({
   paymentReference: z.string(),
 });
 
-export async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
+async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
   console.log("Quantities requested:", { fxckedUpBagsQty, humanRelationsQty });
 
   if (fxckedUpBagsQty < 0 || humanRelationsQty < 0) {
@@ -110,31 +110,36 @@ export async function preparePurchaseData(fxckedUpBagsQty: number, humanRelation
     return acc;
   }, {});
 
+  // Debug the contents of bookMap
+  console.log("BookMap:", bookMap); // <-- Paste this line here
+
   const booksToPurchase: BookPurchaseInfo[] = [];
 
   if (fxckedUpBagsQty > 0) {
-    const fxckedUpBag = bookMap["FxckedUpBags"];
-    if (!fxckedUpBag) {
-      throw new Error("FxckedUpBags not found in database");
+    const fxckedUpBags = bookMap["FxckedUpBags"];
+    if (!fxckedUpBags) {
+      console.error("Available books:", Object.keys(bookMap));
+      throw new Error("FxckedUpBags not found in database. Check database and code consistency.");
     }
     booksToPurchase.push({
       qty: fxckedUpBagsQty,
-      id: fxckedUpBag.id,
-      title: fxckedUpBag.title,
-      book: fxckedUpBag
+      id: fxckedUpBags.id,
+      title: fxckedUpBags.title,
+      book: fxckedUpBags,
     });
   }
 
   if (humanRelationsQty > 0) {
     const humanRelations = bookMap["HumanRelations"];
     if (!humanRelations) {
-      throw new Error("HumanRelations not found in database");
+      console.error("Available books:", Object.keys(bookMap));
+      throw new Error("HumanRelations not found in database. Check database and code consistency.");
     }
     booksToPurchase.push({
       qty: humanRelationsQty,
       id: humanRelations.id,
       title: humanRelations.title,
-      book: humanRelations
+      book: humanRelations,
     });
   }
 
@@ -147,7 +152,7 @@ export async function preparePurchaseData(fxckedUpBagsQty: number, humanRelation
 
 async function validateStockAndCalculateTotals(
   booksToPurchase: BookPurchaseInfo[],
-  bookMap: Record<string, Book>,
+  bookMap: BookMap,
   paymentMethod: string
 ): Promise<StockCalculationResult> {
   let totalAmount = 0;
@@ -194,6 +199,7 @@ async function validateStockAndCalculateTotals(
 
   return { totalAmount, totalTappingRate, totalPoints, codes, updatedStocks };
 }
+
 async function processPayment(
   paymentMethod: string,
   paymentReference: string | null,
@@ -254,7 +260,6 @@ async function processPayment(
   
   throw new Error("Invalid payment method specified.");
 }
-
 async function updateDatabaseTransaction(
   booksToPurchase: BookPurchaseInfo[],
   codes: string[],
@@ -368,7 +373,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ message: "Purchase API is working" });
 }
 
-export { validateStockAndCalculateTotals, processPayment, updateDatabaseTransaction };
+
 
 export async function POST(request: NextRequest) {
   try {

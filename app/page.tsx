@@ -169,7 +169,7 @@ useEffect(() => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: user.id,
+          telegramId: user.id, // Use telegramId for mapping
           first_name: user.first_name,
           // Add any other relevant user data
         }),
