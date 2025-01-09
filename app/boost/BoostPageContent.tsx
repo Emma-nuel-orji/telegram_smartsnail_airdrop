@@ -8,13 +8,10 @@ import Loader from "@/loader";
 import TelegramInit from "@/components/TelegramInit";
 import "./BoostPage.css";
 import { useRouter } from "next/navigation";
-import { generateHMACSignature } from "@/src/utils/paymentUtils"
+// import { generateHMACSignature } from "@/src/utils/paymentUtils"
 
 // Context
-// import { BoostContext, StockLimit } from "@/context/BoostContext";
 import { useBoostContext } from "../api/context/BoostContext";
-
-
 
 interface StockLimit {
   fxckedUpBagsLimit: number;
@@ -24,6 +21,7 @@ interface StockLimit {
   humanRelationsUsed: number;
   humanRelations: number;
 }
+
 // Initial Stock Limit
 const INITIAL_STOCK_LIMIT = {
   fxckedUpBagsLimit: 10000,
@@ -60,7 +58,7 @@ export default function BoostPageContent() {
   const [fxckedUpBagsQty, setFxckedUpBagsQty] = useState(0);
   const [humanRelationsQty, setHumanRelationsQty] = useState(0);
 
-const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
 
   // UI States
   const [loading, setLoading] = useState(false);
@@ -83,7 +81,7 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
   // Fetch Stock Data
   const fetchStockData = useCallback(async () => {
     try {
-      const stockResponse = await axios.get("/api/stok");
+      const stockResponse = await axios.get("/api/stock");
       setStockLimit(stockResponse.data);
     } catch (error) {
       console.error("Error fetching stock data:", error);
@@ -122,35 +120,36 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
         } catch (error) {
           console.error("Polling error:", error);
         }
-      }, 100000);// Poll every 10 se
+      }, 10000); // Poll every 10 seconds
     };
 
-    const socket = new WebSocket("ws://localhost:3000/socket");
+    // Use socket.io consistently
+const socket = io(SOCKET_SERVER_URL, {
+  path: '/socket.io', // Make sure this matches your server configuration
+  transports: ['websocket', 'polling']
+});
 
-    socket.onopen = () => {
-      console.log("WebSocket connection established.");
-      socket.send(JSON.stringify({ action: "initialize", telegramId }));
-    };
+socket.on("connect", () => {
+  console.log("Socket.IO connection established.");
+  socket.emit("initialize", { telegramId });
+});
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "stock-update") {
-        setStockLimit(data.payload);
-      }
-    };
+socket.on("stock-update", (data) => {
+  setStockLimit(data.payload);
+});
 
-    socket.onclose = () => {
-      console.log("WebSocket connection closed.");
-    };
+socket.on("disconnect", () => {
+  console.log("Socket.IO connection closed.");
+});
 
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
+socket.on("error", (error) => {
+  console.error("Socket.IO error:", error);
+});
 
-    return () => {
-      if (pollingInterval) clearInterval(pollingInterval);
-      socket.close();
-    };
+return () => {
+  if (pollingInterval) clearInterval(pollingInterval);
+  socket.disconnect();
+};
   }, [fetchStockData, telegramId, setStockLimit]);
 
   // Purchase Handler
@@ -167,22 +166,100 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
   
     setIsProcessing(true);
   
-    // Ensure paymentMethod is correctly capitalized
     const formattedPaymentMethod = paymentMethod.toUpperCase();
     const paymentReference = `TX-${Date.now()}`;
-    
-    const hmacSignature = generateHMACSignature(
-      `${telegramId}:${paymentMethod}:${paymentReference}`, 
-    
-      process.env.SECRET_KEY || ''
-    );
   
+    
+    
   
+    // Prepare the payload
+    const payload = {
+      email: purchaseEmail, // Ensure this field is always filled
+      paymentMethod: formattedPaymentMethod,
+      bookCount: totalBooks,
+      totalTappingRate,
+      totalPoints,
+      totalTon,
+      starsAmount,
+      fxckedUpBagsQty,
+      humanRelationsQty,
+      telegramId: telegramId || '',  // Ensure this field is either filled or empty string
+      referrerId,
+      paymentReference: `TX-${Date.now()}`,
+    };
+    
+  
+    console.log("Sending payload:", payload);
+  
+    try {
+      // Set headers object and conditionally add Telegram init data only in production
+      const headers: { [key: string]: string } = {};
+  
+      if (process.env.NODE_ENV === 'production') {
+        const initData = window.Telegram.WebApp.initData;
+        headers['x-telegram-init-data'] = initData;
+      }
+  
+      const endpoint =
+        formattedPaymentMethod === "TON" || formattedPaymentMethod === "CARD"
+          ? "/api/purchase"
+          : "/api/paymentByStars";
+  
+      // Send the payload to the server, including initData in the headers if in production
+      const response = await axios.post(endpoint, payload, {
+        headers: headers,
+      });
+  
+      if (response.status === 200) {
+        if (formattedPaymentMethod === "TON") {
+          router.push(`/wallet?orderId=${response.data.orderId}`);
+          return;
+        }
+  
+        alert("Purchase successful! Check your email for details.");
+        setFxckedUpBagsQty(0);
+        setHumanRelationsQty(0);
+        await fetchStockData();
+      }
+    } catch (error) {
+      console.error("Purchase error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        alert(`Purchase failed: ${error.response.data.error}`);
+      } else {
+        alert("Purchase failed. Please try again.");
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  const handlePaymentViaStars = async (paymentMethod?: string) => {
+    if (paymentMethod !== "Stars") {
+      alert("Invalid payment method.");
+      return;
+    }
+  
+    // Validation checks
+    if (!purchaseEmail) {
+      alert("Please enter your email to proceed with the payment.");
+      return;
+    }
+  
+    if (totalBooks === 0) {
+      alert("Please select at least one book to purchase.");
+      return;
+    }
+  
+    setIsProcessing(true);
   
     try {
       const payload = {
         email: purchaseEmail,
-        paymentMethod: formattedPaymentMethod,
+        title: `Stars Payment for ${totalBooks} Books`,
+        description: `Stars payment includes ${fxckedUpBagsQty} FxckedUpBags and ${humanRelationsQty} Human Relations books.`,
+        amount: starsAmount,
+        label: "SMARTSNAIL Stars Payment",
+        paymentMethod: "Stars",
         bookCount: totalBooks,
         totalTappingRate,
         totalPoints,
@@ -190,98 +267,36 @@ const [isSocketConnected, setIsSocketConnected] = useState(false);
         starsAmount,
         fxckedUpBagsQty,
         humanRelationsQty,
-        telegramId: telegramId || "",  // Ensure telegramId is not null or undefined
+        telegramId,
         referrerId,
-        hmacSignature,                // Include the HMAC signature
-        paymentReference,             // Include the payment reference
       };
   
-      const endpoint =
-        formattedPaymentMethod === "TON" || formattedPaymentMethod === "CARD"
-          ? "../api/purchase"
-          : "../api/paymentByStars";
+      // Set headers object and conditionally add Telegram init data only in production
+      const headers: { [key: string]: string } = {};
   
-      const response = await axios.post(endpoint, payload);
+      if (process.env.NODE_ENV === 'production') {
+        const initData = window.Telegram.WebApp.initData;
+        headers['x-telegram-init-data'] = initData;
+      }
   
-      if (response.status === 200) {
-        if (formattedPaymentMethod === "TON") {
-          // Redirect to TON wallet payment page with order ID
-          router.push(`/wallet?orderId=${response.data.orderId}`);
-          return;
-        }
+      const response = await axios.post("/api/paymentByStars", payload, {
+        headers: headers,
+      });
   
-        // For other payment methods, continue with existing success flow
-        alert("Purchase successful! Check your email for details.");
-  
-        // Reset quantities
-        setFxckedUpBagsQty(0);
-        setHumanRelationsQty(0);
-  
-        // Refresh stock
-        await fetchStockData();
+      if (response.data.invoiceLink) {
+        // Instead of showing success alert immediately, redirect to Telegram's payment interface
+        window.location.href = response.data.invoiceLink;
+      } else {
+        throw new Error("Failed to create payment link");
       }
     } catch (error) {
-      console.error("Purchase error:", error);
-      alert("Purchase failed. Please try again.");
+      console.error("Payment failed:", error);
+      alert("An error occurred during payment. Please try again.");
     } finally {
       setIsProcessing(false);
     }
   };
-
-    // Purchase Handler for Stars
-    const handlePaymentViaStars = async (paymentMethod?: string) => {
-      if (paymentMethod !== "Stars") {
-        alert("Invalid payment method.");
-        return;
-      }
-      // Validation checks
-      if (!purchaseEmail) {
-        alert("Please enter your email to proceed with the payment.");
-        return;
-      }
   
-      if (totalBooks === 0) {
-        alert("Please select at least one book to purchase.");
-        return;
-      }
-  
-      setIsProcessing(true);
-  
-      try {
-        const payload = {
-          email: purchaseEmail,
-          title: `Stars Payment for ${totalBooks} Books`,
-          description: `Stars payment includes ${fxckedUpBagsQty} FxckedUpBags and ${humanRelationsQty} Human Relations books.`,
-          amount: starsAmount,
-          label: "SMARTSNAIL Stars Payment",
-          paymentMethod: "Stars",
-          bookCount: totalBooks,
-          totalTappingRate,
-          totalPoints,
-          totalTon,
-          starsAmount,
-          fxckedUpBagsQty,
-          humanRelationsQty,
-          telegramId,
-          referrerId,
-        };
-  
-        const response = await axios.post("/api/paymentByStars", payload);
-
-    if (response.data.invoiceLink) {
-      // Instead of showing success alert immediately, redirect to Telegram's payment interface
-      window.location.href = response.data.invoiceLink;
-    } else {
-      throw new Error("Failed to create payment link");
-    }
-  } catch (error) {
-    console.error("Payment failed:", error);
-    alert("An error occurred during payment. Please try again.");
-  } finally {
-    setIsProcessing(false);
-  }
-};
-
 // Function to handle successful payment callback
 const handlePaymentSuccess = async () => {
   try {

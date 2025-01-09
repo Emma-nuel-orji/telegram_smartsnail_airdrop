@@ -9,7 +9,7 @@ dotenv.config();
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const TON_WALLET_ADDRESS = process.env.TON_WALLET_ADDRESS;
-const SECRET_KEY = process.env.SECRET_KEY;
+const secretKey = process.env.SECRET_KEY!;
 const TON_TESTNET_API_URL = process.env.TON_TESTNET_API_URL;
 const TON_API_KEY = process.env.TON_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.BOT_API;
@@ -265,7 +265,7 @@ const verifyPayment = (paymentDetails: {
 
   // Validate the signature
   const dataToVerify = `${walletAddress ?? ''}:${amount}:${transactionReference}`;
-  if (!validateTransaction(dataToVerify, signature, SECRET_KEY || '')) {
+  if (!validateTransaction(dataToVerify, signature, secretKey || '')) {
 
     throw new Error("Invalid signature.");
   }
@@ -277,8 +277,6 @@ export {
   verifyTonPayment,
   initiateFlutterwavePayment,
   verifyFlutterwavePayment,
-  generateHMACSignature,
-  validateTransaction,
   verifyPayment,
   verifyStarsPayment,
   initiateStarsPayment,
