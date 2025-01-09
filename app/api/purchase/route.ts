@@ -51,6 +51,10 @@ interface PendingTransaction {
   updatedAt: Date;
 }
 
+interface BookMap {
+  [key: string]: Book;
+}
+
 interface OrderWithTransactions extends Order {
   pendingTransactions?: PendingTransaction[];
 }
@@ -83,7 +87,6 @@ const requestSchema = z.object({
 export async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
   console.log("Quantities requested:", { fxckedUpBagsQty, humanRelationsQty });
 
-  // Validate input
   if (fxckedUpBagsQty < 0 || humanRelationsQty < 0) {
     throw new Error("Book quantities cannot be negative");
   }
@@ -92,29 +95,23 @@ export async function preparePurchaseData(fxckedUpBagsQty: number, humanRelation
     throw new Error("At least one book must be selected for purchase");
   }
 
-  // Fetch books from database
   const books = await prisma.book.findMany({
     where: {
       id: { in: ["FxckedUpBags", "HumanRelations"] }
     }
   });
 
-  // Validate that we found the required books
   if (books.length === 0) {
     throw new Error("No books found in database");
   }
 
-  // Create a map of books by ID for easy lookup
-  const bookMap = books.reduce<Record<string, Book>>((acc, book) => {
+  const bookMap = books.reduce<BookMap>((acc, book) => {
     acc[book.id] = book;
     return acc;
   }, {});
 
-  console.log("Available books:", bookMap);
-
   const booksToPurchase: BookPurchaseInfo[] = [];
 
-  // Handle FxckedUpBags purchase
   if (fxckedUpBagsQty > 0) {
     const fxckedUpBag = bookMap["FxckedUpBags"];
     if (!fxckedUpBag) {
@@ -128,14 +125,13 @@ export async function preparePurchaseData(fxckedUpBagsQty: number, humanRelation
     });
   }
 
-  // Handle HumanRelations purchase
   if (humanRelationsQty > 0) {
     const humanRelations = bookMap["HumanRelations"];
     if (!humanRelations) {
       throw new Error("HumanRelations not found in database");
     }
     booksToPurchase.push({
-      qty: humanRelationsQty, // Fixed: was using fxckedUpBagsQty instead of humanRelationsQty
+      qty: humanRelationsQty,
       id: humanRelations.id,
       title: humanRelations.title,
       book: humanRelations
@@ -147,14 +143,6 @@ export async function preparePurchaseData(fxckedUpBagsQty: number, humanRelation
   }
 
   return { booksToPurchase, bookMap };
-}
-
-// Also update the BookPurchaseInfo interface to match the new structure
-interface BookPurchaseInfo {
-  title: string;
-  qty: number;
-  id?: string;
-  book?: Book;
 }
 
 async function validateStockAndCalculateTotals(

@@ -1,85 +1,185 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
-model Book {
-  id          String   @id @map("_id")
-  author      String
-  coinsReward BigInt
-  createdAt   DateTime @db.Date
-  description String
-  priceCard   Float
-  priceStars  BigInt
-  priceTon    Float
-  stockLimit  BigInt
-  tappingRate BigInt
-  title       String
-  usedStock   BigInt
+generator client {
+  provider = "prisma-client-js"
 }
 
+// User model
+model User {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  telegramId     BigInt          @unique
+  username       String?
+  firstName      String?
+  lastName       String?
+  tasks          Task[]          @relation("UserTasks")
+  email          String?         
+  points         Int             @default(0)
+  tappingRate    Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  hasClaimedWelcome Boolean  @default(false)
+  nft            Boolean         @default(false)
+  referrals      Referral[]      @relation("Referrer") // Outgoing referrals
+  referredBy     Referral[]      @relation("ReferredBy") // Incoming referrals
+  purchases      Purchase[]
+  completedTasks CompletedTask[] // A User can have many completed tasks
+
+  // Indexes
+  @@index([points], name: "points_asc_index")
+}
+
+// CompletedTask model
 model CompletedTask {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id          String   @id @default(cuid()) @map("_id") 
+  taskId      String          
+  userId      String   @db.ObjectId
+  completedAt DateTime @default(now())
+
+  // Define relations
+  task Task @relation(fields: [taskId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 }
 
+
+// Task model
+model Task {
+  id            String     @id @map("_id") 
+  description   String
+  completed     Boolean @default(false)
+  section       String  // Will be constrained in TypeScript to "main" | "daily" | "partners"
+  type          String  // Will be constrained in TypeScript to "daily" | "permanent"
+  image         String
+  link          String
+  completedTime DateTime?
+  batchId       String?
+  mediaUrl      String?
+  isStoryTask   Boolean? @default(false)
+  mediaType     String?
+  reward        Int?
+  userId        String  @db.ObjectId
+
+  // Relations
+  user          User            @relation(fields: [userId], references: [id], name: "UserTasks")
+  CompletedTask CompletedTask[]
+}
+
+
+// Referral model
+model Referral {
+  id         String   @id @default(cuid()) @map("_id") @db.ObjectId
+  referrerId String   @db.ObjectId // Foreign key to User (referrer)
+  referredId String   @db.ObjectId // Foreign key to User (referred user)
+  createdAt  DateTime @default(now())
+  
+
+  // Relations
+  referrer User @relation("Referrer", fields: [referrerId], references: [id]) // Referring user
+  referred User @relation("ReferredBy", fields: [referredId], references: [id]) // Referred user
+}
+
+// GeneratedCode model
 model GeneratedCode {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  id         String    @id @default(cuid()) @map("_id") @db.ObjectId
+  code       String    @unique
   batchId    String
-  bookId     String
-  code       String   @unique
-  createdAt  DateTime @db.Date
-  isRedeemed Boolean
+  isRedeemed Boolean   @default(false)
+  redeemedAt DateTime?
+  redeemedBy String?   @db.ObjectId
+  assignedTo String?   @db.ObjectId
+  bookId     String    
+  isUsed     Boolean   @default(false)
+  purchaseId String?   @db.ObjectId
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  book     Book?     @relation(fields: [bookId], references: [id])
+  purchase Purchase? @relation(fields: [purchaseId], references: [id])
+}
+
+// Book model
+model Book {
+  id          String   @id @default(cuid()) @map("_id")
+  title       String
+  description String
+  author      String
+  priceTon    Float
+  priceCard   Float
+  priceStars   Int
+  coinsReward Int
+  tappingRate Int
+  usedStock    Int
+  stockLimit  Int
+  createdAt   DateTime @default(now())
+
+  // Relations
+  generatedCodes GeneratedCode[] // One-to-many relation to GeneratedCode
+  purchases      Purchase[] // One-to-many relation to Purchase
+}
+
+// Purchase model
+model Purchase {
+  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  bookId      String   @db.ObjectId
+  paymentType String
+  amountPaid  Float
+  booksBought Int
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user  User            @relation(fields: [userId], references: [id])
+  book  Book            @relation(fields: [bookId], references: [id])
+  codes GeneratedCode[] // One-to-many relation to GeneratedCode
 }
 
 model Order {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  orderId Json?  @unique
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId            String   @unique
+  paymentMethod      String
+  totalAmount        Float
+  status             String     // e.g., "PENDING", "COMPLETED"
+  createdAt          DateTime   @default(now())
+
+  // Relationship to pending transactions
+  pendingTransactions PendingTransaction[]  
 }
 
 model PendingTransaction {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-}
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  email             String
+  amount            Float
+  bookCount         Int
+  fxckedUpBagsQty   Int
+  humanRelationsQty Int
+  telegramId        String
+  referrerId        String?
+  totalTappingRate  Float
+  totalPoints       Float
+  payloadData       String
+  status            String    // e.g., "PENDING", "COMPLETED"
 
-model Purchase {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-}
+  // Foreign key and relation
+  orderId           String   @db.ObjectId
+  order             Order    @relation(fields: [orderId], references: [id])
 
-model Referral {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt         DateTime @default(now())
 }
 
 model StoryShare {
-  id         String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  trackingId Json?  @unique
+  id          String   @id @default(cuid()) @map("_id") // Add @map("_id")
+  trackingId  String   @unique
+  userId      String
+  taskId      String
+  clicks      Int      @default(0)
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
 }
 
-model Task {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-}
-
-model User {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  createdAt         DateTime @db.Date
-  email             String?
-  firstName         String
-  hasClaimedWelcome Boolean
-  lastName          String?
-  nft               Boolean
-  points            BigInt
-  tappingRate       BigInt
-  telegramId        BigInt   @unique
-  updatedAt         DateTime @db.Date
-  username          String?
-
-  @@index([points], map: "points_asc_index")
-}
-
-model smartsnailcollection {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+model Nonce {
+  id      String    @id @default(cuid()) @map("_id") @db.ObjectId
+  value   String   @unique 
+  usedAt  DateTime @default(now()) 
 }
