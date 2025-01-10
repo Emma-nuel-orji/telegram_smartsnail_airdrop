@@ -87,6 +87,7 @@ const requestSchema = z.object({
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
   console.log("Quantities requested:", { fxckedUpBagsQty, humanRelationsQty });
 
+  // Validate input quantities
   if (fxckedUpBagsQty < 0 || humanRelationsQty < 0) {
     throw new Error("Book quantities cannot be negative");
   }
@@ -95,6 +96,7 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
     throw new Error("At least one book must be selected for purchase");
   }
 
+  // Fetch books from the database
   const books = await prisma.book.findMany({
     where: {
       id: { in: ["FxckedUpBags", "HumanRelations"] }
@@ -102,23 +104,27 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
   });
 
   if (books.length === 0) {
+    console.error("No books found in database.");
     throw new Error("No books found in database");
   }
 
+  // Map the books by their IDs
   const bookMap = books.reduce<BookMap>((acc, book) => {
     acc[book.id] = book;
     return acc;
   }, {});
 
-  // Debug the contents of bookMap
-  console.log("BookMap:", bookMap); // <-- Paste this line here
+  // Debugging: log the bookMap contents
+  console.log("BookMap:", bookMap);
 
+  // Prepare books for purchase
   const booksToPurchase: BookPurchaseInfo[] = [];
 
+  // Add "FxckedUpBags" book
   if (fxckedUpBagsQty > 0) {
     const fxckedUpBags = bookMap["FxckedUpBags"];
     if (!fxckedUpBags) {
-      console.error("Available books:", Object.keys(bookMap));
+      console.error("Available books in database:", Object.keys(bookMap));
       throw new Error("FxckedUpBags not found in database. Check database and code consistency.");
     }
     booksToPurchase.push({
@@ -129,10 +135,11 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
     });
   }
 
+  // Add "HumanRelations" book
   if (humanRelationsQty > 0) {
     const humanRelations = bookMap["HumanRelations"];
     if (!humanRelations) {
-      console.error("Available books:", Object.keys(bookMap));
+      console.error("Available books in database:", Object.keys(bookMap));
       throw new Error("HumanRelations not found in database. Check database and code consistency.");
     }
     booksToPurchase.push({
@@ -143,12 +150,15 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
     });
   }
 
+  // Final validation: Ensure at least one valid book is selected
   if (booksToPurchase.length === 0) {
+    console.error("No valid books selected for purchase.");
     throw new Error("No valid books selected for purchase");
   }
 
   return { booksToPurchase, bookMap };
 }
+
 
 async function validateStockAndCalculateTotals(
   booksToPurchase: BookPurchaseInfo[],

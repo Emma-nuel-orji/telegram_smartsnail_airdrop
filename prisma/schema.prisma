@@ -9,26 +9,14 @@ generator client {
 
 // User model
 model User {
-  id             String          @id @default(auto()) @map("_id") @db.ObjectId
-  telegramId     BigInt          @unique
-  username       String?
-  firstName      String?
-  lastName       String?
-  tasks          Task[]          @relation("UserTasks")
-  email          String?         
-  points         Int             @default(0)
-  tappingRate    Int             @default(1)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  hasClaimedWelcome Boolean  @default(false)
-  nft            Boolean         @default(false)
-  referrals      Referral[]      @relation("Referrer") // Outgoing referrals
-  referredBy     Referral[]      @relation("ReferredBy") // Incoming referrals
-  purchases      Purchase[]
-  completedTasks CompletedTask[] // A User can have many completed tasks
-
-  // Indexes
-  @@index([points], name: "points_asc_index")
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  telegramId Int     @unique
+  username   String?
+  firstName  String?
+  lastName   String?
+  points     Int     @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // CompletedTask model

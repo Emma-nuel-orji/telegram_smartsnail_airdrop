@@ -123,32 +123,11 @@ export default function BoostPageContent() {
       }, 10000); // Poll every 10 seconds
     };
 
-    // Use socket.io consistently
-const socket = io(SOCKET_SERVER_URL, {
-  path: '/socket.io', // Make sure this matches your server configuration
-  transports: ['websocket', 'polling']
-});
-
-socket.on("connect", () => {
-  console.log("Socket.IO connection established.");
-  socket.emit("initialize", { telegramId });
-});
-
-socket.on("stock-update", (data) => {
-  setStockLimit(data.payload);
-});
-
-socket.on("disconnect", () => {
-  console.log("Socket.IO connection closed.");
-});
-
-socket.on("error", (error) => {
-  console.error("Socket.IO error:", error);
-});
-
+  
+    
 return () => {
   if (pollingInterval) clearInterval(pollingInterval);
-  socket.disconnect();
+  
 };
   }, [fetchStockData, telegramId, setStockLimit]);
 
