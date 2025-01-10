@@ -502,8 +502,6 @@ const handleClaim = async () => {
   `}</style>
 
 
-
-
     {/* ... */}
   </div>
   {notification && (
