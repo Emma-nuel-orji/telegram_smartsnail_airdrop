@@ -22,8 +22,9 @@ export default function Home() {
     telegramId: string;
     points: number;
     tappingRate: number;
-    firstName: string;
+
   }>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
   const [clicks, setClicks] = useState<Click[]>([]);
@@ -140,72 +141,75 @@ export default function Home() {
 
   // Modify your useEffect in Home component
 
-useEffect(() => {
-  const initializeTelegram = async () => {
-    try {
-      // Wait for Telegram WebApp to be available
-      if (!window.Telegram?.WebApp) {
-        console.error('Telegram WebApp not available');
-        setError('Please open this app in Telegram');
-        return;
-      }
-
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-
-      const { user } = tg.initDataUnsafe;
-      
-      if (!user?.id) {
-        console.error('No user ID available');
-        setError('Unable to get user information');
-        return;
-      }
-
-      console.log('Attempting to fetch user data for ID:', user.id);
-      
-      const response = await fetch('/api/user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          telegramId: user.id, // Use telegramId for mapping
-          first_name: user.first_name,
-          // Add any other relevant user data
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Received user data:', data);
-
-      if (data.error) {
-        setError(data.error);
-        return;
-      }
-
-      setUser({
-        ...data,
-        telegramId: data.telegramId.toString(),
-      });
+  useEffect(() => {
+    const initializeTelegram = async () => {
+      try {
+        // Wait for Telegram WebApp to be available
+        if (!window.Telegram?.WebApp) {
+          console.error('Telegram WebApp not available');
+          setError('Please open this app in Telegram');
+          return;
+        }
   
-      
-      // Show welcome popup for new users
-      if (data.points === 0) {
-        setShowWelcomePopup(true);
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+  
+        const { user } = tg.initDataUnsafe;
+  
+        if (!user?.id) {
+          console.error('No user ID available');
+          setError('Unable to get user information');
+          return;
+        }
+  
+        // Immediately set the user's first name in the state
+         if (user?.first_name) setFirstName(user.first_name);
+  
+        console.log('Attempting to fetch user data for ID:', user.id);
+  
+        // Fetch additional data from the backend
+        const response = await fetch('/api/user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            telegramId: user.id,
+            first_name: user.first_name,
+          }),
+        });
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+  
+        const data = await response.json();
+        console.log('Received user data:', data);
+  
+        if (data.error) {
+          setError(data.error);
+          return;
+        }
+  
+        // Update state with full data from backend
+        setUser({
+          ...data,
+          telegramId: data.telegramId.toString(),
+        });
+  
+        // Show welcome popup for new users
+        if (data.points === 0) {
+          setShowWelcomePopup(true);
+        }
+      } catch (error) {
+        console.error('Error during initialization:', error);
+        setError('Failed to initialize app');
       }
-
-    } catch (error) {
-      console.error('Error during initialization:', error);
-      setError('Failed to initialize app');
-    }
-  };
-
-  initializeTelegram();
-}, []);
+    };
+  
+    initializeTelegram();
+  }, []);
+  
   
 const handleClaim = async () => {
   try {
@@ -309,7 +313,7 @@ const handleClaim = async () => {
     <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
       
       {/* Welcome Heading */}
-      <h2 className="text-2xl font-bold mb-4">Welcome onboard {user?.firstName}!</h2>
+      <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName}!</h2>
 
       {/* Video Section */}
       <div className="mb-4 w-full">
