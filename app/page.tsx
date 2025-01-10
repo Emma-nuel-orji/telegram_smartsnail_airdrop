@@ -273,7 +273,6 @@ const handleClaim = async () => {
 };
 
   
-  
   // Function to trigger falling shells animation
   const triggerFallingShellsAnimation = () => {
     // Example implementation of triggering the falling shells animation
