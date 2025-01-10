@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
+import Loader from "@/loader";
 
 declare global {
   interface Window {
@@ -31,7 +32,7 @@ export default function Home() {
   const [energy, setEnergy] = useState(1500);
   const [isClicking, setIsClicking] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
-
+  const [isLoading, setLoading] = useState(true);
   const maxEnergy = 1500;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -143,30 +144,34 @@ export default function Home() {
 
   useEffect(() => {
     const initializeTelegram = async () => {
+      setLoading(true);  // Show loader as soon as the effect is triggered
+  
       try {
         // Wait for Telegram WebApp to be available
         if (!window.Telegram?.WebApp) {
           console.error('Telegram WebApp not available');
           setError('Please open this app in Telegram');
+          setLoading(false);  // Hide loader if WebApp is not available
           return;
         }
-  
+    
         const tg = window.Telegram.WebApp;
         tg.ready();
-  
+    
         const { user } = tg.initDataUnsafe;
-  
+    
         if (!user?.id) {
           console.error('No user ID available');
           setError('Unable to get user information');
+          setLoading(false);  // Hide loader if user ID is not available
           return;
         }
-  
+    
         // Immediately set the user's first name in the state
-         if (user?.first_name) setFirstName(user.first_name);
-  
+        if (user?.first_name) setFirstName(user.first_name);
+    
         console.log('Attempting to fetch user data for ID:', user.id);
-  
+    
         // Fetch additional data from the backend
         const response = await fetch('/api/user', {
           method: 'POST',
@@ -178,37 +183,51 @@ export default function Home() {
             first_name: user.first_name,
           }),
         });
-  
+    
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-  
+    
         const data = await response.json();
         console.log('Received user data:', data);
-  
+    
         if (data.error) {
           setError(data.error);
+          setLoading(false);  // Hide loader if there's an error
           return;
         }
-  
+    
         // Update state with full data from backend
         setUser({
           ...data,
           telegramId: data.telegramId.toString(),
         });
-  
+    
         // Show welcome popup for new users
         if (data.points === 0) {
           setShowWelcomePopup(true);
         }
+  
+        setLoading(false);  // Hide loader after all operations are complete
       } catch (error) {
         console.error('Error during initialization:', error);
         setError('Failed to initialize app');
+        setLoading(false);  // Hide loader in case of an error
       }
     };
   
     initializeTelegram();
   }, []);
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader />
+      </div>
+    );
+  }
+
+  
   
   
 const handleClaim = async () => {
