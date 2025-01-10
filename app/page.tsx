@@ -151,27 +151,29 @@ export default function Home() {
         if (!window.Telegram?.WebApp) {
           console.error('Telegram WebApp not available');
           setError('Please open this app in Telegram');
+          await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
           setLoading(false);  // Hide loader if WebApp is not available
           return;
         }
-    
+  
         const tg = window.Telegram.WebApp;
         tg.ready();
-    
+  
         const { user } = tg.initDataUnsafe;
-    
+  
         if (!user?.id) {
           console.error('No user ID available');
           setError('Unable to get user information');
+          await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
           setLoading(false);  // Hide loader if user ID is not available
           return;
         }
-    
+  
         // Immediately set the user's first name in the state
         if (user?.first_name) setFirstName(user.first_name);
-    
+  
         console.log('Attempting to fetch user data for ID:', user.id);
-    
+  
         // Fetch additional data from the backend
         const response = await fetch('/api/user', {
           method: 'POST',
@@ -183,35 +185,38 @@ export default function Home() {
             first_name: user.first_name,
           }),
         });
-    
+  
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-    
+  
         const data = await response.json();
         console.log('Received user data:', data);
-    
+  
         if (data.error) {
           setError(data.error);
+          await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
           setLoading(false);  // Hide loader if there's an error
           return;
         }
-    
+  
         // Update state with full data from backend
         setUser({
           ...data,
           telegramId: data.telegramId.toString(),
         });
-    
+  
         // Show welcome popup for new users
         if (data.points === 0) {
           setShowWelcomePopup(true);
         }
   
+        await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
         setLoading(false);  // Hide loader after all operations are complete
       } catch (error) {
         console.error('Error during initialization:', error);
         setError('Failed to initialize app');
+        await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
         setLoading(false);  // Hide loader in case of an error
       }
     };
@@ -226,7 +231,7 @@ export default function Home() {
       </div>
     );
   }
-
+  
   
   
   
