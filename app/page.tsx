@@ -148,46 +148,54 @@ export default function Home() {
     const initializeTelegram = async () => {
       setLoading(true);
       const startTime = Date.now();
-  
+    
       try {
         if (!window.Telegram?.WebApp) {
           throw new Error('Telegram WebApp not available');
         }
-  
+    
         const tg = window.Telegram.WebApp;
         tg.ready();
-  
+    
         const userData = tg?.initDataUnsafe?.user;
         if (!userData?.id) {
           throw new Error('Unable to get user information');
         }
-  
-        setFirstName(userData.first_name || null);
-  
+    
+        // Log the data we're about to send
+        const requestData = {
+          telegramId: userData.id.toString(),
+          username: userData.username || null,
+          firstName: userData.first_name || null,
+          lastName: userData.last_name || null,
+          points: 0,
+          tappingRate: 1,
+          hasClaimedWelcome: false,
+          nft: false,
+        };
+        console.log('Sending user data:', requestData);
+    
         const response = await fetch('/api/user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telegramId: userData.id.toString(),
-            username: userData.username || null,
-            firstName: userData.first_name || null,
-            lastName: userData.last_name || null,
-            points: 0,
-            tappingRate: 1,
-            hasClaimedWelcome: false,
-            nft: false,
-          }),
+          body: JSON.stringify(requestData),
         });
-  
+    
+        // Log the response status and headers
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // Get the error details from the response
+          const errorData = await response.json();
+          throw new Error(`HTTP error! status: ${response.status}, details: ${JSON.stringify(errorData)}`);
         }
-  
+    
         const data = await response.json();
         if (data.error) {
           throw new Error(data.error);
         }
-  
+    
         setUser({
           telegramId: data.telegramId.toString(),
           points: data.points,
@@ -195,7 +203,7 @@ export default function Home() {
           firstName: data.firstName,
           lastName: data.lastName,
         });
-  
+    
         if (data.points === 0) {
           setShowWelcomePopup(true);
         }
@@ -208,10 +216,9 @@ export default function Home() {
         setTimeout(() => setLoading(false), remainingTime);
       }
     };
-  
-    initializeTelegram();
-  }, []);
-  
+  initializeTelegram();
+}, []);
+
   
   if (isLoading) {
     return (

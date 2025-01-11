@@ -2,79 +2,97 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 import { z } from 'zod';
 
-// Validation schema for incoming user data
 const userSchema = z.object({
-  telegramId: z.string().regex(/^\d+$/).transform(BigInt), // Ensure telegramId is a numeric string and convert to BigInt
-  username: z.string().optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  points: z.number().optional().default(0), // Default to 0 if not provided
-  tappingRate: z.number().optional().default(1), // Default to 1 if not provided
-  hasClaimedWelcome: z.boolean().optional().default(false), // Default to false if not provided
-  nft: z.boolean().optional().default(false), // Default to false if not provided
-  email: z.string().email().optional(), // Optional, validate email format if provided
+  telegramId: z.string()
+    .min(1, "Telegram ID is required")
+    .regex(/^\d+$/, "Telegram ID must be numeric")
+    .transform(BigInt),
+  username: z.string().nullable(),
+  firstName: z.string().nullable(),
+  lastName: z.string().nullable(),
+  points: z.number().int().min(0).default(0),
+  tappingRate: z.number().positive().default(1),
+  hasClaimedWelcome: z.boolean().default(false),
+  nft: z.boolean().default(false),
 });
 
 export async function POST(req: NextRequest) {
   console.info('User API route hit');
 
   try {
-    // Parse and validate the incoming request body
-    const userData = userSchema.parse(await req.json());
+    // Log the raw request body
+    const rawBody = await req.text();
+    console.log('Raw request body:', rawBody);
+
+    // Parse the JSON with proper error typing
+    let jsonBody;
+    try {
+      jsonBody = JSON.parse(rawBody);
+    } catch (error) {
+      // Properly type the error object
+      const e = error as Error;
+      return NextResponse.json(
+        { 
+          error: 'Invalid JSON', 
+          details: e.message || 'JSON parsing failed'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Log the parsed body
+    console.log('Parsed request body:', jsonBody);
+
+    // Validate the data
+    const validationResult = userSchema.safeParse(jsonBody);
+    if (!validationResult.success) {
+      console.error('Validation errors:', validationResult.error);
+      return NextResponse.json(
+        {
+          error: 'Validation error',
+          details: validationResult.error.errors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const userData = validationResult.data;
     console.debug('Validated user data:', userData);
 
     const { telegramId, ...updateData } = userData;
 
-    // Check if the user already exists in the database
+    // Database operations...
     let user = await prisma.user.findUnique({ where: { telegramId } });
 
     if (user) {
-      // Update existing user data
-      console.info('User exists, updating data...');
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
           ...updateData,
-          updatedAt: new Date(), // Update the timestamp
+          updatedAt: new Date(),
         },
       });
-      console.info('User updated successfully:', user);
     } else {
-      // Create a new user
-      console.info('User not found, creating new user...');
       user = await prisma.user.create({
         data: {
-          telegramId, // Use validated BigInt telegramId
+          telegramId,
           ...updateData,
         },
       });
-      console.info('User created successfully:', user);
     }
 
-    // Serialize the response (convert BigInt fields to strings)
     const serializedUser = {
       ...user,
       telegramId: user.telegramId.toString(),
       id: user.id.toString(),
     };
 
-    console.debug('Serialized user data:', serializedUser);
     return NextResponse.json(serializedUser);
-  } catch (err: any) {
+  } catch (error) {
+    // Properly type the error object
+    const err = error as Error;
     console.error('Error processing user:', err);
-
-    // Handle validation errors from Zod
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: 'Validation error',
-          details: err.errors, // Include validation error details
-        },
-        { status: 400 }
-      );
-    }
-
-    // Handle other unexpected errors
+    
     return NextResponse.json(
       {
         error: 'Internal server error',
