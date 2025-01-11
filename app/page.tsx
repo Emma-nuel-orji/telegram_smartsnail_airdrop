@@ -144,85 +144,108 @@ export default function Home() {
 
   useEffect(() => {
     const initializeTelegram = async () => {
-      setLoading(true);  // Show loader as soon as the effect is triggered
-  
+      setLoading(true);
+      
       try {
-        // Wait for Telegram WebApp to be available
+        // Debug log 1
+        console.log('Window Telegram object:', window.Telegram);
+        
         if (!window.Telegram?.WebApp) {
-          console.error('Telegram WebApp not available');
-          setError('Please open this app in Telegram');
-          await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
-          setLoading(false);  // Hide loader if WebApp is not available
-          return;
+          console.error('Telegram WebApp not available yet');
+          // Wait a bit longer for WebApp to initialize
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Check again
+          if (!window.Telegram?.WebApp) {
+            setError('Please open this app in Telegram');
+            setLoading(false);
+            return;
+          }
         }
-  
+        
         const tg = window.Telegram.WebApp;
-        tg.ready();
-  
-        const { user } = tg.initDataUnsafe;
-        console.log('initDataUnsafe:', tg.initDataUnsafe);      
-        if (!user?.id) {
-          console.error('No user ID available');
-          setError('Unable to get user information');
-          await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
-          setLoading(false);  // Hide loader if user ID is not available
+        // Debug log 2
+        console.log('Telegram WebApp object:', tg);
+        
+        try {
+          tg.ready();
+        } catch (readyError) {
+          console.error('Error calling tg.ready():', readyError);
+        }
+        
+        // Debug log 3
+        console.log('InitDataUnsafe before access:', tg.initDataUnsafe);
+        
+        const initData = tg.initDataUnsafe;
+        if (!initData) {
+          console.error('InitDataUnsafe is null or undefined');
+          setError('Unable to get Telegram data');
+          setLoading(false);
           return;
         }
-  
-        // Immediately set the user's first name in the state
-        if (user?.first_name) setFirstName(user.first_name);
-  
-        console.log('Attempting to fetch user data for ID:', user.id);
-  
-        // Fetch additional data from the backend
+
+        // Debug log 4
+        console.log('User object:', initData.user);
+        
+        if (!initData.user?.id) {
+          console.error('No user ID in initData:', initData);
+          setError('User information not available');
+          setLoading(false);
+          return;
+        }
+
+        // Modify your API call to match the MongoDB schema:
         const response = await fetch('/api/user', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            telegramId: user.id,
-            first_name: user.first_name,
-          }),
+            telegramId: initData.user.id.toString(), // Send as string to preserve precision
+            username: initData.user.username || null,
+            firstName: initData.user.first_name || null,
+            lastName: initData.user.last_name || null,
+            points: 0,
+            tappingRate: 1,
+            hasClaimedWelcome: false,
+            nft: false
+        }),
         });
-  
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-  
+
+        // Debug log 5
+        console.log('API Response:', response.status);
         const data = await response.json();
-        console.log('Received user data:', data);
-  
-        if (data.error) {
-          setError(data.error);
-          await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
-          setLoading(false);  // Hide loader if there's an error
-          return;
+        console.log('API Data:', data);
+
+        if (!response.ok) {
+          throw new Error(`API error: ${JSON.stringify(data)}`);
         }
-  
-        // Update state with full data from backend
+
         setUser({
           ...data,
           telegramId: data.telegramId.toString(),
         });
-  
-        // Show welcome popup for new users
+
         if (data.points === 0) {
           setShowWelcomePopup(true);
         }
-  
-        await new Promise(resolve => setTimeout(resolve, 7000));  // Keep loader for at least 4 seconds
-        setLoading(false);  // Hide loader after all operations are complete
+
       } catch (error) {
-        console.error('Error during initialization:', error);
-        setError('Failed to initialize app');
-        await new Promise(resolve => setTimeout(resolve, 7000));  // Keep loader for at least 4 seconds
-        setLoading(false);  // Hide loader in case of an error
+        console.error('Detailed initialization error:', error);
+      
+        if (error instanceof Error) {
+          setError(error.message || 'Failed to initialize app');
+        } else {
+          setError('Failed to initialize app');
+        }
+      } finally {
+        setLoading(false);
       }
+      
     };
-  
+
     initializeTelegram();
-  }, []);
+}, []);
   
   if (isLoading) {
     return (
