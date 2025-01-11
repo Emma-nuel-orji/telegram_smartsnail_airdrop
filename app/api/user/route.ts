@@ -16,12 +16,14 @@ const userSchema = z.object({
   nft: z.boolean().default(false),
 });
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<Response> {
   console.info('User API route hit');
 
   // Add timeout for the entire request processing
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Operation timed out')), 8000); // 8 second timeout
+  const timeoutPromise = new Promise<Response>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('Operation timed out'));
+    }, 8000);
   });
 
   try {
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function processRequest(req: NextRequest) {
+async function processRequest(req: NextRequest): Promise<Response> {
   try {
     const rawBody = await req.text();
     let jsonBody;
@@ -56,51 +58,50 @@ async function processRequest(req: NextRequest) {
       jsonBody = JSON.parse(rawBody);
     } catch (error) {
       const e = error as Error;
-      return NextResponse.json(
-        { error: 'Invalid JSON', details: e.message },
-        { status: 400 }
+      return new NextResponse(
+        JSON.stringify({ error: 'Invalid JSON', details: e.message }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
     const validationResult = userSchema.safeParse(jsonBody);
     if (!validationResult.success) {
-      return NextResponse.json(
-        {
+      return new NextResponse(
+        JSON.stringify({
           error: 'Validation error',
           details: validationResult.error.errors,
-        },
-        { status: 400 }
+        }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
     const userData = validationResult.data;
     const { telegramId, ...updateData } = userData;
 
-    // Use Promise.race to implement timeout for database operations
-    const dbOperation = async () => {
-      let user = await prisma.user.findUnique({ where: { telegramId } });
+    let user = await prisma.user.findUnique({ where: { telegramId } });
 
-      if (user) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            ...updateData,
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        user = await prisma.user.create({
-          data: {
-            telegramId,
-            ...updateData,
-          },
-        });
-      }
-
-      return user;
-    };
-
-    const user = await dbOperation();
+    if (user) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          ...updateData,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      user = await prisma.user.create({
+        data: {
+          telegramId,
+          ...updateData,
+        },
+      });
+    }
 
     const serializedUser = {
       ...user,
@@ -108,15 +109,24 @@ async function processRequest(req: NextRequest) {
       id: user.id.toString(),
     };
 
-    return NextResponse.json(serializedUser);
+    return new NextResponse(
+      JSON.stringify(serializedUser),
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   } catch (error) {
     const err = error as Error;
-    return NextResponse.json(
-      {
+    return new NextResponse(
+      JSON.stringify({
         error: 'Internal server error',
         details: err.message || 'An unknown error occurred',
-      },
-      { status: 500 }
+      }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }
