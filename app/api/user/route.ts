@@ -17,114 +17,113 @@ const userSchema = z.object({
 });
 
 export async function POST(req: NextRequest): Promise<Response> {
-  console.info('User API route hit');
-
-  // Add timeout for the entire request processing
-  const timeoutPromise = new Promise<Response>((_, reject) => {
-    setTimeout(() => {
-      reject(new Error('Operation timed out'));
-    }, 8000);
-  });
-
-  try {
-    const result = await Promise.race([
-      processRequest(req),
-      timeoutPromise
-    ]);
-    return result;
-  } catch (error) {
-    const err = error as Error;
-    console.error('Request failed:', err);
-    
-    return new NextResponse(
-      JSON.stringify({
-        error: err.message || 'Request failed',
-        details: 'The request took too long to process'
-      }),
-      { 
-        status: err.message === 'Operation timed out' ? 504 : 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-  }
-}
-
-async function processRequest(req: NextRequest): Promise<Response> {
+  console.log('API route started');
+  
   try {
     const rawBody = await req.text();
-    let jsonBody;
+    console.log('Raw request body:', rawBody);
     
+    let jsonBody;
     try {
       jsonBody = JSON.parse(rawBody);
+      console.log('Parsed request body:', jsonBody);
     } catch (error) {
-      const e = error as Error;
+      console.error('JSON parse error:', error);
       return new NextResponse(
-        JSON.stringify({ error: 'Invalid JSON', details: e.message }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: 'Invalid JSON', details: (error as Error).message }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     const validationResult = userSchema.safeParse(jsonBody);
     if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error);
       return new NextResponse(
         JSON.stringify({
           error: 'Validation error',
           details: validationResult.error.errors,
         }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     const userData = validationResult.data;
-    const { telegramId, ...updateData } = userData;
+    console.log('Validated user data:', userData);
 
-    let user = await prisma.user.findUnique({ where: { telegramId } });
-
-    if (user) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          ...updateData,
-          updatedAt: new Date(),
-        },
+    let user;
+    try {
+      // First try to find the user
+      const existingUser = await prisma.user.findUnique({
+        where: { telegramId: userData.telegramId },
       });
-    } else {
-      user = await prisma.user.create({
-        data: {
-          telegramId,
-          ...updateData,
-        },
-      });
-    }
+      console.log('Existing user:', existingUser);
 
-    const serializedUser = {
-      ...user,
-      telegramId: user.telegramId.toString(),
-      id: user.id.toString(),
-    };
-
-    return new NextResponse(
-      JSON.stringify(serializedUser),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
+      if (existingUser) {
+        // Update existing user
+        console.log('Updating existing user...');
+        user = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            username: userData.username,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            points: userData.points,
+            tappingRate: userData.tappingRate,
+            hasClaimedWelcome: userData.hasClaimedWelcome,
+            nft: userData.nft,
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        // Create new user
+        console.log('Creating new user...');
+        user = await prisma.user.create({
+          data: {
+            telegramId: userData.telegramId,
+            username: userData.username,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            points: userData.points,
+            tappingRate: userData.tappingRate,
+            hasClaimedWelcome: userData.hasClaimedWelcome,
+            nft: userData.nft,
+          },
+        });
       }
-    );
+      
+      console.log('Database operation result:', user);
+
+      if (!user) {
+        throw new Error('User operation failed - no user returned');
+      }
+
+      const serializedUser = {
+        ...user,
+        telegramId: user.telegramId.toString(),
+        id: user.id.toString(),
+      };
+      console.log('Serialized user:', serializedUser);
+
+      return new NextResponse(
+        JSON.stringify(serializedUser),
+        { 
+          status: 200, 
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    } catch (dbError) {
+      console.error('Database operation error:', dbError);
+      throw dbError; // Re-throw to be caught by outer try-catch
+    }
   } catch (error) {
-    const err = error as Error;
+    console.error('General error:', error);
     return new NextResponse(
       JSON.stringify({
-        error: 'Internal server error',
-        details: err.message || 'An unknown error occurred',
+        error: 'Server error',
+        details: (error as Error).message || 'An unknown error occurred',
       }),
       { 
-        status: 500,
+        status: 500, 
         headers: { 'Content-Type': 'application/json' }
       }
     );
