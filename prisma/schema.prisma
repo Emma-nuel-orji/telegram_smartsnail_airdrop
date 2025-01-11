@@ -12,7 +12,7 @@ model User {
   id             String          @id @default(auto()) @map("_id") @db.ObjectId
   telegramId     BigInt          @unique
   username       String?
-  firstName      String?
+  firstName      String?         @map("first_name")
   lastName       String?
   tasks          Task[]          @relation("UserTasks")
   email          String?         

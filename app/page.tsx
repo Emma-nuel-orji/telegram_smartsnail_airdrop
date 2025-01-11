@@ -160,7 +160,7 @@ export default function Home() {
         tg.ready();
   
         const { user } = tg.initDataUnsafe;
-  
+        console.log('initDataUnsafe:', tg.initDataUnsafe);      
         if (!user?.id) {
           console.error('No user ID available');
           setError('Unable to get user information');
