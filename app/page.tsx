@@ -211,12 +211,12 @@ export default function Home() {
           setShowWelcomePopup(true);
         }
   
-        await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
+        await new Promise(resolve => setTimeout(resolve, 7000));  // Keep loader for at least 4 seconds
         setLoading(false);  // Hide loader after all operations are complete
       } catch (error) {
         console.error('Error during initialization:', error);
         setError('Failed to initialize app');
-        await new Promise(resolve => setTimeout(resolve, 4000));  // Keep loader for at least 4 seconds
+        await new Promise(resolve => setTimeout(resolve, 7000));  // Keep loader for at least 4 seconds
         setLoading(false);  // Hide loader in case of an error
       }
     };
