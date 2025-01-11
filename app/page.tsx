@@ -23,8 +23,10 @@ export default function Home() {
     telegramId: string;
     points: number;
     tappingRate: number;
-
+    firstName?: string | null;
+    lastName?: string | null;
   }>(null);
+  
   const [firstName, setFirstName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
@@ -145,107 +147,71 @@ export default function Home() {
   useEffect(() => {
     const initializeTelegram = async () => {
       setLoading(true);
-      
+      const startTime = Date.now();
+  
       try {
-        // Debug log 1
-        console.log('Window Telegram object:', window.Telegram);
-        
         if (!window.Telegram?.WebApp) {
-          console.error('Telegram WebApp not available yet');
-          // Wait a bit longer for WebApp to initialize
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Check again
-          if (!window.Telegram?.WebApp) {
-            setError('Please open this app in Telegram');
-            setLoading(false);
-            return;
-          }
+          throw new Error('Telegram WebApp not available');
         }
-        
+  
         const tg = window.Telegram.WebApp;
-        // Debug log 2
-        console.log('Telegram WebApp object:', tg);
-        
-        try {
-          tg.ready();
-        } catch (readyError) {
-          console.error('Error calling tg.ready():', readyError);
+        tg.ready();
+  
+        const userData = tg?.initDataUnsafe?.user;
+        if (!userData?.id) {
+          throw new Error('Unable to get user information');
         }
-        
-        // Debug log 3
-        console.log('InitDataUnsafe before access:', tg.initDataUnsafe);
-        
-        const initData = tg.initDataUnsafe;
-        if (!initData) {
-          console.error('InitDataUnsafe is null or undefined');
-          setError('Unable to get Telegram data');
-          setLoading(false);
-          return;
-        }
-
-        // Debug log 4
-        console.log('User object:', initData.user);
-        
-        if (!initData.user?.id) {
-          console.error('No user ID in initData:', initData);
-          setError('User information not available');
-          setLoading(false);
-          return;
-        }
-
-        // Modify your API call to match the MongoDB schema:
+  
+        setFirstName(userData.first_name || null);
+  
         const response = await fetch('/api/user', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            telegramId: initData.user.id.toString(), // Send as string to preserve precision
-            username: initData.user.username || null,
-            firstName: initData.user.first_name || null,
-            lastName: initData.user.last_name || null,
+            telegramId: userData.id.toString(),
+            username: userData.username || null,
+            firstName: userData.first_name || null,
+            lastName: userData.last_name || null,
             points: 0,
             tappingRate: 1,
             hasClaimedWelcome: false,
-            nft: false
-        }),
+            nft: false,
+          }),
         });
-
-        // Debug log 5
-        console.log('API Response:', response.status);
-        const data = await response.json();
-        console.log('API Data:', data);
-
+  
         if (!response.ok) {
-          throw new Error(`API error: ${JSON.stringify(data)}`);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-
+  
+        const data = await response.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+  
         setUser({
-          ...data,
           telegramId: data.telegramId.toString(),
+          points: data.points,
+          tappingRate: data.tappingRate,
+          firstName: data.firstName,
+          lastName: data.lastName,
         });
-
+  
         if (data.points === 0) {
           setShowWelcomePopup(true);
         }
-
-      } catch (error) {
-        console.error('Detailed initialization error:', error);
-      
-        if (error instanceof Error) {
-          setError(error.message || 'Failed to initialize app');
-        } else {
-          setError('Failed to initialize app');
-        }
+      } catch (err: any) {
+        console.error('Initialization error:', err);
+        setError(err.message || 'Failed to initialize app');
       } finally {
-        setLoading(false);
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(4000 - elapsedTime, 0);
+        setTimeout(() => setLoading(false), remainingTime);
       }
-      
     };
-
+  
     initializeTelegram();
-}, []);
+  }, []);
+  
   
   if (isLoading) {
     return (
