@@ -145,77 +145,94 @@ export default function Home() {
   // Modify your useEffect in Home component
 
   useEffect(() => {
-    const initializeTelegram = async () => {
-      setLoading(true);
-      const startTime = Date.now();
-    
-      try {
-        if (!window.Telegram?.WebApp) {
-          throw new Error('Telegram WebApp not available');
-        }
-    
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-    
-        const userData = tg?.initDataUnsafe?.user;
-        if (!userData?.id) {
-          throw new Error('Unable to get user information');
-        }
-    
-        // Log the data we're about to send
-        const requestData = {
-          telegramId: userData.id.toString(),
-          username: userData.username || null,
-          firstName: userData.first_name || null,
-          lastName: userData.last_name || null,
-          points: 0,
-          tappingRate: 1,
-          hasClaimedWelcome: false,
-          nft: false,
-        };
-        console.log('Sending user data:', requestData);
-    
-        const response = await fetch('/api/user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestData),
-        });
-    
-        // Log the response status and headers
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-    
-        if (!response.ok) {
-          // Get the error details from the response
-          const errorData = await response.json();
-          throw new Error(`HTTP error! status: ${response.status}, details: ${JSON.stringify(errorData)}`);
-        }
-    
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-    
-        setUser({
-          telegramId: data.telegramId.toString(),
-          points: data.points,
-          tappingRate: data.tappingRate,
-          firstName: data.firstName,
-          lastName: data.lastName,
-        });
-    
-        if (data.points === 0) {
-          setShowWelcomePopup(true);
-        }
-      } catch (err: any) {
-        console.error('Initialization error:', err);
-        setError(err.message || 'Failed to initialize app');
-      } finally {
-        const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(4000 - elapsedTime, 0);
-        setTimeout(() => setLoading(false), remainingTime);
-      }
+    // Client-side code (in your React component)
+const initializeTelegram = async () => {
+  setLoading(true);
+  const startTime = Date.now();
+
+  try {
+    if (!window.Telegram?.WebApp) {
+      throw new Error('Telegram WebApp not available');
+    }
+
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+
+    const userData = tg?.initDataUnsafe?.user;
+    if (!userData?.id) {
+      throw new Error('Unable to get user information');
+    }
+
+    const requestData = {
+      telegramId: userData.id.toString(),
+      username: userData.username || null,
+      firstName: userData.first_name || null,
+      lastName: userData.last_name || null,
+      points: 0,
+      tappingRate: 1,
+      hasClaimedWelcome: false,
+      nft: false,
     };
+
+    // Add timeout to fetch request
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    try {
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        throw new Error(`HTTP error! status: ${response.status}, details: ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setUser({
+        telegramId: data.telegramId.toString(),
+        points: data.points,
+        tappingRate: data.tappingRate,
+        firstName: data.firstName,
+        lastName: data.lastName,
+      });
+
+      if (data.points === 0) {
+        setShowWelcomePopup(true);
+      }
+    } catch (error) {
+      // Type guard for DOMException (which includes AbortError)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch (error: any) {
+    console.error('Initialization error:', error);
+    setError(error?.message || 'Failed to initialize app');
+  } finally {
+    const elapsedTime = Date.now() - startTime;
+    const remainingTime = Math.max(4000 - elapsedTime, 0);
+    setTimeout(() => setLoading(false), remainingTime);
+  }
+};
   initializeTelegram();
 }, []);
 

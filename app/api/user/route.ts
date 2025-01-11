@@ -19,34 +19,51 @@ const userSchema = z.object({
 export async function POST(req: NextRequest) {
   console.info('User API route hit');
 
-  try {
-    // Log the raw request body
-    const rawBody = await req.text();
-    console.log('Raw request body:', rawBody);
+  // Add timeout for the entire request processing
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Operation timed out')), 8000); // 8 second timeout
+  });
 
-    // Parse the JSON with proper error typing
+  try {
+    const result = await Promise.race([
+      processRequest(req),
+      timeoutPromise
+    ]);
+    return result;
+  } catch (error) {
+    const err = error as Error;
+    console.error('Request failed:', err);
+    
+    return new NextResponse(
+      JSON.stringify({
+        error: err.message || 'Request failed',
+        details: 'The request took too long to process'
+      }),
+      { 
+        status: err.message === 'Operation timed out' ? 504 : 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function processRequest(req: NextRequest) {
+  try {
+    const rawBody = await req.text();
     let jsonBody;
+    
     try {
       jsonBody = JSON.parse(rawBody);
     } catch (error) {
-      // Properly type the error object
       const e = error as Error;
       return NextResponse.json(
-        { 
-          error: 'Invalid JSON', 
-          details: e.message || 'JSON parsing failed'
-        },
+        { error: 'Invalid JSON', details: e.message },
         { status: 400 }
       );
     }
 
-    // Log the parsed body
-    console.log('Parsed request body:', jsonBody);
-
-    // Validate the data
     const validationResult = userSchema.safeParse(jsonBody);
     if (!validationResult.success) {
-      console.error('Validation errors:', validationResult.error);
       return NextResponse.json(
         {
           error: 'Validation error',
@@ -57,29 +74,33 @@ export async function POST(req: NextRequest) {
     }
 
     const userData = validationResult.data;
-    console.debug('Validated user data:', userData);
-
     const { telegramId, ...updateData } = userData;
 
-    // Database operations...
-    let user = await prisma.user.findUnique({ where: { telegramId } });
+    // Use Promise.race to implement timeout for database operations
+    const dbOperation = async () => {
+      let user = await prisma.user.findUnique({ where: { telegramId } });
 
-    if (user) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          ...updateData,
-          updatedAt: new Date(),
-        },
-      });
-    } else {
-      user = await prisma.user.create({
-        data: {
-          telegramId,
-          ...updateData,
-        },
-      });
-    }
+      if (user) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            ...updateData,
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        user = await prisma.user.create({
+          data: {
+            telegramId,
+            ...updateData,
+          },
+        });
+      }
+
+      return user;
+    };
+
+    const user = await dbOperation();
 
     const serializedUser = {
       ...user,
@@ -89,10 +110,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(serializedUser);
   } catch (error) {
-    // Properly type the error object
     const err = error as Error;
-    console.error('Error processing user:', err);
-    
     return NextResponse.json(
       {
         error: 'Internal server error',
