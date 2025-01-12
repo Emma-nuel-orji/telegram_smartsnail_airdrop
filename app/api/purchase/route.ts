@@ -151,9 +151,11 @@ export async function POST(req: NextRequest): Promise<Response> {
   } catch (error: unknown) {
     console.error("Error in purchase processing:", error);
   
-    // Check if error is an instance of Error and safely access message and status
+    // Safely extract message and status
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    const statusCode = error instanceof Error && 'status' in error ? error.status : 500;
+    const statusCode = error instanceof Error && typeof (error as any).status === "number"
+      ? (error as any).status
+      : 500;
   
     return new NextResponse(JSON.stringify({
       success: false,
