@@ -194,7 +194,7 @@ export default function Home() {
         // Increase timeout to 30 seconds and use Promise.race for better timeout handling
         const fetchWithTimeout = async () => {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
+          const timeoutId = setTimeout(() => controller.abort(), 300000);
   
           try {
             const response = await fetch('/api/user', {
