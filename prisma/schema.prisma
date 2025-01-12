@@ -10,7 +10,7 @@ generator client {
 // User model
 model User {
   id             String          @id @default(auto()) @map("_id") @db.ObjectId
-  telegramId     Int          @unique
+  telegramId     BigInt          @unique
   username       String?
   firstName      String?         @map("first_name")
   lastName       String?
