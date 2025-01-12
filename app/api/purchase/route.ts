@@ -26,6 +26,7 @@ interface BookPurchaseInfo {
   bookId?: string;
   book?: Book;
 }
+
 interface Order {
   id: string;
   orderId: string;
@@ -58,6 +59,7 @@ interface BookMap {
 interface OrderWithTransactions extends Order {
   pendingTransactions?: PendingTransaction[];
 }
+
 // Environment variables validation
 const requiredEnv = ["SECRET_KEY", "NEXT_PUBLIC_REDIRECT_URL"];
 const redirectUrl = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://default.redirect.url';
@@ -84,10 +86,84 @@ const requestSchema = z.object({
   paymentReference: z.string(),
 });
 
+export async function POST(req: NextRequest): Promise<Response> {
+  console.log("1. Starting POST request handling");
+  
+  try {
+    const data = await req.json();
+    console.log("2. Request body:", data);
+
+    if (process.env.NODE_ENV === 'production') {
+      console.log("3. Production environment - checking Telegram auth");
+      // Add Telegram auth check if needed
+    }
+
+    console.log("4. Validating schema");
+    const validatedData = requestSchema.parse(data);
+    console.log("5. Validated data:", validatedData);
+
+    console.log("6. Checking purchase quantities");
+    if (validatedData.fxckedUpBagsQty < 0 || validatedData.humanRelationsQty < 0) {
+      throw new Error("Invalid purchase quantities");
+    }
+
+    console.log("7. Preparing purchase data");
+    const { booksToPurchase, bookMap } = await preparePurchaseData(
+      validatedData.fxckedUpBagsQty,
+      validatedData.humanRelationsQty
+    );
+
+    const stockResults = await validateStockAndCalculateTotals(
+      booksToPurchase,
+      bookMap,
+      validatedData.paymentMethod
+    );
+
+    const paymentResult = await processPayment(
+      validatedData.paymentMethod,
+      validatedData.paymentReference,
+      stockResults.totalAmount,
+      process.env.NEXT_PUBLIC_REDIRECT_URL || ''
+    );
+
+    const userResult = await updateDatabaseTransaction(
+      booksToPurchase,
+      stockResults.codes,
+      validatedData.telegramId,
+      validatedData.email,
+      validatedData.paymentMethod,
+      stockResults.totalAmount,
+      stockResults.totalTappingRate,
+      stockResults.totalPoints,
+      validatedData.referrerId
+    );
+
+    return new NextResponse(JSON.stringify({
+      success: true,
+      message: "Purchase completed successfully",
+      orderId: paymentResult.orderId,
+      stockStatus: stockResults.updatedStocks,
+      userUpdate: userResult
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error("Error in purchase processing:", error);
+    return new NextResponse(JSON.stringify({
+      success: false,
+      error: error.message || "An unknown error occurred",
+    }), {
+      status: error.status || 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
   console.log("Quantities requested:", { fxckedUpBagsQty, humanRelationsQty });
 
-  // Validate input quantities
   if (fxckedUpBagsQty < 0 || humanRelationsQty < 0) {
     throw new Error("Book quantities cannot be negative");
   }
@@ -96,69 +172,51 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
     throw new Error("At least one book must be selected for purchase");
   }
 
-  // Fetch books from the database
   const books = await prisma.book.findMany({
     where: {
-      id: { in: ["FxckedUpBags", "HumanRelations"] }
+      title: { in: ["FxckedUpBags (Undo Yourself)", "Human Relations"] }
     }
   });
 
-  if (books.length === 0) {
-    console.error("No books found in database.");
-    throw new Error("No books found in database");
+  if (!books || books.length === 0) {
+    throw new Error("Required books not found in database");
   }
 
-  // Map the books by their IDs
-  const bookMap = books.reduce<BookMap>((acc, book) => {
-    acc[book.id] = book;
+  const bookMap = books.reduce<Record<string, Book>>((acc, book) => {
+    acc[book.title] = book;
     return acc;
   }, {});
 
-  // Debugging: log the bookMap contents
-  console.log("BookMap:", bookMap);
-
-  // Prepare books for purchase
   const booksToPurchase: BookPurchaseInfo[] = [];
 
-  // Add "FxckedUpBags" book
   if (fxckedUpBagsQty > 0) {
-    const fxckedUpBags = bookMap["FxckedUpBags"];
+    const fxckedUpBags = books.find(b => b.title === "FxckedUpBags (Undo Yourself");
     if (!fxckedUpBags) {
-      console.error("Available books in database:", Object.keys(bookMap));
-      throw new Error("FxckedUpBags not found in database. Check database and code consistency.");
+      throw new Error("FxckedUpBags not found in database");
     }
     booksToPurchase.push({
       qty: fxckedUpBagsQty,
       id: fxckedUpBags.id,
       title: fxckedUpBags.title,
-      book: fxckedUpBags,
+      book: fxckedUpBags
     });
   }
 
-  // Add "HumanRelations" book
   if (humanRelationsQty > 0) {
-    const humanRelations = bookMap["HumanRelations"];
+    const humanRelations = books.find(b => b.title === "Human Relations");
     if (!humanRelations) {
-      console.error("Available books in database:", Object.keys(bookMap));
-      throw new Error("HumanRelations not found in database. Check database and code consistency.");
+      throw new Error("HumanRelations not found in database");
     }
     booksToPurchase.push({
       qty: humanRelationsQty,
       id: humanRelations.id,
       title: humanRelations.title,
-      book: humanRelations,
+      book: humanRelations
     });
-  }
-
-  // Final validation: Ensure at least one valid book is selected
-  if (booksToPurchase.length === 0) {
-    console.error("No valid books selected for purchase.");
-    throw new Error("No valid books selected for purchase");
   }
 
   return { booksToPurchase, bookMap };
 }
-
 
 async function validateStockAndCalculateTotals(
   booksToPurchase: BookPurchaseInfo[],
@@ -270,6 +328,7 @@ async function processPayment(
   
   throw new Error("Invalid payment method specified.");
 }
+
 async function updateDatabaseTransaction(
   booksToPurchase: BookPurchaseInfo[],
   codes: string[],
@@ -287,7 +346,8 @@ async function updateDatabaseTransaction(
     const purchasedBooks: { bookId: string; quantity: number }[] = [];
 
     for (const { id, qty } of booksToPurchase) {
-      const book = await tx.book.findFirst({ where: { id } }); // Query by `id`
+      if (!id) continue;
+      const book = await tx.book.findFirst({ where: { id } });
       if (!book) throw new Error(`Book with ID "${id}" not found.`);
       purchasedBooks.push({ bookId: book.id, quantity: qty });
     }
@@ -319,14 +379,11 @@ async function updateDatabaseTransaction(
           })),
         },
         bookId: booksToPurchase.length > 0 
-  ? booksToPurchase.every(book => book.id === booksToPurchase[0].id)
-    ? booksToPurchase[0].id || "UnknownBook"
-    : booksToPurchase.map(book => book.id).join(",") 
-  : "NoBookSelected",
-
+          ? booksToPurchase.every(book => book.id === booksToPurchase[0].id)
+            ? booksToPurchase[0].id || "UnknownBook"
+            : booksToPurchase.map(book => book.id).join(",") 
+          : "NoBookSelected",
       }
-      
-    
     });
 
     const user = await tx.user.upsert({
@@ -378,133 +435,132 @@ async function updateDatabaseTransaction(
     return user;
   });
 }
-
 export async function GET(request: NextRequest) {
   return NextResponse.json({ message: "Purchase API is working" });
 }
 
 
 
-export async function POST(request: NextRequest) {
-  try {
-    console.log("1. Starting POST request handling");
+// export async function POST(request: NextRequest) {
+//   try {
+//     console.log("1. Starting POST request handling");
     
-    let body;
-    try {
-      body = await request.json();
-      console.log("2. Request body:", body);
-    } catch (error) {
-      console.error("Error parsing request body:", error);
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
+//     let body;
+//     try {
+//       body = await request.json();
+//       console.log("2. Request body:", body);
+//     } catch (error) {
+//       console.error("Error parsing request body:", error);
+//       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+//     }
 
-    // Telegram validation
-    if (process.env.NODE_ENV !== 'development') {
-      console.log("3. Production environment - checking Telegram auth");
-      const initData = request.headers.get('x-telegram-init-data');
-      if (!initData) {
-        return NextResponse.json({ error: "Missing Telegram authentication" }, { status: 401 });
-      }
+//     // Telegram validation
+//     if (process.env.NODE_ENV !== 'development') {
+//       console.log("3. Production environment - checking Telegram auth");
+//       const initData = request.headers.get('x-telegram-init-data');
+//       if (!initData) {
+//         return NextResponse.json({ error: "Missing Telegram authentication" }, { status: 401 });
+//       }
 
-      const telegramData = validateTelegramWebAppData(initData);
-      if (!telegramData) {
-        return NextResponse.json({ error: "Invalid Telegram authentication" }, { status: 403 });
-      }
-    } else {
-      console.log("3. Development environment - checking basic auth");
-      const { telegramId, email } = body;
-      if (!telegramId && !email) {
-        return NextResponse.json({ error: "Telegram ID or email must be provided." }, { status: 400 });
-      }
-    }
+//       const telegramData = validateTelegramWebAppData(initData);
+//       if (!telegramData) {
+//         return NextResponse.json({ error: "Invalid Telegram authentication" }, { status: 403 });
+//       }
+//     } else {
+//       console.log("3. Development environment - checking basic auth");
+//       const { telegramId, email } = body;
+//       if (!telegramId && !email) {
+//         return NextResponse.json({ error: "Telegram ID or email must be provided." }, { status: 400 });
+//       }
+//     }
 
-    console.log("4. Validating schema");
-    let validatedData;
-    try {
-      validatedData = requestSchema.parse(body);
-      console.log("5. Validated data:", validatedData);
-    } catch (error) {
-      console.error("Schema validation error:", error);
-      return NextResponse.json(
-        {
-          error: "Invalid request data",
-          details: error instanceof z.ZodError ? error.errors : "Unknown validation error",
-        },
-        { status: 400 }
-      );
-    }
+//     console.log("4. Validating schema");
+//     let validatedData;
+//     try {
+//       validatedData = requestSchema.parse(body);
+//       console.log("5. Validated data:", validatedData);
+//     } catch (error) {
+//       console.error("Schema validation error:", error);
+//       return NextResponse.json(
+//         {
+//           error: "Invalid request data",
+//           details: error instanceof z.ZodError ? error.errors : "Unknown validation error",
+//         },
+//         { status: 400 }
+//       );
+//     }
 
-    const {
-      email,
-      paymentMethod,
-      fxckedUpBagsQty,
-      humanRelationsQty,
-      telegramId,
-      paymentReference,
-      referrerId, 
-    } = validatedData;
+//     const {
+//       email,
+//       paymentMethod,
+//       fxckedUpBagsQty,
+//       humanRelationsQty,
+//       telegramId,
+//       paymentReference,
+//       referrerId, 
+//     } = validatedData;
 
-    console.log("6. Checking purchase quantities");
-    if (fxckedUpBagsQty <= 0 && humanRelationsQty <= 0) {
-      return NextResponse.json(
-        { error: "At least one book must be purchased." },
-        { status: 400 }
-      );
-    }
+//     console.log("6. Checking purchase quantities");
+//     if (fxckedUpBagsQty <= 0 && humanRelationsQty <= 0) {
+//       return NextResponse.json(
+//         { error: "At least one book must be purchased." },
+//         { status: 400 }
+//       );
+//     }
 
-    const redirectUrl = "/home";
+//     const redirectUrl = "/home";
 
-    try {
-      console.log("7. Preparing purchase data");
-      const { booksToPurchase, bookMap } = await preparePurchaseData(fxckedUpBagsQty, humanRelationsQty);
+//     try {
+//       console.log("7. Preparing purchase data");
+//       const { booksToPurchase, bookMap } = await preparePurchaseData(fxckedUpBagsQty, humanRelationsQty);
       
-      console.log("8. Validating stock and calculating totals");
-      const { totalAmount, totalTappingRate, totalPoints, codes, updatedStocks } =
-        await validateStockAndCalculateTotals(booksToPurchase, bookMap, paymentMethod);
+//       console.log("8. Validating stock and calculating totals");
+//       const { totalAmount, totalTappingRate, totalPoints, codes, updatedStocks } =
+//         await validateStockAndCalculateTotals(booksToPurchase, bookMap, paymentMethod);
 
-      console.log("9. Processing payment");
-      await processPayment(paymentMethod, paymentReference, totalAmount, redirectUrl);
+//       console.log("9. Processing payment");
+//       await processPayment(paymentMethod, paymentReference, totalAmount, redirectUrl);
 
-      console.log("10. Updating database");
-      const user = await updateDatabaseTransaction(
-        booksToPurchase,
-        codes,
-        telegramId,
-        email,
-        paymentMethod,
-        totalAmount,
-        totalTappingRate,
-        totalPoints,
-        referrerId
-      );
+//       console.log("10. Updating database");
+//       const user = await updateDatabaseTransaction(
+//         booksToPurchase,
+//         codes,
+//         telegramId,
+//         email,
+//         paymentMethod,
+//         totalAmount,
+//         totalTappingRate,
+//         totalPoints,
+//         referrerId
+//       );
 
-      console.log("11. Purchase successful");
-      return NextResponse.json({
-        message: `Purchase successful. Codes will be emailed to ${email}.`,
-        updatedTappingRate: user.tappingRate,
-        points: user.points,
-        codes: codes,
-        stockStatus: updatedStocks,
-        redirectUrl: "/home",
-      });
-    } catch (error) {
-      console.error("Error in purchase processing:", error);
-      return NextResponse.json(
-        {
-          error: "An error occurred while processing the request.",
-          details: error instanceof Error ? error.message : "Unknown error",
-        },
-        { status: 500 }
-      );
-    }
-  } catch (outer_error) {
-    console.error("Outer error handler caught:", outer_error);
-    return NextResponse.json(
-      {
-        error: "An unexpected error occurred.",
-        details: outer_error instanceof Error ? outer_error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
-  }
-}
+//       console.log("11. Purchase successful");
+//       return NextResponse.json({
+//         message: `Purchase successful. Codes will be emailed to ${email}.`,
+//         updatedTappingRate: user.tappingRate,
+//         points: user.points,
+//         codes: codes,
+//         stockStatus: updatedStocks,
+//         redirectUrl: "/home",
+//       });
+//     } catch (error) {
+//       console.error("Error in purchase processing:", error);
+//       return NextResponse.json(
+//         {
+//           error: "An error occurred while processing the request.",
+//           details: error instanceof Error ? error.message : "Unknown error",
+//         },
+//         { status: 500 }
+//       );
+//     }
+//   } catch (outer_error) {
+//     console.error("Outer error handler caught:", outer_error);
+//     return NextResponse.json(
+//       {
+//         error: "An unexpected error occurred.",
+//         details: outer_error instanceof Error ? outer_error.message : "Unknown error",
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
