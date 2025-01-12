@@ -38,7 +38,7 @@ export default function Home() {
   
   const [isLoading, setLoading] = useState(true);
   const [isClicking, setIsClicking] = useState(false);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
@@ -166,20 +166,20 @@ export default function Home() {
     const initializeTelegram = async () => {
       setLoading(true);
       const startTime = Date.now();
-    
+  
       try {
         if (!window.Telegram?.WebApp) {
           throw new Error('Telegram WebApp not available');
         }
-    
+  
         const tg = window.Telegram.WebApp;
         tg.ready();
-    
+  
         const userData = tg?.initDataUnsafe?.user;
         if (!userData?.id) {
           throw new Error('Unable to get user information');
         }
-    
+  
         const requestData = {
           telegramId: userData.id.toString(),
           username: userData.username || null,
@@ -190,58 +190,56 @@ export default function Home() {
           hasClaimedWelcome: false,
           nft: false,
         };
-    
-        // Add timeout to fetch request
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
-        try {
-          const response = await fetch('/api/user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData),
-            signal: controller.signal,
-          });
-    
-          clearTimeout(timeout);
-    
-          if (!response.ok) {
-            const errorText = await response.text();
-            let errorData;
-            try {
-              errorData = JSON.parse(errorText);
-            } catch {
-              errorData = { error: errorText };
-            }
-            throw new Error(`HTTP error! status: ${response.status}, details: ${JSON.stringify(errorData)}`);
-          }
-    
-          const data = await response.json();
-          if (data.error) {
-            throw new Error(data.error);
-          }
-    
-          setUser({
-            telegramId: data.telegramId.toString(),
-            points: data.points,
-            tappingRate: data.tappingRate,
-            firstName: data.firstName,
-            lastName: data.lastName,
-          });
-    
-          if (data.points === 0) {
-            setShowWelcomePopup(true);
-          }
-        } catch (err) {
-          // Type check the error before accessing properties
-          if (err instanceof Error) {
-              if (err.name === 'AbortError') {
-                  throw new Error('Request timed out. Please try again.');
+  
+        // Increase timeout to 30 seconds and use Promise.race for better timeout handling
+        const fetchWithTimeout = async () => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
+  
+          try {
+            const response = await fetch('/api/user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(requestData),
+              signal: controller.signal,
+            });
+  
+            clearTimeout(timeoutId);
+  
+            if (!response.ok) {
+              const errorText = await response.text();
+              let errorData;
+              try {
+                errorData = JSON.parse(errorText);
+              } catch {
+                errorData = { error: errorText };
               }
+              throw new Error(`HTTP error! status: ${response.status}, details: ${JSON.stringify(errorData)}`);
+            }
+  
+            return response.json();
+          } finally {
+            clearTimeout(timeoutId);
           }
-          throw err;
-      } finally {
-          clearTimeout(timeout);
+        };
+  
+        const data = await fetchWithTimeout();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+  
+        // Set user data
+          setUser({
+          telegramId: data.telegramId.toString(),
+          points: data.points,
+          tappingRate: data.tappingRate,
+          firstName: data.firstName,
+          lastName: data.lastName,
+        });
+  
+        if (data.points === 0) {
+          setShowWelcomePopup(true);
         }
       } catch (err: any) {
         console.error('Initialization error:', err);
@@ -252,8 +250,9 @@ export default function Home() {
         setTimeout(() => setLoading(false), remainingTime);
       }
     };
-  initializeTelegram();
-}, []);
+  
+    initializeTelegram();
+  }, []);
 
   
   if (isLoading) {
