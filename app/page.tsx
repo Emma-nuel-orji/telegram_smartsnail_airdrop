@@ -113,16 +113,21 @@ export default function Home() {
     setIsClicking(true);
 
     setSpeed((prev) => Math.min(prev + 0.1, 5));
-    const newClick = { id: Date.now(), x: e.clientX, y: e.clientY };
+    const newClick = { 
+        id: Date.now(), 
+        x: e.clientX, 
+        y: e.clientY,
+        tappingRate: user?.tappingRate || 1 // Add the tappingRate from user
+    };
     setClicks((prev) => [...prev, newClick]);
 
     if (inactivityTimeout.current) {
-      clearTimeout(inactivityTimeout.current);
+        clearTimeout(inactivityTimeout.current);
     }
 
     inactivityTimeout.current = setTimeout(() => {
-      setIsClicking(false);
-      reduceSpeed();
+        setIsClicking(false);
+        reduceSpeed();
     }, 1000);
 
     const reduceSpeed = () => {
@@ -497,18 +502,18 @@ const handleClaim = async () => {
         
         {/* Floating Clicks Animation */}
         {clicks.map((click) => (
-          <div
-            key={click.id}
-            className="absolute text-5xl font-bold text-white opacity-0"
-            style={{
-              top: `${click.y - 42}px`,
-              left: `${click.x - 28}px`,
-              animation: 'float 1s ease-out'
-            }}
-            onAnimationEnd={() => handleAnimationEnd(click.id)}
-          >
-            +1
-        </div>
+    <div
+        key={click.id}
+        className="absolute text-5xl font-bold text-white opacity-0"
+        style={{
+            top: `${click.y - 42}px`,
+            left: `${click.x - 28}px`,
+            animation: 'float 1s ease-out'
+        }}
+        onAnimationEnd={() => handleAnimationEnd(click.id)}
+    >
+        +{click.tappingRate}
+    </div>
       ))}
     </div>
   </div>
