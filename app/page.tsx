@@ -38,7 +38,7 @@ export default function Home() {
   
   const [isLoading, setLoading] = useState(true);
   const [isClicking, setIsClicking] = useState(false);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
