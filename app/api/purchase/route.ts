@@ -148,18 +148,22 @@ export async function POST(req: NextRequest): Promise<Response> {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in purchase processing:", error);
+  
+    // Check if error is an instance of Error and safely access message and status
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    const statusCode = error instanceof Error && 'status' in error ? error.status : 500;
+  
     return new NextResponse(JSON.stringify({
       success: false,
-      error: error.message || "An unknown error occurred",
+      error: errorMessage,
     }), {
-      status: error.status || 500,
+      status: statusCode,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-}
+}  
 
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
   console.log("Quantities requested:", { fxckedUpBagsQty, humanRelationsQty });
