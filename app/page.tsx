@@ -233,11 +233,14 @@ export default function Home() {
             setShowWelcomePopup(true);
           }
         } catch (err) {
-          if (err.name === 'AbortError') {
-            throw new Error('Request timed out. Please try again.');
+          // Type check the error before accessing properties
+          if (err instanceof Error) {
+              if (err.name === 'AbortError') {
+                  throw new Error('Request timed out. Please try again.');
+              }
           }
           throw err;
-        } finally {
+      } finally {
           clearTimeout(timeout);
         }
       } catch (err: any) {
