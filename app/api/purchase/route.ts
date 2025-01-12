@@ -26,7 +26,6 @@ interface BookPurchaseInfo {
   bookId?: string;
   book?: Book;
 }
-
 interface Order {
   id: string;
   orderId: string;
@@ -59,7 +58,6 @@ interface BookMap {
 interface OrderWithTransactions extends Order {
   pendingTransactions?: PendingTransaction[];
 }
-
 // Environment variables validation
 const requiredEnv = ["SECRET_KEY", "NEXT_PUBLIC_REDIRECT_URL"];
 const redirectUrl = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://default.redirect.url';
@@ -86,84 +84,10 @@ const requestSchema = z.object({
   paymentReference: z.string(),
 });
 
-export async function POST(req: NextRequest): Promise<Response> {
-  console.log("1. Starting POST request handling");
-  
-  try {
-    const data = await req.json();
-    console.log("2. Request body:", data);
-
-    if (process.env.NODE_ENV === 'production') {
-      console.log("3. Production environment - checking Telegram auth");
-      // Add Telegram auth check if needed
-    }
-
-    console.log("4. Validating schema");
-    const validatedData = requestSchema.parse(data);
-    console.log("5. Validated data:", validatedData);
-
-    console.log("6. Checking purchase quantities");
-    if (validatedData.fxckedUpBagsQty < 0 || validatedData.humanRelationsQty < 0) {
-      throw new Error("Invalid purchase quantities");
-    }
-
-    console.log("7. Preparing purchase data");
-    const { booksToPurchase, bookMap } = await preparePurchaseData(
-      validatedData.fxckedUpBagsQty,
-      validatedData.humanRelationsQty
-    );
-
-    const stockResults = await validateStockAndCalculateTotals(
-      booksToPurchase,
-      bookMap,
-      validatedData.paymentMethod
-    );
-
-    const paymentResult = await processPayment(
-      validatedData.paymentMethod,
-      validatedData.paymentReference,
-      stockResults.totalAmount,
-      process.env.NEXT_PUBLIC_REDIRECT_URL || ''
-    );
-
-    const userResult = await updateDatabaseTransaction(
-      booksToPurchase,
-      stockResults.codes,
-      validatedData.telegramId,
-      validatedData.email,
-      validatedData.paymentMethod,
-      stockResults.totalAmount,
-      stockResults.totalTappingRate,
-      stockResults.totalPoints,
-      validatedData.referrerId
-    );
-
-    return new NextResponse(JSON.stringify({
-      success: true,
-      message: "Purchase completed successfully",
-      orderId: paymentResult.orderId,
-      stockStatus: stockResults.updatedStocks,
-      userUpdate: userResult
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-  } catch (error) {
-    console.error("Error in purchase processing:", error);
-    return new NextResponse(JSON.stringify({
-      success: false,
-      error: error.message || "An unknown error occurred",
-    }), {
-      status: error.status || 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-}
-
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
   console.log("Quantities requested:", { fxckedUpBagsQty, humanRelationsQty });
 
+  // Validate input quantities
   if (fxckedUpBagsQty < 0 || humanRelationsQty < 0) {
     throw new Error("Book quantities cannot be negative");
   }
@@ -172,51 +96,69 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
     throw new Error("At least one book must be selected for purchase");
   }
 
+  // Fetch books from the database
   const books = await prisma.book.findMany({
     where: {
-      title: { in: ["FxckedUpBags (Undo Yourself)", "Human Relations"] }
+      id: { in: ["FxckedUpBags", "HumanRelations"] }
     }
   });
 
-  if (!books || books.length === 0) {
-    throw new Error("Required books not found in database");
+  if (books.length === 0) {
+    console.error("No books found in database.");
+    throw new Error("No books found in database");
   }
 
-  const bookMap = books.reduce<Record<string, Book>>((acc, book) => {
-    acc[book.title] = book;
+  // Map the books by their IDs
+  const bookMap = books.reduce<BookMap>((acc, book) => {
+    acc[book.id] = book;
     return acc;
   }, {});
 
+  // Debugging: log the bookMap contents
+  console.log("BookMap:", bookMap);
+
+  // Prepare books for purchase
   const booksToPurchase: BookPurchaseInfo[] = [];
 
+  // Add "FxckedUpBags" book
   if (fxckedUpBagsQty > 0) {
-    const fxckedUpBags = books.find(b => b.title === "FxckedUpBags (Undo Yourself");
+    const fxckedUpBags = bookMap["FxckedUpBags"];
     if (!fxckedUpBags) {
-      throw new Error("FxckedUpBags not found in database");
+      console.error("Available books in database:", Object.keys(bookMap));
+      throw new Error("FxckedUpBags not found in database. Check database and code consistency.");
     }
     booksToPurchase.push({
       qty: fxckedUpBagsQty,
       id: fxckedUpBags.id,
       title: fxckedUpBags.title,
-      book: fxckedUpBags
+      book: fxckedUpBags,
     });
   }
 
+  // Add "HumanRelations" book
   if (humanRelationsQty > 0) {
-    const humanRelations = books.find(b => b.title === "Human Relations");
+    const humanRelations = bookMap["HumanRelations"];
     if (!humanRelations) {
-      throw new Error("HumanRelations not found in database");
+      console.error("Available books in database:", Object.keys(bookMap));
+      throw new Error("HumanRelations not found in database. Check database and code consistency.");
     }
     booksToPurchase.push({
       qty: humanRelationsQty,
       id: humanRelations.id,
       title: humanRelations.title,
-      book: humanRelations
+      book: humanRelations,
     });
+  }
+
+  // Final validation: Ensure at least one valid book is selected
+  if (booksToPurchase.length === 0) {
+    console.error("No valid books selected for purchase.");
+    throw new Error("No valid books selected for purchase");
   }
 
   return { booksToPurchase, bookMap };
 }
+
 
 async function validateStockAndCalculateTotals(
   booksToPurchase: BookPurchaseInfo[],
@@ -328,7 +270,6 @@ async function processPayment(
   
   throw new Error("Invalid payment method specified.");
 }
-
 async function updateDatabaseTransaction(
   booksToPurchase: BookPurchaseInfo[],
   codes: string[],
@@ -346,8 +287,7 @@ async function updateDatabaseTransaction(
     const purchasedBooks: { bookId: string; quantity: number }[] = [];
 
     for (const { id, qty } of booksToPurchase) {
-      if (!id) continue;
-      const book = await tx.book.findFirst({ where: { id } });
+      const book = await tx.book.findFirst({ where: { id } }); // Query by `id`
       if (!book) throw new Error(`Book with ID "${id}" not found.`);
       purchasedBooks.push({ bookId: book.id, quantity: qty });
     }
@@ -379,11 +319,14 @@ async function updateDatabaseTransaction(
           })),
         },
         bookId: booksToPurchase.length > 0 
-          ? booksToPurchase.every(book => book.id === booksToPurchase[0].id)
-            ? booksToPurchase[0].id || "UnknownBook"
-            : booksToPurchase.map(book => book.id).join(",") 
-          : "NoBookSelected",
+  ? booksToPurchase.every(book => book.id === booksToPurchase[0].id)
+    ? booksToPurchase[0].id || "UnknownBook"
+    : booksToPurchase.map(book => book.id).join(",") 
+  : "NoBookSelected",
+
       }
+      
+    
     });
 
     const user = await tx.user.upsert({
@@ -435,6 +378,7 @@ async function updateDatabaseTransaction(
     return user;
   });
 }
+
 export async function GET(request: NextRequest) {
   return NextResponse.json({ message: "Purchase API is working" });
 }
