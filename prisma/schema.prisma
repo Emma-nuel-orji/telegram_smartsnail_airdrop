@@ -12,11 +12,11 @@ model User {
   id             String          @id @default(auto()) @map("_id") @db.ObjectId
   telegramId     BigInt          @unique
   username       String?
-  firstName      String?         @map("first_name")
+  firstName      String?
   lastName       String?
   tasks          Task[]          @relation("UserTasks")
   email          String?         
-  points         Int             @default(0)
+  points         BigInt          @default(0)
   tappingRate    Int             @default(1)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -90,7 +90,7 @@ model GeneratedCode {
   redeemedBy String?   @db.ObjectId
   assignedTo String?   @db.ObjectId
   bookId     String    
-  isUsed     Boolean   @default(false)
+  isUsed     Boolean?   @default(false)
   purchaseId String?   @db.ObjectId
   createdAt  DateTime  @default(now())
 
@@ -101,19 +101,18 @@ model GeneratedCode {
 
 // Book model
 model Book {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  description String
-  priceTon    Float
-  priceCard   Float
-  priceStars  Int
+  id          String   @id @map("_id")
   author      String
-  coinsReward Int
-  tappingRate Float
-  stockLimit  Int
-  usedStock   Int
-  createdAt   DateTime @default(now())
-
+  coinsReward BigInt  // Keep BigInt
+  createdAt   DateTime @db.Date
+  description String
+  priceCard   Float
+  priceStars  Int     // Changed to Int
+  priceTon    Float
+  stockLimit  Int     // Changed to Int
+  tappingRate Int     // Changed to Int
+  title       String
+  usedStock   Int     // Changed to Int
   // Relations
   generatedCodes GeneratedCode[] // One-to-many relation to GeneratedCode
   purchases      Purchase[] // One-to-many relation to Purchase

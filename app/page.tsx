@@ -181,14 +181,14 @@ export default function Home() {
         }
   
         const requestData = {
-          telegramId: userData.id.toString(),
+          telegramId: userData.id.toString(), // Make sure this is actually a string
           username: userData.username || null,
-          firstName: userData.first_name || null,
-          lastName: userData.last_name || null,
-          points: 0,
-          tappingRate: 1,
-          hasClaimedWelcome: false,
-          nft: false,
+          firstName: userData.firstName || null,
+          lastName: userData.lastName || null,
+          points: Number(0), // Explicitly convert to number
+          tappingRate: Number(1), // Explicitly convert to number
+          hasClaimedWelcome: Boolean(false),
+          nft: Boolean(false)
         };
   
         // Increase timeout to 30 seconds and use Promise.race for better timeout handling
