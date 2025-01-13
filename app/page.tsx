@@ -131,17 +131,15 @@ export default function Home() {
     }, 1000);
 
     const reduceSpeed = () => {
-      const reduceInterval = setInterval(() => {
-        setSpeed((prev) => {
-          if (prev > 1) {
-            return prev - 0.2;
-          } else {
-            clearInterval(reduceInterval);
-            return 1;
-          }
-        });
-      }, 100);
+      setSpeed((prev) => Math.max(1, prev - 0.2));
     };
+    
+    useEffect(() => {
+      if (!isClicking) {
+        const interval = setInterval(reduceSpeed, 100);
+        return () => clearInterval(interval);
+      }
+    }, [isClicking]);
   
   };
 
@@ -152,14 +150,15 @@ export default function Home() {
   
   useEffect(() => {
     if (!isClicking && energy < maxEnergy) {
+      const refillSpeed = Math.max(100, (maxEnergy - energy) / 10); // Adjust speed
       const refillInterval = setInterval(() => {
         setEnergy((prev) => Math.min(maxEnergy, prev + 10));
-      }, 500);
-
+      }, refillSpeed);
+  
       return () => clearInterval(refillInterval);
     }
   }, [isClicking, energy]);
-
+  
   // Modify your useEffect in Home component
 
   useEffect(() => {
@@ -182,9 +181,9 @@ export default function Home() {
   
         const requestData = {
           telegramId: userData.id.toString(), // Make sure this is actually a string
-          username: userData.username || null,
-          firstName: userData.first_name || null,
-          lastName: userData.last_name || null,
+          username: userData.username || '',
+          firstName: userData.first_name || '',
+          lastName: userData.last_name || '',
           points: Number(0), // Explicitly convert to number
           tappingRate: Number(1), // Explicitly convert to number
           hasClaimedWelcome: Boolean(false),
@@ -238,9 +237,10 @@ export default function Home() {
           lastName: data.last_name,
         });
   
-        if (data.points === 0) {
+        if (!data.hasClaimedWelcome) {
           setShowWelcomePopup(true);
-        }
+      }
+      
       } catch (err: any) {
         console.error('Initialization error:', err);
         setError(err.message || 'Failed to initialize app');
@@ -255,13 +255,15 @@ export default function Home() {
   }, []);
 
   
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader />
-      </div>
-    );
-  }
+  {isLoading ? (
+    <Loader />
+  ) : (
+    <div>
+      {error && <div className="error">{error}</div>}
+      {/* Main content */}
+    </div>
+  )}
+  
   
   
   
