@@ -26,8 +26,8 @@ export default function Home() {
     telegramId: string;
     points: number;
     tappingRate: number;
-    firstName?: string | null;
-    lastName?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
   }>(null);
 
   const [firstName, setFirstName] = useState<string | null>(null);
@@ -182,8 +182,8 @@ export default function Home() {
         const requestData = {
           telegramId: userData.id.toString(), // Make sure this is actually a string
           username: userData.username || '',
-          firstName: userData.first_name || '',
-          lastName: userData.last_name || '',
+          first_name: userData.first_name || '',
+          last_name: userData.last_name || '',
           points: Number(0), // Explicitly convert to number
           tappingRate: Number(1), // Explicitly convert to number
           hasClaimedWelcome: Boolean(false),
@@ -254,16 +254,19 @@ export default function Home() {
     initializeTelegram();
   }, []);
 
-  
-  {isLoading ? (
-    <Loader />
-  ) : (
-    <div>
-      {error && <div className="error">{error}</div>}
-      {/* Main content */}
-    </div>
-  )}
-  
+  useEffect(() => {
+    if (user?.first_name) {
+      setFirstName(user.first_name);
+    }
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader />
+      </div>
+    );
+  }
   
   
   
