@@ -183,8 +183,8 @@ export default function Home() {
         const requestData = {
           telegramId: userData.id.toString(), // Make sure this is actually a string
           username: userData.username || null,
-          firstName: userData.firstName || null,
-          lastName: userData.lastName || null,
+          firstName: userData.first_name || null,
+          lastName: userData.last_name || null,
           points: Number(0), // Explicitly convert to number
           tappingRate: Number(1), // Explicitly convert to number
           hasClaimedWelcome: Boolean(false),
@@ -234,8 +234,8 @@ export default function Home() {
           telegramId: data.telegramId.toString(),
           points: data.points,
           tappingRate: data.tappingRate,
-          firstName: data.firstName,
-          lastName: data.lastName,
+          firstName: data.first_name,
+          lastName: data.last_name,
         });
   
         if (data.points === 0) {
@@ -399,16 +399,29 @@ const handleClaim = async () => {
   {/* Existing home page content */}
   <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
     
-    {/* New section for smartsnail with icons */}
+    {/* New section for SmartSnail with icons */}
     <div className="flex items-center justify-between w-full px-4 mb-4">
-      <span className="text-2xl font-semibold">SmartSnail</span>
+      <div className="flex flex-col items-center">
+        <span className="text-2xl font-semibold">SmartSnail</span>
+        {/* Marketplace text under SmartSnail */}
+        <span className="text-sm text-gray-400">Marketplace</span>
+      </div>
 
       <div className="flex space-x-4">
-        <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" /></Link>
-        <Link href="/wallet"><img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" /></Link>
-        <Link href="/info"><img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" /></Link>
+        <Link href="/Leaderboard">
+          <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
+        </Link>
+        <Link href="/wallet">
+          <img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" />
+        </Link>
+        <Link href="/info">
+          <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" />
+        </Link>
       </div>
     </div>
+  
+
+
 
     {/* User Stats Section */}
     {/* <p>Points: {user?.points}</p>
@@ -519,21 +532,10 @@ const handleClaim = async () => {
       ))}
     </div>
   </div>
-  <style jsx>{`
-    @keyframes float {
-      0% {
-        transform: translateY(0);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-50px);
-        opacity: 0;
-      }
-    }
-  `}</style>
+ 
 
 
-    {/* ... */}
+  
   </div>
   {notification && (
     <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">

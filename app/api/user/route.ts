@@ -8,8 +8,8 @@ const userSchema = z.object({
     .regex(/^\d+$/, "Telegram ID must be numeric")
     .transform(BigInt),
   username: z.string().nullable(),
-  firstName: z.string().nullable(),
-  lastName: z.string().nullable(),
+  first_name: z.string().nullable(),
+  last_name: z.string().nullable(),
   points: z.number().int().min(0).default(0),
   tappingRate: z.number().int().positive().default(1), // Changed to ensure it's an integer
   hasClaimedWelcome: z.boolean().default(false),
@@ -41,8 +41,8 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const updateData = {
       username: userData.username || '',
-      firstName: userData.firstName || '',
-      lastName: userData.lastName || '',
+      firstName: userData.first_name || '',
+      lastName: userData.last_name || '',
       points: BigInt(userData.points), // Convert to BigInt for database
       tappingRate: userData.tappingRate, // Keep as regular integer
       hasClaimedWelcome: userData.hasClaimedWelcome,
@@ -77,7 +77,6 @@ export async function POST(req: NextRequest): Promise<Response> {
         });
       }
 
-      // Convert BigInt to string for JSON response
       const responseUser = {
         ...user,
         telegramId: user.telegramId.toString(),
@@ -85,22 +84,36 @@ export async function POST(req: NextRequest): Promise<Response> {
       };
 
       return new NextResponse(JSON.stringify(responseUser), { status: 200 });
+
     } catch (dbError) {
-      console.error('Database operation error:', dbError);
-      return new NextResponse(
-        JSON.stringify({
+      console.error('Database error:', dbError);
+      return NextResponse.json(
+        {
           error: 'Database operation failed',
-          details: dbError.message,
-        }),
+          details: dbError instanceof Error ? dbError.message : 'Unknown database error',
+        },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error('General error:', error);
+    
+    // Type guard to check if `error` is an instance of Error
+    if (error instanceof Error) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Internal server error',
+          details: error.message,
+        }),
+        { status: 500 }
+      );
+    }
+
+    // If error is not an instance of Error, handle it generically
     return new NextResponse(
       JSON.stringify({
         error: 'Internal server error',
-        details: error.message,
+        details: 'Unknown error occurred',
       }),
       { status: 500 }
     );

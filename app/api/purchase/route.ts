@@ -93,15 +93,45 @@ export async function POST(req: NextRequest): Promise<Response> {
     const data = await req.json();
     console.log("2. Request body:", data);
 
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV !== 'development') {
       console.log("3. Production environment - checking Telegram auth");
-      // Add Telegram auth check if needed
+      
+      // Use 'req' instead of 'request'
+      const initData = req.headers.get('x-telegram-init-data');  
+      
+      if (!initData) {
+        return NextResponse.json({ error: "Missing Telegram authentication" }, { status: 401 });
+      }
+
+      const telegramData = validateTelegramWebAppData(initData);
+      if (!telegramData) {
+        return NextResponse.json({ error: "Invalid Telegram authentication" }, { status: 403 });
+      }
+    } else {
+      console.log("3. Development environment - checking basic auth");
+      const { telegramId, email } = data;  // Use 'data' here instead of 'body'
+      if (!telegramId && !email) {
+        return NextResponse.json({ error: "Telegram ID or email must be provided." }, { status: 400 });
+      }
     }
 
     console.log("4. Validating schema");
-    const validatedData = requestSchema.parse(data);
-    console.log("5. Validated data:", validatedData);
+    let validatedData;
+    try {
+      validatedData = requestSchema.parse(data);  // Use 'data' instead of 'body'
+      console.log("5. Validated data:", validatedData);
+    } catch (error) {
+      console.error("Schema validation error:", error);
+      return NextResponse.json(
+        {
+          error: "Invalid request data",
+          details: error instanceof z.ZodError ? error.errors : "Unknown validation error",
+        },
+        { status: 400 }
+      );
+    }
 
+  
     console.log("6. Checking purchase quantities");
     if (validatedData.fxckedUpBagsQty < 0 || validatedData.humanRelationsQty < 0) {
       throw new Error("Invalid purchase quantities");
@@ -148,24 +178,30 @@ export async function POST(req: NextRequest): Promise<Response> {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error in purchase processing:", error);
-  
-    // Safely extract message and status
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    const statusCode = error instanceof Error && typeof (error as any).status === "number"
-      ? (error as any).status
-      : 500;
+    
+    // Properly type the error response
+    let statusCode = 500;
+    let errorMessage = "An unknown error occurred";
+
+    if (error instanceof z.ZodError) {
+      statusCode = 400;
+      errorMessage = "Validation error";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+      // You can add more specific error type checks here
+      statusCode = error.name === 'ValidationError' ? 400 : 500;
+    }
   
     return new NextResponse(JSON.stringify({
       success: false,
       error: errorMessage,
     }), {
-      status: statusCode,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-}  
+    status: statusCode,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
   console.log("Quantities requested:", { fxckedUpBagsQty, humanRelationsQty });
@@ -258,7 +294,7 @@ async function validateStockAndCalculateTotals(
     const points = book.coinsReward || 0;
 
     totalTappingRate += qty * tappingRate;
-    totalPoints += qty * points;
+    totalPoints += qty * Number(points);
 
     const totalStock = book.stockLimit || 0;
     const usedStock = await prisma.generatedCode.count({
@@ -438,14 +474,12 @@ async function updateDatabaseTransaction(
       }
     }
 
+
     return user;
   });
 }
-export async function GET(request: NextRequest) {
-  return NextResponse.json({ message: "Purchase API is working" });
+
 }
-
-
 
 // export async function POST(request: NextRequest) {
 //   try {
