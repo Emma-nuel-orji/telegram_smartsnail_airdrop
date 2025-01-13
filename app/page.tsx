@@ -233,8 +233,8 @@ export default function Home() {
           telegramId: data.telegramId.toString(),
           points: data.points,
           tappingRate: data.tappingRate,
-          firstName: data.first_name,
-          lastName: data.last_name,
+          first_name: data.first_name,
+          last_name: data.last_name,
         });
   
         if (!data.hasClaimedWelcome) {
