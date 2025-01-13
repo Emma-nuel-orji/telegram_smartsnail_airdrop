@@ -372,16 +372,56 @@ const handleClaim = async () => {
     <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
       
       {/* Welcome Heading */}
-      <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName}!</h2>
+      <h2 className="text-2xl font-bold mb-4">Welcome onboard {first_name}!</h2>
 
-      {/* Video Section */}
-      <div className="mb-4 w-full">
-        <video className="rounded-md mx-auto" width="320" height="240" autoPlay loop muted>
-          <source src="/videos/speedsnail.mp4" type="video/mp4" />
-          
-          Your browser does not support the video tag.
-        </video>
-      </div>
+       {/* Video Section with Loading State */}
+       <div className="mb-4 w-full relative">
+            {/* Custom Loader */}
+            {isVideoLoading && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader />
+              </div>
+            )}
+
+            <div className={`transition-opacity duration-300 ${isVideoLoading ? 'opacity-0' : 'opacity-100'}`}>
+              <video 
+                className="rounded-md mx-auto"
+                width="320"
+                height="240"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                onLoadedData={() => {
+                  // Add a small delay to ensure smooth transition
+                  setTimeout(() => setIsVideoLoading(false), 300);
+                }}
+                onError={() => {
+                  setIsVideoLoading(false);
+                  setVideoError(true);
+                }}
+              >
+                {/* WebM format first for browsers that support it */}
+                <source src="/videos/speedsnail.webm" type="video/webm" />
+                {/* Fallback to MP4 */}
+                <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+
+            {/* Error State */}
+            {videoError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-purple-800/20 rounded-md">
+                <div className="text-center p-4">
+                  <p className="text-white/80 text-sm">
+                    Unable to load welcome video. Please refresh.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
 
       {/* Content Below the Video */}
       <p className="mt-4">Now you're a Smart Snail!</p>
