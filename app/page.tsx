@@ -35,7 +35,8 @@ export default function Home() {
   const [speed, setSpeed] = useState(1);
   const [clicks, setClicks] = useState<Click[]>([]);
   const [energy, setEnergy] = useState(1500);
-  
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
+  const [videoError, setVideoError] = useState(false);  
   const [isLoading, setLoading] = useState(true);
   const [isClicking, setIsClicking] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
@@ -372,7 +373,7 @@ const handleClaim = async () => {
     <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
       
       {/* Welcome Heading */}
-      <h2 className="text-2xl font-bold mb-4">Welcome onboard {first_name}!</h2>
+      <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName}!</h2>
 
        {/* Video Section with Loading State */}
        <div className="mb-4 w-full relative">

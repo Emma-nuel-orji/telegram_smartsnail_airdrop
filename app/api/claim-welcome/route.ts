@@ -61,9 +61,7 @@ export async function POST(req: NextRequest) {
       });
 
       return updatedUser;
-    }, {
-      // Add transaction options for better isolation
-      isolationLevel: 'Serializable'
+    
     });
 
     return NextResponse.json({
