@@ -5,6 +5,8 @@ import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
 import Loader from "@/loader";
+import confetti from 'canvas-confetti';
+import ScrollingText from '@/components/ScrollingText';
 
 declare global {
   interface Window {
@@ -23,9 +25,9 @@ type Click = {
 
 export default function Home() {
   const [user, setUser] = useState<null | {
-    telegramId: string;
+    telegramId?: string;
     points: number;
-    tappingRate: number;
+    tappingRate: number | undefined;
     first_name?: string | null;
     last_name?: string | null;
   }>(null);
@@ -43,6 +45,19 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { x: 0.5, y: 0.5 },
+    });
+  };
+
+  useEffect(() => {
+    // Simulating loading state (you can adjust as per your needs)
+    setIsVideoLoading(true);
+  }, []);
 
   const maxEnergy = 1500;
 
@@ -55,60 +70,60 @@ export default function Home() {
     // Add a click effect
     setClicks((prevClicks) => [
       ...prevClicks,
-      { id, x: clientX, y: clientY, tappingRate: user!.tappingRate },
+      { 
+        id, 
+        x: clientX, 
+        y: clientY, 
+        tappingRate: user!.tappingRate ?? 1, // Fallback to 1 if tappingRate is undefined
+      },
     ]);
-
+    
     const prevPoints = user.points;
 
-    // Optimistic update
+   // Optimistic update
+setUser((prevUser) => ({
+  ...prevUser!,
+  points: Number(prevUser!.points) + Number(prevUser!.tappingRate),
+}));
+localStorage.setItem('points', (Number(prevPoints) + Number(user!.tappingRate)).toString());
+
+setEnergy((prev) => Math.max(0, prev - 50));
+
+try {
+  const res = await fetch('/api/increase-points', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      telegramId: user!.telegramId,
+      tappingRate: user!.tappingRate,
+    }),
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
     setUser((prevUser) => ({
       ...prevUser!,
-      points: prevUser!.points + prevUser!.tappingRate,
+      points: data.points, // Ensure the comma is correct
     }));
 
-    setEnergy((prev) => Math.max(0, prev - 50));
+    // Store updated points in localStorage
+    localStorage.setItem('points', data.points.toString());
+  } else {
+    throw new Error('Server rejected points update.');
+  }
+} catch (error) {
+  console.error('An error occurred:', error);
 
-    try {
-      const res = await fetch('/api/increase-points', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegramId: user!.telegramId,
-          tappingRate: user!.tappingRate,
-        }),
-      });
+  setError('Failed to increase points');
+  setTimeout(() => setError(null), 2000);
+}
 
-      const data = await res.json();
+// Remove the click effect after a short delay
+setTimeout(() => {
+  setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
+}, 1000);
 
-      if (data.success) {
-        setUser((prevUser) => ({
-          ...prevUser!,
-          points: data.points,
-        }));
-        setNotification(`Points increased by ${user!.tappingRate} per click!`);
-        setTimeout(() => setNotification(null), 3000);
-      } else {
-        setUser((prevUser) => ({
-          ...prevUser!,
-          points: prevPoints,
-        }));
-        setError('Failed to increase points');
-        setTimeout(() => setError(null), 2000);
-      }
-    } catch {
-      setUser((prevUser) => ({
-        ...prevUser!,
-        points: prevPoints,
-      }));
-      setError('An error occurred while increasing points');
-      setTimeout(() => setError(null), 3000);
-    }
-
-    // Remove the click effect after a short delay
-    setTimeout(() => {
-      setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
-    }, 1000);
-  };
 
   const handleSpeedAndAnimation = (e: React.MouseEvent) => {
     setIsClicking(true);
@@ -163,6 +178,29 @@ export default function Home() {
   // Modify your useEffect in Home component
 
   useEffect(() => {
+    const storedPoints = localStorage.getItem('points');
+    const storedHasClaimedWelcome = localStorage.getItem('hasClaimedWelcome');
+    const storedTelegramId = localStorage.getItem('telegramId') || ''; // Default to empty string
+    const storedTappingRate = localStorage.getItem('tappingRate'); // Retrieve tappingRate from localStorage
+  
+    if (storedPoints !== null && storedHasClaimedWelcome !== null) {
+      setUser((prevUser) => ({
+        ...prevUser, // Preserve previous user data if applicable
+        telegramId: prevUser?.telegramId || storedTelegramId, // Fallback to storedTelegramId if undefined
+        points: parseInt(storedPoints, 10),
+        tappingRate: storedTappingRate ? parseInt(storedTappingRate, 10) : 1, // Fallback to default (1) if tappingRate is undefined
+        hasClaimedWelcome: storedHasClaimedWelcome === 'true',
+      }));
+  
+      if (storedHasClaimedWelcome === 'true') {
+        setShowWelcomePopup(false); // Hide the popup if already claimed
+      }
+    }
+  }, []);
+  
+  
+  
+  useEffect(() => {
     const initializeTelegram = async () => {
       setLoading(true);
       const startTime = Date.now();
@@ -181,20 +219,20 @@ export default function Home() {
         }
   
         const requestData = {
-          telegramId: userData.id.toString(), // Make sure this is actually a string
+          telegramId: userData.id.toString(),
           username: userData.username || '',
           first_name: userData.first_name || '',
           last_name: userData.last_name || '',
-          points: Number(0), // Explicitly convert to number
-          tappingRate: Number(1), // Explicitly convert to number
+          points: Number(0),
+          tappingRate: Number(1),
           hasClaimedWelcome: Boolean(false),
-          nft: Boolean(false)
+          nft: Boolean(false),
         };
   
-        // Increase timeout to 30 seconds and use Promise.race for better timeout handling
+        // Fetch data from server
         const fetchWithTimeout = async () => {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 300000);
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
   
           try {
             const response = await fetch('/api/user', {
@@ -224,13 +262,16 @@ export default function Home() {
         };
   
         const data = await fetchWithTimeout();
-        
+  
         if (data.error) {
           throw new Error(data.error);
         }
   
-        // Set user data
-          setUser({
+        // Save user data to localStorage
+        localStorage.setItem('user', JSON.stringify(data));
+  
+        // Set user state
+        setUser({
           telegramId: data.telegramId.toString(),
           points: data.points,
           tappingRate: data.tappingRate,
@@ -240,20 +281,38 @@ export default function Home() {
   
         if (!data.hasClaimedWelcome) {
           setShowWelcomePopup(true);
-      }
-      
+        }
       } catch (err: any) {
         console.error('Initialization error:', err);
-        setError(err.message || 'Failed to initialize app');
+  
+        // Use localStorage as a fallback
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser({
+            telegramId: parsedUser.telegramId,
+            points: parsedUser.points,
+            tappingRate: parsedUser.tappingRate,
+            first_name: parsedUser.first_name,
+            last_name: parsedUser.last_name,
+          });
+  
+          if (!parsedUser.hasClaimedWelcome) {
+            setShowWelcomePopup(true);
+          }
+        } else {
+          setError(err.message || 'Failed to initialize app');
+        }
       } finally {
         const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(4000 - elapsedTime, 0);
+        const remainingTime = Math.max(6000 - elapsedTime, 0);
         setTimeout(() => setLoading(false), remainingTime);
       }
     };
   
     initializeTelegram();
   }, []);
+  
 
   useEffect(() => {
     if (user?.first_name) {
@@ -271,53 +330,55 @@ export default function Home() {
   
   
   
-  
-const handleClaim = async () => {
-  try {
-    // Ensure user is defined before proceeding
-    if (!user || !user.telegramId) {
-      setError('User is not defined.');
+ 
+
+  const handleClaim = async () => {
+    try {
+      if (!user || !user.telegramId) {
+        setError('User is not defined.');
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
+      const res = await fetch('/api/claim-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: user.telegramId }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Persist updated user data in React state
+        setUser((prevUser) => ({
+          ...prevUser!,
+          points: data.points,
+          hasClaimedWelcome: true,
+        }));
+        setShowWelcomePopup(false);
+        setNotification('Welcome bonus claimed!');
+        setTimeout(() => setNotification(null), 3000);
+
+        // Save updated points and welcome claim status in localStorage
+        localStorage.setItem('points', data.points);
+        localStorage.setItem('hasClaimedWelcome', 'true');
+
+        // Trigger confetti animation
+        triggerConfetti();
+      } else {
+        setError('Failed to claim bonus');
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('An error occurred while claiming bonus');
       setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    const res = await fetch('/api/claim-welcome', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegramId: user.telegramId }),
-    });
-
-    const data = await res.json();
-    console.log(data); // Debug API response
-
-    if (data.success) {
-      setUser({ ...user, points: data.points });
-      setShowWelcomePopup(false);
-      setNotification('Welcome bonus claimed!');
-      setTimeout(() => setNotification(null), 3000);
-
-      // Trigger falling shells animation
-      triggerFallingShellsAnimation();
-    } else {
-      setError('Failed to claim bonus');
-      setTimeout(() => setError(null), 3000);
-    }
-  } catch (err) {
-    console.error(err);
-    setError('An error occurred while claiming bonus');
-    setTimeout(() => setError(null), 3000);
-  }
-};
-
-  
-  // Function to trigger falling shells animation
-  const triggerFallingShellsAnimation = () => {
-    // Example implementation of triggering the falling shells animation
-    const animationElement = document.querySelector('.falling-shells-container');
-    if (animationElement) {
-      animationElement.classList.add('animate-falling-shells'); // CSS class to handle animation
     }
   };
+  
+
+  
+ 
   
   // Handle rendering based on state
   {/* Notification */}
@@ -358,87 +419,69 @@ const handleClaim = async () => {
 
       {/* Welcome Popup */}
       {showWelcomePopup && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
+          {/* Background Blur Effect */}
+          <div
+            className="absolute inset-0 bg-cover bg-center filter blur-lg transition-all duration-500 ease-in-out scale-110"
+            style={{ backgroundImage: 'url("/path/to/your/background-image.jpg")' }}
+          ></div>
 
-    {/* Background Blur Effect */}
-    <div
-      className="absolute inset-0 bg-cover bg-center filter blur-lg transition-all duration-500 ease-in-out scale-110"
-      style={{ backgroundImage: 'url("/path/to/your/background-image.jpg")' }}
-    ></div>
+          {/* Solid Background Overlay */}
+          <div className="absolute inset-0 bg-black bg-opacity-60 z-10"></div>
 
-    {/* Solid Background Overlay for Popup */}
-    <div className="absolute inset-0 bg-black bg-opacity-60 z-10"></div> {/* Solid dark overlay */}
+          {/* Popup Content */}
+          <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
+            <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName ? firstName : 'User'}!</h2>
 
-    {/* Popup Content */}
-    <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
-      
-      {/* Welcome Heading */}
-      <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName}!</h2>
-
-       {/* Video Section with Loading State */}
-       <div className="mb-4 w-full relative">
-            {/* Custom Loader */}
-            {isVideoLoading && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Loader />
+            {/* Video Section */}
+            <div className="mb-4 w-full relative">
+              <div className={`transition-opacity duration-300 ${isVideoLoading ? 'opacity-0' : 'opacity-100'}`}>
+                <video 
+                  className="rounded-md mx-auto"
+                  width="320"
+                  height="240"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  onLoadedData={() => setTimeout(() => setIsVideoLoading(false), 100)}
+                  onError={() => {
+                    setIsVideoLoading(false);
+                    setVideoError(true);
+                  }}
+                >
+                  <source src="/videos/speedsnail.webm" type="video/webm" />
+                  <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
               </div>
-            )}
 
-            <div className={`transition-opacity duration-300 ${isVideoLoading ? 'opacity-0' : 'opacity-100'}`}>
-              <video 
-                className="rounded-md mx-auto"
-                width="320"
-                height="240"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                onLoadedData={() => {
-                  // Add a small delay to ensure smooth transition
-                  setTimeout(() => setIsVideoLoading(false), 300);
-                }}
-                onError={() => {
-                  setIsVideoLoading(false);
-                  setVideoError(true);
-                }}
-              >
-                {/* WebM format first for browsers that support it */}
-                <source src="/videos/speedsnail.webm" type="video/webm" />
-                {/* Fallback to MP4 */}
-                <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+              {videoError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-purple-800/20 rounded-md">
+                  <div className="text-center p-4">
+                    <p className="text-white/80 text-sm">
+                      Unable to load welcome video. Please refresh.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Error State */}
-            {videoError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-purple-800/20 rounded-md">
-                <div className="text-center p-4">
-                  <p className="text-white/80 text-sm">
-                    Unable to load welcome video. Please refresh.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+            {/* Scrolling Text */}
+              <ScrollingText />
 
-
-      {/* Content Below the Video */}
-      <p className="mt-4">Now you're a Smart Snail!</p>
-      <p>Some are farmers here, while some are Snailonauts. Over here we earn something more valuable than coins: Shells!</p>
-      <p className="mt-4 text-lg font-semibold">Earn your first 5,000 Shells</p>
-
-      {/* Claim Button */}
-      <button
+            {/* Claim Button */}
+            <button
               className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               onClick={handleClaim}
             >
               Claim
             </button>
-    </div>
-  </div>
-)}
+          </div>
+        </div>
+      )}
+    
 
 
 <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
@@ -590,4 +633,5 @@ const handleClaim = async () => {
   )}
 </div>
 );
+};
 }

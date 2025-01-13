@@ -314,6 +314,14 @@ html, body, #__next, [data-nextjs] {
   }
 }
 
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 .task-popup.show {
   transform: translate(-50%, -50%);

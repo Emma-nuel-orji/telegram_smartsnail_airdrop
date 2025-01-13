@@ -5,6 +5,7 @@ import "./task.css";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 import type { Task } from '@/types';
+import confetti from 'canvas-confetti';
 
 
 interface ShowStoryOptions {
@@ -30,89 +31,41 @@ declare global {
 
 
 
-// FallingShellsEffect Component (unchanged)
-const FallingShellsEffect: React.FC<{ trigger: boolean; onComplete: () => void }> = ({
-  trigger,
-  onComplete,
-}) => {
-  type Shell = {
-    id: number;
-    left: number;
-    duration: number;
-  };
-
-  const [shells, setShells] = useState<Shell[]>([]);
-
-  useEffect(() => {
-    if (trigger) {
-      const newShells: Shell[] = Array.from({ length: 30 }, (_, i) => ({
-        id: i,
-        left: Math.random() * 100,
-        duration: 2 + Math.random() * 2
-      }));
-
-      setShells(newShells);
-
-      const timeout = setTimeout(() => {
-        setShells([]);
-        onComplete();
-      }, 3000);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [trigger, onComplete]);
-
-  return (
-    <div className="falling-shells-container">
-      {shells.map((shell) => (
-        <div
-          key={shell.id}
-          className="shell"
-          style={{
-            left: `${shell.left}%`,
-            animationDuration: `${shell.duration}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
 // Main TaskPageContent Component
 const TaskPageContent: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
     { id: 1, description: "Main Task 1", completed: false, reward: 5000, section: "main", type: "permanent", image: "/images/tasks/smartsnail telegram.png", link: "https://t.me/smartsnails", completedTime: null },
     { id: 2, description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/daily/join discord.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 3, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 4, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 5, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 6, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail twitter.png', link: 'https://x.com/SmartSnail_NFT?t=YXkXoCWpGUBKQ9u_zqfC4g&s=09', completedTime: null },
-    { id: 7, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 8, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 9, description: 'Main Task 3', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 10, description: 'Main Task 2', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 11, description: 'Main Task 3', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fuckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 12, description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino facebook.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 13, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 14, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 15, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 16, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3?t=sS-KKVwkz3C_stZqs8syzA&s=09', completedTime: null },
-    { id: 17, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 18, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/connect wallet.png', link: '/wallet', completedTime: null },
-    { id: 19, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 20, description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex twitter.png', link: 'https://x.com/CaptainSage_?t=EZ0s5eeh1igkYDym_M_U-Q&s=09', completedTime: null },
-    { id: 21, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 22, description: 'Daily Task 3', completed: false, section: 'daily', type: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://socialmedia.com/profile1', batchId: 'batch_2024_001', completedTime: null },
-    { id: 23, description: 'Daily Task 4', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCR thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 24, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 25, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 4, description: 'Main Task 4', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 5, description: 'Main Task 5', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 6, description: 'Main Task 6', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail twitter.png', link: 'https://x.com/SmartSnail_NFT?t=YXkXoCWpGUBKQ9u_zqfC4g&s=09', completedTime: null },
+    { id: 7, description: 'Main Task 7', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 8, description: 'Main Task 8', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 9, description: 'Main Task 9', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 10, description: 'Main Task 10', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 11, description: 'Main Task 11', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fuckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 12, description: 'Main Task 12', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino facebook.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 13, description: 'Main Task 13', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 14, description: 'Main Task 14', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 15, description: 'Main Task 15', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 16, description: 'Main Task 16', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3?t=sS-KKVwkz3C_stZqs8syzA&s=09', completedTime: null },
+    { id: 17, description: 'Main Task 17', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 18, description: 'Main Task 18', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/connect wallet.png', link: '/wallet', completedTime: null },
+    { id: 19, description: 'Main Task 19', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 20, description: 'Main Task 20', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex twitter.png', link: 'https://x.com/CaptainSage_?t=EZ0s5eeh1igkYDym_M_U-Q&s=09', completedTime: null },
+    { id: 21, description: 'Main Task 21', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 22, description: 'Daily Task 1', completed: false, section: 'daily', type: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://socialmedia.com/profile1', batchId: 'batch_2024_001', completedTime: null },
+    { id: 23, description: 'Daily Task 2', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCR thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 24, description: 'Daily Task 3', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 25, description: 'Daily Task 4', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 26, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS Tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 27, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 28, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 29, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 30, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: '/videos/speedsnail.mp4', // Replace with your video URL
+    { id: 27, description: 'Daily Task 6', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 28, description: 'Daily Task 7', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 29, description: 'Daily Task 8', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 30, description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: '/videos/speedsnail.mp4', // Replace with your video URL
       mediaType: 'video' , isStoryTask: true, completedTime: null },
-    { id: 31, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 31, description: 'Daily Task 10', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1', completedTime: null},
   
 
@@ -597,10 +550,7 @@ const TaskPageContent: React.FC = () => {
         </div>
       )}
 
-      <FallingShellsEffect
-        trigger={taskCompleted}
-        onComplete={() => setTaskCompleted(false)}
-      />
+    
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 
+const DEFAULT_TAPPING_RATE = 1;
+
 export async function POST(req: NextRequest) {
   try {
     const { telegramId } = await req.json();
@@ -8,9 +10,11 @@ export async function POST(req: NextRequest) {
     if (!telegramId) {
       return NextResponse.json({ error: 'Invalid telegramId' }, { status: 400 });
     }
+
+    // Ensure telegramId is valid as BigInt
     const telegramIdBigInt = BigInt(telegramId);
 
-    // Fetch the user's tapping rate from the database
+    // Fetch the user's current points and tappingRate
     const user = await prisma.user.findUnique({
       where: { telegramId: telegramIdBigInt },
       select: { points: true, tappingRate: true },
@@ -20,9 +24,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const tappingRate = user.tappingRate || 1; // Default to 1 if tappingRate is not set
+    // Default tapping rate to 1 if it's not set in the database
+    const tappingRate = user.tappingRate || DEFAULT_TAPPING_RATE;
 
-    // Increment points based on the tapping rate
+    // Increment points by the tapping rate
     const updatedUser = await prisma.user.update({
       where: { telegramId: telegramIdBigInt },
       data: { points: { increment: tappingRate } },
@@ -31,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       points: updatedUser.points,
-      tappingRate, // Return the tapping rate for the frontend
+      tappingRate, // Send the tapping rate for the frontend
     });
   } catch (error) {
     console.error('Error increasing points:', error);
