@@ -14,6 +14,8 @@ const userSchema = z.object({
   tappingRate: z.number().int().positive().default(1), // Changed to ensure it's an integer
   hasClaimedWelcome: z.boolean().default(false),
   nft: z.boolean().default(false),
+  email: z.string().email().nullable().optional() // Optional email field with validation
+
 });
 
 export async function POST(req: NextRequest): Promise<Response> {
@@ -40,11 +42,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     const userData = validationResult.data;
 
     const updateData = {
-      username: userData.username || '',
-      firstName: userData.first_name || '',
-      lastName: userData.last_name || '',
-      points: BigInt(userData.points), // Convert to BigInt for database
-      tappingRate: userData.tappingRate, // Keep as regular integer
+      username: userData.username || null, // Set to null if missing
+      firstName: userData.first_name || null, // Set to null if missing
+      lastName: userData.last_name || null, // Set to null if missing
+      points: userData.points, // No need for BigInt conversion here
+      tappingRate: userData.tappingRate,
       hasClaimedWelcome: userData.hasClaimedWelcome,
       nft: userData.nft,
       updatedAt: new Date(),
