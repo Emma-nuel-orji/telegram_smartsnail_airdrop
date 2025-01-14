@@ -46,6 +46,12 @@ export default function Home() {
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   
+  const maxEnergy = 1500;
+
+  const reduceSpeed = () => {
+    setSpeed((prev) => Math.max(1, prev - 0.2));
+  };
+
   const triggerConfetti = () => {
     confetti({
       particleCount: 100,
@@ -54,152 +60,133 @@ export default function Home() {
     });
   };
 
-  useEffect(() => {
-    // Simulating loading state (you can adjust as per your needs)
-    setIsVideoLoading(true);
-  }, []);
-
-  const maxEnergy = 1500;
-
   const handleIncreasePoints = async (e: React.MouseEvent) => {
     if (!user || energy <= 0) return;
 
     const { clientX, clientY } = e;
     const id = Date.now();
 
-    // Add a click effect
     setClicks((prevClicks) => [
       ...prevClicks,
       { 
         id, 
         x: clientX, 
         y: clientY, 
-        tappingRate: user!.tappingRate ?? 1, // Fallback to 1 if tappingRate is undefined
+        tappingRate: user.tappingRate ?? 1,
       },
     ]);
     
     const prevPoints = user.points;
 
-   // Optimistic update
-setUser((prevUser) => ({
-  ...prevUser!,
-  points: Number(prevUser!.points) + Number(prevUser!.tappingRate),
-}));
-localStorage.setItem('points', (Number(prevPoints) + Number(user!.tappingRate)).toString());
-
-setEnergy((prev) => Math.max(0, prev - 50));
-
-try {
-  const res = await fetch('/api/increase-points', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      telegramId: user!.telegramId,
-      tappingRate: user!.tappingRate,
-    }),
-  });
-
-  const data = await res.json();
-
-  if (data.success) {
+    // Optimistic update
     setUser((prevUser) => ({
       ...prevUser!,
-      points: data.points, // Ensure the comma is correct
+      points: Number(prevUser!.points) + Number(prevUser!.tappingRate),
     }));
+    
+    localStorage.setItem('points', (Number(prevPoints) + Number(user.tappingRate)).toString());
 
-    // Store updated points in localStorage
-    localStorage.setItem('points', data.points.toString());
-  } else {
-    throw new Error('Server rejected points update.');
-  }
-} catch (error) {
-  console.error('An error occurred:', error);
+    setEnergy((prev) => Math.max(0, prev - 50));
 
-  setError('Failed to increase points');
-  setTimeout(() => setError(null), 2000);
-}
+    try {
+      const res = await fetch('/api/increase-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegramId: user.telegramId,
+          tappingRate: user.tappingRate,
+        }),
+      });
 
-// Remove the click effect after a short delay
-setTimeout(() => {
-  setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
-}, 1000);
+      const data = await res.json();
 
+      if (data.success) {
+        setUser((prevUser) => ({
+          ...prevUser!,
+          points: data.points,
+        }));
+        localStorage.setItem('points', data.points.toString());
+      } else {
+        throw new Error('Server rejected points update.');
+      }
+    } catch (error) {
+      console.error('An error occurred:', error);
+      setError('Failed to increase points');
+      setTimeout(() => setError(null), 2000);
+    }
+
+    setTimeout(() => {
+      setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
+    }, 1000);
+  };
 
   const handleSpeedAndAnimation = (e: React.MouseEvent) => {
     setIsClicking(true);
 
     setSpeed((prev) => Math.min(prev + 0.1, 5));
     const newClick = { 
-        id: Date.now(), 
-        x: e.clientX, 
-        y: e.clientY,
-        tappingRate: user?.tappingRate || 1 // Add the tappingRate from user
+      id: Date.now(), 
+      x: e.clientX, 
+      y: e.clientY,
+      tappingRate: user?.tappingRate || 1
     };
     setClicks((prev) => [...prev, newClick]);
 
     if (inactivityTimeout.current) {
-        clearTimeout(inactivityTimeout.current);
+      clearTimeout(inactivityTimeout.current);
     }
 
     inactivityTimeout.current = setTimeout(() => {
-        setIsClicking(false);
-        reduceSpeed();
+      setIsClicking(false);
+      reduceSpeed();
     }, 1000);
-
-    const reduceSpeed = () => {
-      setSpeed((prev) => Math.max(1, prev - 0.2));
-    };
-    
-    useEffect(() => {
-      if (!isClicking) {
-        const interval = setInterval(reduceSpeed, 100);
-        return () => clearInterval(interval);
-      }
-    }, [isClicking]);
-  
   };
 
   const handleAnimationEnd = (id: number) => {
     setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
   };
 
-  
-  useEffect(() => {
-    if (!isClicking && energy < maxEnergy) {
-      const refillSpeed = Math.max(100, (maxEnergy - energy) / 10); // Adjust speed
-      const refillInterval = setInterval(() => {
-        setEnergy((prev) => Math.min(maxEnergy, prev + 10));
-      }, refillSpeed);
-  
-      return () => clearInterval(refillInterval);
-    }
-  }, [isClicking, energy]);
-  
-  // Modify your useEffect in Home component
+  // const handleClaim = async () => {
+  //   try {
+  //     if (!user || !user.telegramId) {
+  //       setError('User is not defined.');
+  //       setTimeout(() => setError(null), 3000);
+  //       return;
+  //     }
 
-  useEffect(() => {
-    const storedPoints = localStorage.getItem('points');
-    const storedHasClaimedWelcome = localStorage.getItem('hasClaimedWelcome');
-    const storedTelegramId = localStorage.getItem('telegramId') || ''; // Default to empty string
-    const storedTappingRate = localStorage.getItem('tappingRate'); // Retrieve tappingRate from localStorage
-  
-    if (storedPoints !== null && storedHasClaimedWelcome !== null) {
-      setUser((prevUser) => ({
-        ...prevUser, // Preserve previous user data if applicable
-        telegramId: prevUser?.telegramId || storedTelegramId, // Fallback to storedTelegramId if undefined
-        points: parseInt(storedPoints, 10),
-        tappingRate: storedTappingRate ? parseInt(storedTappingRate, 10) : 1, // Fallback to default (1) if tappingRate is undefined
-        hasClaimedWelcome: storedHasClaimedWelcome === 'true',
-      }));
-  
-      if (storedHasClaimedWelcome === 'true') {
-        setShowWelcomePopup(false); // Hide the popup if already claimed
-      }
-    }
-  }, []);
-  
-  
-  
+  //     const res = await fetch('/api/claim-welcome', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ telegramId: user.telegramId }),
+  //     });
+
+  //     const data = await res.json();
+
+  //     if (data.success) {
+  //       setUser((prevUser) => ({
+  //         ...prevUser!,
+  //         points: data.points,
+  //         hasClaimedWelcome: true,
+  //       }));
+  //       setShowWelcomePopup(false);
+  //       setNotification('Welcome bonus claimed!');
+  //       setTimeout(() => setNotification(null), 3000);
+
+  //       localStorage.setItem('points', data.points.toString());
+  //       localStorage.setItem('hasClaimedWelcome', 'true');
+
+  //       triggerConfetti();
+  //     } else {
+  //       setError('Failed to claim bonus');
+  //       setTimeout(() => setError(null), 3000);
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError('An error occurred while claiming bonus');
+  //     setTimeout(() => setError(null), 3000);
+  //   }
+  // };
+
   useEffect(() => {
     const initializeTelegram = async () => {
       setLoading(true);
@@ -312,7 +299,49 @@ setTimeout(() => {
   
     initializeTelegram();
   }, []);
+
+  useEffect(() => {
+    setIsVideoLoading(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClicking && energy < maxEnergy) {
+      const refillSpeed = Math.max(100, (maxEnergy - energy) / 10);
+      const refillInterval = setInterval(() => {
+        setEnergy((prev) => Math.min(maxEnergy, prev + 10));
+      }, refillSpeed);
   
+      return () => clearInterval(refillInterval);
+    }
+  }, [isClicking, energy]);
+
+  useEffect(() => {
+    if (!isClicking) {
+      const interval = setInterval(reduceSpeed, 100);
+      return () => clearInterval(interval);
+    }
+  }, [isClicking]);
+
+  useEffect(() => {
+    const storedPoints = localStorage.getItem('points');
+    const storedHasClaimedWelcome = localStorage.getItem('hasClaimedWelcome');
+    const storedTelegramId = localStorage.getItem('telegramId') || '';
+    const storedTappingRate = localStorage.getItem('tappingRate');
+  
+    if (storedPoints !== null && storedHasClaimedWelcome !== null) {
+      setUser((prevUser) => ({
+        ...prevUser,
+        telegramId: prevUser?.telegramId || storedTelegramId,
+        points: parseInt(storedPoints, 10),
+        tappingRate: storedTappingRate ? parseInt(storedTappingRate, 10) : 1,
+        hasClaimedWelcome: storedHasClaimedWelcome === 'true',
+      }));
+  
+      if (storedHasClaimedWelcome === 'true') {
+        setShowWelcomePopup(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (user?.first_name) {
@@ -504,7 +533,7 @@ setTimeout(() => {
           <img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" />
         </Link>
         <Link href="/info">
-          <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="Profile" />
+          <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
         </Link>
       </div>
     </div>
@@ -634,4 +663,3 @@ setTimeout(() => {
 </div>
 );
 };
-}
