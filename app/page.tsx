@@ -25,7 +25,7 @@ type Click = {
 
 export default function Home() {
   const [user, setUser] = useState<null | {
-    telegramId?: string;
+    telegramId: string;
     points: number;
     tappingRate: number | undefined;
     first_name?: string | null;
@@ -140,52 +140,34 @@ export default function Home() {
       setIsClicking(false);
       reduceSpeed();
     }, 1000);
+    const reduceSpeed = () => {
+      setSpeed((prev) => Math.max(1, prev - 0.2));
+    };
+    
+    useEffect(() => {
+      if (!isClicking) {
+        const interval = setInterval(reduceSpeed, 100);
+        return () => clearInterval(interval);
+      }
+    }, [isClicking]);
+  
   };
 
   const handleAnimationEnd = (id: number) => {
     setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
   };
 
-  // const handleClaim = async () => {
-  //   try {
-  //     if (!user || !user.telegramId) {
-  //       setError('User is not defined.');
-  //       setTimeout(() => setError(null), 3000);
-  //       return;
-  //     }
-
-  //     const res = await fetch('/api/claim-welcome', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ telegramId: user.telegramId }),
-  //     });
-
-  //     const data = await res.json();
-
-  //     if (data.success) {
-  //       setUser((prevUser) => ({
-  //         ...prevUser!,
-  //         points: data.points,
-  //         hasClaimedWelcome: true,
-  //       }));
-  //       setShowWelcomePopup(false);
-  //       setNotification('Welcome bonus claimed!');
-  //       setTimeout(() => setNotification(null), 3000);
-
-  //       localStorage.setItem('points', data.points.toString());
-  //       localStorage.setItem('hasClaimedWelcome', 'true');
-
-  //       triggerConfetti();
-  //     } else {
-  //       setError('Failed to claim bonus');
-  //       setTimeout(() => setError(null), 3000);
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     setError('An error occurred while claiming bonus');
-  //     setTimeout(() => setError(null), 3000);
-  //   }
-  // };
+  useEffect(() => {
+    if (!isClicking && energy < maxEnergy) {
+      const refillSpeed = Math.max(100, (maxEnergy - energy) / 10); // Adjust speed
+      const refillInterval = setInterval(() => {
+        setEnergy((prev) => Math.min(maxEnergy, prev + 10));
+      }, refillSpeed);
+  
+      return () => clearInterval(refillInterval);
+    }
+  }, [isClicking, energy]);
+  
 
   useEffect(() => {
     const initializeTelegram = async () => {
