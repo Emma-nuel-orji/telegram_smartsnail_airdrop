@@ -634,50 +634,57 @@ useEffect(() => {
         </Link>
         
 
-        {/* Wallet Icon and Connection Status */}
-        <div className="flex flex-col items-center relative">
-      {/* Hidden TON Connect button container */}
-      <div id="ton-connect-button" className="hidden" />
-      
-      {/* Custom wallet button using your image */}
-      <button 
-        onClick={isConnected ? handleDisconnect : connect}
-        className="flex flex-col items-center"
-      >
-        <img
-          src="/images/info/output-onlinepngtools (2).png"
-          width={24}
-          height={24}
-          alt="Wallet"
-        />
-        {isConnected && (
-          <p className="text-sm text-gray-400 mt-1">
-            {formatAddress(walletAddress ?? '')}
-          </p>
-        )}
-      </button>
+       {/* Wallet Icon and Connection Status */}
+<div className="flex flex-col items-center relative">
+  {/* TON Connect Button Container */}
+  <div id="ton-connect-button" className="hidden" />
 
-      {/* Disconnect Confirmation Popup */}
-      {showDisconnectConfirm && (
-        <div className="absolute top-10 bg-gray-800 text-white p-3 rounded shadow-md z-50">
-          <p className="text-sm mb-2">Disconnect wallet?</p>
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={cancelDisconnect}
-              className="text-gray-400 hover:text-white text-xs"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={confirmDisconnect}
-              className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded"
-            >
-              Disconnect
-            </button>
-          </div>
-        </div>
-      )}
+  {/* Custom Wallet Button */}
+  <button 
+    onClick={() => {
+      if (!isConnected) {
+        connect(); // Only trigger wallet connection here
+      } else {
+        setShowDisconnectConfirm(true); // Show disconnect popup
+      }
+    }}
+    className="flex flex-col items-center"
+  >
+    <img
+      src="/images/info/output-onlinepngtools (2).png"
+      width={24}
+      height={24}
+      alt="Wallet"
+    />
+    {isConnected && (
+      <p className="text-sm text-gray-400 mt-1">
+        {formatAddress(walletAddress ?? '')}
+      </p>
+    )}
+  </button>
+
+  {/* Disconnect Confirmation Popup */}
+  {showDisconnectConfirm && (
+    <div className="absolute top-10 bg-gray-800 text-white p-3 rounded shadow-md z-50">
+      <p className="text-sm mb-2">Disconnect wallet?</p>
+      <div className="flex justify-end space-x-2">
+        <button
+          onClick={cancelDisconnect}
+          className="text-gray-400 hover:text-white text-xs"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={confirmDisconnect}
+          className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded"
+        >
+          Disconnect
+        </button>
+      </div>
     </div>
+  )}
+</div>
+
 
         <WalletSection />
 
