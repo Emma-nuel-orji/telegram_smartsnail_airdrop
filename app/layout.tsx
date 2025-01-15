@@ -1,9 +1,10 @@
+// layout.tsx
 import type { Metadata } from "next";
 import './globals.css';
 import Script from "next/script";
-import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { BoostProvider } from './api/context/BoostContext';
 import { WalletProvider } from './context/walletContext';
+import ErrorBoundary from './ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'Telegram Mini App',
@@ -15,7 +16,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // For development, use localhost. For production, use your deployed manifest URL
   const manifestUrl = process.env.NODE_ENV === 'development' 
     ? 'http://localhost:3000/tonconnect-manifest.json'
     : 'https://telegram-smartsnail-airdrop.vercel.app/tonconnect-manifest.json';
@@ -33,13 +33,13 @@ export default function RootLayout({
         />
       </head>
       <body>
-        {/* <TonConnectUIProvider manifestUrl={manifestUrl}> */}
-          <WalletProvider >  {/* Pass the manifestUrl here */}
+        <ErrorBoundary>
+          <WalletProvider manifestUrl={manifestUrl}>
             <BoostProvider>
               {children}
             </BoostProvider>
           </WalletProvider>
-        {/* </TonConnectUIProvider> */}
+        </ErrorBoundary>
       </body>
     </html>
   );

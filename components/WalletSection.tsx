@@ -1,7 +1,7 @@
 'use client';
 
 import { FC, useState } from 'react';
-import { useWallet } from '../app/context/walletContext';  // Adjust path as needed
+import { useWallet } from '../app/context/walletContext';
 
 export const WalletSection: FC = () => {
   const { isConnected, walletAddress, connect, disconnect } = useWallet();
