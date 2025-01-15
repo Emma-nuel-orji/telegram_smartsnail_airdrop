@@ -53,6 +53,9 @@ export default function Home() {
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
+  const manifestUrl = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3000/tonconnect-manifest.json'
+  : 'https://telegram-smartsnail-airdrop.vercel.app/tonconnect-manifest.json';
   // const { walletAddress, isConnected, connect, disconnect } = useWallet();
 
   // const [tonConnectUI, setTonConnectUI] = useState<any>(null);
@@ -640,22 +643,16 @@ useEffect(() => {
         <span className="text-sm text-gray-400">Marketplace</span>
       </div>
 
-
-      <WalletProvider>
+      <WalletProvider manifestUrl={manifestUrl}>
 
       <div className="flex space-x-4">
         <Link href="/Leaderboard">
           <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
         </Link>
         
-
        {/* Wallet Icon and Connection Status */}
       
       <WalletSection /> 
-
-
-        
-
         <Link href="/info">
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
         </Link>
