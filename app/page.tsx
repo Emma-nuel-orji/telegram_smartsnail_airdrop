@@ -54,7 +54,7 @@ export default function Home() {
   const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
   const { walletAddress, isConnected, connect, disconnect } = useWallet();
 
-  const [tonConnectUI, setTonConnectUI] = useState<any>(null);
+  // const [tonConnectUI, setTonConnectUI] = useState<any>(null);
   
   const formatAddress = (address: string | any[]) => {
     if (!address) return '';
@@ -505,52 +505,52 @@ useEffect(() => {
   )}
   
 
-  const connectWallet = () => {
-    const ui = new tonConnectUI({
-      manifestUrl: '/tonconnect-manifest.json',
-      buttonRootId: 'ton-connect-button'
-    });
-    setTonConnectUI(ui);
-    ui.openModal(); // Open the connection modal
-  };
+  // const connectWallet = () => {
+  //   const ui = new tonConnectUI({
+  //     manifestUrl: '/tonconnect-manifest.json',
+  //     buttonRootId: 'ton-connect-button'
+  //   });
+  //   setTonConnectUI(ui);
+  //   ui.openModal(); // Open the connection modal
+  // };
 
-  // Function to handle wallet connection/disconnection based on the current state
-  const handleWalletAction = () => {
-    if (tonConnectUI?.connected) {
-      tonConnectUI.disconnect();
-    } else {
-      connectWallet(); // Initialize connection when user clicks the button
-    }
-  };
+  // // Function to handle wallet connection/disconnection based on the current state
+  // const handleWalletAction = () => {
+  //   if (tonConnectUI?.connected) {
+  //     tonConnectUI.disconnect();
+  //   } else {
+  //     connectWallet(); // Initialize connection when user clicks the button
+  //   }
+  // };
 
-  // Effect hook to listen to wallet connection status change
-  React.useEffect(() => {
-    if (tonConnectUI) {
-      const checkWalletConnection = () => {
-        if (tonConnectUI.account?.address) {
-          setTonWalletAddress(tonConnectUI.account.address);
-          setLoading(false);
-        } else {
-          setTonWalletAddress(null);
-          setLoading(false);
-        }
-      };
+  // // Effect hook to listen to wallet connection status change
+  // React.useEffect(() => {
+  //   if (tonConnectUI) {
+  //     const checkWalletConnection = () => {
+  //       if (tonConnectUI.account?.address) {
+  //         setTonWalletAddress(tonConnectUI.account.address);
+  //         setLoading(false);
+  //       } else {
+  //         setTonWalletAddress(null);
+  //         setLoading(false);
+  //       }
+  //     };
 
-      // Call the check immediately after connection setup
-      checkWalletConnection();
+  //     // Call the check immediately after connection setup
+  //     checkWalletConnection();
 
-      // Listen for any changes to wallet connection status
-      const unsubscribe = tonConnectUI.onStatusChange((wallet: { account: { address: string | null }; }) => {
-        if (wallet) {
-          setTonWalletAddress(wallet.account.address);
-        } else {
-          setTonWalletAddress(null);
-        }
-      });
+  //     // Listen for any changes to wallet connection status
+  //     const unsubscribe = tonConnectUI.onStatusChange((wallet: { account: { address: string | null }; }) => {
+  //       if (wallet) {
+  //         setTonWalletAddress(wallet.account.address);
+  //       } else {
+  //         setTonWalletAddress(null);
+  //       }
+  //     });
 
-      return () => unsubscribe();
-    }
-  }, [tonConnectUI]);
+  //     return () => unsubscribe();
+  //   }
+  // }, [tonConnectUI]);
 
   return (
     
@@ -657,7 +657,7 @@ useEffect(() => {
 
   {/* Custom Wallet Button */}
   <button
-  onClick={handleWalletAction} // Trigger connect/disconnect on button click
+  onClick={isConnected ? handleDisconnect : connect} // Trigger connect/disconnect on button click
   className="flex flex-col items-center"
 >
 
