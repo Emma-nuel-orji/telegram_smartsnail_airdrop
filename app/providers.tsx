@@ -12,7 +12,7 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <WalletProvider>
+    <WalletProvider manifestUrl={manifestUrl}>
       <TonConnectUIProvider manifestUrl={manifestUrl}>
         <div id="ton-connect-button">
           <TonConnectButton />
