@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import ScrollingText from '@/components/ScrollingText';
-import TonConnectButton from './TonConnectButton';
+// import TonConnectButton from './TonConnectButton';
 import { WalletProvider } from './context/walletContext';
 import { WalletSection } from '../components/WalletSection';
 
@@ -559,7 +559,7 @@ useEffect(() => {
         <div className="radial-gradient-overlay"></div>
       </div>
 
-      <TonConnectButton />
+     
 
       {/* Welcome Popup */}
       {showWelcomePopup && (
