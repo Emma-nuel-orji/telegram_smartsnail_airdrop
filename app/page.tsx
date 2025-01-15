@@ -548,6 +548,8 @@ useEffect(() => {
         <div className="radial-gradient-overlay"></div>
       </div>
 
+      <TonConnectButton />
+
       {/* Welcome Popup */}
       {showWelcomePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
