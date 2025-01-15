@@ -14,6 +14,9 @@ interface WalletContextType {
 
 // Create context using React.createContext
 const WalletContext = React.createContext<WalletContextType | undefined>(undefined);
+const TonConnectButton = () => {
+  return <div id="ton-connect-button"></div>;
+};
 
 // Custom hook for using the wallet context
 export const useWallet = () => {
@@ -50,6 +53,7 @@ const useTonConnectUI = () => {
       console.error('Failed to initialize TonConnectUI:', error);
     }
   }, []);
+  
 
   return tonConnectUI;
 };
