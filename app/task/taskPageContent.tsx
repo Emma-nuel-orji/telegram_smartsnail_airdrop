@@ -63,11 +63,12 @@ const TaskPageContent: React.FC = () => {
     { id: 27, description: 'Daily Task 6', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 28, description: 'Daily Task 7', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 29, description: 'Daily Task 8', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 30, description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: ' public/videos/readsnail.mp4', // Replace with your video URL
+    { id: 30, description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: '/videos/speedsnail.mp4', // Replace with your video URL
       mediaType: 'video' , isStoryTask: true, completedTime: null },
     { id: 31, description: 'Daily Task 10', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1', completedTime: null},
   
+    
 
 
   ]);  
@@ -88,7 +89,26 @@ const TaskPageContent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [telegramId, setTelegramId] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
-
+  const triggerConfetti = () => {
+    const duration = 2 * 1000; // 2 seconds
+    const end = Date.now() + duration;
+  
+    const interval = setInterval(() => {
+      if (Date.now() > end) {
+        clearInterval(interval);
+        return;
+      }
+      confetti({
+        particleCount: 50,
+        startVelocity: 30,
+        spread: 360,
+        origin: {
+          x: Math.random(),
+          y: Math.random() - 0.2, // Slightly above the center
+        },
+      });
+    }, 250); // Fire confetti every 250ms for the duration
+  };
  
 
 
@@ -244,6 +264,8 @@ const TaskPageContent: React.FC = () => {
             .map((task) => task.id);
           localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
   
+          triggerConfetti();
+
           setTaskCompleted(true);
           setSelectedTask(null);
   
@@ -407,7 +429,9 @@ const TaskPageContent: React.FC = () => {
         });
   
         const data = await response.json();
-  
+        
+        triggerConfetti();
+
         if (response.ok) {
           setReward(data.reward);
           setUserPoints((prevPoints) => prevPoints + data.reward);
