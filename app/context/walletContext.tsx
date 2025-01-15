@@ -12,13 +12,24 @@ interface WalletContextType {
   tonConnectUI: TonConnectUI | null;
 }
 
-// Create context using React.createContext
 const WalletContext = React.createContext<WalletContextType | undefined>(undefined);
-const TonConnectButton = () => {
-  return <div id="ton-connect-button"></div>;
+
+// Separate TonConnectButton into its own component with actual button functionality
+export const TonConnectButton: FC = () => {
+  const { connect, disconnect, isConnected } = useWallet();
+
+  return (
+    <div id="ton-connect-button">
+      <button 
+        onClick={isConnected ? disconnect : connect}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        {isConnected ? 'Disconnect Wallet' : 'Connect Wallet'}
+      </button>
+    </div>
+  );
 };
 
-// Custom hook for using the wallet context
 export const useWallet = () => {
   const context = useContext(WalletContext);
   if (context === undefined) {
@@ -31,18 +42,20 @@ interface WalletProviderProps {
   children: ReactNode;
 }
 
-// Separate hook for TonConnectUI initialization
 const useTonConnectUI = () => {
   const [tonConnectUI, setTonConnectUI] = useState<TonConnectUI | null>(null);
 
   useEffect(() => {
-    // Ensure we're in the browser environment
     if (typeof window === 'undefined') return;
 
     try {
       const ui = new TonConnectUI({
         manifestUrl: '/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-button',
+        uiPreferences: {
+          theme: 'SYSTEM',
+          // Remove the colorsSet configuration as it's causing the type error
+        }
       });
       setTonConnectUI(ui);
 
@@ -53,7 +66,6 @@ const useTonConnectUI = () => {
       console.error('Failed to initialize TonConnectUI:', error);
     }
   }, []);
-  
 
   return tonConnectUI;
 };
@@ -78,7 +90,6 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
 
     const unsubscribe = tonConnectUI.onStatusChange(handleWalletUpdate);
 
-    // Check initial connection
     const checkInitialConnection = async () => {
       try {
         const wallet = await tonConnectUI.wallet;
@@ -134,5 +145,4 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
   );
 };
 
-// Optional: Export the context if you need direct access
 export { WalletContext };

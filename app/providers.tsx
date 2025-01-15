@@ -1,7 +1,10 @@
 import { ReactNode } from 'react';
-import { WalletProvider } from './context/walletContext'; // Ensure the correct import path for your WalletProvider
-import TonConnectButton from './TonConnectButton'; // Ensure the correct import path for TonConnectButton
-import { TonConnectUIProvider } from '@tonconnect/ui-react'; // Import the TonConnect context provider
+import { WalletProvider } from './context/walletContext';
+import TonConnectButton from './TonConnectButton';
+import { TonConnectUIProvider } from '@tonconnect/ui-react';
+
+// Define the manifest URL for your dApp
+const manifestUrl = 'https://telegram-smartsnail-airdrop.vercel.app/tonconnect-manifest.json';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -10,11 +13,12 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <WalletProvider>
-      {/* TonConnectContextProvider wraps the TonConnectButton to manage the connection */}
-      <TonConnectUIProvider>
-        <TonConnectButton />
+      <TonConnectUIProvider manifestUrl={manifestUrl}>
+        <div id="ton-connect-button">
+          <TonConnectButton />
+        </div>
+        {children}
       </TonConnectUIProvider>
-      {children}
     </WalletProvider>
   );
 }

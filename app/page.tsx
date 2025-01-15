@@ -67,24 +67,18 @@ export default function Home() {
   
     const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
-  const handleWalletClick = () => {
-    if (walletAddress) {
-      // If wallet is connected, show confirmation for disconnection
+    const handleDisconnect = () => {
       setShowDisconnectConfirm(true);
-    } else {
-      // If no wallet is connected, trigger connection
-      connect();
-    }
-  };
-
-  const confirmDisconnect = () => {
-    disconnect();
-    setShowDisconnectConfirm(false);
-  };
-
-  const cancelDisconnect = () => {
-    setShowDisconnectConfirm(false);
-  };
+    };
+  
+    const cancelDisconnect = () => {
+      setShowDisconnectConfirm(false);
+    };
+  
+    const confirmDisconnect = async () => {
+      await disconnect();
+      setShowDisconnectConfirm(false);
+    };
   
   
   const maxEnergy = 1500;
@@ -635,66 +629,49 @@ useEffect(() => {
         </Link>
         
         {/* Wallet Icon and Connection Status */}
-<div className="flex flex-col items-center relative">
-  {/* Wallet Icon Button */}
-  <button onClick={connect}>
-    <img
-      src="/images/info/output-onlinepngtools (2).png"
-      width={24}
-      height={24}
-      alt="Wallet"
-    />
-  </button>
-
-  {/* Connection Status and Button */}
-  {isConnected ? (
-    <div>
-      {/* Wallet Address Display */}
-      <p className="text-sm mt-1 text-gray-400">
-      Connected: {formatAddress(walletAddress ?? '')}
-      </p>
-      {/* Disconnect Button */}
-      <button
-        onClick={disconnect}
-        className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 mt-2 rounded"
+        <div className="flex flex-col items-center relative">
+      {/* Hidden TON Connect button container */}
+      <div id="ton-connect-button" className="hidden" />
+      
+      {/* Custom wallet button using your image */}
+      <button 
+        onClick={isConnected ? handleDisconnect : connect}
+        className="flex flex-col items-center"
       >
-        Disconnect
+        <img
+          src="/images/info/output-onlinepngtools (2).png"
+          width={24}
+          height={24}
+          alt="Wallet"
+        />
+        {isConnected && (
+          <p className="text-sm text-gray-400 mt-1">
+            {formatAddress(walletAddress ?? '')}
+          </p>
+        )}
       </button>
-    </div>
-  ) : (
-    <div>
-      {/* Connect Wallet Button */}
-      <button
-        onClick={connect}
-        className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 mt-2 rounded"
-      >
-        Connect Wallet
-      </button>
-    </div>
-  )}
 
-  {/* Disconnect Confirmation Popup */}
-  {showDisconnectConfirm && (
-    <div className="absolute top-10 bg-gray-800 text-white p-3 rounded shadow-md">
-      <p className="text-sm mb-2">Disconnect wallet?</p>
-      <div className="flex justify-end space-x-2">
-        <button
-          onClick={cancelDisconnect}
-          className="text-gray-400 hover:text-white text-xs"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={disconnect}
-          className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded"
-        >
-          Disconnect
-        </button>
-      </div>
+      {/* Disconnect Confirmation Popup */}
+      {showDisconnectConfirm && (
+        <div className="absolute top-10 bg-gray-800 text-white p-3 rounded shadow-md z-50">
+          <p className="text-sm mb-2">Disconnect wallet?</p>
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={cancelDisconnect}
+              className="text-gray-400 hover:text-white text-xs"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDisconnect}
+              className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded"
+            >
+              Disconnect
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  )}
-</div>
-
 
         <Link href="/info">
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
