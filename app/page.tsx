@@ -8,6 +8,7 @@ import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import ScrollingText from '@/components/ScrollingText';
 import TonConnectButton from './TonConnectButton';
+import { WalletProvider, WalletSection } from './context/walletContext';
 
 import { useWallet } from './context/walletContext';
 // import { formatAddress } from '@/src/utils/formatAddress';
@@ -536,6 +537,7 @@ useEffect(() => {
   };
 
   return (
+    
     <div className="bg-gradient-main min-h-screen px-4 flex flex-col items-center text-white font-medium">
       <div className="absolute inset-0 h-1/2 bg-gradient-overlay z-0"></div>
       <div className="absolute inset-0 flex items-center justify-center z-0">
@@ -623,11 +625,15 @@ useEffect(() => {
         <span className="text-sm text-gray-400">Marketplace</span>
       </div>
 
+
+      <WalletProvider>
+
       <div className="flex space-x-4">
         <Link href="/Leaderboard">
           <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
         </Link>
         
+
         {/* Wallet Icon and Connection Status */}
         <div className="flex flex-col items-center relative">
       {/* Hidden TON Connect button container */}
@@ -673,10 +679,13 @@ useEffect(() => {
       )}
     </div>
 
+        <WalletSection />
+
         <Link href="/info">
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
         </Link>
       </div>
+      </WalletProvider>
     </div>
 
   </div>
@@ -792,11 +801,7 @@ useEffect(() => {
     </div>
       ))}
     </div>
-  
- 
 
-
-  
   </div>
   {notification && (
     <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
@@ -805,5 +810,5 @@ useEffect(() => {
   )}
 </div>
 );
-};
+}; 
 }
