@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import ScrollingText from '@/components/ScrollingText';
+import TonConnectButton from './TonConnectButton';
 
 import { useWallet } from './context/walletContext';
 // import { formatAddress } from '@/src/utils/formatAddress';
