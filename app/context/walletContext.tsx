@@ -45,7 +45,7 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
 
     try {
       const ui = new TonConnectUI({
-        manifestUrl: '/tonconnect-manifest.json',
+        manifestUrl: 'https://telegram-smartsnail-airdrop.vercel.app/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-button'
       });
       setTonConnectUI(ui);
