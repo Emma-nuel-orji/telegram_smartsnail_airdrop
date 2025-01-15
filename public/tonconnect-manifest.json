@@ -1,9 +1,9 @@
 {
     "url": "https://telegram-smartsnail-airdrop.vercel.app/",
     "name": "SmartSnail Marketplace",
-    "iconUrl": "https://telegram-smartsnail-airdrop.vercel.app/app-icon.png",
-    "termsOfUseUrl": "https://telegram-smartsnail-airdrop.vercel.app//terms",
-    "privacyPolicyUrl": "https://telegram-smartsnail-airdrop.vercel.app//privacy",
+    "iconUrl": "https://telegram-smartsnail-airdrop.vercel.app/images/app-icon.png.jpg",
+    "termsOfUseUrl": "https://telegram-smartsnail-airdrop.vercel.app/terms.html",
+    "privacyPolicyUrl": "https://telegram-smartsnail-airdrop.vercel.app/privacy.html",
     "manifestVersion": "0.3",
     "parameters": {
       "blockchain": "TON",
