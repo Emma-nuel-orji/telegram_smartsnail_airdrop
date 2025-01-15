@@ -561,7 +561,7 @@ useEffect(() => {
 
           {/* Popup Content */}
           <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
-            <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName ? firstName : 'User'}!</h2>
+            <h2 className="text-2xl font-bold mb-4">Welcome onboard {user?.first_name ? user.first_name : 'User'}!</h2>
 
             {/* Video Section */}
             <div className="mb-4 w-full relative">
