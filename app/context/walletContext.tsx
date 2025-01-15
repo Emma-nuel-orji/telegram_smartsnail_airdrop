@@ -1,9 +1,9 @@
 'use client';
 
-import { TonConnectUI, Wallet } from '@tonconnect/ui';
+import { THEME, TonConnectUI, Wallet } from '@tonconnect/ui';
 import { FC, ReactNode, useContext, useEffect, useState } from 'react';
 import React from 'react';
-
+import { Theme } from '@tonconnect/ui'; 
 interface WalletContextType {
   walletAddress: string | null;
   isConnected: boolean;
@@ -32,50 +32,65 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
   const [tonConnectUI, setTonConnectUI] = useState<TonConnectUI | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    let isMounted = true;
 
-    let buttonRoot = document.getElementById('ton-connect-button');
-    if (!buttonRoot) {
-      buttonRoot = document.createElement('div');
-      buttonRoot.id = 'ton-connect-button';
-      buttonRoot.style.display = 'none';
-      document.body.appendChild(buttonRoot);
-    }
+    const initializeWallet = async () => {
+      if (typeof window === 'undefined') return;
 
-    try {
-      const ui = new TonConnectUI({
-        manifestUrl: 'https://telegram-smartsnail-airdrop.vercel.app/tonconnect-manifest.json',
-        buttonRootId: 'ton-connect-button'
-      });
-      setTonConnectUI(ui);
+      try {
+        // Create button container
+        let buttonRoot = document.getElementById('ton-connect-button');
+        if (!buttonRoot) {
+          buttonRoot = document.createElement('div');
+          buttonRoot.id = 'ton-connect-button';
+          buttonRoot.style.display = 'none';
+          document.body.appendChild(buttonRoot);
+        }
 
-      return () => {
-        ui.disconnect();
-        buttonRoot?.remove();
-      };
-    } catch (error) {
-      console.error('Failed to initialize TonConnectUI:', error);
-    }
-  }, []);
+        // Initialize TonConnect with relative path
+        const ui = new TonConnectUI({
+          manifestUrl: '/tonconnect-manifest.json',
+          buttonRootId: 'ton-connect-button',
+          uiPreferences: {
+            theme: THEME.DARK // or 'LIGHT'
+          }
+        });
 
-  useEffect(() => {
-    if (!tonConnectUI) return;
+        if (isMounted) {
+          setTonConnectUI(ui);
+        }
 
-    const handleWalletUpdate = (wallet: Wallet | null) => {
-      if (wallet) {
-        setWalletAddress(wallet.account.address);
-        setIsConnected(true);
-      } else {
-        setWalletAddress(null);
-        setIsConnected(false);
+        // Set up wallet change listener
+        const unsubscribe = ui.onStatusChange((wallet: Wallet | null) => {
+          if (!isMounted) return;
+          
+          if (wallet) {
+            setWalletAddress(wallet.account.address);
+            setIsConnected(true);
+          } else {
+            setWalletAddress(null);
+            setIsConnected(false);
+          }
+        });
+
+        return () => {
+          unsubscribe();
+          if (ui) {
+            ui.disconnect();
+          }
+          buttonRoot?.remove();
+        };
+      } catch (error) {
+        console.error('Failed to initialize TonConnectUI:', error);
       }
     };
 
-    const unsubscribe = tonConnectUI.onStatusChange(handleWalletUpdate);
+    initializeWallet();
+
     return () => {
-      unsubscribe();
+      isMounted = false;
     };
-  }, [tonConnectUI]);
+  }, []);
 
   const connect = async () => {
     try {

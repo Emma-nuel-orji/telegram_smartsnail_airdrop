@@ -8,7 +8,7 @@ import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import ScrollingText from '@/components/ScrollingText';
 import TonConnectButton from './TonConnectButton';
-// import { WalletProvider, WalletSection } from './context/walletContext';
+import { WalletProvider } from './context/walletContext';
 import { WalletSection } from '../components/WalletSection';
 
 // import { useWallet } from './context/walletContext';
@@ -27,7 +27,6 @@ type Click = {
   x: number;
   y: number;
   tappingRate: number;
-  
 };
 
 export default function Home() {
@@ -642,7 +641,7 @@ useEffect(() => {
       </div>
 
 
-     
+      <WalletProvider>
 
       <div className="flex space-x-4">
         <Link href="/Leaderboard">
@@ -651,8 +650,8 @@ useEffect(() => {
         
 
        {/* Wallet Icon and Connection Status */}
-      <div className="flex flex-col items-center relative">
-      <WalletSection /> </div>
+      
+      <WalletSection /> 
 
 
         
@@ -661,10 +660,11 @@ useEffect(() => {
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
         </Link>
       </div>
-     
+      </WalletProvider>
     </div>
 
   </div>
+  
 </div>
 
 
