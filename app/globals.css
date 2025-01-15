@@ -302,6 +302,22 @@ html, body, #__next, [data-nextjs] {
   align-items: center;
 }
 
+@keyframes floatUp {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50px); /* Adjust the distance based on your preference */
+  }
+}
+
+.click-feedback {
+  animation: floatUp 1s ease-in-out forwards;
+  position: absolute;
+  /* Add other styling for your click feedback */
+}
+
+
 
 @keyframes float {
   0% {
@@ -309,7 +325,7 @@ html, body, #__next, [data-nextjs] {
       opacity: 1;
   }
   100% {
-      transform: translateY(-20px);
+      transform: translateY(-50px);
       opacity: 0;
   }
 }

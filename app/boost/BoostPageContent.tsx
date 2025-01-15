@@ -5,6 +5,7 @@ import Link from "next/link";
 import axios from "axios";
 import WebApp from "@twa-dev/sdk";
 import Loader from "@/loader";
+import confetti from 'canvas-confetti';
 import TelegramInit from "@/components/TelegramInit";
 import "./BoostPage.css";
 import { useRouter } from "next/navigation";

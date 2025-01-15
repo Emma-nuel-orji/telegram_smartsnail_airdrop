@@ -2,19 +2,57 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 import NodeCache from 'node-cache';
 
-// At the top of your API route file
-const logError = (error: any, context: string) => {
-  console.error(`[Leaderboard API] ${context}:`, {
-    message: error.message,
-    stack: error.stack,
-    cause: error.cause
-  });
-};
+// Types
+interface Level {
+  name: string;
+  minPoints: number;
+  maxPoints: number;
+  color: string;
+}
 
-// Initialize cache with a TTL of 60 seconds
-const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
+interface PrismaUser {
+  telegramId: bigint;
+  username: string | null;
+  points: bigint;
+  referrals: {
+    id: string;
+    createdAt: Date;
+    referrerId: string;
+    referredId: string;
+  }[];
+}
 
-const levels = [
+interface LeaderboardUser {
+  telegramId: string;
+  username: string;
+  points: number;
+  referrals: number;
+  color: string;
+  rank: number;
+}
+
+interface LevelData {
+  level: string;
+  levelColor: string;
+  users: LeaderboardUser[];
+  totalUsersInLevel: number;
+}
+
+// Constants
+const CACHE_TTL = 60; // Cache time to live in seconds
+const CHECK_PERIOD = 120; // Cache check period in seconds
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+
+// Initialize cache
+const cache = new NodeCache({ 
+  stdTTL: CACHE_TTL, 
+  checkperiod: CHECK_PERIOD,
+  useClones: false
+});
+
+// Level definitions
+const LEVELS: Level[] = [
   { name: 'Level 1 Camouflage', minPoints: 0, maxPoints: 1000000, color: '#d1c4e9' },
   { name: 'Level 2 Speedy', minPoints: 1000001, maxPoints: 3000000, color: '#9c27b0' },
   { name: 'Level 3 Strong', minPoints: 3000001, maxPoints: 6000000, color: '#7b1fa2' },
@@ -22,77 +60,111 @@ const levels = [
   { name: 'Level 5 African Giant/God NFT', minPoints: 10000001, maxPoints: Infinity, color: '#4a148c' },
 ];
 
-const mapUserWithDetails = (level: typeof levels[number], skip: number) => (user: any, index: number) => ({
-  ...user,
-  username: user.username || '',
-  color: level.color,
-  rank: skip + index + 1,
-});
+// Utility functions
+const logError = (error: unknown, context: string) => {
+  const err = error instanceof Error ? error : new Error(String(error));
+  console.error(`[Leaderboard API] ${context}:`, {
+    message: err.message,
+    stack: err.stack,
+    cause: err.cause,
+    timestamp: new Date().toISOString()
+  });
+};
 
+const generateCacheKey = (page: number, limit: number): string => 
+  `leaderboard-page-${page}-limit-${limit}`;
+
+const parseQueryParams = (searchParams: URLSearchParams) => {
+  const page = Math.max(1, parseInt(searchParams.get('page') || String(DEFAULT_PAGE), 10));
+  const limit = Math.max(1, parseInt(searchParams.get('limit') || String(DEFAULT_LIMIT), 10));
+  return { page, limit };
+};
+
+const mapUserWithDetails = (level: Level, skip: number) => 
+  (user: PrismaUser, index: number): LeaderboardUser => ({
+    telegramId: user.telegramId.toString(),
+    username: user.username || 'Anonymous',
+    points: Number(user.points),
+    referrals: user.referrals.length,
+    color: level.color,
+    rank: skip + index + 1,
+  });
+
+// Database queries
+const fetchUsersForLevel = async (level: Level, limit: number, skip: number): Promise<LevelData> => {
+  const [users, totalUsersInLevel] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        points: {
+          gte: BigInt(level.minPoints),
+          ...(level.maxPoints !== Infinity && { lte: BigInt(level.maxPoints) }),
+        },
+      },
+      select: {
+        telegramId: true,
+        username: true,
+        points: true,
+        referrals: true,
+      },
+      orderBy: { points: 'desc' },
+      take: limit,
+      skip,
+    }),
+    prisma.user.count({
+      where: {
+        points: {
+          gte: BigInt(level.minPoints),
+          ...(level.maxPoints !== Infinity && { lte: BigInt(level.maxPoints) }),
+        },
+      },
+    })
+  ]);
+
+  return {
+    level: level.name,
+    levelColor: level.color,
+    users: users.map(mapUserWithDetails(level, skip)),
+    totalUsersInLevel,
+  };
+};
+
+// Main handler
 export async function GET(req: NextRequest) {
-  console.log('Leaderboard API hit');
-
+  console.log('[Leaderboard API] Request received:', req.url);
+  
   try {
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const { page, limit } = parseQueryParams(searchParams);
     const skip = (page - 1) * limit;
 
-    // Generate a unique cache key based on page and limit
-    const cacheKey = `leaderboard-page-${page}-limit-${limit}`;
-    const cachedData = cache.get(cacheKey);
+    // Check cache
+    const cacheKey = generateCacheKey(page, limit);
+    const cachedData = cache.get<LevelData[]>(cacheKey);
 
     if (cachedData) {
-      console.log('Cache hit');
+      console.log('[Leaderboard API] Cache hit for:', cacheKey);
       return NextResponse.json(cachedData);
     }
 
-    console.log('Cache miss, fetching from database');
+    console.log('[Leaderboard API] Cache miss, fetching from database');
 
+    // Fetch data for all levels concurrently
     const leaderboard = await Promise.all(
-      levels.map(async (level) => {
-        const users = await prisma.user.findMany({
-          where: {
-            points: {
-              gte: level.minPoints,
-              ...(level.maxPoints !== Infinity && { lte: level.maxPoints }),
-            },
-          },
-          select: {
-            telegramId: true,
-            username: true,
-            points: true,
-            referrals: true,
-          },
-          orderBy: { points: 'desc' },
-          take: limit,
-          skip,
-        });
-
-        return {
-          level: level.name,
-          levelColor: level.color,
-          users: users.map(mapUserWithDetails(level, skip)),
-          totalUsersInLevel: await prisma.user.count({
-            where: {
-              points: {
-                gte: level.minPoints,
-                ...(level.maxPoints !== Infinity && { lte: level.maxPoints }),
-              },
-            },
-          }),
-        };
-      })
+      LEVELS.map(level => fetchUsersForLevel(level, limit, skip))
     );
 
-    const filteredLeaderboard = leaderboard.filter((level) => level.users.length > 0);
-
-    // Cache the fetched leaderboard data
+    // Filter out empty levels and cache results
+    const filteredLeaderboard = leaderboard.filter(level => level.users.length > 0);
     cache.set(cacheKey, filteredLeaderboard);
 
+    console.log('[Leaderboard API] Successfully fetched and cached data');
     return NextResponse.json(filteredLeaderboard);
+
   } catch (error) {
-    console.error('Error fetching leaderboard data:', error);
-    return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });
+    logError(error, 'Failed to fetch leaderboard data');
+    return NextResponse.json(
+      { error: 'Failed to fetch leaderboard data. Please try again later.' }, 
+      { status: 500 }
+    );
   }
 }

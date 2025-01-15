@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, SetStateAction } from 'react';
 import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
 import Link from 'next/link';
 import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import ScrollingText from '@/components/ScrollingText';
+
+import { useWallet } from './context/walletContext';
+// import { formatAddress } from '@/src/utils/formatAddress';
 
 declare global {
   interface Window {
@@ -39,12 +42,49 @@ export default function Home() {
   const [energy, setEnergy] = useState(1500);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);  
-  const [isLoading, setLoading] = useState(true);
+  const [isLoading, setLoading,] = useState(true);
+  
   const [isClicking, setIsClicking] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
+  const { walletAddress, isConnected, connect, disconnect } = useWallet();
+
+  let tonConnectUI: any;
+  
+  const formatAddress = (address: string | any[]) => {
+    if (!address) return '';
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+  
+  // const tonConnectUI = tonConnectUI();
+  const NotificationButton = () => {
+    // State to track if there's a new message
+    const [hasNewMessage, setHasNewMessage] = useState(true); // Default set to true for testing
+  
+    const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+
+  const handleWalletClick = () => {
+    if (walletAddress) {
+      // If wallet is connected, show confirmation for disconnection
+      setShowDisconnectConfirm(true);
+    } else {
+      // If no wallet is connected, trigger connection
+      connect();
+    }
+  };
+
+  const confirmDisconnect = () => {
+    disconnect();
+    setShowDisconnectConfirm(false);
+  };
+
+  const cancelDisconnect = () => {
+    setShowDisconnectConfirm(false);
+  };
+  
   
   const maxEnergy = 1500;
 
@@ -62,32 +102,39 @@ export default function Home() {
 
   const handleIncreasePoints = async (e: React.MouseEvent) => {
     if (!user || energy <= 0) return;
-
+  
     const { clientX, clientY } = e;
     const id = Date.now();
-
+  
+    // Add visual feedback for the click
     setClicks((prevClicks) => [
       ...prevClicks,
-      { 
-        id, 
-        x: clientX, 
-        y: clientY, 
+      {
+        id,
+        x: clientX,
+        y: clientY,
         tappingRate: user.tappingRate ?? 1,
       },
     ]);
-    
-    const prevPoints = user.points;
+  
+    // Cache previous points for rollback
+    // const prevPoints = user.points ?? 0;
 
-    // Optimistic update
-    setUser((prevUser) => ({
-      ...prevUser!,
-      points: Number(prevUser!.points) + Number(prevUser!.tappingRate),
-    }));
-    
-    localStorage.setItem('points', (Number(prevPoints) + Number(user.tappingRate)).toString());
+    const prevPoints = Number(user.points)?? 0; // Ensure points is a number
+  const tappingRate = Number(user.tappingRate) || 1; // Ensure tappingRate is a number
 
-    setEnergy((prev) => Math.max(0, prev - 50));
+  // Optimistic update
+  setUser((prevUser) => ({
+    ...prevUser!,
+    points: prevPoints + tappingRate, // Perform proper arithmetic
+  }));
 
+  localStorage.setItem('points', (prevPoints + tappingRate).toString());
+  
+    // Update energy
+    const ENERGY_COST = 50; // Use constants for configurability
+    setEnergy((prev) => Math.max(0, prev - ENERGY_COST));
+  
     try {
       const res = await fetch('/api/increase-points', {
         method: 'POST',
@@ -97,28 +144,38 @@ export default function Home() {
           tappingRate: user.tappingRate,
         }),
       });
-
+  
       const data = await res.json();
-
+  
+      // If successful, update points from the server response
       if (data.success) {
         setUser((prevUser) => ({
           ...prevUser!,
           points: data.points,
         }));
         localStorage.setItem('points', data.points.toString());
-      } else {
-        throw new Error('Server rejected points update.');
       }
-    } catch (error) {
-      console.error('An error occurred:', error);
-      setError('Failed to increase points');
-      setTimeout(() => setError(null), 2000);
+      // If not successful, silently rollback
+      else {
+        setUser((prevUser) => ({
+          ...prevUser!,
+          points: prevPoints,
+        }));
+      }
+    } catch {
+      // Silently rollback on fetch error
+      setUser((prevUser) => ({
+        ...prevUser!,
+        points: prevPoints,
+      }));
+    } finally {
+      // Remove click feedback after 1 second
+      setTimeout(() => {
+        setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
+      }, 1000);
     }
-
-    setTimeout(() => {
-      setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
-    }, 1000);
   };
+  
 
   const handleSpeedAndAnimation = (e: React.MouseEvent) => {
     setIsClicking(true);
@@ -184,95 +241,66 @@ export default function Home() {
   
         const userData = tg?.initDataUnsafe?.user;
         if (!userData?.id) {
-          throw new Error('Unable to get user information');
+          throw new Error('Unable to get user information from Telegram');
         }
   
-        const requestData = {
-          telegramId: userData.id.toString(),
-          username: userData.username || '',
-          first_name: userData.first_name || '',
-          last_name: userData.last_name || '',
-          points: Number(0),
-          tappingRate: Number(1),
-          hasClaimedWelcome: Boolean(false),
-          nft: Boolean(false),
-        };
-  
-        // Fetch data from server
-        const fetchWithTimeout = async () => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
-  
-          try {
-            const response = await fetch('/api/user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(requestData),
-              signal: controller.signal,
-            });
-  
-            clearTimeout(timeoutId);
-  
-            if (!response.ok) {
-              const errorText = await response.text();
-              let errorData;
-              try {
-                errorData = JSON.parse(errorText);
-              } catch {
-                errorData = { error: errorText };
-              }
-              throw new Error(`HTTP error! status: ${response.status}, details: ${JSON.stringify(errorData)}`);
-            }
-  
-            return response.json();
-          } finally {
-            clearTimeout(timeoutId);
-          }
-        };
-  
-        const data = await fetchWithTimeout();
-  
-        if (data.error) {
-          throw new Error(data.error);
+        // First check localStorage for cached data
+        const cachedUser = localStorage.getItem('user');
+        if (cachedUser) {
+          const parsedUser = JSON.parse(cachedUser);
+          setUser(parsedUser); // Set immediately for fast UI update
         }
   
-        // Save user data to localStorage
-        localStorage.setItem('user', JSON.stringify(data));
+        // Always fetch fresh data from API
+        const response = await fetch(`/api/user/${userData.id}`);
   
-        // Set user state
-        setUser({
-          telegramId: data.telegramId.toString(),
-          points: data.points,
-          tappingRate: data.tappingRate,
-          first_name: data.first_name,
-          last_name: data.last_name,
-        });
+        if (response.ok) {
+          const serverUser = await response.json();
+          localStorage.setItem('user', JSON.stringify(serverUser)); // Update cache
+          setUser(serverUser); // Update with server data
+          if (!serverUser.hasClaimedWelcome) setShowWelcomePopup(true);
+        } else {
+          // If user doesn't exist, create new user
+          const requestData = {
+            telegramId: userData.id.toString(),
+            username: userData.username || '',
+            first_name: userData.first_name || '',
+            last_name: userData.last_name || '',
+            points: 0,
+            tappingRate: 1,
+            hasClaimedWelcome: false,
+            nft: false,
+          };
   
-        if (!data.hasClaimedWelcome) {
-          setShowWelcomePopup(true);
-        }
-      } catch (err: any) {
-        console.error('Initialization error:', err);
-  
-        // Use localStorage as a fallback
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser({
-            telegramId: parsedUser.telegramId,
-            points: parsedUser.points,
-            tappingRate: parsedUser.tappingRate,
-            first_name: parsedUser.first_name,
-            last_name: parsedUser.last_name,
+          const createResponse = await fetch('/api/user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData),
           });
   
-          if (!parsedUser.hasClaimedWelcome) {
-            setShowWelcomePopup(true);
+          if (!createResponse.ok) {
+            throw new Error(`HTTP error! status: ${createResponse.status}`);
           }
-        } else {
-          setError(err.message || 'Failed to initialize app');
+  
+          try {
+            const newUser = await createResponse.json();
+            localStorage.setItem('user', JSON.stringify(newUser));
+            setUser(newUser);
+            if (!newUser.hasClaimedWelcome) setShowWelcomePopup(true);
+          } catch (err) {
+            // Handle the error
+            const error = err as Error; // Typecast err to Error type
+            console.error('Initialization error:', error);
+            setError(error.message || 'Failed to initialize app');
+          }
         }
+      } catch (err) {
+        // Handle the outer try block errors
+        const error = err as Error; // Typecast err to Error type
+        console.error('Outer initialization error:', error);
+        setError(error.message || 'Failed to initialize app');
       } finally {
+        // Final cleanup code, e.g., stop loading spinner
         const elapsedTime = Date.now() - startTime;
         const remainingTime = Math.max(6000 - elapsedTime, 0);
         setTimeout(() => setLoading(false), remainingTime);
@@ -281,28 +309,83 @@ export default function Home() {
   
     initializeTelegram();
   }, []);
+  
+  
+  // Function to update points
+  const updatePoints = async (newPoints: number) => {
+    if (!user?.telegramId) return;
+  
+    try {
+      // Update localStorage immediately for fast UI
+      const updatedUser = { ...user, points: newPoints };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+  
+      // Then update server
+      const response = await fetch(`/api/user/${user.telegramId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ points: newPoints }),
+      });
+  
+      if (!response.ok) throw new Error('Failed to update points');
+      
+      const serverUser = await response.json();
+      // Update localStorage and state with server response
+      localStorage.setItem('user', JSON.stringify(serverUser));
+      setUser(serverUser);
+    } catch (error) {
+      console.error('Error updating points:', error);
+      // On error, revert to previous state
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) {
+        setUser(JSON.parse(cachedUser));
+      }
+    }
+  };
 
   useEffect(() => {
     setIsVideoLoading(true);
   }, []);
 
-  useEffect(() => {
-    if (!isClicking && energy < maxEnergy) {
-      const refillSpeed = Math.max(100, (maxEnergy - energy) / 10);
-      const refillInterval = setInterval(() => {
-        setEnergy((prev) => Math.min(maxEnergy, prev + 10));
-      }, refillSpeed);
-  
-      return () => clearInterval(refillInterval);
-    }
-  }, [isClicking, energy]);
+  // Slow refill and stop animation when energy hits 0
+useEffect(() => {
+  if (!isClicking && energy < maxEnergy) {
+    // Slow down refill by increasing the interval and reducing refill rate
+    const refillSpeed = Math.max(500, (maxEnergy - energy) * 20); // Slower refill speed
 
-  useEffect(() => {
-    if (!isClicking) {
-      const interval = setInterval(reduceSpeed, 100);
-      return () => clearInterval(interval);
-    }
-  }, [isClicking]);
+    const refillInterval = setInterval(() => {
+      setEnergy((prev) => Math.min(maxEnergy, prev + 2)); // Slower refill step
+    }, refillSpeed);
+
+    return () => clearInterval(refillInterval);
+  }
+}, [isClicking, energy]);
+
+// Conditionally stop animation when energy reaches 0
+useEffect(() => {
+  if (energy <= 0) {
+    setIsClicking(false); // Stop animation when energy hits 0
+  }
+}, [energy]);
+
+// Floating animation logic for click feedback
+useEffect(() => {
+  if (isClicking && energy > 0) {
+    // Floating up animation
+    const animationInterval = setInterval(() => {
+      setClicks((prevClicks) =>
+        prevClicks.map((click) => ({
+          ...click,
+          y: click.y - 5, // Move click feedback up (adjust value for speed)
+        }))
+      );
+    }, 100);
+
+    return () => clearInterval(animationInterval);
+  }
+}, [isClicking, energy]);
+
 
   useEffect(() => {
     const storedPoints = localStorage.getItem('points');
@@ -345,47 +428,52 @@ export default function Home() {
 
   const handleClaim = async () => {
     try {
+      // Validate user
       if (!user || !user.telegramId) {
         setError('User is not defined.');
         setTimeout(() => setError(null), 3000);
         return;
       }
-
+  
+      // Send request to claim the welcome bonus
       const res = await fetch('/api/claim-welcome', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegramId: user.telegramId }),
       });
-
+  
       const data = await res.json();
-
-      if (data.success) {
-        // Persist updated user data in React state
-        setUser((prevUser) => ({
-          ...prevUser!,
-          points: data.points,
+  
+      if (res.ok && data.success) {
+        // Update user state
+        const updatedUser = {
+          ...user,
+          points: data.points, // New points from the server
           hasClaimedWelcome: true,
-        }));
+        };
+  
+        setUser(updatedUser);
         setShowWelcomePopup(false);
-        setNotification('Welcome bonus claimed!');
-        setTimeout(() => setNotification(null), 3000);
-
-        // Save updated points and welcome claim status in localStorage
-        localStorage.setItem('points', data.points);
-        localStorage.setItem('hasClaimedWelcome', 'true');
-
+  
+        // Store updated user in localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+  
         // Trigger confetti animation
         triggerConfetti();
       } else {
-        setError('Failed to claim bonus');
+        // Handle server-side errors gracefully
+        setError(data.message || 'Failed to claim bonus.');
         setTimeout(() => setError(null), 3000);
       }
     } catch (err) {
-      console.error(err);
-      setError('An error occurred while claiming bonus');
+      console.error('Error in handleClaim:', err);
+  
+      // Handle network or unexpected errors
+      setError('An error occurred while claiming the bonus.');
       setTimeout(() => setError(null), 3000);
     }
   };
+  
   
 
   
@@ -420,6 +508,37 @@ export default function Home() {
     </div>
   )}
   
+
+  useEffect(() => {
+    const checkWalletConnection = () => {
+      if (tonConnectUI.account?.address) {
+        setTonWalletAddress(tonConnectUI.account.address);
+        setLoading(false);
+      } else {
+        setTonWalletAddress(null);
+        setLoading(false);
+      }
+    };
+
+    checkWalletConnection();
+    const unsubscribe = tonConnectUI.onStatusChange((wallet: { account: { address: SetStateAction<string | null>; }; }) => {
+      if (wallet) {
+        setTonWalletAddress(wallet.account.address);
+      } else {
+        setTonWalletAddress(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [tonConnectUI]);
+
+  const handleWalletAction = () => {
+    if (tonConnectUI.connected) {
+      tonConnectUI.disconnect();
+    } else {
+      tonConnectUI.openModal(); // This opens the TON wallet connection UI
+    }
+  };
 
   return (
     <div className="bg-gradient-main min-h-screen px-4 flex flex-col items-center text-white font-medium">
@@ -461,7 +580,7 @@ export default function Home() {
                     setIsVideoLoading(false);
                     setVideoError(true);
                   }}
-                >
+                >            
                   <source src="/videos/speedsnail.webm" type="video/webm" />
                   <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
@@ -495,7 +614,7 @@ export default function Home() {
     
 
 
-<div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
+    <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
   {/* Existing home page content */}
   <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
     
@@ -511,15 +630,55 @@ export default function Home() {
         <Link href="/Leaderboard">
           <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
         </Link>
-        <Link href="/wallet">
-          <img src="/images/info/output-onlinepngtools (2).png" width={24} height={24} alt="Wallet" />
-        </Link>
+        
+        {/* Wallet Icon and Connection Status */}
+        <div className="flex flex-col items-center relative">
+            <button onClick={handleWalletClick}>
+              <img
+                src="/images/info/output-onlinepngtools (2).png"
+                width={24}
+                height={24}
+                alt="Wallet"
+              />
+            </button>
+            {/* Connection Status */}
+            {!isLoading && walletAddress && (
+              <div className="text-sm mt-1 text-gray-400">
+                Connected: {formatAddress(walletAddress)}
+              </div>
+            )}
+
+            {/* Disconnect Confirmation Popup */}
+            {showDisconnectConfirm && (
+              <div className="absolute top-10 bg-gray-800 text-white p-3 rounded shadow-md">
+                <p className="text-sm mb-2">Disconnect wallet?</p>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={cancelDisconnect}
+                    className="text-gray-400 hover:text-white text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDisconnect}
+                    className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
         <Link href="/info">
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
         </Link>
       </div>
     </div>
-  
+
+  </div>
+</div>
+
 
 
 
@@ -560,8 +719,7 @@ export default function Home() {
       </span>
     </div>
 
-  </div>
-
+  
 
 
 
@@ -631,7 +789,7 @@ export default function Home() {
     </div>
       ))}
     </div>
-  </div>
+  
  
 
 
@@ -645,3 +803,4 @@ export default function Home() {
 </div>
 );
 };
+}

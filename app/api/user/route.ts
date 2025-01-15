@@ -11,11 +11,10 @@ const userSchema = z.object({
   first_name: z.string().nullable(),
   last_name: z.string().nullable(),
   points: z.number().int().min(0).default(0),
-  tappingRate: z.number().int().positive().default(1), // Changed to ensure it's an integer
+  tappingRate: z.number().int().positive().default(1),
   hasClaimedWelcome: z.boolean().default(false),
   nft: z.boolean().default(false),
-  email: z.string().email().nullable().optional() // Optional email field with validation
-
+  email: z.string().email().nullable().optional()
 });
 
 export async function POST(req: NextRequest): Promise<Response> {
@@ -42,10 +41,10 @@ export async function POST(req: NextRequest): Promise<Response> {
     const userData = validationResult.data;
 
     const updateData = {
-      username: userData.username || null, // Set to null if missing
-      firstName: userData.first_name || null, // Set to null if missing
-      lastName: userData.last_name || null, // Set to null if missing
-      points: userData.points, // No need for BigInt conversion here
+      username: userData.username || null,
+      firstName: userData.first_name || null,
+      lastName: userData.last_name || null,
+      points: userData.points,
       tappingRate: userData.tappingRate,
       hasClaimedWelcome: userData.hasClaimedWelcome,
       nft: userData.nft,
@@ -54,68 +53,44 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     console.log('Final update data (pre-DB operation):', {
       ...updateData,
-      points: updateData.points.toString(), // Convert BigInt to string for logging
+      points: updateData.points.toString(),
     });
 
-    try {
-      let user;
-      const existingUser = await prisma.user.findUnique({
-        where: { telegramId: userData.telegramId },
+    let user;
+    const existingUser = await prisma.user.findUnique({
+      where: { telegramId: userData.telegramId },
+    });
+
+    if (existingUser) {
+      console.log('Updating existing user...');
+      user = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: updateData,
       });
-
-      if (existingUser) {
-        console.log('Updating existing user...');
-        user = await prisma.user.update({
-          where: { id: existingUser.id },
-          data: updateData,
-        });
-      } else {
-        console.log('Creating a new user...');
-        user = await prisma.user.create({
-          data: {
-            telegramId: userData.telegramId,
-            ...updateData,
-          },
-        });
-      }
-
-      const responseUser = {
-        ...user,
-        telegramId: user.telegramId.toString(),
-        points: user.points.toString(),
-      };
-
-      return new NextResponse(JSON.stringify(responseUser), { status: 200 });
-
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      return NextResponse.json(
-        {
-          error: 'Database operation failed',
-          details: dbError instanceof Error ? dbError.message : 'Unknown database error',
+    } else {
+      console.log('Creating a new user...');
+      user = await prisma.user.create({
+        data: {
+          telegramId: userData.telegramId,
+          ...updateData,
         },
-        { status: 500 }
-      );
+      });
     }
+
+    const responseUser = {
+      ...user,
+      telegramId: user.telegramId.toString(),
+      points: user.points.toString(),
+    };
+
+    return new NextResponse(JSON.stringify(responseUser), { status: 200 });
   } catch (error) {
     console.error('General error:', error);
     
-    // Type guard to check if `error` is an instance of Error
-    if (error instanceof Error) {
-      return new NextResponse(
-        JSON.stringify({
-          error: 'Internal server error',
-          details: error.message,
-        }),
-        { status: 500 }
-      );
-    }
-
-    // If error is not an instance of Error, handle it generically
     return new NextResponse(
       JSON.stringify({
         error: 'Internal server error',
-        details: 'Unknown error occurred',
+        details: error instanceof Error ? error.message : 'Unknown error occurred',
       }),
       { status: 500 }
     );

@@ -1,13 +1,8 @@
-'use client'
-
 import { useState, useEffect, useCallback } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, toNano } from "@ton/core";
 import Link from 'next/link';
 import Loader from "@/loader";
-
-
-
 
 interface Order {
   id: string;
@@ -20,7 +15,6 @@ interface Order {
   humanRelationsQty?: number;
   referrerId?: string;
   transactionId?: string;
-  // Add other properties as needed
 }
 
 interface PaymentProps {
@@ -29,16 +23,12 @@ interface PaymentProps {
   onPaymentError?: (error: Error) => void;
 }
 
-export default function TonWalletPayment({ 
-  tonRecipientAddress, 
-  onPaymentSuccess, 
-  onPaymentError 
+export default function TonWalletPayment({
+  tonRecipientAddress,
+  onPaymentSuccess,
+  onPaymentError
 }: PaymentProps) {
-  // Initialize required services
   const [tonConnectUI] = useTonConnectUI();
-
-  
-  // State management
   const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -47,17 +37,14 @@ export default function TonWalletPayment({
   // Wallet connection handlers
   const handleWalletConnection = useCallback((address: string) => {
     setTonWalletAddress(address);
-    console.log("Wallet connected successfully!");
     setIsLoading(false);
   }, []);
 
   const handleWalletDisconnection = useCallback(() => {
     setTonWalletAddress(null);
-    console.log("Wallet disconnected successfully!");
     setIsLoading(false);
   }, []);
 
-  // Set up wallet connection listener
   useEffect(() => {
     const checkWalletConnection = async () => {
       if (tonConnectUI.account?.address) {
@@ -70,40 +57,35 @@ export default function TonWalletPayment({
     checkWalletConnection();
 
     const unsubscribe = tonConnectUI.onStatusChange((wallet) => {
-      if (wallet) {
+      if (wallet?.account?.address) {
         handleWalletConnection(wallet.account.address);
       } else {
         handleWalletDisconnection();
       }
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [tonConnectUI, handleWalletConnection, handleWalletDisconnection]);
 
-  // Handle wallet connection/disconnection
   const handleWalletAction = async () => {
     if (tonConnectUI.connected) {
       setIsLoading(true);
-      await tonConnectUI.disconnect();
+      await tonConnectUI.disconnect(); // Disconnect the wallet
     } else {
-      await tonConnectUI.openModal();
+      await tonConnectUI.openModal(); // Open wallet modal to connect
     }
   };
 
-  // Payment processing
   const handlePayment = async (order: Order) => {
     if (!tonConnectUI.connected) {
       throw new Error("Wallet not connected");
     }
-  
+
     setIsProcessing(true);
-    
+
     try {
-      // Prepare transaction
       const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+        validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
             address: Address.parse(tonRecipientAddress).toString(),
@@ -111,48 +93,41 @@ export default function TonWalletPayment({
           },
         ],
       };
-  
-      // Send transaction
+
       const result = await tonConnectUI.sendTransaction(transaction);
-  
+
       if (result && result.boc) {
-        // Call your purchase API
         const purchaseResponse = await fetch('/api/purchase', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email: order.email || '', // Default to empty string if null
+            email: order.email || '',
             paymentMethod: 'TON',
-            hmacSignature: '', // This should be generated on your backend
-            telegramId: order.telegramId || '', // Default to empty string if null
+            hmacSignature: '',
+            telegramId: order.telegramId || '',
             paymentReference: result.boc,
-            fxckedUpBagsQty: order.fxckedUpBagsQty || 0, // Default to 0 if null
-            humanRelationsQty: order.humanRelationsQty || 0, // Default to 0 if null
-            referrerId: order.referrerId || '', // Default to empty string if null
+            fxckedUpBagsQty: order.fxckedUpBagsQty || 0,
+            humanRelationsQty: order.humanRelationsQty || 0,
+            referrerId: order.referrerId || '',
           }),
         });
-        
-  
+
         if (!purchaseResponse.ok) {
           throw new Error('Purchase API call failed');
         }
-  
+
         const purchaseData = await purchaseResponse.json();
-  
-  
-        // Send notification to Telegram bot
+
         await sendOrderToTelegramBot({
           ...order,
           status: 'Paid',
           transactionId: result.boc
         });
-  
-        // Update local state and trigger success callback
+
         setSelectedOrder(null);
         onPaymentSuccess?.(order);
-  
       } else {
         throw new Error("Transaction failed or was rejected by user");
       }
@@ -164,13 +139,11 @@ export default function TonWalletPayment({
     }
   };
 
-  // Helper function to format wallet address
   const formatAddress = (address: string) => {
     const tempAddress = Address.parse(address).toString();
     return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
   };
 
-  // Async function to send order to Telegram bot
   const sendOrderToTelegramBot = async (order: Order) => {
     try {
       const response = await fetch('/api/sendOrderToTelegram', {
@@ -186,7 +159,6 @@ export default function TonWalletPayment({
       }
     } catch (error) {
       console.error('Error sending order to Telegram:', error);
-      // Don't throw error here as this is a non-critical operation
     }
   };
 
@@ -204,11 +176,11 @@ export default function TonWalletPayment({
     <div className="flex min-h-screen flex-col items-center justify-center">
       <div className="back-button">
         <Link href="/">
-          <img 
-            src="/images/info/output-onlinepngtools (6).png" 
-            width={24} 
-            height={24} 
-            alt="back" 
+          <img
+            src="/images/info/output-onlinepngtools (6).png"
+            width={24}
+            height={24}
+            alt="back"
           />
         </Link>
       </div>
@@ -216,7 +188,7 @@ export default function TonWalletPayment({
       {tonWalletAddress ? (
         <div className="flex flex-col items-center">
           <p className="mb-4">Connected: {formatAddress(tonWalletAddress)}</p>
-          
+
           {selectedOrder && (
             <button
               onClick={() => handlePayment(selectedOrder)}

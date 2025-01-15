@@ -63,7 +63,7 @@ const TaskPageContent: React.FC = () => {
     { id: 27, description: 'Daily Task 6', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 28, description: 'Daily Task 7', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 29, description: 'Daily Task 8', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 30, description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: '/videos/speedsnail.mp4', // Replace with your video URL
+    { id: 30, description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: ' public/videos/readsnail.mp4', // Replace with your video URL
       mediaType: 'video' , isStoryTask: true, completedTime: null },
     { id: 31, description: 'Daily Task 10', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1', completedTime: null},
@@ -269,23 +269,28 @@ const TaskPageContent: React.FC = () => {
   // Existing validation handler
   
   const handleValidateClick = async () => {
+    // Increment validation attempt
     setValidationAttempt((prevAttempt) => prevAttempt + 1);
   
-    if (validationAttempt === 0) {
-      alert("Please complete the task before validating.");
-      return;
-    }
-  
-    if (validationAttempt === 1) {
-      alert("Bruuh!!, you haven't performed the task yet.");
-      return;
-    }
-
     if (!selectedTask) {
       alert("No task selected.");
       return;
     }
+  
+    // Check if the task has already been completed
+    if (selectedTask.completed) {
+      alert("Task has already been completed.");
+      return;
+    }
+  
+    // Warn on first two attempts
+    if (validationAttempt < 4) {
+      alert("Please complete the task before validating.");
+      return;
+    }
 
+    
+  
     // Get Telegram user ID from WebApp
     const telegramId = WebApp.initDataUnsafe?.user?.id;
     if (!telegramId) {
@@ -294,11 +299,10 @@ const TaskPageContent: React.FC = () => {
     }
   
     try {
-      // Convert the numeric ID to string for the API request
       const taskId = String(selectedTask.id);
-      
+  
       console.log('Attempting to complete task:', selectedTask);
-
+  
       const response = await fetch("/api/tasks/complete", {
         method: "POST",
         headers: {
@@ -307,46 +311,42 @@ const TaskPageContent: React.FC = () => {
         body: JSON.stringify({
           taskId,
           reward: selectedTask.reward ?? 0,
-          telegramId
+          telegramId,
         }),
       });
-
-      // Handle non-OK responses before trying to parse JSON
+  
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = `Server error: ${response.status}`;
-        
+  
         try {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (e) {
-          // If JSON parsing fails, use the raw error text
           errorMessage = errorText || errorMessage;
         }
-        
+  
         throw new Error(errorMessage);
       }
-
+  
       const data = await response.json();
-
-      // Update the local state only if the server update was successful
+  
+      // Update local state and points
       const updatedTasks = tasks.map((task) =>
         task.id === selectedTask.id
-          ? { 
-              ...task, 
-              completed: true, 
-              completedTime: new Date().toISOString() 
+          ? {
+              ...task,
+              completed: true,
+              completedTime: new Date().toISOString(),
             }
           : task
       );
       setTasks(updatedTasks);
-
-      // Update points using the returned points from the server
+  
       if (data.userPoints !== undefined) {
         setTotalPoints(data.userPoints);
         localStorage.setItem("totalPoints", data.userPoints.toString());
       } else {
-        // Fallback to local calculation if server doesn't return points
         setTotalPoints((prev) => {
           const reward = selectedTask.reward ?? 0;
           const newPoints = prev + reward;
@@ -354,32 +354,35 @@ const TaskPageContent: React.FC = () => {
           return newPoints;
         });
       }
-
-      // Update completed tasks in localStorage
+  
       const completedTaskIds = updatedTasks
         .filter((task) => task.completed)
         .map((task) => task.id);
       localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
-
+  
+      // Trigger confetti
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000); // Show confetti for 5 seconds
+  
       // Reset UI state
       setTaskCompleted(true);
       setSelectedTask(null);
       setValidationAttempt(0);
-
+  
     } catch (error: unknown) {
       console.error("Error completing task:", error);
-      
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'An unknown error occurred';
-      
+  
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+  
       alert(
-        errorMessage.includes('Invalid task ID')
-          ? 'There was a problem with the task data. Please try again or refresh the page.'
+        errorMessage.includes("Invalid task ID")
+          ? "There was a problem with the task data. Please try again or refresh the page."
           : `Failed to complete task: ${errorMessage}`
       );
     }
-};
+  };
+  
 
   // Existing code redemption handler
   const handleRedeemCode = async () => {
@@ -556,3 +559,7 @@ const TaskPageContent: React.FC = () => {
 };
 
 export default TaskPageContent;
+
+function setShowConfetti(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
