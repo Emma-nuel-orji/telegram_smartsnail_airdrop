@@ -1,5 +1,5 @@
 'use client';
-
+import React from 'react';
 import { useEffect, useState, useRef, SetStateAction } from 'react';
 import WebApp from '@twa-dev/sdk';
 import type { WebApp as WebAppType } from '@twa-dev/types';
@@ -54,7 +54,7 @@ export default function Home() {
   const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
   const { walletAddress, isConnected, connect, disconnect } = useWallet();
 
-  let tonConnectUI: any;
+  const [tonConnectUI, setTonConnectUI] = useState<any>(null);
   
   const formatAddress = (address: string | any[]) => {
     if (!address) return '';
@@ -505,36 +505,52 @@ useEffect(() => {
   )}
   
 
-  useEffect(() => {
-    const checkWalletConnection = () => {
-      if (tonConnectUI.account?.address) {
-        setTonWalletAddress(tonConnectUI.account.address);
-        setLoading(false);
-      } else {
-        setTonWalletAddress(null);
-        setLoading(false);
-      }
-    };
-
-    checkWalletConnection();
-    const unsubscribe = tonConnectUI.onStatusChange((wallet: { account: { address: SetStateAction<string | null>; }; }) => {
-      if (wallet) {
-        setTonWalletAddress(wallet.account.address);
-      } else {
-        setTonWalletAddress(null);
-      }
+  const connectWallet = () => {
+    const ui = new tonConnectUI({
+      manifestUrl: '/tonconnect-manifest.json',
+      buttonRootId: 'ton-connect-button'
     });
+    setTonConnectUI(ui);
+    ui.openModal(); // Open the connection modal
+  };
 
-    return () => unsubscribe();
-  }, [tonConnectUI]);
-
+  // Function to handle wallet connection/disconnection based on the current state
   const handleWalletAction = () => {
-    if (tonConnectUI.connected) {
+    if (tonConnectUI?.connected) {
       tonConnectUI.disconnect();
     } else {
-      tonConnectUI.openModal(); // This opens the TON wallet connection UI
+      connectWallet(); // Initialize connection when user clicks the button
     }
   };
+
+  // Effect hook to listen to wallet connection status change
+  React.useEffect(() => {
+    if (tonConnectUI) {
+      const checkWalletConnection = () => {
+        if (tonConnectUI.account?.address) {
+          setTonWalletAddress(tonConnectUI.account.address);
+          setLoading(false);
+        } else {
+          setTonWalletAddress(null);
+          setLoading(false);
+        }
+      };
+
+      // Call the check immediately after connection setup
+      checkWalletConnection();
+
+      // Listen for any changes to wallet connection status
+      const unsubscribe = tonConnectUI.onStatusChange((wallet: { account: { address: string | null }; }) => {
+        if (wallet) {
+          setTonWalletAddress(wallet.account.address);
+        } else {
+          setTonWalletAddress(null);
+        }
+      });
+
+      return () => unsubscribe();
+    }
+  }, [tonConnectUI]);
 
   return (
     
@@ -640,16 +656,11 @@ useEffect(() => {
   <div id="ton-connect-button" className="hidden" />
 
   {/* Custom Wallet Button */}
-  <button 
-    onClick={() => {
-      if (!isConnected) {
-        connect(); // Only trigger wallet connection here
-      } else {
-        setShowDisconnectConfirm(true); // Show disconnect popup
-      }
-    }}
-    className="flex flex-col items-center"
-  >
+  <button
+  onClick={handleWalletAction} // Trigger connect/disconnect on button click
+  className="flex flex-col items-center"
+>
+
     <img
       src="/images/info/output-onlinepngtools (2).png"
       width={24}
