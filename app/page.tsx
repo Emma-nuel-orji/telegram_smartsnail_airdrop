@@ -8,9 +8,10 @@ import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import ScrollingText from '@/components/ScrollingText';
 import TonConnectButton from './TonConnectButton';
-import { WalletProvider, WalletSection } from './context/walletContext';
+// import { WalletProvider, WalletSection } from './context/walletContext';
+import { WalletSection } from '../components/WalletSection';
 
-import { useWallet } from './context/walletContext';
+// import { useWallet } from './context/walletContext';
 // import { formatAddress } from '@/src/utils/formatAddress';
 
 declare global {
@@ -26,6 +27,7 @@ type Click = {
   x: number;
   y: number;
   tappingRate: number;
+  
 };
 
 export default function Home() {
@@ -52,34 +54,32 @@ export default function Home() {
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
-  const { walletAddress, isConnected, connect, disconnect } = useWallet();
+  // const { walletAddress, isConnected, connect, disconnect } = useWallet();
 
   // const [tonConnectUI, setTonConnectUI] = useState<any>(null);
   
-  const formatAddress = (address: string | any[]) => {
-    if (!address) return '';
-    return `${address.slice(0, 4)}...${address.slice(-4)}`;
-  };
+  // const formatAddress = (address: string | any[]) => {
+  //   if (!address) return '';
+  //   return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  // };
   
   // const tonConnectUI = tonConnectUI();
   const NotificationButton = () => {
     // State to track if there's a new message
     const [hasNewMessage, setHasNewMessage] = useState(true); // Default set to true for testing
   
-    const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
-
-    const handleDisconnect = () => {
-      setShowDisconnectConfirm(true);
-    };
+    // const handleConnect = async () => {
+    //   if (!isConnected) {
+    //     await connect();
+    //   } else {
+    //     setShowDisconnectConfirm(true);
+    //   }
+    // };
   
-    const cancelDisconnect = () => {
-      setShowDisconnectConfirm(false);
-    };
-  
-    const confirmDisconnect = async () => {
-      await disconnect();
-      setShowDisconnectConfirm(false);
-    };
+    // const handleDisconnect = async () => {
+    //   await disconnect();
+    //   setShowDisconnectConfirm(false);
+    // };
   
   
   const maxEnergy = 1500;
@@ -642,7 +642,7 @@ useEffect(() => {
       </div>
 
 
-      <WalletProvider>
+     
 
       <div className="flex space-x-4">
         <Link href="/Leaderboard">
@@ -651,59 +651,17 @@ useEffect(() => {
         
 
        {/* Wallet Icon and Connection Status */}
-<div className="flex flex-col items-center relative">
-  {/* TON Connect Button Container */}
-  <div id="ton-connect-button" className="hidden" />
-
-  {/* Custom Wallet Button */}
-  <button
-  onClick={isConnected ? handleDisconnect : connect} // Trigger connect/disconnect on button click
-  className="flex flex-col items-center"
->
-
-    <img
-      src="/images/info/output-onlinepngtools (2).png"
-      width={24}
-      height={24}
-      alt="Wallet"
-    />
-    {isConnected && (
-      <p className="text-sm text-gray-400 mt-1">
-        {formatAddress(walletAddress ?? '')}
-      </p>
-    )}
-  </button>
-
-  {/* Disconnect Confirmation Popup */}
-  {showDisconnectConfirm && (
-    <div className="absolute top-10 bg-gray-800 text-white p-3 rounded shadow-md z-50">
-      <p className="text-sm mb-2">Disconnect wallet?</p>
-      <div className="flex justify-end space-x-2">
-        <button
-          onClick={cancelDisconnect}
-          className="text-gray-400 hover:text-white text-xs"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={confirmDisconnect}
-          className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded"
-        >
-          Disconnect
-        </button>
-      </div>
-    </div>
-  )}
-</div>
+      <div className="flex flex-col items-center relative">
+      <WalletSection /> </div>
 
 
-        <WalletSection />
+        
 
         <Link href="/info">
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
         </Link>
       </div>
-      </WalletProvider>
+     
     </div>
 
   </div>

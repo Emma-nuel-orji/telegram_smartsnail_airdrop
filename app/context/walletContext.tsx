@@ -14,7 +14,6 @@ interface WalletContextType {
 
 const WalletContext = React.createContext<WalletContextType | undefined>(undefined);
 
-// Custom hook for using the wallet context
 export const useWallet = () => {
   const context = useContext(WalletContext);
   if (context === undefined) {
@@ -35,11 +34,11 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Create the button element if it doesn't exist
     let buttonRoot = document.getElementById('ton-connect-button');
     if (!buttonRoot) {
       buttonRoot = document.createElement('div');
       buttonRoot.id = 'ton-connect-button';
+      buttonRoot.style.display = 'none';
       document.body.appendChild(buttonRoot);
     }
 
@@ -73,19 +72,6 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
     };
 
     const unsubscribe = tonConnectUI.onStatusChange(handleWalletUpdate);
-
-    // Check initial connection
-    const checkInitialConnection = async () => {
-      try {
-        const wallet = await tonConnectUI.wallet;
-        handleWalletUpdate(wallet);
-      } catch (error) {
-        console.error('Failed to check initial connection:', error);
-      }
-    };
-    
-    checkInitialConnection();
-
     return () => {
       unsubscribe();
     };
@@ -130,7 +116,6 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
   );
 };
 
-// WalletSection component with custom UI
 export const WalletSection: FC = () => {
   const { isConnected, walletAddress, connect, disconnect } = useWallet();
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
@@ -146,7 +131,6 @@ export const WalletSection: FC = () => {
 
   return (
     <div className="flex flex-col items-center relative">
-      {/* Custom wallet button using your image */}
       <button 
         onClick={isConnected ? handleDisconnect : connect}
         className="flex flex-col items-center"
@@ -164,7 +148,6 @@ export const WalletSection: FC = () => {
         )}
       </button>
 
-      {/* Disconnect Confirmation Popup */}
       {showDisconnectConfirm && (
         <div className="absolute top-10 bg-gray-800 text-white p-3 rounded shadow-md z-50">
           <p className="text-sm mb-2">Disconnect wallet?</p>
