@@ -22,6 +22,7 @@ const WalletContext = createContext<WalletContextType>({
 
 interface WalletProviderProps {
   children: ReactNode;
+   manifestUrl: string;
 }
 
 let tonConnectUI: TonConnectUI | null = null;
