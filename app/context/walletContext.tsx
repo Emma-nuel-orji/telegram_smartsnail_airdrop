@@ -1,8 +1,8 @@
+// app/context/walletContext.tsx
 'use client';
 
-import { THEME, TonConnectUI, Wallet } from '@tonconnect/ui';
-import { FC, ReactNode, useContext, useEffect, useState } from 'react';
-import React from 'react';
+import { THEME, TonConnectUI } from '@tonconnect/ui';
+import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 
 interface WalletContextType {
   walletAddress: string | null;
@@ -12,94 +12,70 @@ interface WalletContextType {
   tonConnectUI: TonConnectUI | null;
 }
 
-const WalletContext = React.createContext<WalletContextType | undefined>(undefined);
-
-export const useWallet = () => {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
-  }
-  return context;
-};
+const WalletContext = createContext<WalletContextType>({
+  walletAddress: null,
+  isConnected: false,
+  connect: async () => {},
+  disconnect: async () => {},
+  tonConnectUI: null
+});
 
 interface WalletProviderProps {
   children: ReactNode;
-  manifestUrl: string;
 }
 
-let tonConnectUIInstance: TonConnectUI | null = null;
+let tonConnectUI: TonConnectUI | null = null;
 
-export const WalletProvider: FC<WalletProviderProps> = ({ children, manifestUrl }) => {
+export function WalletProvider({ children }: WalletProviderProps) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [tonConnectUI, setTonConnectUI] = useState<TonConnectUI | null>(null);
+  const [tonConnectUIState, setTonConnectUIState] = useState<TonConnectUI | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const initializeWallet = async () => {
+    const initWallet = async () => {
       try {
-        // Remove any existing tc-root elements
-        const existingElements = document.getElementsByTagName('tc-root');
-        if (existingElements.length > 0) {
-          Array.from(existingElements).forEach(element => element.remove());
-        }
-
-        // Clear custom elements registry if possible
-        if (customElements.get('tc-root')) {
-          try {
-            // @ts-ignore
-            customElements.clear();
-          } catch (e) {
-            console.warn('Could not clear custom elements registry');
-          }
-        }
-
-        if (!tonConnectUIInstance) {
-          tonConnectUIInstance = new TonConnectUI({
-            manifestUrl,
-            buttonRootId: 'ton-connect-button',
+        if (!tonConnectUI) {
+          tonConnectUI = new TonConnectUI({
+            manifestUrl: process.env.NEXT_PUBLIC_TON_MANIFEST_URL || 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json',
+            buttonRootId: 'wallet-connect-button',
             uiPreferences: {
-              theme: THEME.DARK
+              theme: THEME.LIGHT
             }
           });
 
-          setTonConnectUI(tonConnectUIInstance);
-          
-          const unsubscribe = tonConnectUIInstance.onStatusChange((wallet: Wallet | null) => {
+          setTonConnectUIState(tonConnectUI);
+
+          // Listen for wallet changes
+          tonConnectUI.onStatusChange((wallet) => {
             if (wallet) {
               setWalletAddress(wallet.account.address);
               setIsConnected(true);
+              console.log('Wallet connected:', wallet.account.address);
             } else {
               setWalletAddress(null);
               setIsConnected(false);
+              console.log('Wallet disconnected');
             }
           });
-
-          return () => {
-            unsubscribe();
-            tonConnectUIInstance = null;
-          };
         }
       } catch (error) {
-        console.error('Failed to initialize TonConnectUI:', error);
+        console.error('Wallet initialization error:', error);
       }
     };
 
-    const timeoutId = setTimeout(initializeWallet, 1000);
+    initWallet();
 
     return () => {
-      clearTimeout(timeoutId);
+      tonConnectUI?.disconnect();
+      tonConnectUI = null;
     };
-  }, [manifestUrl]);
+  }, []);
 
   const connect = async () => {
     try {
-      if (!tonConnectUI) {
-        console.error('TonConnectUI not initialized');
-        return;
-      }
-      await tonConnectUI.connectWallet();
+      await tonConnectUI?.connectWallet();
     } catch (error) {
       console.error('Failed to connect wallet:', error);
     }
@@ -107,29 +83,31 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children, manifestUrl 
 
   const disconnect = async () => {
     try {
-      if (!tonConnectUI) {
-        console.error('TonConnectUI not initialized');
-        return;
-      }
-      await tonConnectUI.disconnect();
+      await tonConnectUI?.disconnect();
     } catch (error) {
       console.error('Failed to disconnect wallet:', error);
     }
   };
 
-  const contextValue: WalletContextType = {
-    walletAddress,
-    isConnected,
-    connect,
-    disconnect,
-    tonConnectUI,
-  };
-
   return (
-    <WalletContext.Provider value={contextValue}>
+    <WalletContext.Provider
+      value={{
+        walletAddress,
+        isConnected,
+        connect,
+        disconnect,
+        tonConnectUI: tonConnectUIState
+      }}
+    >
       {children}
     </WalletContext.Provider>
   );
-};
+}
 
-export { WalletContext };
+export const useWallet = () => {
+  const context = useContext(WalletContext);
+  if (!context) {
+    throw new Error('useWallet must be used within a WalletProvider');
+  }
+  return context;
+};

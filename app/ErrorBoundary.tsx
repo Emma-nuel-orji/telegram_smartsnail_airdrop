@@ -1,16 +1,16 @@
 // ErrorBoundary.tsx
 'use client';
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 interface State {
   hasError: boolean;
 }
 
-class ErrorBoundary extends Component<Props, State> {
+export default class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false
   };
@@ -25,21 +25,9 @@ class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
-      return (
-        <div className="p-4 text-center">
-          <h2>Something went wrong.</h2>
-          <button
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
-            onClick={() => window.location.reload()}
-          >
-            Reload Page
-          </button>
-        </div>
-      );
+      return <h1>Sorry.. there was an error</h1>;
     }
 
     return this.props.children;
   }
 }
-
-export default ErrorBoundary;

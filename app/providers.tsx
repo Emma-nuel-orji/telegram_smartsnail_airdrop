@@ -1,24 +1,22 @@
+// app/providers.tsx
+'use client';
+
 import { ReactNode } from 'react';
 import { WalletProvider } from './context/walletContext';
-import TonConnectButton from './TonConnectButton';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
-
-// Define the manifest URL for your dApp
-const manifestUrl = 'https://telegram-smartsnail-airdrop.vercel.app/tonconnect-manifest.json';
+import ErrorBoundary from './ErrorBoundary';
 
 interface ProvidersProps {
   children: ReactNode;
 }
 
+// Use a named function instead of default export
 export function Providers({ children }: ProvidersProps) {
+  const manifestUrl = process.env.NEXT_PUBLIC_MANIFEST_URL || 'https://telegram-smartsnail-airdrop.vercel.app/tonconnect-manifest.json';
+  
   return (
     <WalletProvider manifestUrl={manifestUrl}>
-      <TonConnectUIProvider manifestUrl={manifestUrl}>
-        <div id="ton-connect-button">
-          <TonConnectButton />
-        </div>
-        {children}
-      </TonConnectUIProvider>
+      {children}
     </WalletProvider>
   );
 }

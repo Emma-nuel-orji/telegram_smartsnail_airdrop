@@ -2,9 +2,12 @@
 import type { Metadata } from "next";
 import './globals.css';
 import Script from "next/script";
+import { Providers } from './providers';
 import { BoostProvider } from './api/context/BoostContext';
-import { WalletProvider } from './context/walletContext';
 import ErrorBoundary from './ErrorBoundary';
+
+
+
 
 export const metadata: Metadata = {
   title: 'Telegram Mini App',
@@ -16,10 +19,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const manifestUrl = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3000/tonconnect-manifest.json'
-    : 'https://telegram-smartsnail-airdrop.vercel.app/tonconnect-manifest.json';
-
+  
   return (
     <html lang="en">
       <head>
@@ -32,13 +32,17 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <ErrorBoundary>
-          <WalletProvider manifestUrl={manifestUrl}>
+          <Providers >
             <BoostProvider>
+            <div id="app-root">
               {children}
+
+            </div>
+              
             </BoostProvider>
-          </WalletProvider>
+          </Providers>
         </ErrorBoundary>
       </body>
     </html>
