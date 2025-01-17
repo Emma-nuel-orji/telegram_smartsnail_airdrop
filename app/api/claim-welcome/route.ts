@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // First, get the current user state with a FOR UPDATE lock
+      // Try to find an existing user
       const user = await tx.user.findUnique({
         where: { telegramId: telegramIdBigInt },
         select: {
@@ -38,9 +38,22 @@ export async function POST(req: NextRequest) {
       });
 
       if (!user) {
-        throw new Error('User not found');
+        // If no user is found, create a new user
+        console.log('User not found, creating a new user.');
+
+        const newUser = await tx.user.create({
+          data: {
+            telegramId: telegramIdBigInt,
+            points: 0, // Starting points for a new user
+            hasClaimedWelcome: false, // They haven't claimed the welcome bonus yet
+          },
+        });
+
+        // Return the newly created user data
+        return newUser;
       }
 
+      // If user exists, check if they have already claimed the bonus
       if (user.hasClaimedWelcome) {
         throw new Error('Welcome bonus already claimed');
       }
