@@ -616,23 +616,15 @@ useEffect(() => {
         {/* Marketplace text under SmartSnail */}
         <span className="text-sm text-gray-400">Marketplace</span>
       </div>
-
-
-      
-
       <div className="flex space-x-4">
         <Link href="/Leaderboard">
           <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
         </Link>
-        
-
+      
        {/* Wallet Icon and Connection Status */}
       
-      {/* <WalletSection />  */}
-
-
-        
-
+      <WalletSection /> 
+      
         <Link href="/info">
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
         </Link>
@@ -683,11 +675,6 @@ useEffect(() => {
           : 'African Giant Snail/god NFT'}
       </span>
     </div>
-
-  
-
-
-
       {notification && <div className="notification">{notification}</div>}
       {error && <div className="error">{error}</div>}
       <div className="fixed bottom-0 left-0 w-full px-4 pb-4 z-10">
@@ -707,8 +694,6 @@ useEffect(() => {
               </div>
             </div>
           </div>
-
-
           <div className="flex-grow flex items-center max-w-60 text-sm">
   <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
     <Link href="/referralsystem" className="flex flex-col items-center gap-1">
@@ -727,12 +712,8 @@ useEffect(() => {
     </Link>
   </div>
 </div>
-
-
         </div>
       </div>
-
-
       <div className="flex-grow flex items-center justify-center" >
       {/* Video with Click Handler */}
       <div className="relative mt-4" onClick={handleIncreasePoints}>
