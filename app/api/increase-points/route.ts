@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
-import { Prisma } from '@prisma/client';
 
-// Define the expected request body type
 interface RequestBody {
   telegramId: string;
   tappingRate?: number;
@@ -14,7 +12,6 @@ const MAX_POINTS_PER_TAP = 1000;
 
 export async function POST(req: NextRequest) {
   try {
-    // Properly type the request body
     const requestBody = await req.json() as RequestBody;
     const { telegramId } = requestBody;
 
@@ -36,22 +33,31 @@ export async function POST(req: NextRequest) {
     }
 
     const updatedUser = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
+      // Try to find or create user
+      let user = await tx.user.findUnique({
         where: { telegramId: telegramIdBigInt },
-        select: { points: true, tappingRate: true },
       });
 
       if (!user) {
-        throw new Error('User not found');
+        // Create new user with default values if doesn't exist
+        user = await tx.user.create({
+          data: {
+            telegramId: telegramIdBigInt,
+            points: 0,
+            tappingRate: DEFAULT_TAPPING_RATE,
+            hasClaimedWelcome: false,
+          },
+        });
       }
 
       const effectiveTappingRate = user.tappingRate ?? DEFAULT_TAPPING_RATE;
+      const pointsToAdd = Math.min(effectiveTappingRate, MAX_POINTS_PER_TAP);
 
       return tx.user.update({
         where: { telegramId: telegramIdBigInt },
         data: {
           points: {
-            increment: effectiveTappingRate
+            increment: pointsToAdd
           }
         },
       });
@@ -59,14 +65,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      points: updatedUser.points,
+      points: updatedUser.points.toString(),
       requestId: requestBody.requestId
     });
 
   } catch (error) {
     console.error('Error processing request:', error);
     
-    // Safe error response
     return NextResponse.json({ 
       success: false,
       error: 'Internal server error',

@@ -181,43 +181,74 @@ export default function Home() {
     setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
   };
 
-  const handleClaim = async () => {
-    try {
-      if (!user || !user.telegramId) {
-        setError('User is not defined.');
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-
-      const res = await fetch('/api/claim-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId: user.telegramId }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        const updatedUser = {
-          ...user,
-          points: data.points,
-          hasClaimedWelcome: true,
-        };
-
-        setUser(updatedUser);
-        setShowWelcomePopup(false);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        triggerConfetti();
-      } else {
-        setError(data.message || 'Failed to claim bonus.');
-        setTimeout(() => setError(null), 3000);
-      }
-    } catch (err) {
-      console.error('Error in handleClaim:', err);
-      setError('An error occurred while claiming the bonus.');
+  // Frontend claim handler
+const handleClaim = async () => {
+  try {
+    if (!user?.telegramId) {
+      setError('Please connect your Telegram account first.');
       setTimeout(() => setError(null), 3000);
+      return;
     }
-  };
+
+    // Show loading state
+    setIsLoading(true);
+
+    // First, verify if user hasn't already claimed
+    if (user.hasClaimedWelcome) {
+      setError('Welcome bonus has already been claimed.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    const res = await fetch('/api/claim-welcome', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        telegramId: user.telegramId,
+        // Add a timestamp to help with debugging
+        timestamp: new Date().toISOString()
+      }),
+    });
+
+    // Get the response data
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      console.error('Failed to parse response:', e);
+      throw new Error('Invalid server response');
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || `Server error: ${res.status}`);
+    }
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to claim bonus');
+    }
+
+    // Success path
+    const updatedUser = {
+      ...user,
+      points: data.points,
+      hasClaimedWelcome: true,
+    };
+
+    setUser(updatedUser);
+    setShowWelcomePopup(false);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    triggerConfetti();
+
+  } catch (err) {
+    console.error('Error in handleClaim:', err);
+    setError(err instanceof Error ? err.message : 'An error occurred while claiming the bonus.');
+    setTimeout(() => setError(null), 3000);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Speed Reduction Effect
 useEffect(() => {

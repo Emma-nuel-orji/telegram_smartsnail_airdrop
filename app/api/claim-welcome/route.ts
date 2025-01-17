@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 
-const WELCOME_BONUS_AMOUNT = 5000n; // Note the 'n' suffix for BigInt literal
+const WELCOME_BONUS_AMOUNT = 5000n; // BigInt for welcome bonus
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,69 +29,50 @@ export async function POST(req: NextRequest) {
 
     const result = await prisma.$transaction(async (tx) => {
       // Try to find an existing user
-      const user = await tx.user.findUnique({
+      let user = await tx.user.findUnique({
         where: { telegramId: telegramIdBigInt },
-        select: {
-          hasClaimedWelcome: true,
-          points: true,
-        },
       });
 
       if (!user) {
-        // If no user is found, create a new user
-        console.log('User not found, creating a new user.');
-
-        const newUser = await tx.user.create({
+        // Create new user with initial points and welcome bonus claimed
+        user = await tx.user.create({
           data: {
             telegramId: telegramIdBigInt,
-            points: 0, // Starting points for a new user
-            hasClaimedWelcome: false, // They haven't claimed the welcome bonus yet
+            points: Number(WELCOME_BONUS_AMOUNT), // Convert BigInt to Number for initial points
+            hasClaimedWelcome: true, // Set to true immediately
+            tappingRate: 1, // Set default tapping rate
           },
         });
-
-        // Return the newly created user data
-        return newUser;
+        return user;
       }
 
-      // If user exists, check if they have already claimed the bonus
-      if (user.hasClaimedWelcome) {
-        throw new Error('Welcome bonus already claimed');
-      }
-
-      // Update user points and mark as claimed
-      const updatedUser = await tx.user.update({
-        where: { telegramId: telegramIdBigInt },
-        data: {
-          points: {
-            increment: Number(WELCOME_BONUS_AMOUNT) // Convert BigInt to Number for increment
+      // If user exists but hasn't claimed welcome bonus
+      if (!user.hasClaimedWelcome) {
+        const updatedUser = await tx.user.update({
+          where: { telegramId: telegramIdBigInt },
+          data: {
+            points: {
+              increment: Number(WELCOME_BONUS_AMOUNT)
+            },
+            hasClaimedWelcome: true,
           },
-          hasClaimedWelcome: true,
-        },
-        select: {
-          points: true,
-          hasClaimedWelcome: true,
-        },
-      });
+        });
+        return updatedUser;
+      }
 
-      return updatedUser;
-    
+      throw new Error('Welcome bonus already claimed');
     });
 
     return NextResponse.json({
       success: true,
-      points: result.points.toString(), // Convert BigInt to string for JSON
+      points: result.points.toString(), // Convert to string for JSON
       hasClaimedWelcome: result.hasClaimedWelcome,
     });
+
   } catch (error) {
     console.error('Error in /api/claim-welcome:', error);
 
     if (error instanceof Error) {
-      if (error.message === 'User not found') {
-        return NextResponse.json(
-          { success: false, error: 'User not found' },
-          { status: 404 }
-        );
-      }
       if (error.message === 'Welcome bonus already claimed') {
         return NextResponse.json(
           { success: false, error: 'Welcome bonus already claimed' },
