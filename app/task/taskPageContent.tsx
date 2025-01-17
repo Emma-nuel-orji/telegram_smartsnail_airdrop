@@ -89,6 +89,7 @@ const TaskPageContent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [telegramId, setTelegramId] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
+  
   const triggerConfetti = () => {
     const duration = 2 * 1000; // 2 seconds
     const end = Date.now() + duration;

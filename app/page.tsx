@@ -48,6 +48,7 @@ export default function Home() {
   const [notification, setNotification] = useState<string | null>(null);
   const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -60,10 +61,10 @@ export default function Home() {
     localStorage.setItem('lastSync', Date.now().toString());
   };
   
-    const clearLocalStorage = () => {
-      localStorage.clear(); // Clears all data in localStorage
-      alert('LocalStorage has been cleared!');
-    };
+    // const clearLocalStorage = () => {
+    //   localStorage.clear(); // Clears all data in localStorage
+    //   alert('LocalStorage has been cleared!');
+    // };
   // const [pendingRequests, setPendingRequests] = useState<number[]>([]);
   // const [lastRequestTime, setLastRequestTime] = useState<number | null>(null);
   // const isPendingRequest = (requestId: number): boolean => {
@@ -72,7 +73,7 @@ export default function Home() {
 
   const REDUCTION_RATE = 20; // Amount of speed to reduce per interval
   const REFILL_RATE = 40;    // Amount of speed to refill per interval
-  const ENERGY_REDUCTION_RATE =  9; // Amount of energy to reduce per interval
+  const ENERGY_REDUCTION_RATE =  20; // Amount of energy to reduce per interval
   
   const getLocalStorageData = () => {
     const userData = localStorage.getItem('user');
@@ -95,7 +96,6 @@ export default function Home() {
   
 
   const handleClick = async (e: React.MouseEvent) => {
-    // Handle Speed and Animation
     setIsClicking(true);
     setSpeed((prev) => Math.min(prev + 0.1, 5));
   
@@ -114,33 +114,28 @@ export default function Home() {
   
     inactivityTimeout.current = setTimeout(() => {
       setIsClicking(false);
-      reduceSpeed();
+      setSpeed((prev) => Math.max(1, prev - 0.2));
     }, 1000);
   
-    const reduceSpeed = () => {
-      setSpeed((prev) => Math.max(1, prev - 0.2));
-    };
-  
-    useEffect(() => {
-      if (!isClicking) {
-        const interval = setInterval(reduceSpeed, 100);
-        return () => clearInterval(interval);
-      }
-    }, [isClicking]);
-  
-    // Handle Points Increase
     if (!user || energy <= 0) return;
   
-    const { clientX, clientY } = e;
     const tappingRate = Number(user.tappingRate) || 1;
-    const prevPoints = Number(user.points) ?? 0;
-  
-    // Optimistically update UI with new points
+    const prevPoints = Number(user.points) || 0;
     const newPoints = prevPoints + tappingRate;
-    setClicks((prevClicks) => [
-      ...prevClicks,
-      { id: Date.now(), x: clientX, y: clientY, tappingRate },
-    ]);
+  
+    // Optimistically update points
+    setUser((prevUser) => ({
+      ...prevUser!,
+      points: newPoints,
+    }));
+    syncWithLocalStorage({
+      ...user,
+      points: newPoints,
+    });
+  
+    // Reduce energy
+    const ENERGY_REDUCTION_RATE = tappingRate;
+    setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
   
     try {
       const res = await fetch('/api/increase-points', {
@@ -153,8 +148,8 @@ export default function Home() {
       });
   
       const data = await res.json();
+      console.log("API Response:", data);
   
-      // Update user points if successful
       if (data.success) {
         const updatedUser = {
           ...user,
@@ -164,7 +159,7 @@ export default function Home() {
         syncWithLocalStorage(updatedUser);
       }
     } catch (error) {
-      console.error('Error updating points:', error);
+      console.error("Error updating points:", error);
       // Revert optimistic update on error
       const revertUser = {
         ...user,
@@ -177,11 +172,8 @@ export default function Home() {
         setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
       }, 1000);
     }
-  
-    // Update energy
-    const ENERGY_REDUCTION_RATE = tappingRate; // Match energy reduction to tapping rate
-  setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
   };
+  
   
   
 
@@ -240,15 +232,14 @@ useEffect(() => {
 
 // Speed Refill Effect when energy is greater than 0
 useEffect(() => {
-  // Starts refilling when the user is not clicking, regardless of energy level
-  if (!isClicking) {
+  if (energy < maxEnergy && !isClicking) {
     const refillInterval = setInterval(() => {
-      setSpeed((prev) => Math.min(5, prev + REFILL_RATE)); // Refills speed gradually but limits it to 5
-    }, 300); // Refill interval
+      setEnergy((prev) => Math.min(maxEnergy, prev + 10));
+    }, 300);
 
-    return () => clearInterval(refillInterval); // Cleanup interval when conditions change
+    return () => clearInterval(refillInterval);
   }
-}, [isClicking]); // Dependency on isClicking
+}, [energy, maxEnergy, isClicking]); // Dependency on isClicking
 
 
 // Energy Reduction when Clicking
@@ -439,7 +430,7 @@ useEffect(() => {
 
           {/* Popup Content */}
           <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
-            <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName ? firstName : 'User'}!</h2>
+            <h2 className="text-2xl font-bold mb-4">Welcome onboard {user?.first_name}!</h2>
 
             {/* Video Section */}
             <div className="mb-4 w-full relative">
@@ -542,9 +533,6 @@ useEffect(() => {
   </div>
 </button>
 
-<button onClick={clearLocalStorage}>
-      Clear LocalStorage
-    </button>
 
       {/* Display Camouflage Level */}
       <span className="ml-0">
@@ -565,7 +553,7 @@ useEffect(() => {
 
 
 
-      {notification && <div className="notification">{notification}</div>}
+  {notification && <div className="notification">{sanitizedNotification}</div>}
       {error && <div className="error">{error}</div>}
       <div className="fixed bottom-0 left-0 w-full px-4 pb-4 z-10">
         <div className="w-full bg-[#f9c035] rounded-full mt-4">
@@ -640,7 +628,7 @@ useEffect(() => {
   </div>
   {notification && (
     <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
-      {notification}
+      {sanitizedNotification}
     </div>
   )}
 </div>
