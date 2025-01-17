@@ -1,11 +1,21 @@
 'use client';
 import React from 'react';
+import Link from "next/link";
 
 const InfoPage = () => {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       {/* Welcome Section */}
       <section className="text-center mb-12">
+      {/* <Link href="/">
+          <img
+            src="/images/info/left-arrow.png" 
+            
+            width={40}
+            height={40}
+            alt="back"
+          />
+        </Link> */}
         <h1 className="text-4xl font-bold mb-4">Welcome to SmartSnail</h1>
         <p className="text-lg text-gray-700">
           A revolutionary project at the forefront of integrating blockchain technology with real-world applications. 
