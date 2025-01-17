@@ -35,7 +35,7 @@ export default function Home() {
     hasClaimedWelcome?: boolean;
   }>(null);
 
-  // const [firstName, setFirstName] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
   const [clicks, setClicks] = useState<Click[]>([]);
@@ -74,9 +74,13 @@ export default function Home() {
   const REDUCTION_RATE = 20; // Amount of speed to reduce per interval
   const REFILL_RATE = 40;    // Amount of speed to refill per interval
   const ENERGY_REDUCTION_RATE =  20; // Amount of energy to reduce per interval
+  const tg = (typeof window !== "undefined" && window.Telegram?.WebApp) || null;
+
   
   const getLocalStorageData = () => {
-    const userData = localStorage.getItem('user');
+    const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    if (!telegramId) return null;
+    const userData = localStorage.getItem(`user_${telegramId}`);
     return userData ? JSON.parse(userData) : null;
   };
   const maxEnergy = 1500;
@@ -328,18 +332,6 @@ useEffect(() => {
       const startTime = Date.now();
     
       try {
-        // First, check localStorage for cached data
-        const cachedUser = getLocalStorageData();
-        const lastSync = localStorage.getItem('lastSync');
-        const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
-    
-        // If we have cached data and it's recent, use it
-        if (cachedUser && lastSync && Date.now() - parseInt(lastSync) < SYNC_INTERVAL) {
-          setUser(cachedUser);
-          setLoading(false);
-          return;
-        }
-    
         if (!window.Telegram?.WebApp) {
           throw new Error('Telegram WebApp not available');
         }
@@ -352,20 +344,39 @@ useEffect(() => {
           throw new Error('Unable to get user information from Telegram');
         }
     
-        // If we have cached data but it's old, use it temporarily while fetching fresh data
-        if (cachedUser) {
+        // Create a unique key for each Telegram account
+        const storageKey = `user_${userData.id}`;
+
+// Get cached data specific to this Telegram ID
+        const cachedUser = localStorage.getItem(storageKey)
+          ? JSON.parse(localStorage.getItem(storageKey) || '{}')
+          : null;
+
+        const lastSyncKey = `lastSync_${userData.id}`;
+        const lastSync = localStorage.getItem(lastSyncKey);
+        const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+        // If we have recent cached data for this specific user, use it
+        if (cachedUser && lastSync && Date.now() - parseInt(lastSync, 10) < SYNC_INTERVAL) {
           setUser(cachedUser);
+          setLoading(false);
+        } else {
+          console.warn("Cached data is either missing or outdated. Fetching new data...");
+          // Handle data fetch logic here if needed
+          setLoading(false);
         }
     
+        // Always fetch fresh data from server for the specific Telegram ID
         const response = await fetch(`/api/user/${userData.id}`);
     
         if (response.ok) {
           const serverUser = await response.json();
-          syncWithLocalStorage(serverUser);
+          // Store data specific to this Telegram ID
+          localStorage.setItem(storageKey, JSON.stringify(serverUser));
+          localStorage.setItem(`lastSync_${userData.id}`, Date.now().toString());
           setUser(serverUser);
           if (!serverUser.hasClaimedWelcome) setShowWelcomePopup(true);
         } else {
-          // Only create new user if we don't have cached data
           if (!cachedUser) {
             const requestData = {
               telegramId: userData.id.toString(),
@@ -389,7 +400,8 @@ useEffect(() => {
             }
     
             const newUser = await createResponse.json();
-            syncWithLocalStorage(newUser);
+            localStorage.setItem(storageKey, JSON.stringify(newUser));
+            localStorage.setItem(`lastSync_${userData.id}`, Date.now().toString());
             setUser(newUser);
             if (!newUser.hasClaimedWelcome) setShowWelcomePopup(true);
           }
@@ -399,8 +411,13 @@ useEffect(() => {
         console.error('Initialization error:', error);
         setError(error.message || 'Failed to initialize app');
         
-        // If we have cached data, keep using it despite the error
-        const cachedUser = getLocalStorageData();
+        // Only use cached data for the specific Telegram ID
+        const storageKey = `user_${tg?.initDataUnsafe?.user?.id || 'unknown'}`;
+        const cachedUser = localStorage.getItem(storageKey)
+          ? JSON.parse(localStorage.getItem(storageKey) || '{}')
+          : null;
+
+        
         if (cachedUser) {
           setUser(cachedUser);
           setError(null);
@@ -473,7 +490,7 @@ useEffect(() => {
 
           {/* Popup Content */}
           <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
-            <h2 className="text-2xl font-bold mb-4">Welcome onboard {user?.first_name || 'User'}!</h2>
+            <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName}!</h2>
 
             {/* Video Section */}
             <div className="mb-4 w-full relative">

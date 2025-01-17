@@ -7,19 +7,6 @@ import { useState, useEffect } from 'react';
 export function ConnectButton() {
   const { isConnected, tonConnectUI } = useWallet();
   const [loading, setLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    if (tonConnectUI) {
-      setIsReady(true);
-      
-      // Hide the default TON Connect button
-      const defaultButton = document.querySelector('.ton-connect-button');
-      if (defaultButton) {
-        (defaultButton as HTMLElement).style.display = 'none';
-      }
-    }
-  }, [tonConnectUI]);
 
   const handleClick = async () => {
     try {
@@ -38,12 +25,11 @@ export function ConnectButton() {
     }
   };
 
-  if (!isReady) return null;
-
+  // No need for isReady state since we'll show the button always
   return (
     <button 
       id="wallet-connect-button"
-      className="relative cursor-pointer inline-flex items-center justify-center"
+      className="relative cursor-pointer p-1 rounded-lg hover:bg-gray-100"
       onClick={handleClick}
       disabled={loading}
     >
@@ -51,9 +37,8 @@ export function ConnectButton() {
         <Image 
           src="/images/info/output-onlinepngtools (2).png"
           alt={isConnected ? "Disconnect Wallet" : "Connect Wallet"}
-          width={24}
-          height={24}
-          className="object-contain"
+          layout="fill"
+          objectFit="contain"
           priority
         />
       </div>
