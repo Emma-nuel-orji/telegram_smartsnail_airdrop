@@ -59,6 +59,11 @@ export default function Home() {
     localStorage.setItem('telegramId', userData.telegramId);
     localStorage.setItem('lastSync', Date.now().toString());
   };
+  
+    const clearLocalStorage = () => {
+      localStorage.clear(); // Clears all data in localStorage
+      alert('LocalStorage has been cleared!');
+    };
   // const [pendingRequests, setPendingRequests] = useState<number[]>([]);
   // const [lastRequestTime, setLastRequestTime] = useState<number | null>(null);
   // const isPendingRequest = (requestId: number): boolean => {
@@ -481,6 +486,7 @@ useEffect(() => {
             >
               Claim
             </button>
+            
           </div>
         </div>
       )}
@@ -536,7 +542,9 @@ useEffect(() => {
   </div>
 </button>
 
-
+<button onClick={clearLocalStorage}>
+      Clear LocalStorage
+    </button>
 
       {/* Display Camouflage Level */}
       <span className="ml-0">
