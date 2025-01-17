@@ -628,7 +628,7 @@ useEffect(() => {
 
        {/* Wallet Icon and Connection Status */}
       
-      <WalletSection /> 
+      {/* <WalletSection />  */}
 
 
         
