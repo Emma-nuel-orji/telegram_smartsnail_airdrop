@@ -127,6 +127,33 @@ html, body, #__next, [data-nextjs] {
   }
 }
 
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple:after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(1);
+  transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
+}
+
+.ripple.clicked:after {
+  opacity: 1;
+  width: 200px; /* Adjust the size of the ripple */
+  height: 200px;
+  transform: scale(1);
+  transition: none;
+}
+
+
 /* Utility Classes */
 .bg-gradient-main {
   background: linear-gradient(to top, #a107fb, #b330ff);

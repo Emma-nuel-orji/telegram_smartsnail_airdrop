@@ -35,7 +35,7 @@ export default function Home() {
     hasClaimedWelcome?: boolean;
   }>(null);
 
-  const [firstName, setFirstName] = useState<string | null>(null);
+  // const [firstName, setFirstName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
   const [clicks, setClicks] = useState<Click[]>([]);
@@ -89,7 +89,21 @@ export default function Home() {
       origin: { x: 0.5, y: 0.5 },
     });
   };
+  const [ripplePosition, setRipplePosition] = useState({ x: 0, y: 0 });
+  const [isClicked, setIsClicked] = useState(false);
 
+  const claimClick = (e: React.MouseEvent) => {
+    // Get the position of the click relative to the button
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setRipplePosition({ x, y });
+    setIsClicked(true);
+
+    setTimeout(() => setIsClicked(false), 400); // Remove ripple effect after animation
+    handleClaim(); // Call your original claim function
+  };
 
 
 
@@ -191,7 +205,7 @@ const handleClaim = async () => {
     }
 
     // Show loading state
-    setIsLoading(true);
+    setLoading(true);
 
     // First, verify if user hasn't already claimed
     if (user.hasClaimedWelcome) {
@@ -246,7 +260,7 @@ const handleClaim = async () => {
     setError(err instanceof Error ? err.message : 'An error occurred while claiming the bonus.');
     setTimeout(() => setError(null), 3000);
   } finally {
-    setIsLoading(false);
+    setLoading(false);
   }
 };
 
@@ -424,11 +438,11 @@ useEffect(() => {
   }, []);
 
   // Set first name effect
-  useEffect(() => {
-    if (user?.first_name) {
-      setFirstName(user.first_name);
-    }
-  }, [user]);
+  // useEffect(() => {
+  //   if (user?.first_name) {
+  //     setFirstName(user.first_name);
+  //   }
+  // }, [user]);
 
   if (isLoading) {
     return (
@@ -459,7 +473,7 @@ useEffect(() => {
 
           {/* Popup Content */}
           <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
-            <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName || 'User'}!</h2>
+            <h2 className="text-2xl font-bold mb-4">Welcome onboard {user?.first_name || 'User'}!</h2>
 
             {/* Video Section */}
             <div className="mb-4 w-full relative">
@@ -500,12 +514,24 @@ useEffect(() => {
               <ScrollingText />
 
             {/* Claim Button */}
-            <button
-              className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              onClick={handleClaim}
-            >
-              Claim
-            </button>
+             <button
+      className={`relative overflow-hidden mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600`}
+      onClick={claimClick}
+    >
+      {isClicked && (
+        <span
+          className="absolute rounded-full bg-white opacity-50 animate-ping"
+          style={{
+            width: "200px",
+            height: "200px",
+            top: ripplePosition.y - 100,
+            left: ripplePosition.x - 100,
+          }}
+        ></span>
+      )}
+      Claim
+    </button>
+
             
           </div>
         </div>
