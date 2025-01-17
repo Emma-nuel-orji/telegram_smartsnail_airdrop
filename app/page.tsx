@@ -47,6 +47,7 @@ export default function Home() {
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -58,23 +59,23 @@ export default function Home() {
     localStorage.setItem('telegramId', userData.telegramId);
     localStorage.setItem('lastSync', Date.now().toString());
   };
-  const [pendingRequests, setPendingRequests] = useState<number[]>([]);
-  const [lastRequestTime, setLastRequestTime] = useState<number | null>(null);
-  const isPendingRequest = (requestId: number): boolean => {
-    return pendingRequests.includes(requestId);
-  };
+  // const [pendingRequests, setPendingRequests] = useState<number[]>([]);
+  // const [lastRequestTime, setLastRequestTime] = useState<number | null>(null);
+  // const isPendingRequest = (requestId: number): boolean => {
+  //   return pendingRequests.includes(requestId);
+  // };
 
-
+  const REDUCTION_RATE = 20; // Amount of speed to reduce per interval
+  const REFILL_RATE = 40;    // Amount of speed to refill per interval
+  const ENERGY_REDUCTION_RATE =  9; // Amount of energy to reduce per interval
+  
   const getLocalStorageData = () => {
     const userData = localStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
   };
   const maxEnergy = 1500;
 
-  const reduceSpeed = () => {
-    setSpeed((prev) => Math.max(1, prev - 0.2));
-  };
-
+  
   const triggerConfetti = () => {
     confetti({
       particleCount: 100,
@@ -88,31 +89,53 @@ export default function Home() {
 
   
 
-  const handleIncreasePoints = async (e: React.MouseEvent) => {
+  const handleClick = async (e: React.MouseEvent) => {
+    // Handle Speed and Animation
+    setIsClicking(true);
+    setSpeed((prev) => Math.min(prev + 0.1, 5));
+  
+    const newClick = {
+      id: Date.now(),
+      x: e.clientX,
+      y: e.clientY,
+      tappingRate: user?.tappingRate || 1,
+    };
+  
+    setClicks((prev) => [...prev, newClick]);
+  
+    if (inactivityTimeout.current) {
+      clearTimeout(inactivityTimeout.current);
+    }
+  
+    inactivityTimeout.current = setTimeout(() => {
+      setIsClicking(false);
+      reduceSpeed();
+    }, 1000);
+  
+    const reduceSpeed = () => {
+      setSpeed((prev) => Math.max(1, prev - 0.2));
+    };
+  
+    useEffect(() => {
+      if (!isClicking) {
+        const interval = setInterval(reduceSpeed, 100);
+        return () => clearInterval(interval);
+      }
+    }, [isClicking]);
+  
+    // Handle Points Increase
     if (!user || energy <= 0) return;
   
     const { clientX, clientY } = e;
-    const id = Date.now();
     const tappingRate = Number(user.tappingRate) || 1;
     const prevPoints = Number(user.points) ?? 0;
   
-    // Implement request debouncing
-    const debounceMs = 100; // Adjust as needed
-    if (lastRequestTime && Date.now() - lastRequestTime < debounceMs) {
-      return;
-    }
-    setLastRequestTime(Date.now());
-  
-    // Update UI optimistically
+    // Optimistically update UI with new points
     const newPoints = prevPoints + tappingRate;
-    setClicks(prevClicks => [
+    setClicks((prevClicks) => [
       ...prevClicks,
-      { id, x: clientX, y: clientY, tappingRate }
+      { id: Date.now(), x: clientX, y: clientY, tappingRate },
     ]);
-  
-    // Track pending request
-    const requestId = id;
-    setPendingRequests(prev => [...prev, requestId]);
   
     try {
       const res = await fetch('/api/increase-points', {
@@ -121,14 +144,13 @@ export default function Home() {
         body: JSON.stringify({
           telegramId: user.telegramId,
           tappingRate,
-          requestId,
         }),
       });
   
       const data = await res.json();
   
-      // Only update if this is the most recent request
-      if (data.success && isPendingRequest(requestId)) {
+      // Update user points if successful
+      if (data.success) {
         const updatedUser = {
           ...user,
           points: data.points,
@@ -146,66 +168,17 @@ export default function Home() {
       setUser(revertUser);
       syncWithLocalStorage(revertUser);
     } finally {
-      // Clean up
-      setPendingRequests(prev => prev.filter(id => id !== requestId));
       setTimeout(() => {
-        setClicks(prevClicks => prevClicks.filter(click => click.id !== id));
+        setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
       }, 1000);
     }
   
     // Update energy
-    const ENERGY_COST = 50;
-    setEnergy(prev => Math.max(0, prev - ENERGY_COST));
+    const ENERGY_REDUCTION_RATE = tappingRate; // Match energy reduction to tapping rate
+  setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
   };
-
-
-  // Add this effect to handle background synchronization
-  useEffect(() => {
-    const syncInterval = setInterval(async () => {
-      const needsSync = localStorage.getItem('needsSync');
-      const currentUser = getLocalStorageData();
-      
-      if (needsSync === 'true' && currentUser?.telegramId) {
-        try {
-          const res = await fetch(`/api/user/${currentUser.telegramId}`);
-          if (res.ok) {
-            const serverUser = await res.json();
-            setUser(serverUser);
-            syncWithLocalStorage(serverUser);
-            localStorage.removeItem('needsSync');
-          }
-        } catch (error) {
-          console.error('Background sync failed:', error);
-        }
-      }
-    }, 30000); // Try every 30 seconds
   
-    return () => clearInterval(syncInterval);
-  }, []);
- 
-
-  const handleSpeedAndAnimation = (e: React.MouseEvent) => {
-    setIsClicking(true);
-    setSpeed((prev) => Math.min(prev + 0.1, 5));
-    
-    const newClick = {
-      id: Date.now(),
-      x: e.clientX,
-      y: e.clientY,
-      tappingRate: user?.tappingRate || 1
-    };
-    
-    setClicks((prev) => [...prev, newClick]);
-
-    if (inactivityTimeout.current) {
-      clearTimeout(inactivityTimeout.current);
-    }
-
-    inactivityTimeout.current = setTimeout(() => {
-      setIsClicking(false);
-      reduceSpeed();
-    }, 1000);
-  };
+  
 
   const handleAnimationEnd = (id: number) => {
     setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
@@ -249,47 +222,63 @@ export default function Home() {
     }
   };
 
-  // Energy refill effect
-  useEffect(() => {
-    if (!isClicking && energy < maxEnergy) {
-      const refillSpeed = Math.max(500, (maxEnergy - energy) * 20);
-      const refillInterval = setInterval(() => {
-        setEnergy((prev) => Math.min(maxEnergy, prev + 2));
-      }, refillSpeed);
-      return () => clearInterval(refillInterval);
-    }
-  }, [isClicking, energy]);
+  // Speed Reduction Effect
+useEffect(() => {
+  if (!isClicking) {
+    const interval = setInterval(() => {
+      setSpeed((prev) => Math.max(1, prev - REDUCTION_RATE)); // Reduce speed gradually
+    }, 300); // Slow down the rate of reduction (every 300ms)
 
-  // Speed reduction effect
-  useEffect(() => {
-    if (!isClicking) {
-      const interval = setInterval(reduceSpeed, 100);
-      return () => clearInterval(interval);
-    }
-  }, [isClicking]);
+    return () => clearInterval(interval);
+  }
+}, [isClicking]);
 
-  // Animation effect when energy is 0
-  useEffect(() => {
-    if (energy <= 0) {
-      setIsClicking(false);
-    }
-  }, [energy]);
+// Speed Refill Effect when energy is greater than 0
+useEffect(() => {
+  // Starts refilling when the user is not clicking, regardless of energy level
+  if (!isClicking) {
+    const refillInterval = setInterval(() => {
+      setSpeed((prev) => Math.min(5, prev + REFILL_RATE)); // Refills speed gradually but limits it to 5
+    }, 300); // Refill interval
 
-  // Click animation effect
-  useEffect(() => {
-    if (isClicking && energy > 0) {
-      const animationInterval = setInterval(() => {
-        setClicks((prevClicks) =>
-          prevClicks.map((click) => ({
-            ...click,
-            y: click.y - 5,
-          }))
-        );
-      }, 100);
+    return () => clearInterval(refillInterval); // Cleanup interval when conditions change
+  }
+}, [isClicking]); // Dependency on isClicking
 
-      return () => clearInterval(animationInterval);
-    }
-  }, [isClicking, energy]);
+
+// Energy Reduction when Clicking
+useEffect(() => {
+  if (isClicking && energy > 0) {
+    const energyInterval = setInterval(() => {
+      setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE)); // Reduce energy
+    }, 500); // Slow energy reduction (every 500ms)
+
+    return () => clearInterval(energyInterval);
+  }
+}, [isClicking]);
+
+// Energy Refill Effect (when energy reaches 0, stop clicking)
+useEffect(() => {
+  if (energy <= 0) {
+    setIsClicking(false);
+  }
+}, [energy]);
+
+// Click Animation Effect
+useEffect(() => {
+  if (isClicking && energy > 0) {
+    const animationInterval = setInterval(() => {
+      setClicks((prevClicks) =>
+        prevClicks.map((click) => ({
+          ...click,
+          y: click.y - 5, // Move clicks upwards slowly for animation
+        }))
+      );
+    }, 100);
+
+    return () => clearInterval(animationInterval);
+  }
+}, [isClicking, energy]);
 
   // Initialize Telegram
   useEffect(() => {
@@ -409,8 +398,10 @@ export default function Home() {
 
   // Set first name effect
   useEffect(() => {
-    if (user?.first_name) {
+    if (user && user.first_name) {
       setFirstName(user.first_name);
+    } else {
+      setFirstName(null); // Reset to null if no user or first_name
     }
   }, [user]);
 
@@ -430,7 +421,7 @@ export default function Home() {
       </div>
 
       {/* Welcome Popup */}
-      {showWelcomePopup && (
+        {showWelcomePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
           {/* Background Blur Effect */}
           <div
@@ -493,6 +484,8 @@ export default function Home() {
           </div>
         </div>
       )}
+    
+     
     
 
 
@@ -611,7 +604,7 @@ export default function Home() {
 
       <div className="flex-grow flex items-center justify-center" >
       {/* Video with Click Handler */}
-      <div className="relative mt-4" onClick={handleIncreasePoints}>
+      <div className="relative mt-4" onClick={handleClick}>
         <video src="/images/snails.mp4" autoPlay muted loop />
         
         {/* Floating Clicks Animation */}
@@ -630,8 +623,9 @@ export default function Home() {
     </div>
       ))}
     </div>
-  </div>
- 
+
+</div>
+
 
 
   
