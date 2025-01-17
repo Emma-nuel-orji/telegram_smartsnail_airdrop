@@ -2,82 +2,74 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 import { Prisma } from '@prisma/client';
 
+// Define the expected request body type
+interface RequestBody {
+  telegramId: string;
+  tappingRate?: number;
+  requestId?: number;
+}
+
 const DEFAULT_TAPPING_RATE = 1;
+const MAX_POINTS_PER_TAP = 1000;
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('Starting points increase request');
-    
-    // Parse request body
-    const body = await req.json().catch(() => ({}));
-    const { telegramId } = body;
+    // Properly type the request body
+    const requestBody = await req.json() as RequestBody;
+    const { telegramId } = requestBody;
 
     if (!telegramId) {
-      console.warn('Missing telegramId in request');
-      return NextResponse.json({ error: 'Invalid telegramId' }, { status: 400 });
+      return NextResponse.json({ 
+        success: false,
+        error: 'Invalid telegramId' 
+      }, { status: 400 });
     }
 
-    // Safe BigInt conversion
     let telegramIdBigInt: bigint;
     try {
       telegramIdBigInt = BigInt(telegramId);
     } catch (error) {
-      console.warn('Invalid telegramId format:', telegramId);
-      return NextResponse.json({ error: 'Invalid telegram ID format' }, { status: 400 });
+      return NextResponse.json({ 
+        success: false,
+        error: 'Invalid telegram ID format' 
+      }, { status: 400 });
     }
 
-    // Fetch user with error handling
-    const user = await prisma.user.findUnique({
-      where: { telegramId: telegramIdBigInt },
-      select: { points: true, tappingRate: true },
-    }).catch((error) => {
-      console.error('Database query error:', error);
-      throw error;
-    });
-
-    if (!user) {
-      console.warn('User not found:', telegramId);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Use default tapping rate if not set
-    const tappingRate = user.tappingRate ?? DEFAULT_TAPPING_RATE;
-
-    // Update points with error handling
-    try {
-      const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
         where: { telegramId: telegramIdBigInt },
-        data: { points: { increment: tappingRate } },
+        select: { points: true, tappingRate: true },
       });
 
-      console.log('Successfully updated points for user:', telegramId);
-      
-      return NextResponse.json({
-        success: true,
-        points: updatedUser.points,
-        tappingRate,
-      });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error('Prisma error:', {
-          code: error.code,
-          message: error.message,
-          telegramId
-        });
+      if (!user) {
+        throw new Error('User not found');
       }
-      throw error;
-    }
-  } catch (error) {
-    console.error('Error processing request:', {
-      error,
-      stack: error instanceof Error ? error.stack : undefined
+
+      const effectiveTappingRate = user.tappingRate ?? DEFAULT_TAPPING_RATE;
+
+      return tx.user.update({
+        where: { telegramId: telegramIdBigInt },
+        data: {
+          points: {
+            increment: effectiveTappingRate
+          }
+        },
+      });
     });
+
+    return NextResponse.json({
+      success: true,
+      points: updatedUser.points,
+      requestId: requestBody.requestId
+    });
+
+  } catch (error) {
+    console.error('Error processing request:', error);
     
+    // Safe error response
     return NextResponse.json({ 
+      success: false,
       error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? 
-        error instanceof Error ? error.message : 'Unknown error' 
-        : undefined
     }, { status: 500 });
   }
 }
