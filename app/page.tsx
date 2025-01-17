@@ -429,18 +429,23 @@ export default function Home() {
         <div className="radial-gradient-overlay"></div>
       </div>
 
+      {/* Welcome Popup */}
       {showWelcomePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
+          {/* Background Blur Effect */}
           <div
             className="absolute inset-0 bg-cover bg-center filter blur-lg transition-all duration-500 ease-in-out scale-110"
             style={{ backgroundImage: 'url("/path/to/your/background-image.jpg")' }}
           ></div>
 
+          {/* Solid Background Overlay */}
           <div className="absolute inset-0 bg-black bg-opacity-60 z-10"></div>
 
+          {/* Popup Content */}
           <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
-            <h2 className="text-2xl font-bold mb-4">Welcome onboard {user?.first_name ? user.first_name : 'User'}!</h2>
+            <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName ? firstName : 'User'}!</h2>
 
+            {/* Video Section */}
             <div className="mb-4 w-full relative">
               <div className={`transition-opacity duration-300 ${isVideoLoading ? 'opacity-0' : 'opacity-100'}`}>
                 <video 
@@ -457,7 +462,7 @@ export default function Home() {
                     setIsVideoLoading(false);
                     setVideoError(true);
                   }}
-                >            
+                >
                   <source src="/videos/speedsnail.webm" type="video/webm" />
                   <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
@@ -475,8 +480,10 @@ export default function Home() {
               )}
             </div>
 
-            <ScrollingText />
+            {/* Scrolling Text */}
+              <ScrollingText />
 
+            {/* Claim Button */}
             <button
               className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               onClick={handleClaim}
@@ -486,58 +493,79 @@ export default function Home() {
           </div>
         </div>
       )}
+    
 
-      <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
-        <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
-          <div className="flex items-center justify-between w-full px-4 mb-4">
-            <div className="flex flex-col items-center">
-            <span className="text-2xl font-semibold">SmartSnail</span>
-              <span className="text-sm text-gray-400">Marketplace</span>
-            </div>
 
-            <div className="flex space-x-4">
-              <Link href="/Leaderboard">
-                <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
-              </Link>
-              
-              <ConnectButton />
-              <Link href="/info">
-                <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
-              </Link>
-            </div>
-          </div>
-        </div>
+<div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
+  {/* Existing home page content */}
+  <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+    
+    {/* New section for SmartSnail with icons */}
+    <div className="flex items-center justify-between w-full px-4 mb-4">
+      <div className="flex flex-col items-center">
+        <span className="text-2xl font-semibold">SmartSnail</span>
+        {/* Marketplace text under SmartSnail */}
+        <span className="text-sm text-gray-400">Marketplace</span>
       </div>
 
-      <div className="mt-[-1rem] text-5xl font-bold flex items-center">
-        <img src="/images/shell.png" width={50} height={50} alt="Coin" /> 
-        <span className="ml-2">{user?.points.toLocaleString()}</span>
+      <div className="flex space-x-4">
+        <Link href="/Leaderboard">
+          <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
+        </Link>
+        <ConnectButton />
+        <Link href="/info">
+          <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
+        </Link>
       </div>
+    </div>
+  
 
-      <div className="text-base mt-2 flex items-center justify-between">
-        <button className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center">
-          <div className="flex items-center">
-            <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
-            <Link href="/level">Level :</Link>
-          </div>
-        </button>
 
-        <span className="ml-0">
-          {(user?.points ?? 0) < 1000000
-            ? 'Camouflage'
-            : (user?.points ?? 0) <= 3000000
-            ? 'Speedy'
-            : (user?.points ?? 0) <= 6000000
-            ? 'Strong'
-            : (user?.points ?? 0) <= 10000000
-            ? 'Sensory'
-            : 'African Giant Snail/god NFT'}
-        </span>
-      </div>
+
+    {/* User Stats Section */}
+    {/* <p>Points: {user?.points}</p>
+    <p>Energy: {energy}</p> */}
+
+    {/* Original section */}
+    <div className="mt-[-1rem] text-5xl font-bold flex items-center">
+      <img src="/images/shell.png"  width={50} height={50} alt="Coin" /> 
+      <span className="ml-2">{user?.points.toLocaleString()}</span>
+    </div>
+
+    {/* Level and Camouflage Logic */}
+    <div className="text-base mt-2 flex items-center justify-between">
+    <button
+  className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center"
+>
+  <div className="flex items-center">
+    <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
+    <Link href="/level">Level  :</Link>
+  </div>
+</button>
+
+
+
+      {/* Display Camouflage Level */}
+      <span className="ml-0">
+        {(user?.points ?? 0) < 1000000
+          ? 'Camouflage'
+          : (user?.points ?? 0) <= 3000000
+          ? 'Speedy'
+          : (user?.points ?? 0) <= 6000000
+          ? 'Strong'
+          : (user?.points ?? 0) <= 10000000
+          ? 'Sensory'
+          : 'African Giant Snail/god NFT'}
+      </span>
+    </div>
+
+  </div>
+
+
+
 
       {notification && <div className="notification">{notification}</div>}
       {error && <div className="error">{error}</div>}
-      
       <div className="fixed bottom-0 left-0 w-full px-4 pb-4 z-10">
         <div className="w-full bg-[#f9c035] rounded-full mt-4">
           <div
@@ -545,7 +573,6 @@ export default function Home() {
             style={{ width: `${(energy / maxEnergy) * 100}%` }}
           ></div>
         </div>
-        
         <div className="w-full flex justify-between gap-2 mt-4">
           <div className="w-1/3 flex items-center justify-start max-w-32">
             <div className="flex items-center justify-center">
@@ -557,69 +584,63 @@ export default function Home() {
             </div>
           </div>
 
+
           <div className="flex-grow flex items-center max-w-60 text-sm">
-            <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
-              <Link href="/referralsystem" className="flex flex-col items-center gap-1">
-                <img src="/images/SNAILNEW.png" width={50} height={50} alt="Frens" />
-                <span>Frens</span>
-              </Link>
-              <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
-              <Link href="/task" className="flex flex-col items-center gap-1">
-                <img src="/images/shell.png" width={30} height={30} alt="Earn" />
-                <span>Earn</span>
-              </Link>
-              <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
-              <Link href="/boost" className="flex flex-col items-center gap-1">
-                <img src="/images/startup.png" width={30} height={30} alt="Boosts" />
-                <span>Boost</span>
-              </Link>
-            </div>
-          </div>
+  <div className="w-full bg-[#fad258] py-4 rounded-2xl flex justify-around">
+    <Link href="/referralsystem" className="flex flex-col items-center gap-1">
+      <img src="/images/SNAILNEW.png" width={50} height={50} alt="Frens" />
+      <span>Frens</span>
+    </Link>
+    <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
+    <Link href="/task" className="flex flex-col items-center gap-1">
+      <img src="/images/shell.png" width={30} height={30} alt="Earn" />
+      <span>Earn</span>
+    </Link>
+    <div className="h-[48px] w-[2px] bg-[#fddb6d]"></div>
+    <Link href="/boost" className="flex flex-col items-center gap-1">
+      <img src="/images/startup.png" width={30} height={30} alt="Boosts" />
+      <span>Boost</span>
+    </Link>
+  </div>
+</div>
+
+
         </div>
       </div>
 
-      <div className="task-container">
-      <div className="flex-grow flex items-center justify-center scrollbar-hide">
-        <div 
-          className="relative transform-gpu"
-          style={{ touchAction: 'none' }}
-          onClick={handleIncreasePoints}
-        >
-          <video 
-            src="/images/snails.mp4" 
-            autoPlay 
-            muted 
-            loop 
-            className="imag" // Using your existing image class
-          />
-          
-          {clicks.map((click) => (
-            <div
-              key={click.id}
-              className="click-feedback" // Using your existing animation class
-              style={{
-                left: `${click.x}px`,
-                top: `${click.y}px`,
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: '2rem',
-                pointerEvents: 'none',
-                position: 'absolute',
-                transform: 'translate(-50%, -50%)',
-              }}
-            >
-              +{click.tappingRate}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
 
-      {notification && (
-        <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
-          {notification}
-        </div>
-      )}
+      <div className="flex-grow flex items-center justify-center" >
+      {/* Video with Click Handler */}
+      <div className="relative mt-4" onClick={handleIncreasePoints}>
+        <video src="/images/snails.mp4" autoPlay muted loop />
+        
+        {/* Floating Clicks Animation */}
+        {clicks.map((click) => (
+    <div
+        key={click.id}
+        className="absolute text-5xl font-bold text-white opacity-0"
+        style={{
+            top: `${click.y - 42}px`,
+            left: `${click.x - 28}px`,
+            animation: 'float 1s ease-out'
+        }}
+        onAnimationEnd={() => handleAnimationEnd(click.id)}
+    >
+        +{click.tappingRate}
     </div>
-  );
-}
+      ))}
+    </div>
+  </div>
+ 
+
+
+  
+  </div>
+  {notification && (
+    <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
+      {notification}
+    </div>
+  )}
+</div>
+);
+};
