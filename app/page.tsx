@@ -10,11 +10,116 @@ import { WalletProvider } from './context/walletContext';
 import { WalletSection } from '../components/WalletSection';
 import { ConnectButton } from './ConnectButton';
 
+class PointsQueue {
+  queue: Array<{ points: number; timestamp: number; attempts: number }>;
+  isProcessing: boolean;
+  telegramId: string;
+  retryTimeout: number;
+  maxRetryTimeout: number;
+  batchSize: number;
+  localStorageKey: string;
+
+  constructor(telegramId: string) {
+    this.queue = [];
+    this.isProcessing = false;
+    this.telegramId = telegramId;
+    this.retryTimeout = 1000;
+    this.maxRetryTimeout = 32000;
+    this.batchSize = 10;
+    this.localStorageKey = `points_queue_${telegramId}`;
+    this.loadQueueFromStorage();
+  }
+
+  loadQueueFromStorage() {
+    const savedQueue = localStorage.getItem(this.localStorageKey);
+    if (savedQueue) {
+      this.queue = JSON.parse(savedQueue);
+    }
+  }
+
+  saveQueueToStorage() {
+    localStorage.setItem(this.localStorageKey, JSON.stringify(this.queue));
+  }
+
+  addPoints(points: number) {
+    this.queue.push({
+      points,
+      timestamp: Date.now(),
+      attempts: 0
+    });
+    this.saveQueueToStorage();
+    this.processQueue();
+  }
+
+  async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) return;
+
+    this.isProcessing = true;
+    const batch = this.queue.slice(0, this.batchSize);
+    const totalPoints = batch.reduce((sum, item) => sum + item.points, 0);
+
+    try {
+      const response = await fetch('/api/increase-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegramId: this.telegramId,
+          points: totalPoints,
+          batch: batch
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        this.queue.splice(0, batch.length);
+        this.saveQueueToStorage();
+        this.retryTimeout = 1000;
+        
+        const userData = localStorage.getItem(`user_${this.telegramId}`);
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          parsedUser.points = data.points;
+          localStorage.setItem(`user_${this.telegramId}`, JSON.stringify(parsedUser));
+        }
+        
+        if (this.queue.length > 0) {
+          setTimeout(() => this.processQueue(), 100);
+        }
+      } else {
+        this.handleError(batch);
+      }
+    } catch (error) {
+      console.error('Error processing points:', error);
+      this.handleError(batch);
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  handleError(failedBatch: Array<{ points: number; timestamp: number; attempts: number }>) {
+    failedBatch.forEach(item => {
+      item.attempts = (item.attempts || 0) + 1;
+    });
+
+    const maxAttempts = 5;
+    const itemsToRetry = failedBatch.filter(item => item.attempts < maxAttempts);
+    
+    this.queue.splice(0, failedBatch.length);
+    this.queue.push(...itemsToRetry);
+    this.saveQueueToStorage();
+
+    this.retryTimeout = Math.min(this.retryTimeout * 2, this.maxRetryTimeout);
+    setTimeout(() => this.processQueue(), this.retryTimeout);
+  }
+}
+
 declare global {
   interface Window {
     Telegram?: {
       WebApp: WebAppType;
     };
+    pointsQueue?: PointsQueue;
   }
 }
 
@@ -141,56 +246,36 @@ export default function Home() {
     const prevPoints = Number(user.points) || 0;
     const newPoints = prevPoints + tappingRate;
   
-    // Optimistically update points
+    // Optimistically update UI
     setUser((prevUser) => ({
       ...prevUser!,
       points: newPoints,
     }));
-    syncWithLocalStorage({
-      ...user,
-      points: newPoints,
-    });
+  
+    // Get or create points queue
+    if (!window.pointsQueue && user.telegramId) {
+      window.pointsQueue = new PointsQueue(user.telegramId);
+    }
+  
+    if (window.pointsQueue) {
+      window.pointsQueue.addPoints(tappingRate);
+    }
   
     // Reduce energy
     const ENERGY_REDUCTION_RATE = tappingRate;
     setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
   
-    try {
-      const res = await fetch('/api/increase-points', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegramId: user.telegramId,
-          tappingRate,
-        }),
-      });
-  
-      const data = await res.json();
-      console.log("API Response:", data);
-  
-      if (data.success) {
-        const updatedUser = {
-          ...user,
-          points: data.points,
-        };
-        setUser(updatedUser);
-        syncWithLocalStorage(updatedUser);
-      }
-    } catch (error) {
-      console.error("Error updating points:", error);
-      // Revert optimistic update on error
-      const revertUser = {
-        ...user,
-        points: prevPoints,
-      };
-      setUser(revertUser);
-      syncWithLocalStorage(revertUser);
-    } finally {
-      setTimeout(() => {
-        setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
-      }, 1000);
-    }
+    setTimeout(() => {
+      setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
+    }, 1000);
   };
+  
+  // Add this useEffect to initialize the queue
+  useEffect(() => {
+    if (user?.telegramId && !window.pointsQueue) {
+      window.pointsQueue = new PointsQueue(user.telegramId);
+    }
+  }, [user?.telegramId]);
   
   
   
@@ -570,7 +655,7 @@ useEffect(() => {
         <span className="text-sm text-gray-400">Marketplace</span>
       </div>
 
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 cursor-pointer p-1 rounded-lg hover:bg-gray-100">
         <Link href="/Leaderboard">
           <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
         </Link>
