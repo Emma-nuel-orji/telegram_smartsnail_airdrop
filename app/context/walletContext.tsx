@@ -1,4 +1,3 @@
-// app/context/walletContext.tsx
 'use client';
 
 import { THEME, TonConnectUI, WalletInfo, Wallet, ConnectedWallet } from '@tonconnect/ui';
@@ -46,13 +45,6 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
 
         setTonConnectUI(instance);
 
-        // Check for existing connection using the current wallet status
-        const currentWallet = await instance.connected;
-        if (currentWallet) {
-          setWalletAddress(currentWallet.account.address);
-          setIsConnected(true);
-        }
-
         // Listen for wallet changes
         instance.onStatusChange((wallet: ConnectedWallet | null) => {
           if (wallet) {
@@ -65,6 +57,13 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
             console.log('Wallet disconnected');
           }
         });
+
+        // Check initial connection
+        const initialWallet = instance.wallet;
+        if (initialWallet) {
+          setWalletAddress(initialWallet.account.address);
+          setIsConnected(true);
+        }
       } catch (error) {
         console.error('Wallet initialization error:', error);
       }
