@@ -1,7 +1,7 @@
 // app/context/walletContext.tsx
 'use client';
 
-import { THEME, TonConnectUI } from '@tonconnect/ui';
+import { THEME, TonConnectUI, WalletInfo, Wallet, ConnectedWallet } from '@tonconnect/ui';
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 
 interface WalletContextType {
@@ -22,45 +22,49 @@ const WalletContext = createContext<WalletContextType>({
 
 interface WalletProviderProps {
   children: ReactNode;
-   manifestUrl: string;
+  manifestUrl?: string;
 }
 
-let tonConnectUI: TonConnectUI | null = null;
-
-export function WalletProvider({ children }: WalletProviderProps) {
+export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [tonConnectUIState, setTonConnectUIState] = useState<TonConnectUI | null>(null);
+  const [tonConnectUI, setTonConnectUI] = useState<TonConnectUI | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    let instance: TonConnectUI | null = null;
+
     const initWallet = async () => {
       try {
-        if (!tonConnectUI) {
-          tonConnectUI = new TonConnectUI({
-            manifestUrl: process.env.NEXT_PUBLIC_TON_MANIFEST_URL || 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json',
-            buttonRootId: 'wallet-connect-button',
-            uiPreferences: {
-              theme: THEME.LIGHT
-            }
-          });
+        instance = new TonConnectUI({
+          manifestUrl: manifestUrl || process.env.NEXT_PUBLIC_TON_MANIFEST_URL || 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json',
+          uiPreferences: {
+            theme: THEME.LIGHT
+          }
+        });
 
-          setTonConnectUIState(tonConnectUI);
+        setTonConnectUI(instance);
 
-          // Listen for wallet changes
-          tonConnectUI.onStatusChange((wallet) => {
-            if (wallet) {
-              setWalletAddress(wallet.account.address);
-              setIsConnected(true);
-              console.log('Wallet connected:', wallet.account.address);
-            } else {
-              setWalletAddress(null);
-              setIsConnected(false);
-              console.log('Wallet disconnected');
-            }
-          });
+        // Check for existing connection using the current wallet status
+        const currentWallet = await instance.connected;
+        if (currentWallet) {
+          setWalletAddress(currentWallet.account.address);
+          setIsConnected(true);
         }
+
+        // Listen for wallet changes
+        instance.onStatusChange((wallet: ConnectedWallet | null) => {
+          if (wallet) {
+            setWalletAddress(wallet.account.address);
+            setIsConnected(true);
+            console.log('Wallet connected:', wallet.account.address);
+          } else {
+            setWalletAddress(null);
+            setIsConnected(false);
+            console.log('Wallet disconnected');
+          }
+        });
       } catch (error) {
         console.error('Wallet initialization error:', error);
       }
@@ -69,14 +73,17 @@ export function WalletProvider({ children }: WalletProviderProps) {
     initWallet();
 
     return () => {
-      tonConnectUI?.disconnect();
-      tonConnectUI = null;
+      if (instance) {
+        instance.disconnect();
+      }
     };
-  }, []);
+  }, [manifestUrl]);
 
   const connect = async () => {
     try {
-      await tonConnectUI?.connectWallet();
+      if (tonConnectUI) {
+        await tonConnectUI.connectWallet();
+      }
     } catch (error) {
       console.error('Failed to connect wallet:', error);
     }
@@ -84,7 +91,9 @@ export function WalletProvider({ children }: WalletProviderProps) {
 
   const disconnect = async () => {
     try {
-      await tonConnectUI?.disconnect();
+      if (tonConnectUI) {
+        await tonConnectUI.disconnect();
+      }
     } catch (error) {
       console.error('Failed to disconnect wallet:', error);
     }
@@ -97,7 +106,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
         isConnected,
         connect,
         disconnect,
-        tonConnectUI: tonConnectUIState
+        tonConnectUI
       }}
     >
       {children}

@@ -9,6 +9,7 @@ import ScrollingText from '@/components/ScrollingText';
 import { WalletProvider } from './context/walletContext';
 import { WalletSection } from '../components/WalletSection';
 import { ConnectButton } from './ConnectButton';
+import { UserSyncManager } from '@/src/utils/userSync';
 
 class PointsQueue {
   queue: Array<{ points: number; timestamp: number; attempts: number }>;
@@ -153,6 +154,10 @@ export default function Home() {
   const [notification, setNotification] = useState<string | null>(null);
   const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [ripplePosition, setRipplePosition] = useState({ x: 0, y: 0 });
+  const [isClicked, setIsClicked] = useState(false);
+  const syncManager = useRef<UserSyncManager>();
+
   const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -198,8 +203,7 @@ export default function Home() {
       origin: { x: 0.5, y: 0.5 },
     });
   };
-  const [ripplePosition, setRipplePosition] = useState({ x: 0, y: 0 });
-  const [isClicked, setIsClicked] = useState(false);
+
 
   const claimClick = (e: React.MouseEvent) => {
     // Get the position of the click relative to the button
@@ -219,6 +223,8 @@ export default function Home() {
   
 
   const handleClick = async (e: React.MouseEvent) => {
+    if (!user || energy <= 0 || !syncManager.current) return;
+  
     setIsClicking(true);
     setSpeed((prev) => Math.min(prev + 0.1, 5));
   
@@ -226,10 +232,24 @@ export default function Home() {
       id: Date.now(),
       x: e.clientX,
       y: e.clientY,
-      tappingRate: user?.tappingRate || 1,
+      tappingRate: user.tappingRate || 1,
     };
   
     setClicks((prev) => [...prev, newClick]);
+  
+    const tappingRate = Number(user.tappingRate) || 1;
+    
+    // Update UI optimistically
+    setUser((prevUser) => ({
+      ...prevUser!,
+      points: (prevUser?.points || 0) + tappingRate,
+    }));
+  
+    // Sync with server
+    await syncManager.current.syncPoints(tappingRate);
+  
+    // Handle energy reduction and cleanup
+    setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
   
     if (inactivityTimeout.current) {
       clearTimeout(inactivityTimeout.current);
@@ -240,35 +260,20 @@ export default function Home() {
       setSpeed((prev) => Math.max(1, prev - 0.2));
     }, 1000);
   
-    if (!user || energy <= 0) return;
-  
-    const tappingRate = Number(user.tappingRate) || 1;
-    const prevPoints = Number(user.points) || 0;
-    const newPoints = prevPoints + tappingRate;
-  
-    // Optimistically update UI
-    setUser((prevUser) => ({
-      ...prevUser!,
-      points: newPoints,
-    }));
-  
-    // Get or create points queue
-    if (!window.pointsQueue && user.telegramId) {
-      window.pointsQueue = new PointsQueue(user.telegramId);
-    }
-  
-    if (window.pointsQueue) {
-      window.pointsQueue.addPoints(tappingRate);
-    }
-  
-    // Reduce energy
-    const ENERGY_REDUCTION_RATE = tappingRate;
-    setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
-  
     setTimeout(() => {
       setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
     }, 1000);
   };
+
+
+
+  useEffect(() => {
+    if (user?.telegramId) {
+      syncManager.current = new UserSyncManager(user.telegramId);
+      syncManager.current.initialize().then(setUser);
+    }
+    return () => syncManager.current?.cleanup();
+  }, [user?.telegramId]);
   
   // Add this useEffect to initialize the queue
   useEffect(() => {

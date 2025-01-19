@@ -1,3 +1,4 @@
+// components/ConnectButton.tsx
 'use client';
 
 import { useWallet } from './context/walletContext';
@@ -5,18 +6,21 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 
 export function ConnectButton() {
-  const { isConnected, tonConnectUI } = useWallet();
+  const { isConnected, connect, disconnect } = useWallet();
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleClick = async () => {
     try {
       setLoading(true);
-      if (!tonConnectUI) return;
-      
       if (isConnected) {
-        await tonConnectUI.disconnect();
+        await disconnect();
       } else {
-        await tonConnectUI.connectWallet();
+        await connect();
       }
     } catch (error) {
       console.error('Wallet interaction error:', error);
@@ -25,11 +29,13 @@ export function ConnectButton() {
     }
   };
 
-  // No need for isReady state since we'll show the button always
+  if (!mounted) {
+    return null; // Prevent hydration mismatch
+  }
+
   return (
     <button 
-      id="wallet-connect-button"
-      className="relative cursor-pointer p-1 rounded-lg hover:bg-gray-100"
+      className="relative cursor-pointer p-1 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
       onClick={handleClick}
       disabled={loading}
     >
@@ -37,8 +43,8 @@ export function ConnectButton() {
         <Image 
           src="/images/info/output-onlinepngtools (2).png"
           alt={isConnected ? "Disconnect Wallet" : "Connect Wallet"}
-          layout="fill"
-          objectFit="contain"
+          width={24}
+          height={24}
           priority
         />
       </div>
