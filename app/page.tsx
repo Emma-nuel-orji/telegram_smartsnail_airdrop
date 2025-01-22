@@ -264,19 +264,20 @@ export default function Home() {
 
 
   useEffect(() => {
+    let syncManager: UserSyncManager | null = null;
+    
     if (user?.telegramId) {
-      const syncManager = new UserSyncManager(user.telegramId);
+      syncManager = new UserSyncManager(user.telegramId);
       
-      // Listen for updates
-      const handleUpdate = (event: CustomEvent) => {
+      const handleUpdate = (event: CustomEvent<any>) => {
         setUser(event.detail);
       };
       
-      window.addEventListener('userDataUpdate', handleUpdate);
+      window.addEventListener('userDataUpdate', handleUpdate as EventListener);
       
       return () => {
-        syncManager.cleanup();
-        window.removeEventListener('userDataUpdate', handleUpdate);
+        syncManager?.cleanup();
+        window.removeEventListener('userDataUpdate', handleUpdate as EventListener);
       };
     }
   }, [user?.telegramId]);
@@ -626,7 +627,7 @@ useEffect(() => {
             {/* Claim Button */}
              <button
       className={`relative overflow-hidden mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600`}
-      onClick={claimClick}
+      onClick={handleClaim}
     >
       {isClicked && (
         <span
