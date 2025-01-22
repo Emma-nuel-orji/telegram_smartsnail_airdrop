@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const message = `
 🔔 New Order Received!
 Order ID: ${order.id}
-Amount: ${order.totalTon} TON
+Amount: ${order.priceTon} TON
 Status: ${order.status}
 User ID: ${order.telegramId}
     `;

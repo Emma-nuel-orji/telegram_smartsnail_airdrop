@@ -23,6 +23,35 @@ interface StockLimit {
   humanRelations: number;
 }
 
+interface BookSchema {
+  id: string;
+  author: string;
+  coinsReward: bigint;
+  description: string;
+  priceCard: number;
+  priceStars: number;
+  priceTon: number;
+  stockLimit: number;
+  tappingRate: number;
+  title: string;
+  usedStock: number;
+}
+
+interface PurchasePayload {
+  email: string;
+  paymentMethod: string;
+  bookCount: number;
+  tappingRate: number;  // Changed from totalTappingRate
+  coinsReward: number;  // Changed from totalPoints
+  priceTon: number;     // Changed from totalTon
+  priceStars: number;   // Changed from starsAmount
+  fxckedUpBagsQty: number;
+  humanRelationsQty: number;
+  telegramId: string;
+  referrerId: string;
+  paymentReference: string;
+}
+
 // Initial Stock Limit
 const INITIAL_STOCK_LIMIT = {
   fxckedUpBagsLimit: 10000,
@@ -34,7 +63,7 @@ const INITIAL_STOCK_LIMIT = {
 };
 
 // WebSocket server URL
-const SOCKET_SERVER_URL = "http://localhost:3000"; // Update with your server's address
+// const SOCKET_SERVER_URL = "http://localhost:3000"; 
 
 export default function BoostPageContent() {
   const router = useRouter();
@@ -59,7 +88,7 @@ export default function BoostPageContent() {
   const [fxckedUpBagsQty, setFxckedUpBagsQty] = useState(0);
   const [humanRelationsQty, setHumanRelationsQty] = useState(0);
 
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  // const [isSocketConnected, setIsSocketConnected] = useState(false);
 
   // UI States
   const [loading, setLoading] = useState(false);
@@ -69,10 +98,10 @@ export default function BoostPageContent() {
 
   // Calculations
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
-  const totalTappingRate = fxckedUpBagsQty * 5 + humanRelationsQty * 2;
-  const totalPoints = fxckedUpBagsQty * 100000 + humanRelationsQty * 70000;
-  const totalTon = totalBooks * 1;
-  const starsAmount = totalBooks * 4 * 100;
+  const totalTappingRate = fxckedUpBagsQty * 4 + humanRelationsQty * 7;
+  const totalPoints = fxckedUpBagsQty * 100000 + humanRelationsQty * 30000;
+  const priceTon = totalBooks * 1;
+  const priceStars = totalBooks * 4 * 100;
 
   // Stock Calculations
   const totalBooksRemaining = 
@@ -134,63 +163,63 @@ return () => {
 
   // Purchase Handler
   const handlePurchase = async (paymentMethod: string) => {
-    if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
-      alert("Please enter a valid email to proceed with the purchase.");
-      return;
-    }
-  
-    if (totalBooks === 0) {
-      alert("Please select at least one book to purchase.");
-      return;
-    }
-  
-    setIsProcessing(true);
-  
-    const formattedPaymentMethod = paymentMethod.toUpperCase();
-    const paymentReference = `TX-${Date.now()}`;
-  
-    
-    
-  
-    // Prepare the payload
-    const payload = {
-      email: purchaseEmail, // Ensure this field is always filled
-      paymentMethod: formattedPaymentMethod,
-      bookCount: totalBooks,
-      totalTappingRate,
-      totalPoints,
-      totalTon,
-      starsAmount,
-      fxckedUpBagsQty,
-      humanRelationsQty,
-      telegramId: telegramId || '',  // Ensure this field is either filled or empty string
-      referrerId,
-      paymentReference: `TX-${Date.now()}`,
-    };
-    
-  
-    console.log("Sending payload:", payload);
-  
     try {
-      // Set headers object and conditionally add Telegram init data only in production
-      const headers: { [key: string]: string } = {};
-  
-      if (process.env.NODE_ENV === 'production') {
-        const initData = window.Telegram.WebApp.initData;
-        headers['x-telegram-init-data'] = initData;
+      // Input validation
+      if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
+        alert("Please enter a valid email to proceed with the purchase.");
+        return;
       }
   
-      const endpoint =
-        formattedPaymentMethod === "TON" || formattedPaymentMethod === "CARD"
-          ? "/api/purchase"
-          : "/api/paymentByStars";
+      if (totalBooks === 0) {
+        alert("Please select at least one book to purchase.");
+        return;
+      }
   
-      // Send the payload to the server, including initData in the headers if in production
-      const response = await axios.post(endpoint, payload, {
-        headers: headers,
+      setIsProcessing(true);
+  
+      // Format payment method and generate reference
+      const formattedPaymentMethod = paymentMethod.toUpperCase();
+      const paymentReference = `TX-${Date.now()}`;
+  
+      // Prepare payload with correct field names matching the database schema
+      const payload: PurchasePayload = {
+        email: purchaseEmail,
+        paymentMethod: formattedPaymentMethod,
+        bookCount: totalBooks,
+        tappingRate: totalTappingRate,       // Renamed to match schema
+        coinsReward: totalPoints,            // Renamed to match schema
+        priceTon: priceTon,                  // Matches schema
+        priceStars: priceStars,              // Matches schema
+        fxckedUpBagsQty,
+        humanRelationsQty,
+        telegramId: telegramId || '',
+        referrerId: referrerId || '',
+        paymentReference,
+      };
+  
+      // Debug log
+      console.log("Sending payload:", {
+        ...payload,
+        email: '***@***'
       });
   
-      if (response.status === 200) {
+      // Headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+  
+      if (process.env.NODE_ENV === 'production' && window.Telegram?.WebApp?.initData) {
+        headers['x-telegram-init-data'] = window.Telegram.WebApp.initData;
+      }
+  
+      // Make request
+      const endpoint = formattedPaymentMethod === "TON" || formattedPaymentMethod === "CARD"
+        ? "/api/purchase"
+        : "/api/paymentByStars";
+  
+      const response = await axios.post(endpoint, payload, { headers });
+  
+      if (response.data.success) {
         if (formattedPaymentMethod === "TON") {
           router.push(`/wallet?orderId=${response.data.orderId}`);
           return;
@@ -201,10 +230,11 @@ return () => {
         setHumanRelationsQty(0);
         await fetchStockData();
       }
+  
     } catch (error) {
       console.error("Purchase error:", error);
-      if (axios.isAxiosError(error) && error.response) {
-        alert(`Purchase failed: ${error.response.data.error}`);
+      if (axios.isAxiosError(error)) {
+        alert(`Purchase failed: ${error.response?.data?.error || error.message}`);
       } else {
         alert("Purchase failed. Please try again.");
       }
@@ -212,7 +242,7 @@ return () => {
       setIsProcessing(false);
     }
   };
-  
+
   const handlePaymentViaStars = async (paymentMethod?: string) => {
     if (paymentMethod !== "Stars") {
       alert("Invalid payment method.");
@@ -237,14 +267,14 @@ return () => {
         email: purchaseEmail,
         title: `Stars Payment for ${totalBooks} Books`,
         description: `Stars payment includes ${fxckedUpBagsQty} FxckedUpBags and ${humanRelationsQty} Human Relations books.`,
-        amount: starsAmount,
+        amount: priceStars,
         label: "SMARTSNAIL Stars Payment",
         paymentMethod: "Stars",
         bookCount: totalBooks,
         totalTappingRate,
         totalPoints,
-        totalTon,
-        starsAmount,
+        priceTon,
+        priceStars,
         fxckedUpBagsQty,
         humanRelationsQty,
         telegramId,
@@ -415,8 +445,8 @@ const handlePaymentSuccess = async () => {
        <div className="summary-container">
         <p>Total Tapping Rate: {totalTappingRate}</p>
         <p>Total Coins: {totalPoints}</p>
-        <p>Total TON: {totalTon}</p>
-        <p>Total Stars: {starsAmount}</p>
+        <p>Total TON: {priceTon}</p>
+        <p>Total Stars: {priceStars}</p>
         
         <input
           type="email"

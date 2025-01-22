@@ -104,7 +104,6 @@ model Book {
   id          String   @id @map("_id")
   author      String
   coinsReward BigInt  // Keep BigInt
-  createdAt   DateTime @db.Date
   description String
   priceCard   Float
   priceStars  Int     // Changed to Int
@@ -155,7 +154,7 @@ model PendingTransaction {
   humanRelationsQty Int
   telegramId        String
   referrerId        String?
-  totalTappingRate  Float
+  tappingRate  Float
   totalPoints       Float
   payloadData       String
   status            String    // e.g., "PENDING", "COMPLETED"

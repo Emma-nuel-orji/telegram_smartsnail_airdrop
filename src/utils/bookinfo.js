@@ -3,12 +3,12 @@ export const books = {
     fxckedUpBags: {
         id: 'FxckedUpBags',
         title: 'FxckedUpBags (Undo Yourself)',
-        stockLimit: 20000, // Replace with the actual stock limit for this book
+        stockLimit: 10000, // Replace with the actual stock limit for this book
       },
       humanRelations: {
         id: 'Human Relations',
         title: 'Human Relations',
-        stockLimit: 30000, // Replace with the actual stock limit for this book
+        stockLimit: 10000, // Replace with the actual stock limit for this book
       },
     };
   

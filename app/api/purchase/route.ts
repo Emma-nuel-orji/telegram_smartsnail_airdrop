@@ -75,10 +75,10 @@ const requestSchema = z.object({
   email: z.string().email(),
   paymentMethod: z.enum(["TON", "CARD"]),
   bookCount: z.number().int().nonnegative(),
-  totalTappingRate: z.number().nonnegative(),
-  totalPoints: z.number().nonnegative(),
-  totalTon: z.number().nonnegative(),
-  starsAmount: z.number().int().nonnegative(),
+  tappingRate: z.number().nonnegative(),           // Changed to match schema
+  coinsReward: z.number().nonnegative(),           // Changed to match schema
+  priceTon: z.number().nonnegative(),              // Changed to match schema
+  priceStars: z.number().int().nonnegative(),      // Changed to match schema
   fxckedUpBagsQty: z.number().int().nonnegative().optional().default(0),
   humanRelationsQty: z.number().int().nonnegative().optional().default(0),
   telegramId: z.string().optional().default(""),
@@ -204,60 +204,104 @@ export async function POST(req: NextRequest): Promise<Response> {
 }
 
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
-  console.log("Quantities requested:", { fxckedUpBagsQty, humanRelationsQty });
-
-  if (fxckedUpBagsQty < 0 || humanRelationsQty < 0) {
-    throw new Error("Book quantities cannot be negative");
-  }
-
-  if (fxckedUpBagsQty === 0 && humanRelationsQty === 0) {
-    throw new Error("At least one book must be selected for purchase");
-  }
-
-  const books = await prisma.book.findMany({
-    where: {
-      title: { in: ["FxckedUpBags (Undo Yourself)", "Human Relations"] }
-    }
-  });
-
-  if (!books || books.length === 0) {
-    throw new Error("Required books not found in database");
-  }
-
-  const bookMap = books.reduce<Record<string, Book>>((acc, book) => {
-    acc[book.title] = book;
-    return acc;
-  }, {});
-
-  const booksToPurchase: BookPurchaseInfo[] = [];
-
-  if (fxckedUpBagsQty > 0) {
-    const fxckedUpBags = books.find(b => b.title === "FxckedUpBags (Undo Yourself");
-    if (!fxckedUpBags) {
-      throw new Error("FxckedUpBags not found in database");
-    }
-    booksToPurchase.push({
-      qty: fxckedUpBagsQty,
-      id: fxckedUpBags.id,
-      title: fxckedUpBags.title,
-      book: fxckedUpBags
+  try {
+    // 1. Log initial quantities
+    console.log("[Debug] Step 1 - Initial quantities:", {
+      fxckedUpBagsQty,
+      humanRelationsQty
     });
-  }
 
-  if (humanRelationsQty > 0) {
-    const humanRelations = books.find(b => b.title === "Human Relations");
-    if (!humanRelations) {
-      throw new Error("HumanRelations not found in database");
+    // 2. Basic validation
+    if (fxckedUpBagsQty < 0 || humanRelationsQty < 0) {
+      throw new Error("Book quantities cannot be negative");
     }
-    booksToPurchase.push({
-      qty: humanRelationsQty,
-      id: humanRelations.id,
-      title: humanRelations.title,
-      book: humanRelations
-    });
-  }
 
-  return { booksToPurchase, bookMap };
+    if (fxckedUpBagsQty === 0 && humanRelationsQty === 0) {
+      throw new Error("At least one book must be selected for purchase");
+    }
+
+    // 3. Fetch books - EXACT titles from database
+    console.log("[Debug] Step 2 - Fetching books from database");
+    const books = await prisma.book.findMany();
+    console.log("[Debug] All available books:", books.map(b => b.title));
+
+    // 4. Log exact book titles found
+    const fxckedUpBags = books.find(b => b.title.includes("FxckedUpBags"));
+    const humanRelations = books.find(b => b.title.includes("Human Relations"));
+
+    console.log("[Debug] Step 3 - Found books:", {
+      fxckedUpBags: fxckedUpBags?.title || 'Not found',
+      humanRelations: humanRelations?.title || 'Not found'
+    });
+
+    if (!books || books.length === 0) {
+      throw new Error("No books found in database");
+    }
+
+    // 5. Create book map
+    const bookMap = books.reduce<Record<string, Book>>((acc, book) => {
+      acc[book.title] = book;
+      return acc;
+    }, {});
+
+    console.log("[Debug] Step 4 - Book map created with titles:", Object.keys(bookMap));
+
+    // 6. Prepare purchase array
+    const booksToPurchase: BookPurchaseInfo[] = [];
+
+    if (fxckedUpBagsQty > 0 && fxckedUpBags) {
+      console.log("[Debug] Adding FxckedUpBags to purchase:", {
+        qty: fxckedUpBagsQty,
+        bookDetails: {
+          id: fxckedUpBags.id,
+          title: fxckedUpBags.title
+        }
+      });
+
+      booksToPurchase.push({
+        qty: fxckedUpBagsQty,
+        id: fxckedUpBags.id,
+        title: fxckedUpBags.title,
+        book: fxckedUpBags  // Include the entire book object
+      });
+    }
+
+    if (humanRelationsQty > 0 && humanRelations) {
+      console.log("[Debug] Adding Human Relations to purchase:", {
+        qty: humanRelationsQty,
+        bookDetails: {
+          id: humanRelations.id,
+          title: humanRelations.title
+        }
+      });
+
+      booksToPurchase.push({
+        qty: humanRelationsQty,
+        id: humanRelations.id,
+        title: humanRelations.title,
+        book: humanRelations  // Include the entire book object
+      });
+    }
+
+    // 7. Validate final data
+    console.log("[Debug] Step 5 - Final purchase data:", {
+      booksToPurchase: booksToPurchase.map(b => ({
+        title: b.title,
+        qty: b.qty,
+        hasBook: !!b.book
+      }))
+    });
+
+    if (booksToPurchase.length === 0) {
+      throw new Error("No books were selected for purchase");
+    }
+
+    return { booksToPurchase, bookMap };
+
+  } catch (error) {
+    console.error("[Debug] Error in preparePurchaseData:", error);
+    throw error;
+  }
 }
 
 async function validateStockAndCalculateTotals(

@@ -11,7 +11,7 @@
 //   try {
 //     const { payment_data } = req.body;
 //     const payloadData = JSON.parse(payment_data.payload);
-//     const { email, bookCount, referrerId, totalTappingRate, totalPoints } = payloadData;
+//     const { email, bookCount, referrerId, tappingRate, totalPoints } = payloadData;
 
 //     if (!Number.isInteger(bookCount) || bookCount <= 0) {
 //       throw new Error("Invalid bookCount value");
@@ -49,7 +49,7 @@
 //         where: { email },
 //         data: {
 //           points: { increment: totalPoints },
-//           tappingRate: { increment: totalTappingRate },
+//           tappingRate: { increment: tappingRate },
 //         },
 //       });
 

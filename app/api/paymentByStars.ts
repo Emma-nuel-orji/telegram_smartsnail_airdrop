@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       humanRelationsQty,
       telegramId,
       referrerId,
-      totalTappingRate,
+      tappingRate,
       totalPoints,
     } = req.body;
 
@@ -52,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       humanRelationsQty,
       telegramId,
       referrerId,
-      totalTappingRate,
+      tappingRate,
       totalPoints,
     });
 
@@ -92,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         humanRelationsQty,
         telegramId,
         referrerId,
-        totalTappingRate,
+        tappingRate,
         totalPoints,
         payloadData: payload,
         status: "PENDING",

@@ -155,7 +155,7 @@ model PendingTransaction {
   humanRelationsQty Int
   telegramId        String
   referrerId        String?
-  totalTappingRate  Float
+  tappingRate  Float
   totalPoints       Float
   payloadData       String
   status            String    // e.g., "PENDING", "COMPLETED"

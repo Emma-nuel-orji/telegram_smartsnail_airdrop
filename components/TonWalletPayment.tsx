@@ -7,7 +7,7 @@ import Loader from "@/loader";
 interface Order {
   id: string;
   status: string;
-  totalTon: number;
+  priceTon: number;
   user_order_id: string;
   email?: string;
   telegramId?: string;
@@ -89,7 +89,7 @@ export default function TonWalletPayment({
         messages: [
           {
             address: Address.parse(tonRecipientAddress).toString(),
-            amount: toNano(order.totalTon).toString(),
+            amount: toNano(order.priceTon).toString(),
           },
         ],
       };
