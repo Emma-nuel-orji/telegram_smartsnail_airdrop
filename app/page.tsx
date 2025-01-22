@@ -12,108 +12,103 @@ import { ConnectButton } from './ConnectButton';
 import { UserSyncManager } from '@/src/utils/userSync';
 
 class PointsQueue {
-  queue: Array<{ points: number; timestamp: number; attempts: number }>;
-  isProcessing: boolean;
-  telegramId: string;
-  retryTimeout: number;
-  maxRetryTimeout: number;
-  batchSize: number;
-  localStorageKey: string;
+  private queue: Array<{ points: number; timestamp: number; attempts: number }> = [];
+  private isProcessing: boolean = false;
+  private userId: string;
+  private retryTimeout: number = 1000;
+  private maxRetryTimeout: number = 32000;
+  private batchSize: number = 10;
+  private queueStorageKey: string;
 
-  constructor(telegramId: string) {
-    this.queue = [];
-    this.isProcessing = false;
-    this.telegramId = telegramId;
-    this.retryTimeout = 1000;
-    this.maxRetryTimeout = 32000;
-    this.batchSize = 10;
-    this.localStorageKey = `points_queue_${telegramId}`;
-    this.loadQueueFromStorage();
+  constructor(userId: string) {
+    this.userId = userId;
+    this.queueStorageKey = `points_queue_${userId}`;
+    this.loadQueue();
   }
 
-  loadQueueFromStorage() {
-    const savedQueue = localStorage.getItem(this.localStorageKey);
-    if (savedQueue) {
-      this.queue = JSON.parse(savedQueue);
+  private loadQueue() {
+    const saved = localStorage.getItem(this.queueStorageKey);
+    if (saved) {
+      this.queue = JSON.parse(saved);
     }
   }
 
-  saveQueueToStorage() {
-    localStorage.setItem(this.localStorageKey, JSON.stringify(this.queue));
+  private saveQueue() {
+    localStorage.setItem(this.queueStorageKey, JSON.stringify(this.queue));
   }
 
-  addPoints(points: number) {
+  public async addPoints(points: number) {
     this.queue.push({
       points,
       timestamp: Date.now(),
       attempts: 0
     });
-    this.saveQueueToStorage();
-    this.processQueue();
+    
+    this.saveQueue();
+    await this.processQueue();
   }
 
-  async processQueue() {
+  private async processQueue() {
     if (this.isProcessing || this.queue.length === 0) return;
-
+    
     this.isProcessing = true;
     const batch = this.queue.slice(0, this.batchSize);
-    const totalPoints = batch.reduce((sum, item) => sum + item.points, 0);
-
+    
     try {
       const response = await fetch('/api/increase-points', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-ID': this.userId // Add user ID in header
+        },
         body: JSON.stringify({
-          telegramId: this.telegramId,
-          points: totalPoints,
+          points: batch.reduce((sum, item) => sum + item.points, 0),
+          userId: this.userId,
           batch: batch
         }),
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (!response.ok) throw new Error('Server error');
+      
+      const result = await response.json();
+      
+      if (result.success) {
         this.queue.splice(0, batch.length);
-        this.saveQueueToStorage();
+        this.saveQueue();
         this.retryTimeout = 1000;
-        
-        const userData = localStorage.getItem(`user_${this.telegramId}`);
-        if (userData) {
-          const parsedUser = JSON.parse(userData);
-          parsedUser.points = data.points;
-          localStorage.setItem(`user_${this.telegramId}`, JSON.stringify(parsedUser));
-        }
         
         if (this.queue.length > 0) {
           setTimeout(() => this.processQueue(), 100);
         }
       } else {
-        this.handleError(batch);
+        throw new Error(result.message || 'Processing failed');
       }
     } catch (error) {
-      console.error('Error processing points:', error);
-      this.handleError(batch);
+      console.error('Queue processing error:', error);
+      await this.handleError(batch);
     } finally {
       this.isProcessing = false;
     }
   }
 
-  handleError(failedBatch: Array<{ points: number; timestamp: number; attempts: number }>) {
-    failedBatch.forEach(item => {
-      item.attempts = (item.attempts || 0) + 1;
-    });
-
+  private async handleError(batch: Array<{ points: number; timestamp: number; attempts: number }>) {
     const maxAttempts = 5;
-    const itemsToRetry = failedBatch.filter(item => item.attempts < maxAttempts);
+    this.queue = [
+      ...batch.filter(item => (item.attempts || 0) < maxAttempts).map(item => ({
+        ...item,
+        attempts: (item.attempts || 0) + 1
+      })),
+      ...this.queue.slice(batch.length)
+    ];
     
-    this.queue.splice(0, failedBatch.length);
-    this.queue.push(...itemsToRetry);
-    this.saveQueueToStorage();
-
+    this.saveQueue();
     this.retryTimeout = Math.min(this.retryTimeout * 2, this.maxRetryTimeout);
+    
     setTimeout(() => this.processQueue(), this.retryTimeout);
   }
 }
+
+
 
 declare global {
   interface Window {
@@ -205,25 +200,26 @@ export default function Home() {
   };
 
 
-  const claimClick = (e: React.MouseEvent) => {
-    // Get the position of the click relative to the button
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  // const handleClaim = (e: React.MouseEvent) => {
+  //   // Get the position of the click relative to the button
+  //   const rect = e.currentTarget.getBoundingClientRect();
+  //   const x = e.clientX - rect.left;
+  //   const y = e.clientY - rect.top;
 
-    setRipplePosition({ x, y });
-    setIsClicked(true);
+  //   setRipplePosition({ x, y });
+  //   setIsClicked(true);
 
-    setTimeout(() => setIsClicked(false), 400); // Remove ripple effect after animation
-    handleClaim(); // Call your original claim function
-  };
+  //   setTimeout(() => setIsClicked(false), 400); // Remove ripple effect after animation
+  //   handleClaim(); // Call your original claim function
+  // };
 
 
 
   
 
   const handleClick = async (e: React.MouseEvent) => {
-    if (!user || energy <= 0 || !syncManager.current) return;
+    if (!user?.telegramId || energy <= 0) return;
+    const syncManager = new UserSyncManager(user.telegramId);
   
     setIsClicking(true);
     setSpeed((prev) => Math.min(prev + 0.1, 5));
@@ -246,7 +242,7 @@ export default function Home() {
     }));
   
     // Sync with server
-    await syncManager.current.syncPoints(tappingRate);
+    await syncManager.addPoints(user.tappingRate || 1);
   
     // Handle energy reduction and cleanup
     setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
@@ -269,16 +265,19 @@ export default function Home() {
 
   useEffect(() => {
     if (user?.telegramId) {
-      syncManager.current = new UserSyncManager(user.telegramId);
-      syncManager.current.initialize().then(setUser);
-    }
-    return () => syncManager.current?.cleanup();
-  }, [user?.telegramId]);
-  
-  // Add this useEffect to initialize the queue
-  useEffect(() => {
-    if (user?.telegramId && !window.pointsQueue) {
-      window.pointsQueue = new PointsQueue(user.telegramId);
+      const syncManager = new UserSyncManager(user.telegramId);
+      
+      // Listen for updates
+      const handleUpdate = (event: CustomEvent) => {
+        setUser(event.detail);
+      };
+      
+      window.addEventListener('userDataUpdate', handleUpdate);
+      
+      return () => {
+        syncManager.cleanup();
+        window.removeEventListener('userDataUpdate', handleUpdate);
+      };
     }
   }, [user?.telegramId]);
   
@@ -359,15 +358,19 @@ const handleClaim = async () => {
 };
 
   // Speed Reduction Effect
-useEffect(() => {
-  if (!isClicking) {
-    const interval = setInterval(() => {
-      setSpeed((prev) => Math.max(1, prev - REDUCTION_RATE)); // Reduce speed gradually
-    }, 300); // Slow down the rate of reduction (every 300ms)
-
-    return () => clearInterval(interval);
-  }
-}, [isClicking]);
+  useEffect(() => {
+    let energyInterval: NodeJS.Timeout;
+    
+    if (isClicking && energy > 0) {
+      energyInterval = setInterval(() => {
+        setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
+      }, 500);
+    }
+  
+    return () => {
+      if (energyInterval) clearInterval(energyInterval);
+    };
+  }, [isClicking, energy]);
 
 // Speed Refill Effect when energy is greater than 0
 useEffect(() => {
@@ -566,8 +569,8 @@ useEffect(() => {
         <div className="radial-gradient-overlay"></div>
       </div>
 
-      {/* Welcome Popup */}
-        {showWelcomePopup && (
+{/* Welcome Popup */}
+{showWelcomePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
           {/* Background Blur Effect */}
           <div
@@ -631,8 +634,7 @@ useEffect(() => {
           style={{
             width: "200px",
             height: "200px",
-            top: ripplePosition.y - 100,
-            left: ripplePosition.x - 100,
+           
           }}
         ></span>
       )}
@@ -644,6 +646,9 @@ useEffect(() => {
         </div>
       )}
     
+     
+    
+      
      
     
 
@@ -660,14 +665,14 @@ useEffect(() => {
         <span className="text-sm text-gray-400">Marketplace</span>
       </div>
 
-      <div className="flex space-x-4 cursor-pointer p-1 rounded-lg hover:bg-gray-100">
-        <Link href="/Leaderboard">
+      <div className="flex space-x-2 cursor-pointer p-1 rounded-lg ">
+        <div className="  relative hover:bg-gray-100 p-1 rounded-lg ">    <Link href="/Leaderboard">
           <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
-        </Link>
+        </Link> </div>
         <ConnectButton />
-        <Link href="/info">
+        <div className="  relative hover:bg-gray-100 p-1 rounded-lg ">  <Link href="/info">
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
-        </Link>
+        </Link></div>
       </div>
     </div>
   
@@ -687,8 +692,7 @@ useEffect(() => {
     {/* Level and Camouflage Logic */}
     <div className="text-base mt-2 flex items-center justify-between">
     <button
-  className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center"
->
+  className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center">
   <div className="flex items-center">
     <img src="/images/trophy.png" width={24} height={24} alt="Trophy" className="mr-1" />
     <Link href="/level">Level  :</Link>
@@ -710,10 +714,16 @@ useEffect(() => {
       </span>
     </div>
 
+    <button
+  className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center"
+>
+<Link href="/fightClub">Fight Club : </Link>
+</button>
+
+
   </div>
 
-
-
+  
 
   {notification && <div className="notification">{sanitizedNotification}</div>}
       {error && <div className="error">{error}</div>}

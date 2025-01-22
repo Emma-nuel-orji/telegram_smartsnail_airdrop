@@ -35,7 +35,7 @@ export function ConnectButton() {
 
   return (
     <button 
-      className="relative cursor-pointer p-1 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+      className=" cursor-pointer p-1 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
       onClick={handleClick}
       disabled={loading}
     >

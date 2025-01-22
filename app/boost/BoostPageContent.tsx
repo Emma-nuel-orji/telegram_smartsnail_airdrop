@@ -326,12 +326,12 @@ const handlePaymentSuccess = async () => {
 
   // Render Loading State
   if (!isClient) {
-    return <Loader />;
+    return ;
   }
 
   return (
     <div className="boost-page">
-      {loading && <Loader />}
+      {/* {loading && <Loader />} */}
 
     <div className="boost-header">  
       <Link href="/">

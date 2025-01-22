@@ -29,8 +29,14 @@ const ErrorState = ({ message, onBack }: { message: string; onBack?: () => void 
   <div className="min-h-screen flex items-center justify-center">
     <div className="text-center p-8 bg-red-50 dark:bg-red-900 rounded-lg shadow-lg">
       <div className="flex items-center justify-center gap-4 text-red-600 dark:text-red-200">
-        <Link href="/" className="hover:bg-red-100 dark:hover:bg-red-800 p-2 rounded-full transition-colors">
-          ←
+      <Link href="/">
+          <img
+            src="/images/info/left-arrow.png" 
+            
+            width={40}
+            height={40}
+            alt="back"
+          />
         </Link>
         <span className="font-medium">{message}</span>
       </div>
@@ -42,8 +48,14 @@ const EmptyState = () => (
   <div className="min-h-screen flex items-center justify-center">
     <div className="text-center p-8 bg-purple-50 dark:bg-purple-900 rounded-lg shadow-lg">
       <div className="flex items-center justify-center gap-4 text-purple-600 dark:text-purple-200">
-        <Link href="/" className="hover:bg-purple-100 dark:hover:bg-purple-800 p-2 rounded-full transition-colors">
-          ←
+      <Link href="/">
+          <img
+            src="/images/info/left-arrow.png" 
+            
+            width={40}
+            height={40}
+            alt="back"
+          />
         </Link>
         <span className="font-medium">No leaderboard data available</span>
       </div>

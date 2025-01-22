@@ -127,7 +127,7 @@ html, body, #__next, [data-nextjs] {
   }
 }
 
-
+/* 
 .ripple {
   position: relative;
   overflow: hidden;
@@ -147,11 +147,11 @@ html, body, #__next, [data-nextjs] {
 
 .ripple.clicked:after {
   opacity: 1;
-  width: 200px; /* Adjust the size of the ripple */
+  width: 200px; 
   height: 200px;
   transform: scale(1);
   transition: none;
-}
+} */
 
 
 /* Utility Classes */

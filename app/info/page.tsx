@@ -7,7 +7,7 @@ const InfoPage = () => {
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       {/* Welcome Section */}
       <section className="text-center mb-12">
-      {/* <Link href="/">
+      <Link href="/">
           <img
             src="/images/info/left-arrow.png" 
             
@@ -15,7 +15,7 @@ const InfoPage = () => {
             height={40}
             alt="back"
           />
-        </Link> */}
+        </Link>
         <h1 className="text-4xl font-bold mb-4">Welcome to SmartSnail</h1>
         <p className="text-lg text-gray-700">
           A revolutionary project at the forefront of integrating blockchain technology with real-world applications. 
