@@ -398,7 +398,7 @@ const handlePaymentSuccess = async () => {
               </div>
             )}
           </div>
-          <p>+5 Tapping Rate</p>
+          <p>+4 Tapping Rate</p>
           <p>+100,000 Shells per Copy</p>
           <input
             type="number"
@@ -428,8 +428,8 @@ const handlePaymentSuccess = async () => {
               </div>
             )}
           </div> 
-          <p>+2 Tapping Rate</p>
-          <p>+70,000 Shells per Copy</p>
+          <p>+7 Tapping Rate</p>
+          <p>+30,000 Shells per Copy</p>
           <input
             type="number"
             value={humanRelationsQty}

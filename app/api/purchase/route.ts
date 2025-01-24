@@ -204,104 +204,55 @@ export async function POST(req: NextRequest): Promise<Response> {
 }
 
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
-  try {
-    // 1. Log initial quantities
-    console.log("[Debug] Step 1 - Initial quantities:", {
-      fxckedUpBagsQty,
-      humanRelationsQty
-    });
+  console.log("Processing quantities:", { fxckedUpBagsQty, humanRelationsQty });
 
-    // 2. Basic validation
-    if (fxckedUpBagsQty < 0 || humanRelationsQty < 0) {
-      throw new Error("Book quantities cannot be negative");
-    }
+  const bookIdsToFind = [
+    ...(fxckedUpBagsQty > 0 ? ["FxckedUpBags"] : []),
+    ...(humanRelationsQty > 0 ? ["HumanRelations"] : [])
+  ];
 
-    if (fxckedUpBagsQty === 0 && humanRelationsQty === 0) {
-      throw new Error("At least one book must be selected for purchase");
-    }
+  console.log("Book IDs to find:", bookIdsToFind);
 
-    // 3. Fetch books - EXACT titles from database
-    console.log("[Debug] Step 2 - Fetching books from database");
-    const books = await prisma.book.findMany();
-    console.log("[Debug] All available books:", books.map(b => b.title));
-
-    // 4. Log exact book titles found
-    const fxckedUpBags = books.find(b => b.title.includes("FxckedUpBags"));
-    const humanRelations = books.find(b => b.title.includes("Human Relations"));
-
-    console.log("[Debug] Step 3 - Found books:", {
-      fxckedUpBags: fxckedUpBags?.title || 'Not found',
-      humanRelations: humanRelations?.title || 'Not found'
-    });
-
-    if (!books || books.length === 0) {
-      throw new Error("No books found in database");
-    }
-
-    // 5. Create book map
-    const bookMap = books.reduce<Record<string, Book>>((acc, book) => {
-      acc[book.title] = book;
-      return acc;
-    }, {});
-
-    console.log("[Debug] Step 4 - Book map created with titles:", Object.keys(bookMap));
-
-    // 6. Prepare purchase array
-    const booksToPurchase: BookPurchaseInfo[] = [];
-
-    if (fxckedUpBagsQty > 0 && fxckedUpBags) {
-      console.log("[Debug] Adding FxckedUpBags to purchase:", {
-        qty: fxckedUpBagsQty,
-        bookDetails: {
-          id: fxckedUpBags.id,
-          title: fxckedUpBags.title
-        }
-      });
-
-      booksToPurchase.push({
-        qty: fxckedUpBagsQty,
-        id: fxckedUpBags.id,
-        title: fxckedUpBags.title,
-        book: fxckedUpBags  // Include the entire book object
-      });
-    }
-
-    if (humanRelationsQty > 0 && humanRelations) {
-      console.log("[Debug] Adding Human Relations to purchase:", {
-        qty: humanRelationsQty,
-        bookDetails: {
-          id: humanRelations.id,
-          title: humanRelations.title
-        }
-      });
-
-      booksToPurchase.push({
-        qty: humanRelationsQty,
-        id: humanRelations.id,
-        title: humanRelations.title,
-        book: humanRelations  // Include the entire book object
-      });
-    }
-
-    // 7. Validate final data
-    console.log("[Debug] Step 5 - Final purchase data:", {
-      booksToPurchase: booksToPurchase.map(b => ({
-        title: b.title,
-        qty: b.qty,
-        hasBook: !!b.book
-      }))
-    });
-
-    if (booksToPurchase.length === 0) {
-      throw new Error("No books were selected for purchase");
-    }
-
-    return { booksToPurchase, bookMap };
-
-  } catch (error) {
-    console.error("[Debug] Error in preparePurchaseData:", error);
-    throw error;
+  if (bookIdsToFind.length === 0) {
+    throw new Error("At least one book must be selected");
   }
+
+  const books = await prisma.book.findMany({
+    where: { id: { in: bookIdsToFind } }
+  });
+
+  console.log("Found books:", books);
+
+  if (books.length !== bookIdsToFind.length) {
+    const foundIds = books.map(b => b.id);
+    const missingBooks = bookIdsToFind.filter(id => !foundIds.includes(id));
+    throw new Error(`Books not found: ${missingBooks.join(', ')}`);
+  }
+
+  const bookMap: Record<string, Book> = {};
+  const booksToPurchase: BookPurchaseInfo[] = books.map(book => {
+    const qty = book.id === "FxckedUpBags" ? fxckedUpBagsQty : humanRelationsQty;
+    
+    console.log(`Processing book: ${book.id}, Quantity: ${qty}`);
+
+    bookMap[book.title] = book;
+    
+    const purchaseInfo: BookPurchaseInfo = {
+      qty,
+      id: book.id,
+      title: book.title,
+      book,
+      bookId: book.id
+    };
+
+    console.log("Created purchase info:", purchaseInfo);
+    return purchaseInfo;
+  });
+
+  console.log("Final booksToPurchase:", JSON.stringify(booksToPurchase, null, 2));
+  console.log("Final bookMap:", Object.keys(bookMap));
+
+  return { booksToPurchase, bookMap };
 }
 
 async function validateStockAndCalculateTotals(
@@ -469,7 +420,9 @@ async function updateDatabaseTransaction(
             ? booksToPurchase[0].id || "UnknownBook"
             : booksToPurchase.map(book => book.id).join(",") 
           : "NoBookSelected",
-      }
+          fxckedUpBagsQty: booksToPurchase.find(book => book.title.includes("FxckedUpBags"))?.qty || 0,
+          humanRelationsQty: booksToPurchase.find(book => book.title === "Human Relations")?.qty || 0,
+        },
     });
 
     const user = await tx.user.upsert({
