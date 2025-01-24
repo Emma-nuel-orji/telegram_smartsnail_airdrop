@@ -203,25 +203,26 @@ export async function POST(req: NextRequest): Promise<Response> {
   });
 }
 
-async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
-  console.log("Processing quantities:", { fxckedUpBagsQty, humanRelationsQty });
+async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number): Promise<{
+  booksToPurchase: BookPurchaseInfo[];
+  bookMap: Record<string, Book>;
+}> {
+  console.error("Preparing purchase data with:", { fxckedUpBagsQty, humanRelationsQty });
 
   const bookIdsToFind = [
     ...(fxckedUpBagsQty > 0 ? ["FxckedUpBags"] : []),
     ...(humanRelationsQty > 0 ? ["HumanRelations"] : [])
   ];
 
-  console.log("Book IDs to find:", bookIdsToFind);
-
   if (bookIdsToFind.length === 0) {
-    throw new Error("At least one book must be selected");
+    throw new Error("No books selected for purchase");
   }
 
   const books = await prisma.book.findMany({
     where: { id: { in: bookIdsToFind } }
   });
 
-  console.log("Found books:", books);
+  console.error("Found books:", books);
 
   if (books.length !== bookIdsToFind.length) {
     const foundIds = books.map(b => b.id);
@@ -230,27 +231,34 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
   }
 
   const bookMap: Record<string, Book> = {};
-  const booksToPurchase: BookPurchaseInfo[] = books.map(book => {
-    const qty = book.id === "FxckedUpBags" ? fxckedUpBagsQty : humanRelationsQty;
-    
-    console.log(`Processing book: ${book.id}, Quantity: ${qty}`);
+  const booksToPurchase: BookPurchaseInfo[] = books
+    .map(book => {
+      const qty = book.id === "FxckedUpBags" ? fxckedUpBagsQty : humanRelationsQty;
+      
+      if (qty <= 0) {
+        console.error(`Skipping book ${book.id} with zero quantity`);
+        return null;
+      }
 
-    bookMap[book.title] = book;
-    
-    const purchaseInfo: BookPurchaseInfo = {
-      qty,
-      id: book.id,
-      title: book.title,
-      book,
-      bookId: book.id
-    };
+      const purchaseInfo: BookPurchaseInfo = {
+        qty,
+        id: book.id,
+        title: book.title,
+        book,
+        bookId: book.id
+      };
 
-    console.log("Created purchase info:", purchaseInfo);
-    return purchaseInfo;
-  });
+      bookMap[book.title] = book;
+      return purchaseInfo;
+    })
+    .filter((info): info is BookPurchaseInfo => info !== null);
 
-  console.log("Final booksToPurchase:", JSON.stringify(booksToPurchase, null, 2));
-  console.log("Final bookMap:", Object.keys(bookMap));
+  if (booksToPurchase.length === 0) {
+    throw new Error("No valid books found for purchase");
+  }
+
+  console.error("Final booksToPurchase:", booksToPurchase);
+  console.error("Final bookMap:", Object.keys(bookMap));
 
   return { booksToPurchase, bookMap };
 }
