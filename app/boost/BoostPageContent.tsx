@@ -98,8 +98,8 @@ export default function BoostPageContent() {
 
   // Calculations
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
-  const totalTappingRate = fxckedUpBagsQty * 4 + humanRelationsQty * 7;
-  const totalPoints = fxckedUpBagsQty * 100000 + humanRelationsQty * 30000;
+  const tappingRate = fxckedUpBagsQty * 4 + humanRelationsQty * 7;
+  const points = fxckedUpBagsQty * 100000 + humanRelationsQty * 30000;
   const priceTon = totalBooks * 1;
   const priceStars = totalBooks * 4 * 100;
 
@@ -186,8 +186,8 @@ return () => {
         email: purchaseEmail,
         paymentMethod: formattedPaymentMethod,
         bookCount: totalBooks,
-        tappingRate: totalTappingRate,       // Renamed to match schema
-        coinsReward: totalPoints,            // Renamed to match schema
+        tappingRate: tappingRate,       // Renamed to match schema
+        coinsReward: points,            // Renamed to match schema
         priceTon: priceTon,                  // Matches schema
         priceStars: priceStars,              // Matches schema
         fxckedUpBagsQty,
@@ -271,8 +271,8 @@ return () => {
         label: "SMARTSNAIL Stars Payment",
         paymentMethod: "Stars",
         bookCount: totalBooks,
-        totalTappingRate,
-        totalPoints,
+        tappingRate,
+        points,
         priceTon,
         priceStars,
         fxckedUpBagsQty,
@@ -398,7 +398,7 @@ const handlePaymentSuccess = async () => {
               </div>
             )}
           </div>
-          <p>+4 Tapping Rate</p>
+          <p>+5 Tapping Rate</p>
           <p>+100,000 Shells per Copy</p>
           <input
             type="number"
@@ -428,8 +428,8 @@ const handlePaymentSuccess = async () => {
               </div>
             )}
           </div> 
-          <p>+7 Tapping Rate</p>
-          <p>+30,000 Shells per Copy</p>
+          <p>+2 Tapping Rate</p>
+          <p>+70,000 Shells per Copy</p>
           <input
             type="number"
             value={humanRelationsQty}
@@ -443,8 +443,8 @@ const handlePaymentSuccess = async () => {
 
        {/* Summary Section */}
        <div className="summary-container">
-        <p>Total Tapping Rate: {totalTappingRate}</p>
-        <p>Total Coins: {totalPoints}</p>
+        <p>Total Tapping Rate: {tappingRate}</p>
+        <p>Total Coins: {points}</p>
         <p>Total TON: {priceTon}</p>
         <p>Total Stars: {priceStars}</p>
         

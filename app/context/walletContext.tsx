@@ -9,6 +9,7 @@ interface WalletContextType {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   tonConnectUI: TonConnectUI | null;
+  
 }
 
 const WalletContext = createContext<WalletContextType>({

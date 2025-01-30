@@ -39,6 +39,6 @@
     ".next/types/**/*.ts",
     "testConnection.ts",
     "global.d.ts"
-, "test-connection.mjs"  ],
+, "test-connection.mjs", "prisma/seed.mjs"  ],
   "exclude": ["node_modules"]
 }

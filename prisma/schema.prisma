@@ -101,21 +101,25 @@ model GeneratedCode {
 
 // Book model
 model Book {
-  id          String   @id @map("_id")
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   author      String
-  coinsReward BigInt  // Keep BigInt
+  coinsReward BigInt
   description String
   priceCard   Float
-  priceStars  Int     // Changed to Int
+  priceStars  Int
   priceTon    Float
-  stockLimit  Int     // Changed to Int
-  tappingRate Int     // Changed to Int
+  stockLimit  Int
+  tappingRate Int
   title       String
-  usedStock   Int     // Changed to Int
+  usedStock   Int
+
   // Relations
   generatedCodes GeneratedCode[] // One-to-many relation to GeneratedCode
-  purchases      Purchase[] // One-to-many relation to Purchase
+  purchases      Purchase[]      // One-to-many relation to Purchase
+
+  @@map("Book") // Map this model to the MongoDB "Book" collection
 }
+
 
 model Order {
   id                  String      @id @default(auto()) @map("_id") @db.ObjectId

@@ -13,8 +13,8 @@ import { validateTelegramWebAppData } from '@/src/utils/telegram';
 // Type definitions
 interface StockCalculationResult {
   totalAmount: number;
-  totalTappingRate: number;
-  totalPoints: number;
+  tappingRate: number;
+  points: number;
   codes: string[];
   updatedStocks: Array<{ title: string; stockStatus: string }>;
 }
@@ -22,9 +22,9 @@ interface StockCalculationResult {
 interface BookPurchaseInfo {
   title: string;
   qty: number;
-  id?: string;
-  bookId?: string;
-  book?: Book;
+  id: string; // Make this required
+  bookId: string; // Make this required
+  book: Book; // Make this required
 }
 
 interface Order {
@@ -85,6 +85,94 @@ const requestSchema = z.object({
   referrerId: z.string().optional().default(""),
   paymentReference: z.string(),
 });
+
+
+
+export async function GET(req: NextRequest) {
+  try {
+    const searchParams = new URL(req.url).searchParams;
+    const fxckedUpBagsQty = Number(searchParams.get('fxckedUpBagsQty')) || 0;
+    const humanRelationsQty = Number(searchParams.get('humanRelationsQty')) || 0;
+
+    const purchaseData = await preparePurchaseData(
+      fxckedUpBagsQty, 
+      humanRelationsQty
+    );
+
+    return NextResponse.json({ success: true, data: purchaseData });
+  } catch (error) {
+    console.error('Pre-purchase check error:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 
+      { status: 500 }
+    );
+  }
+}
+
+async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
+  console.log("Preparing purchase data with:", { fxckedUpBagsQty, humanRelationsQty });
+
+  const booksToFind = [
+    ...(fxckedUpBagsQty > 0 ? ["FxckedUpBags (Undo Yourself)"] : []),
+    ...(humanRelationsQty > 0 ? ["Human Relations"] : [])
+  ];
+
+  if (booksToFind.length === 0) {
+    throw new Error("No books selected for purchase");
+  }
+
+  console.log("Books to find:", booksToFind);
+
+  const books = await prisma.book.findMany({
+    where: { 
+      title: { in: booksToFind }
+    }
+  });
+
+  console.log("Books fetched from database:", books);
+
+  if (!books || books.length === 0) {
+    throw new Error("No books found in database");
+  }
+
+  const booksToPurchase = books
+    .map(book => {
+      if (!book) return null;
+
+      const qty = 
+        book.title === "FxckedUpBags (Undo Yourself)"
+          ? fxckedUpBagsQty
+          : book.title === "Human Relations"
+          ? humanRelationsQty
+          : 0;
+
+      if (qty <= 0) {
+        console.log(`Skipping book ${book.title} with invalid quantity: ${qty}`);
+        return null;
+      }
+
+      return {
+        qty,
+        id: book.id,
+        title: book.title,
+        bookId: book.id,
+        book // Make sure book object is included
+      };
+    })
+    .filter((info): info is BookPurchaseInfo => info !== null);
+
+  if (booksToPurchase.length === 0) {
+    throw new Error("No valid books found for purchase");
+  }
+
+  console.log("Final booksToPurchase:", booksToPurchase);
+
+  // Create bookMap from the books array
+  const bookMap = Object.fromEntries(books.map(book => [book.title, book]));
+
+  return { booksToPurchase, bookMap };
+}
+
 
 export async function POST(req: NextRequest): Promise<Response> {
   console.log("1. Starting POST request handling");
@@ -163,8 +251,8 @@ export async function POST(req: NextRequest): Promise<Response> {
       validatedData.email,
       validatedData.paymentMethod,
       stockResults.totalAmount,
-      stockResults.totalTappingRate,
-      stockResults.totalPoints,
+      stockResults.tappingRate,
+      stockResults.points,
       validatedData.referrerId
     );
 
@@ -203,114 +291,57 @@ export async function POST(req: NextRequest): Promise<Response> {
   });
 }
 
-async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number): Promise<{
-  booksToPurchase: BookPurchaseInfo[];
-  bookMap: Record<string, Book>;
-}> {
-  console.error("Preparing purchase data with:", { fxckedUpBagsQty, humanRelationsQty });
-
-  const bookIdsToFind = [
-    ...(fxckedUpBagsQty > 0 ? ["FxckedUpBags"] : []),
-    ...(humanRelationsQty > 0 ? ["HumanRelations"] : [])
-  ];
-
-  if (bookIdsToFind.length === 0) {
-    throw new Error("No books selected for purchase");
-  }
-
-  const books = await prisma.book.findMany({
-    where: { id: { in: bookIdsToFind } }
-  });
-
-  console.error("Found books:", books);
-
-  if (books.length !== bookIdsToFind.length) {
-    const foundIds = books.map(b => b.id);
-    const missingBooks = bookIdsToFind.filter(id => !foundIds.includes(id));
-    throw new Error(`Books not found: ${missingBooks.join(', ')}`);
-  }
-
-  const bookMap: Record<string, Book> = {};
-  const booksToPurchase: BookPurchaseInfo[] = books
-    .map(book => {
-      const qty = book.id === "FxckedUpBags" ? fxckedUpBagsQty : humanRelationsQty;
-      
-      if (qty <= 0) {
-        console.error(`Skipping book ${book.id} with zero quantity`);
-        return null;
-      }
-
-      const purchaseInfo: BookPurchaseInfo = {
-        qty,
-        id: book.id,
-        title: book.title,
-        book,
-        bookId: book.id
-      };
-
-      bookMap[book.title] = book;
-      return purchaseInfo;
-    })
-    .filter((info): info is BookPurchaseInfo => info !== null);
-
-  if (booksToPurchase.length === 0) {
-    throw new Error("No valid books found for purchase");
-  }
-
-  console.error("Final booksToPurchase:", booksToPurchase);
-  console.error("Final bookMap:", Object.keys(bookMap));
-
-  return { booksToPurchase, bookMap };
-}
 
 async function validateStockAndCalculateTotals(
-  booksToPurchase: BookPurchaseInfo[],
-  bookMap: BookMap,
-  paymentMethod: string
-): Promise<StockCalculationResult> {
+booksToPurchase: BookPurchaseInfo[], bookMap: { [k: string]: { tappingRate: number; coinsReward: bigint; priceTon: number; priceStars: number; id: string; description: string; author: string; priceCard: number; stockLimit: number; title: string; usedStock: number; }; }, paymentMethod: string): Promise<StockCalculationResult> {
   let totalAmount = 0;
-  let totalTappingRate = 0;
-  let totalPoints = 0;
+  let tappingRate = 0;
+  let points = 0;
   const codes: string[] = [];
-  const updatedStocks: Array<{ title: string; stockStatus: string }> = [];
-
+  
+  // Go through the books and calculate total quantity
+  let totalQty = 0;
+  let updatedStocks: Array<{ title: string; stockStatus: string }> = []; 
+  
   for (const purchaseInfo of booksToPurchase) {
-    const { id, title, qty, book } = purchaseInfo;
+    const { qty, book } = purchaseInfo;
 
+    // Validate book data
     if (!book) {
-      throw new Error(`Book details not found for ${title}`);
+      console.error(`Missing book data for ${purchaseInfo.title}`);
+      throw new Error(`Book details not found for ${purchaseInfo.title}`);
     }
 
-    const availableCodes = await prisma.generatedCode.findMany({
-      where: { bookId: id, isUsed: false },
-      take: qty,
-    });
+    // Add the quantity of books to the total quantity
+    totalQty += qty;
 
-    if (availableCodes.length < qty) {
-      throw new Error(`Insufficient stock for ${title}`);
-    }
+    const bookTappingRate = book.tappingRate || 0;
+    const bookPoints = book.coinsReward || 0;
 
-    codes.push(...availableCodes.map(code => code.code));
-    totalAmount += qty * (paymentMethod === "TON" ? 1 : 2.3);
+    tappingRate += qty * bookTappingRate;
+
+    // Convert all values to number for consistent calculation
+    points += qty * Number(bookPoints);
     
-    const tappingRate = book.tappingRate || 0;
-    const points = book.coinsReward || 0;
-
-    totalTappingRate += qty * tappingRate;
-    totalPoints += qty * Number(points);
-
-    const totalStock = book.stockLimit || 0;
-    const usedStock = await prisma.generatedCode.count({
-      where: { bookId: id, isUsed: true },
-    });
-
-    updatedStocks.push({
-      title,
-      stockStatus: `${usedStock + qty}/${totalStock}`,
-    });
+    // Calculate total amount based on payment method
+    totalAmount += qty * (paymentMethod === "TON" ? 1 : 2.3);
   }
 
-  return { totalAmount, totalTappingRate, totalPoints, codes, updatedStocks };
+  // Fetch the unused codes based on the total quantity of books to purchase
+  const availableCodes = await prisma.generatedCode.findMany({
+    where: { isUsed: false },
+    take: totalQty, // Fetch as many codes as the user is purchasing
+  });
+
+  if (availableCodes.length < totalQty) {
+    throw new Error("Insufficient stock for the requested quantity of books");
+  }
+
+  // Push the codes into the codes array
+  codes.push(...availableCodes.map(code => code.code));
+
+  return { totalAmount, tappingRate, points, codes, updatedStocks };
+
 }
 
 async function processPayment(
@@ -381,8 +412,8 @@ async function updateDatabaseTransaction(
   email: string,
   paymentMethod: string,
   totalAmount: number,
-  totalTappingRate: number,
-  totalPoints: number,
+  tappingRate: number,
+  points: number,
   referrerId?: string
 ) {
   const MAX_RETRIES = 3;
@@ -436,13 +467,13 @@ async function updateDatabaseTransaction(
     const user = await tx.user.upsert({
       where: { telegramId: BigInt(telegramId) },
       update: {
-        tappingRate: { increment: totalTappingRate },
-        points: { increment: totalPoints },
+        tappingRate: { increment: tappingRate },
+        points: { increment: points },
       },
       create: {
         telegramId: BigInt(telegramId),
-        tappingRate: totalTappingRate,
-        points: totalPoints,
+        tappingRate: tappingRate,
+        points: points,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

@@ -6,7 +6,7 @@ import Link from "next/link";
 import dynamic from 'next/dynamic';
 import type { Task } from '@/types';
 import confetti from 'canvas-confetti';
-
+import { useWallet } from '../context/walletContext';
 
 interface ShowStoryOptions {
   media: string;
@@ -51,7 +51,7 @@ const TaskPageContent: React.FC = () => {
     { id: 15, description: 'Main Task 15', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 16, description: 'Main Task 16', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3?t=sS-KKVwkz3C_stZqs8syzA&s=09', completedTime: null },
     { id: 17, description: 'Main Task 17', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 18, description: 'Main Task 18', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/connect wallet.png', link: '/wallet', completedTime: null },
+    { id: 18, description: 'Main Task 18', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/connect wallet.png', link: '', completedTime: null },
     { id: 19, description: 'Main Task 19', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 20, description: 'Main Task 20', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex twitter.png', link: 'https://x.com/CaptainSage_?t=EZ0s5eeh1igkYDym_M_U-Q&s=09', completedTime: null },
     { id: 21, description: 'Main Task 21', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
@@ -81,6 +81,7 @@ const TaskPageContent: React.FC = () => {
     return 0;
   });
   const [selectedSection, setSelectedSection] = useState<"main" | "daily" | "partners">("main");
+  const { isConnected, connect, disconnect } = useWallet();
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [inputCode, setInputCode] = useState("");
   const [message, setMessage] = useState<string>("");
@@ -89,7 +90,9 @@ const TaskPageContent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [telegramId, setTelegramId] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
-  
+  const [hasBeenRewarded, setHasBeenRewarded] = useState(false);
+
+
   const triggerConfetti = () => {
     const duration = 2 * 1000; // 2 seconds
     const end = Date.now() + duration;
@@ -145,6 +148,75 @@ const TaskPageContent: React.FC = () => {
     setTasks(updatedTasks);
     setTotalPoints(storedPoints);
   }, []);
+
+
+  useEffect(() => {
+    if (selectedTask?.id === 18) {
+      // Check if wallet connection task has been completed before
+      const completedTasks = JSON.parse(localStorage.getItem('completedTasks') || '[]');
+      setHasBeenRewarded(completedTasks.includes(18));
+    }
+  }, [selectedTask]);
+
+
+  const handleTaskCompleted = (taskId: number, reward: number) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId ? { ...task, completed: true, completedTime: new Date().toISOString() } : task
+      )
+    );
+  
+    // Update localStorage
+    const completedTasks = new Set(JSON.parse(localStorage.getItem('completedTasks') || '[]'));
+    completedTasks.add(taskId);
+    localStorage.setItem('completedTasks', JSON.stringify([...completedTasks]));
+  
+    // Reward the user (if your app has a point system)
+    if (reward) {
+      setUserPoints((prevPoints) => prevPoints + reward);
+    }
+  };
+  
+  
+  const handleWalletConnection = async () => {
+    if (!selectedTask) return;
+    
+    try {
+      setLoading(true);
+      
+      if (isConnected) {
+        await disconnect();
+        return; // Stop execution after disconnecting
+      }
+  
+      await connect();
+  
+      // Use Set to prevent duplicate entries in completed tasks
+      const completedTasks = new Set(JSON.parse(localStorage.getItem('completedTasks') || '[]'));
+      
+      if (!completedTasks.has(18)) {
+        completedTasks.add(18);
+        localStorage.setItem('completedTasks', JSON.stringify([...completedTasks]));
+  
+        // Trigger confetti
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+  
+        // Ensure reward is always a number
+        handleTaskCompleted(18, selectedTask.reward ?? 0);
+      }
+    } catch (error) {
+      console.error('Wallet interaction error:', error);
+      setMessage('Failed to connect wallet. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
 
   useEffect(() => {
     const updateDailyTasks = () => {
@@ -457,7 +529,6 @@ const TaskPageContent: React.FC = () => {
         <Link href="/">
           <img
             src="/images/info/left-arrow.png" 
-            
             width={40}
             height={40}
             alt="back"
@@ -494,7 +565,7 @@ const TaskPageContent: React.FC = () => {
             className={`task-card ${task.completed ? 'completed' : ''}`}
             onClick={() => !task.completed && handleTaskClick(task)}
           >
-            <div >
+            <div>
               <img src={task.image} alt={task.description} className="task-image" />
               {task.completed && (
                 <div className="checkmark-overlay">
@@ -546,7 +617,22 @@ const TaskPageContent: React.FC = () => {
                 )}
                 {reward > 0 && (
                   <p className="popup-message reward">
-                    🎉 You earned: {reward} coins!
+                    🎉 You earned: {reward} shells!
+                  </p>
+                )}
+              </>
+            ) : selectedTask.id === 18 ? (
+              <>
+                <button 
+                  className="popup-button"
+                  onClick={handleWalletConnection}
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : isConnected ? "Disconnect Wallet" : "Connect Wallet"}
+                </button>
+                {message && (
+                  <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
+                    {message}
                   </p>
                 )}
               </>
@@ -577,8 +663,6 @@ const TaskPageContent: React.FC = () => {
           </div>
         </div>
       )}
-
-    
     </div>
   );
 };
