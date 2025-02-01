@@ -51,7 +51,7 @@ const TaskPageContent: React.FC = () => {
     { id: 15, description: 'Main Task 15', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 16, description: 'Main Task 16', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3?t=sS-KKVwkz3C_stZqs8syzA&s=09', completedTime: null },
     { id: 17, description: 'Main Task 17', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 18, description: 'Main Task 18', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/connect wallet.png', link: '', completedTime: null },
+    { id: 18, description: 'Main Task 18', completed: false, reward: 10000, section: 'main', type: 'flexible', image: '/images/tasks/connect wallet.png', link: '', completedTime: null },
     { id: 19, description: 'Main Task 19', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1', completedTime: null },
     { id: 20, description: 'Main Task 20', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex twitter.png', link: 'https://x.com/CaptainSage_?t=EZ0s5eeh1igkYDym_M_U-Q&s=09', completedTime: null },
     { id: 21, description: 'Main Task 21', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
@@ -180,37 +180,38 @@ const TaskPageContent: React.FC = () => {
   
   const handleWalletConnection = async () => {
     if (!selectedTask) return;
-    
+  
     try {
       setLoading(true);
-      
+  
       if (isConnected) {
         await disconnect();
-        return; // Stop execution after disconnecting
+        return;
       }
   
       await connect();
   
-      // Use Set to prevent duplicate entries in completed tasks
-      const completedTasks = new Set(JSON.parse(localStorage.getItem('completedTasks') || '[]'));
-      
-      if (!completedTasks.has(18)) {
-        completedTasks.add(18);
-        localStorage.setItem('completedTasks', JSON.stringify([...completedTasks]));
+      // Check if the user has connected before
+      const hasConnectedBefore = JSON.parse(localStorage.getItem("walletConnectedOnce") || "false");
   
-        // Trigger confetti
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+      if (!hasConnectedBefore) {
+        localStorage.setItem("walletConnectedOnce", JSON.stringify(true));
   
-        // Ensure reward is always a number
+        // Trigger confetti 🎉
+        setTimeout(() => {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        }, 300); // Short delay for smoother UI
+  
+        // Reward the user
         handleTaskCompleted(18, selectedTask.reward ?? 0);
       }
     } catch (error) {
-      console.error('Wallet interaction error:', error);
-      setMessage('Failed to connect wallet. Please try again.');
+      console.error("Wallet interaction error:", error);
+      setMessage("Failed to connect wallet. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -221,42 +222,48 @@ const TaskPageContent: React.FC = () => {
   useEffect(() => {
     const updateDailyTasks = () => {
       const currentTime = Date.now();
-      
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => {
+  
+      setTasks((prevTasks) => {
+        const updatedTasks = prevTasks.map((task) => {
           // Only process daily tasks
-          if (task.type !== "daily") return task;
-          
+          if (task.type !== "daily" && task.type !== "flexible") return task;
+
+
+  
           // If task is completed, check if it needs to be reset
           if (task.completed && task.completedTime) {
             const completionTime = new Date(task.completedTime).getTime();
             const hoursSinceCompletion = (currentTime - completionTime) / (1000 * 60 * 60);
-            
+  
             // Reset if more than 20 hours have passed
             if (hoursSinceCompletion > 20) {
               return {
                 ...task,
                 completed: false,
-                completedTime: null
+                completedTime: null,
               };
             }
           }
-          
+  
           return task;
-        })
-      );
-      
-      // Update localStorage to reflect changes
-      const updatedTasks = tasks.filter(task => task.completed);
-      localStorage.setItem("completedTasks", JSON.stringify(updatedTasks.map(task => task.id)));
+        });
+  
+        // Update localStorage to reflect changes
+        const completedTasks = updatedTasks.filter((task) => task.completed);
+        localStorage.setItem("completedTasks", JSON.stringify(completedTasks.map((task) => task.id)));
+  
+        return updatedTasks; // Return the updated tasks for setTasks
+      });
     };
   
     // Run immediately and then every hour
     updateDailyTasks();
     const intervalId = setInterval(updateDailyTasks, 60 * 60 * 1000);
-    
+  
+    // Cleanup interval on unmount
     return () => clearInterval(intervalId);
-  }, [tasks]); // Add tasks as dependency to ensure we're working with current state
+  }, []); 
+
 
   const handleTaskClick = (task: Task) => {
     if (!task.completed) {

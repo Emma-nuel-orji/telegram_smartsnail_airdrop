@@ -3,7 +3,7 @@
     description: string;
     completed: boolean;
     section: "main" | "daily" | "partners";
-    type: "daily" | "permanent";
+    type: "daily" | "permanent" | "flexible"; 
     image: string;
     link: string;
     completedTime?: string | null;
