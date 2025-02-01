@@ -2,36 +2,23 @@
 
 import { useWallet } from './context/walletContext';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export function ConnectButton() {
-  const { isConnected, walletAddress, tonConnectUI } = useWallet();
-  const [showInfo, setShowInfo] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const formatAddress = (addr: string | null) => {
-    if (!addr) return '';
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-  };
+  const { isConnected } = useWallet();
+  const [showMessage, setShowMessage] = useState(false); // State to control message visibility
 
   const handleClick = () => {
-    if (isConnected) {
-      setShowInfo(!showInfo);
+    if (!isConnected) {
+      setShowMessage((prev) => !prev); // Toggle message visibility
     }
   };
-
-  if (!mounted) return null;
 
   return (
     <div className="relative">
       <button
-           className=" cursor-pointer p-1 rounded-lg hover:bg-gray-100 "
-        onClick={handleClick}
-        disabled={!isConnected}
+        className="cursor-pointer p-1 rounded-lg hover:bg-gray-100"
+        onClick={handleClick} // Add onClick handler
       >
         <div className="w-6 h-6 relative">
           <Image
@@ -44,20 +31,16 @@ export function ConnectButton() {
         </div>
       </button>
 
-      {isConnected && showInfo && (
+      {/* Conditionally render the "Go to Task 18" message */}
+      {!isConnected && showMessage && (
         <div className="absolute right-0 mt-2 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50 min-w-[200px]">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-600">Wallet Address:</p>
-            <p className="text-sm font-mono break-all">{formatAddress(walletAddress)}</p>
-            
-            {tonConnectUI?.wallet && (
-              <>
-                <p className="text-sm font-medium text-gray-600 mt-2">Wallet Type:</p>
-                <p className="text-sm">{tonConnectUI.wallet.device.platform}</p>
-
-              </>
-            )}
-          </div>
+          <p className="text-sm font-medium text-gray-600">
+            Wallet not connected. Go to{' '}
+            <a href="/task-18" className="text-blue-500 hover:underline">
+              Task 18
+            </a>{' '}
+            to connect your wallet.
+          </p>
         </div>
       )}
     </div>

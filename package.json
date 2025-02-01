@@ -12,11 +12,14 @@
     "db:seed": "prisma db seed"
   },
   "dependencies": {
+    "@metaplex-foundation/js": "^0.20.1",
     "@prisma/client": "^6.2.1",
+    "@solana/spl-token": "^0.3.11",
+    "@solana/web3.js": "^1.98.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.47.0",
     "@telegram-apps/sdk": "^2.9.1",
-    "@ton/core": "^0.59.0",
+    "@ton/core": "^0.59.1",
     "@tonconnect/sdk": "^3.0.6",
     "@tonconnect/ui": "^2.0.11",
     "@tonconnect/ui-react": "^2.0.11",
@@ -27,6 +30,7 @@
     "canvas-confetti": "^1.9.3",
     "cookie": "^1.0.2",
     "dotenv": "^16.4.7",
+    "ethers": "^6.13.5",
     "express": "^4.18.2",
     "flutterwave-node-v3": "^1.1.12",
     "grammy": "^1.33.0",
@@ -42,6 +46,7 @@
     "shadcn-ui": "^0.9.4",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "ton": "^13.9.0",
     "ton-core": "^0.53.0",
     "tonweb": "^0.0.66",
     "uuid": "^9.0.0",
@@ -66,8 +71,6 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   },
-
-  
   "prisma": {
     "seed": "ts-node prisma/seed.mjs"
   },
