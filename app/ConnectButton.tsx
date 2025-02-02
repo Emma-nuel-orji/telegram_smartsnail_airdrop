@@ -17,7 +17,7 @@ export function ConnectButton() {
   // Format the wallet address to show the first and last few characters
   const formatWalletAddress = (address: string | null) => {
     if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    return `${address.slice(0, 3)}...${address.slice(-2)}`;
   };
 
   return (
@@ -37,7 +37,7 @@ export function ConnectButton() {
         </div>
       </button>
 
-      {/* Display formatted wallet address if connected */}
+      {/* Conditionally render the formatted wallet address directly below the wallet */}
       {isConnected && walletAddress && (
         <div className="absolute right-0 mt-2 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50 min-w-[200px]">
           <p className="text-sm font-medium text-gray-600">
@@ -46,12 +46,12 @@ export function ConnectButton() {
         </div>
       )}
 
-      {/* Conditionally render the "Go to Task 18" message */}
+      {/* Conditionally render the "Go to Task 18" message when not connected */}
       {!isConnected && showMessage && (
         <div className="absolute right-0 mt-2 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50 min-w-[200px]">
           <p className="text-sm font-medium text-gray-600">
             Wallet not connected. Go to{' '}
-            <a href="/task-18" className="text-blue-500 hover:underline">
+            <a  className="text-blue-500 hover:underline">
               Task 18
             </a>{' '}
             to connect your wallet.
