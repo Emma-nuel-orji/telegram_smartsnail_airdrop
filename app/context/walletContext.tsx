@@ -1,7 +1,7 @@
 'use client';
 
-import { THEME, TonConnectUI, WalletInfo, Wallet, ConnectedWallet } from '@tonconnect/ui';
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { THEME, TonConnectUI, ConnectedWallet } from '@tonconnect/ui';
+import { createContext, useContext, ReactNode, useState, useEffect, useRef } from 'react';
 
 interface WalletContextType {
   walletAddress: string | null;
@@ -10,7 +10,6 @@ interface WalletContextType {
   disconnect: () => Promise<void>;
   tonConnectUI: TonConnectUI | null;
   blockchain?: string; 
-  
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -30,24 +29,26 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [tonConnectUI, setTonConnectUI] = useState<TonConnectUI | null>(null);
+  const tonConnectUIRef = useRef<TonConnectUI | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    let instance: TonConnectUI | null = null;
-
     const initWallet = async () => {
       try {
-        instance = new TonConnectUI({
-          manifestUrl: manifestUrl || process.env.NEXT_PUBLIC_TON_MANIFEST_URL || 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json',
-          uiPreferences: {
-            theme: THEME.LIGHT
-          }
-        });
+        if (!tonConnectUIRef.current) {
+          tonConnectUIRef.current = new TonConnectUI({
+            manifestUrl: manifestUrl || process.env.NEXT_PUBLIC_TON_MANIFEST_URL || 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json',
+            uiPreferences: {
+              theme: THEME.LIGHT
+            }
+          });
 
-        setTonConnectUI(instance);
+          setTonConnectUI(tonConnectUIRef.current);
+        }
 
-        // Listen for wallet changes
+        const instance = tonConnectUIRef.current;
+
         instance.onStatusChange((wallet: ConnectedWallet | null) => {
           if (wallet) {
             setWalletAddress(wallet.account.address);
@@ -74,8 +75,8 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
     initWallet();
 
     return () => {
-      if (instance) {
-        instance.disconnect();
+      if (tonConnectUIRef.current) {
+        tonConnectUIRef.current.disconnect();
       }
     };
   }, [manifestUrl]);
@@ -83,6 +84,7 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
   const connect = async () => {
     try {
       if (tonConnectUI) {
+        console.log('Connecting wallet...');
         await tonConnectUI.connectWallet();
       }
     } catch (error) {
@@ -93,6 +95,7 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
   const disconnect = async () => {
     try {
       if (tonConnectUI) {
+        console.log('Disconnecting wallet...');
         await tonConnectUI.disconnect();
       }
     } catch (error) {

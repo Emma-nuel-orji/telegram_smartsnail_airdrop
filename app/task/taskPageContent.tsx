@@ -71,8 +71,8 @@ const TaskPageContent: React.FC = () => {
     
 
 
-  ]);  
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  ]);
+  const [  selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [validationAttempt, setValidationAttempt] = useState(0);
   const [totalPoints, setTotalPoints] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -158,56 +158,62 @@ const TaskPageContent: React.FC = () => {
     }
   }, [selectedTask]);
 
-
-  const handleTaskCompleted = (taskId: number, reward: number) => {
+const handleTaskCompleted = (taskId: number, reward: number) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: true, completedTime: new Date().toISOString() } : task
+        task.id === taskId
+          ? { 
+              ...task, 
+              completed: task.type !== "flexible", // Only keep non-flexible tasks completed
+              completedTime: task.type !== "flexible" ? new Date().toISOString() : null
+            }
+          : task
       )
     );
   
-    // Update localStorage
-    const completedTasks = new Set(JSON.parse(localStorage.getItem('completedTasks') || '[]'));
-    completedTasks.add(taskId);
-    localStorage.setItem('completedTasks', JSON.stringify([...completedTasks]));
+    // Update localStorage only for non-flexible tasks
+    if (tasks.find(task => task.id === taskId)?.type !== "flexible") {
+      const completedTasks = new Set(JSON.parse(localStorage.getItem("completedTasks") || "[]"));
+      completedTasks.add(taskId);
+      localStorage.setItem("completedTasks", JSON.stringify([...completedTasks]));
+    }
   
-    // Reward the user (if your app has a point system)
+    // Reward the user
     if (reward) {
       setUserPoints((prevPoints) => prevPoints + reward);
     }
   };
   
   
+  
   const handleWalletConnection = async () => {
     if (!selectedTask) return;
-  
+
     try {
       setLoading(true);
-  
+
       if (isConnected) {
-        await disconnect();
+        await disconnect(); // Disconnect the wallet
+        setTaskCompleted(false); // Reset task completion state
         return;
       }
-  
-      await connect();
-  
-      // Check if the user has connected before
-      const hasConnectedBefore = JSON.parse(localStorage.getItem("walletConnectedOnce") || "false");
-  
-      if (!hasConnectedBefore) {
-        localStorage.setItem("walletConnectedOnce", JSON.stringify(true));
-  
-        // Trigger confetti 🎉
-        setTimeout(() => {
+
+      await connect(); // Connect the wallet
+
+      // Handle Task 18 logic
+      if (selectedTask.id === 18) {
+        setTaskCompleted(true); // Mark task as completed in state
+
+        // Trigger confetti on first successful connection
+        if (!localStorage.getItem("task18Completed")) {
           confetti({
             particleCount: 100,
             spread: 70,
             origin: { y: 0.6 }
           });
-        }, 300); // Short delay for smoother UI
-  
-        // Reward the user
-        handleTaskCompleted(18, selectedTask.reward ?? 0);
+          localStorage.setItem("task18Completed", "true");
+          handleTaskCompleted(18, selectedTask.reward ?? 0);
+        }
       }
     } catch (error) {
       console.error("Wallet interaction error:", error);
@@ -216,9 +222,11 @@ const TaskPageContent: React.FC = () => {
       setLoading(false);
     }
   };
+
   
 
 
+  
   useEffect(() => {
     const updateDailyTasks = () => {
       const currentTime = Date.now();

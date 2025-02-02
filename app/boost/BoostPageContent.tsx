@@ -9,6 +9,8 @@ import confetti from 'canvas-confetti';
 import TelegramInit from "@/components/TelegramInit";
 import "./BoostPage.css";
 import { useRouter } from "next/navigation";
+import { useWallet } from '../context/walletContext';
+
 // import { generateHMACSignature } from "@/src/utils/paymentUtils"
 
 // Context
@@ -75,6 +77,7 @@ export default function BoostPageContent() {
   } = useBoostContext();
 
   // State Management
+  const { isConnected } = useWallet();
   const [isClient, setIsClient] = useState(false);
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [uniqueCode, setUniqueCode] = useState("");
@@ -160,6 +163,7 @@ return () => {
   
 };
   }, [fetchStockData, telegramId, setStockLimit]);
+  
 
   // Purchase Handler
   const handlePurchase = async (paymentMethod: string) => {
@@ -175,21 +179,27 @@ return () => {
         return;
       }
   
+      // Check wallet connection for TON payments
+      if (paymentMethod === "TON") {
+        const { isConnected, tonConnectUI, walletAddress } = useWallet();
+        if (!isConnected || !tonConnectUI || !walletAddress) {
+          alert("Please connect your TON wallet first.");
+          return;
+        }
+      }
+  
       setIsProcessing(true);
   
-      // Format payment method and generate reference
-      const formattedPaymentMethod = paymentMethod.toUpperCase();
       const paymentReference = `TX-${Date.now()}`;
-  
-      // Prepare payload with correct field names matching the database schema
-      const payload: PurchasePayload = {
+      
+      const payload = {
         email: purchaseEmail,
-        paymentMethod: formattedPaymentMethod,
+        paymentMethod: paymentMethod.toUpperCase(),
         bookCount: totalBooks,
-        tappingRate: tappingRate,       // Renamed to match schema
-        coinsReward: points,            // Renamed to match schema
-        priceTon: priceTon,                  // Matches schema
-        priceStars: priceStars,              // Matches schema
+        tappingRate: tappingRate,
+        coinsReward: points,
+        priceTon: priceTon,
+        priceStars: priceStars,
         fxckedUpBagsQty,
         humanRelationsQty,
         telegramId: telegramId || '',
@@ -197,34 +207,59 @@ return () => {
         paymentReference,
       };
   
-      // Debug log
-      console.log("Sending payload:", {
-        ...payload,
-        email: '***@***'
-      });
-  
-      // Headers
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(process.env.NODE_ENV === 'production' && window.Telegram?.WebApp?.initData 
+          ? { 'x-telegram-init-data': window.Telegram.WebApp.initData }
+          : {})
       };
   
-      if (process.env.NODE_ENV === 'production' && window.Telegram?.WebApp?.initData) {
-        headers['x-telegram-init-data'] = window.Telegram.WebApp.initData;
-      }
-  
-      // Make request
-      const endpoint = formattedPaymentMethod === "TON" || formattedPaymentMethod === "CARD"
-        ? "/api/purchase"
-        : "/api/paymentByStars";
+      const endpoint = paymentMethod.toUpperCase() === "STARS" 
+        ? "/api/paymentByStars" 
+        : "/api/purchase";
   
       const response = await axios.post(endpoint, payload, { headers });
   
       if (response.data.success) {
-        if (formattedPaymentMethod === "TON") {
-          router.push(`/wallet?orderId=${response.data.orderId}`);
-          return;
+        if (paymentMethod === "TON") {
+          const { isConnected, tonConnectUI, walletAddress } = useWallet();
+          if (!isConnected || !tonConnectUI || !walletAddress) {
+            alert("Please connect your TON wallet first.");
+            return;
+          }
+    
+          // Check if receiver address exists
+          const receiverAddress = process.env.NEXT_PUBLIC_RECEIVER_ADDRESS;
+          if (!receiverAddress) {
+            console.error("Receiver address not configured");
+            alert("Payment configuration error. Please contact support.");
+            return;
+          }
+    
+          // Create and send transaction
+          const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 360,
+            messages: [{
+              address: receiverAddress, // Now this is guaranteed to be a string
+              amount: String(Math.floor(priceTon * 1e9)), // Convert to nanotons and ensure integer
+              payload: paymentReference
+            }]
+          };
+    
+          try {
+            const result = await tonConnectUI.sendTransaction(transaction);
+            if (result) {
+              router.push(`/wallet?orderId=${response.data.orderId}`);
+              return;
+            }
+          } catch (txError) {
+            console.error("TON transaction error:", txError);
+            alert("Transaction failed. Please try again.");
+            return;
+          }
         }
   
+        // Handle success for other payment methods
         alert("Purchase successful! Check your email for details.");
         setFxckedUpBagsQty(0);
         setHumanRelationsQty(0);
@@ -242,6 +277,8 @@ return () => {
       setIsProcessing(false);
     }
   };
+  
+  
 
   const handlePaymentViaStars = async (paymentMethod?: string) => {
     if (paymentMethod !== "Stars") {
