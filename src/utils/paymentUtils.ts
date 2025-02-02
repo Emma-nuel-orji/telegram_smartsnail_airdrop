@@ -11,6 +11,7 @@ const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const TON_WALLET_ADDRESS = process.env.TON_WALLET_ADDRESS;
 const secretKey = process.env.SECRET_KEY!;
 const TON_TESTNET_API_URL = process.env.TON_TESTNET_API_URL;
+const TON_API_URL = process.env.TON_API_URL;
 const TON_API_KEY = process.env.TON_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.BOT_API;
 const TELEGRAM_API_URL = process.env.TELEGRAM_API_URL;
@@ -32,17 +33,25 @@ const tonweb = new TonWeb(
 
 const verifyTonPayment = async (paymentReference: string, expectedAmount: number): Promise<boolean> => {
   try {
-    const response = await axios.get(`${TON_TESTNET_API_URL}/getTransaction`, {
+    const url = `${TON_TESTNET_API_URL}/getTransaction`;
+    console.log("Requesting:", url, "with params:", { hash: paymentReference, api_key: TON_API_KEY });
+
+    const response = await axios.get(url, {
       params: { hash: paymentReference, api_key: TON_API_KEY },
     });
 
+    if (response.status !== 200) {
+      console.error(`API response status: ${response.status}`, response.data);
+      throw new Error("Failed to fetch transaction details.");
+    }
+
     const transaction = response.data.result;
+    console.log("Transaction data:", transaction);
 
     if (!transaction) {
       throw new Error("Transaction not found.");
     }
 
-    // Validate the transaction details
     const { amount, destination } = transaction;
 
     if (destination !== TON_WALLET_ADDRESS) {
@@ -57,11 +66,15 @@ const verifyTonPayment = async (paymentReference: string, expectedAmount: number
 
     console.log("Transaction verified successfully:", transaction);
     return true;
-  } catch (error: unknown) { // explicitly typing error as unknown
-    console.error("Error verifying Ton payment:", error instanceof Error ? error.message : 'Unknown error');
+  } catch (error: unknown) {
+    console.error(
+      "Error verifying Ton payment:",
+      axios.isAxiosError(error) ? error.response?.data || error.message : error
+    );
     return false;
   }
 };
+
 
 /**
  * Initiates a Flutterwave payment.

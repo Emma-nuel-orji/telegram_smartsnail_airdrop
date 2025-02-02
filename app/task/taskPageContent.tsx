@@ -188,31 +188,46 @@ const handleTaskCompleted = (taskId: number, reward: number) => {
   
   const handleWalletConnection = async () => {
     if (!selectedTask) return;
-
+  
     try {
       setLoading(true);
-
+  
       if (isConnected) {
-        await disconnect(); // Disconnect the wallet
-        setTaskCompleted(false); // Reset task completion state
+        await disconnect();
+        setTaskCompleted(false);
         return;
       }
-
-      await connect(); // Connect the wallet
-
+  
+      await connect();
+  
       // Handle Task 18 logic
       if (selectedTask.id === 18) {
-        setTaskCompleted(true); // Mark task as completed in state
-
-        // Trigger confetti on first successful connection
-        if (!localStorage.getItem("task18Completed")) {
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
+        const isFirstConnection = !localStorage.getItem("task18Completed");
+        
+        // Mark task as completed
+        setTaskCompleted(true);
+        
+        if (isFirstConnection) {
+          // Trigger confetti
+          triggerConfetti();
+          // Store completion status
           localStorage.setItem("task18Completed", "true");
-          handleTaskCompleted(18, selectedTask.reward ?? 0);
+          
+          // Handle reward
+          if (selectedTask.reward) {
+            // Update points in state and localStorage
+            setTotalPoints(prevPoints => {
+              const newPoints = prevPoints + (selectedTask.reward ?? 0);
+              localStorage.setItem("totalPoints", newPoints.toString());
+              return newPoints;
+            });
+            
+            // Update task completion status
+            handleTaskCompleted(18, selectedTask.reward);
+            setMessage(`Congratulations! You earned ${selectedTask.reward} shells!`);
+          }
+        } else {
+          setMessage("Wallet connected successfully!");
         }
       }
     } catch (error) {
@@ -222,6 +237,7 @@ const handleTaskCompleted = (taskId: number, reward: number) => {
       setLoading(false);
     }
   };
+  
 
   
 

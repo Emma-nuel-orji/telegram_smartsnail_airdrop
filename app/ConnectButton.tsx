@@ -5,13 +5,19 @@ import Image from 'next/image';
 import { useState } from 'react';
 
 export function ConnectButton() {
-  const { isConnected } = useWallet();
+  const { isConnected, walletAddress } = useWallet(); // Destructure walletAddress from useWallet
   const [showMessage, setShowMessage] = useState(false); // State to control message visibility
 
   const handleClick = () => {
     if (!isConnected) {
       setShowMessage((prev) => !prev); // Toggle message visibility
     }
+  };
+
+  // Format the wallet address to show the first and last few characters
+  const formatWalletAddress = (address: string | null) => {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   return (
@@ -30,6 +36,15 @@ export function ConnectButton() {
           />
         </div>
       </button>
+
+      {/* Display formatted wallet address if connected */}
+      {isConnected && walletAddress && (
+        <div className="absolute right-0 mt-2 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50 min-w-[200px]">
+          <p className="text-sm font-medium text-gray-600">
+            Connected: {formatWalletAddress(walletAddress)}
+          </p>
+        </div>
+      )}
 
       {/* Conditionally render the "Go to Task 18" message */}
       {!isConnected && showMessage && (

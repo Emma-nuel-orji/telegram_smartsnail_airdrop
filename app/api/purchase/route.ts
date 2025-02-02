@@ -368,18 +368,26 @@ async function processPayment(
     if (!isTonPaymentValid) {
       throw new Error("TON payment verification failed.");
     }
-    
+
+    // 🔥 FIX: Find the correct order using `paymentReference`
+    const existingOrder = await prisma.order.findFirst({
+      where: { orderId: paymentReference }, // You need to store this in your DB
+    });
+
+    if (!existingOrder) {
+      throw new Error("Order not found for the given transaction.");
+    }
+
     await prisma.order.update({
-      where: { orderId: paymentReference },
+      where: { orderId: existingOrder.orderId },
       data: { status: "SUCCESS" },
     });
-    
-    return { 
-      message: `TON payment verified successfully for Order ID: ${paymentReference}.`,
-      orderId: paymentReference 
+
+    return {
+      message: `TON payment verified successfully for Order ID: ${existingOrder.orderId}.`,
+      orderId: existingOrder.orderId,
     };
-  } 
-  else if (paymentMethod === "CARD") {
+  } else if (paymentMethod === "CARD") {
     const paymentRef = `TX-${Date.now()}`;
     const flutterwavePaymentResponse = await initiateFlutterwavePayment(
       paymentRef,
@@ -396,14 +404,15 @@ async function processPayment(
       data: { status: "SUCCESS" },
     });
 
-    return { 
+    return {
       message: "Flutterwave payment verified successfully.",
-      orderId: flutterwavePaymentResponse.orderId 
+      orderId: flutterwavePaymentResponse.orderId,
     };
   }
-  
+
   throw new Error("Invalid payment method specified.");
 }
+
 
 async function updateDatabaseTransaction(
   booksToPurchase: BookPurchaseInfo[],
