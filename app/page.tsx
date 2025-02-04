@@ -658,55 +658,49 @@ useEffect(() => {
      
 
      
-    
-      
-     
-    
+ <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
+      <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+        {/* Top section with brand and icons */}
+        <div className="w-full flex items-center justify-between px-4 mb-2">
+          <div className="flex flex-col items-center">
+            <span className="text-2xl font-semibold">SmartSnail</span>
+            <span className="text-sm text-gray-400">Marketplace</span>
+          </div>
 
-
-<div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
-  {/* Existing home page content */}
-  <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
-    
-    {/* New section for SmartSnail with icons */}
-    <div className="flex items-center justify-between w-full px-4 mb-4">
-      <div className="flex flex-col items-center">
-        <span className="text-2xl font-semibold">SmartSnail</span>
-        {/* Marketplace text under SmartSnail */}
-        <span className="text-sm text-gray-400">Marketplace</span>
-      </div>
-
-      <div className="flex space-x-2 cursor-pointer p-1 rounded-lg ">
-      <Link href="/info">
-              <div className="hover:bg-gray-100 p-2 rounded-lg">
-                <img 
-                  src="/images/info/output-onlinepngtools (1).png" 
-                  width={24} 
-                  height={24} 
-                  alt="info" 
+          <div className="flex items-center space-x-4">
+            <div className="relative hover:bg-gray-100 p-1 rounded-lg">
+              <Link href="/Leaderboard">
+                <img
+                  src="/images/info/output-onlinepngtools (4).png"
+                  width={24}
+                  height={24}
+                  alt="Leaderboard"
                 />
-              </div>
-            </Link>
-        <ConnectButton />
-        <Link href="/info">
-              <div className="hover:bg-gray-100 p-2 rounded-lg">
-                <img 
-                  src="/images/info/output-onlinepngtools (1).png" 
-                  width={24} 
-                  height={24} 
-                  alt="info" 
+              </Link>
+            </div>
+
+            <ConnectButton />
+
+            <div className="relative hover:bg-gray-100 p-1 rounded-lg">
+              <Link href="/info">
+                <img
+                  src="/images/info/output-onlinepngtools (1).png"
+                  width={24}
+                  height={24}
+                  alt="info"
                 />
-              </div>
-            </Link>
-      </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Wallet address - shows below icons when connected */}
+        {isConnected && walletAddress && (
+          <div className="w-full text-center mt-2 p-2 text-sm font-medium text-gray-600">
+            Connected: {formatWalletAddress(walletAddress)}
+          </div>
+        )}
       
-    </div>
-  {/* Wallet Address (Displayed below the icons) */}
-  {isConnected && walletAddress && (
-    <div className="mt-2 p-2 text-sm font-medium text-gray-600">
-      Connected: {formatWalletAddress(walletAddress)}
-    </div>
-  )}
 
 
 

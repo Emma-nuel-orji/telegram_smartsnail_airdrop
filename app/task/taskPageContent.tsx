@@ -83,6 +83,7 @@ const TaskPageContent: React.FC = () => {
   const [selectedSection, setSelectedSection] = useState<"main" | "daily" | "partners">("main");
   const { connect, disconnect } = useWallet();
   const [isConnected, setIsConnected] = useState(false); 
+  const [walletStatus, setWalletStatus] = useState(isConnected);
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [inputCode, setInputCode] = useState("");
   const [message, setMessage] = useState<string>("");
@@ -200,90 +201,73 @@ useEffect(() => {
   
   
   // Modified handleWalletAction function
-const handleWalletAction = async () => {
-  if (!selectedTask) return;
-
-  try {
-    setLoading(true);
-
-    if (isConnected) {
-      await disconnect(); // Disconnect the wallet
-      setTaskCompleted(false); // Reset task completion state
-      
-      // For task 18, we want to update the tasks state to show it as not completed
+  const handleWalletAction = async () => {
+    if (!selectedTask) return;
+  
+    try {
+      setLoading(true);
+  
+      if (isConnected) {
+        await disconnect();
+        setWalletStatus(false); // Ensure local state updates
+  
+        setTaskCompleted(false);
+        if (selectedTask.id === 18) {
+          setTasks(prevTasks => 
+            prevTasks.map(task => 
+              task.id === 18 ? { ...task, completed: false, completedTime: null } : task
+            )
+          );
+        }
+        return;
+      }
+  
+      await connect();
+      setWalletStatus(true); // Update local state
+  
       if (selectedTask.id === 18) {
+        setTaskCompleted(true);
         setTasks(prevTasks => 
           prevTasks.map(task => 
-            task.id === 18 ? { ...task, completed: false, completedTime: null } : task
+            task.id === 18 ? { ...task, completed: true, completedTime: new Date().toISOString() } : task
           )
         );
-      }
-      return;
-    }
-
-    await connect(); // Connect the wallet
-
-    // Handle Task 18 logic
-    if (selectedTask.id === 18) {
-      setTaskCompleted(true); // Mark task as completed in state
-      
-      // Update tasks state to show it as completed
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === 18 ? { ...task, completed: true, completedTime: new Date().toISOString() } : task
-        )
-      );
-
-      // Check if this account has been rewarded before using localStorage
-      const walletRewardKey = 'wallet_connect_rewarded';
-      const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
-
-      // Only trigger confetti and reward if never rewarded before
-      if (!hasBeenRewardedBefore) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-        
-        // Mark as rewarded permanently
-        localStorage.setItem(walletRewardKey, 'true');
-        
-        // Record the reward on the server
-        try {
-          const response = await fetch("/api/tasks/complete", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              taskId: selectedTask.id,
-              reward: selectedTask.reward ?? 0,
-              telegramId: WebApp.initDataUnsafe?.user?.id,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to record reward on server');
+  
+        const walletRewardKey = 'wallet_connect_rewarded';
+        const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
+  
+        if (!hasBeenRewardedBefore) {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          localStorage.setItem(walletRewardKey, 'true');
+  
+          try {
+            const response = await fetch("/api/tasks/complete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                taskId: selectedTask.id,
+                reward: selectedTask.reward ?? 0,
+                telegramId: WebApp.initDataUnsafe?.user?.id,
+              }),
+            });
+  
+            if (!response.ok) throw new Error('Failed to record reward on server');
+  
+            handleTaskCompleted(18, selectedTask.reward ?? 0);
+          } catch (error) {
+            console.error("Failed to record wallet connection reward:", error);
+            localStorage.removeItem(walletRewardKey);
+            setMessage("Failed to record reward. Please try again.");
           }
-
-          // Apply the reward locally
-          handleTaskCompleted(18, selectedTask.reward ?? 0);
-        } catch (error) {
-          console.error("Failed to record wallet connection reward:", error);
-          // Revert the reward flag if server recording failed
-          localStorage.removeItem(walletRewardKey);
-          setMessage("Failed to record reward. Please try again.");
         }
       }
+    } catch (error) {
+      console.error("Wallet interaction error:", error);
+      setMessage("Failed to connect wallet. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Wallet interaction error:", error);
-    setMessage("Failed to connect wallet. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 // Modified useEffect for checking initial reward status
 useEffect(() => {
@@ -714,7 +698,7 @@ useEffect(() => {
                   onClick={handleWalletAction}
                   disabled={loading}
                 >
-                  {loading ? "Processing..." : isConnected ? "Disconnect Wallet" : "Connect Wallet"}
+                  {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
                 </button>
                 {message && (
                   <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>

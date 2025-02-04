@@ -2,6 +2,7 @@
 
 import { useWallet } from '../context/walletContext';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface WalletAsset {
   type: 'token' | 'nft';
@@ -12,9 +13,12 @@ interface WalletAsset {
 }
 
 export default function WalletAssetsPage() {
+  const { isConnected } = useWallet();
+  const router = useRouter();
   const { walletAddress, blockchain } = useWallet();
   const [assets, setAssets] = useState<WalletAsset[]>([]);
   const [loading, setLoading] = useState(true);
+  
 
   useEffect(() => {
     const fetchAssets = async () => {

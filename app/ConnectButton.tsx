@@ -4,22 +4,34 @@ import { useWallet } from './context/walletContext';
 import Image from 'next/image';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export function ConnectButton() {
   const { isConnected } = useWallet(); // Destructure walletAddress from useWallet
   const [showMessage, setShowMessage] = useState(false); // State to control message visibility
 
+  const router = useRouter();
+
   const handleClicks = () => {
-    if (!isConnected) {
-      setShowMessage((prev) => !prev); // Toggle message visibility
+    if (isConnected) {
+      router.push('/wallet-assets');
+    } else {
+      setShowMessage(true);
+      setTimeout(() => setShowMessage(false), 3000); // Hide after 3 seconds
     }
   };
 
+  // const handleClicks = () => {
+  //   if (!isConnected) {
+  //     setShowMessage((prev) => !prev); // Toggle message visibility
+  //   }
+  // };
+
   // Format the wallet address to show the first 5 and last 4 characters
-  const formatWalletAddress = (address: string | null) => {
-    if (!address) return '';
-    return `${address.slice(0, 5)}...${address.slice(-4)}`;
-  };
+  // const formatWalletAddress = (address: string | null) => {
+  //   if (!address) return '';
+  //   return `${address.slice(0, 5)}...${address.slice(-4)}`;
+  // };
 
   return (
     <div className="relative flex flex-col items-center">
