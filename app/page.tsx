@@ -157,7 +157,7 @@ export default function Home() {
 
   const formatWalletAddress = (address: string | null) => {
     if (!address) return '';
-    return `${address.slice(0, 5)}...${address.slice(-4)}`;
+    return `${address.slice(0, 3)}...${address.slice(-3)}`;
   };
 
 
@@ -677,22 +677,36 @@ useEffect(() => {
       </div>
 
       <div className="flex space-x-2 cursor-pointer p-1 rounded-lg ">
-        <div className="  relative hover:bg-gray-100 p-1 rounded-lg ">    <Link href="/Leaderboard">
-          <img src="/images/info/output-onlinepngtools (4).png" width={24} height={24} alt="Leaderboard" />
-        </Link> </div>
+      <Link href="/info">
+              <div className="hover:bg-gray-100 p-2 rounded-lg">
+                <img 
+                  src="/images/info/output-onlinepngtools (1).png" 
+                  width={24} 
+                  height={24} 
+                  alt="info" 
+                />
+              </div>
+            </Link>
         <ConnectButton />
-        <div className="  relative hover:bg-gray-100 p-1 rounded-lg ">  <Link href="/info">
-          <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
-        </Link></div>
+        <Link href="/info">
+              <div className="hover:bg-gray-100 p-2 rounded-lg">
+                <img 
+                  src="/images/info/output-onlinepngtools (1).png" 
+                  width={24} 
+                  height={24} 
+                  alt="info" 
+                />
+              </div>
+            </Link>
       </div>
-      {/* Wallet Address (Displayed below the icons) */}
+      
+    </div>
+  {/* Wallet Address (Displayed below the icons) */}
   {isConnected && walletAddress && (
     <div className="mt-2 p-2 text-sm font-medium text-gray-600">
       Connected: {formatWalletAddress(walletAddress)}
     </div>
   )}
-    </div>
-  
 
 
 

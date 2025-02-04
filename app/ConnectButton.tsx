@@ -9,7 +9,7 @@ export function ConnectButton() {
   const { isConnected } = useWallet(); // Destructure walletAddress from useWallet
   const [showMessage, setShowMessage] = useState(false); // State to control message visibility
 
-  const handleClick = () => {
+  const handleClicks = () => {
     if (!isConnected) {
       setShowMessage((prev) => !prev); // Toggle message visibility
     }
@@ -26,7 +26,7 @@ export function ConnectButton() {
       {/* Wallet icon button */}
       <button
         className="cursor-pointer p-1 rounded-lg hover:bg-gray-100"
-        onClick={handleClick} // Add onClick handler
+        onClick={handleClicks} // Add onClick handler
       >
         <div className="w-6 h-6 relative">
           <Image

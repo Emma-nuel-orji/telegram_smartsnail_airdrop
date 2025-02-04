@@ -199,8 +199,8 @@ useEffect(() => {
   
   
   
-  // Modified handleWalletConnection function
-const handleWalletConnection = async () => {
+  // Modified handleWalletAction function
+const handleWalletAction = async () => {
   if (!selectedTask) return;
 
   try {
@@ -711,7 +711,7 @@ useEffect(() => {
               <>
                 <button 
                   className="popup-button"
-                  onClick={handleWalletConnection}
+                  onClick={handleWalletAction}
                   disabled={loading}
                 >
                   {loading ? "Processing..." : isConnected ? "Disconnect Wallet" : "Connect Wallet"}
