@@ -2,25 +2,22 @@ import { NextResponse } from 'next/server';
 import { TonClient } from 'ton'; // Example for TON
 import { InfuraProvider } from 'ethers';
 import 'dotenv/config';
-import { ethers } from 'ethers'; 
+import { ethers } from 'ethers';
 import { Address } from '@ton/core';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Metaplex } from '@metaplex-foundation/js';
-
-
 import { Connection, PublicKey } from '@solana/web3.js'; // Example for Solana
 
 interface CovalentResponse {
-    data: {
-      items: {
-        contract_name: string;
-        balance: string | number;
-        contract_address: string;
-        contract_decimals: number;
-        // Add other properties as needed
-      }[];
-    };
-  }
+  data: {
+    items: {
+      contract_name: string;
+      balance: string | number;
+      contract_address: string;
+      contract_decimals: number;
+    }[];
+  };
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -39,68 +36,83 @@ export async function GET(request: Request) {
 
     switch (blockchain) {
       case 'TON':
-        // Fetch TON assets
-        const tonClient = new TonClient({ endpoint: 'https://toncenter.com/api/v2/jsonRPC' });
-            const tonBalance = await tonClient.getBalance(Address.parse(address));
-        // const tonNfts = await tonClient.getNfts(address); // Example function, replace with actual logic
-        assets.push({ type: 'token', name: 'TON', balance: tonBalance.toString() });
-        // tonNfts.forEach((nft: { name: any; id: any; image: any; }) => {
-        //   assets.push({ type: 'nft', name: nft.name, id: nft.id, image: nft.image });
-        // });
+        try {
+          const tonClient = new TonClient({ endpoint: 'https://toncenter.com/api/v2/jsonRPC' });
+          const tonBalance = await tonClient.getBalance(Address.parse(address));
+          assets.push({ type: 'token', name: 'TON', balance: tonBalance.toString() });
+
+          // Uncomment and implement NFT fetching logic
+          // const tonNfts = await tonClient.getNfts(address);
+          // tonNfts.forEach((nft: { name: any; id: any; image: any; }) => {
+          //   assets.push({ type: 'nft', name: nft.name, id: nft.id, image: nft.image });
+          // });
+        } catch (error) {
+          console.error('Failed to fetch TON assets:', error);
+        }
         break;
 
       case 'Ethereum':
-        // Fetch Ethereum assets
-        const provider = new InfuraProvider('mainnet', process.env.INFURA_PROJECT_ID);
-        const ethBalance = await provider.getBalance(address);
-        assets.push({ type: 'token', name: 'ETH', balance: ethers.formatEther(ethBalance) });
+        try {
+          const provider = new InfuraProvider('mainnet', process.env.INFURA_PROJECT_ID);
+          const ethBalance = await provider.getBalance(address);
+          assets.push({ type: 'token', name: 'ETH', balance: ethers.formatEther(ethBalance) });
+        } catch (error) {
+          console.error('Failed to fetch Ethereum balance:', error);
+        }
 
-        // Fetch ERC-20 tokens using Covalent API
-        const covalentResponse = await fetch(
-          `https://api.covalenthq.com/v1/1/address/${address}/balances_v2/?key=YOUR_COVALENT_API_KEY`
-        );
-        const covalentData: CovalentResponse = await covalentResponse.json(); 
+        try {
+          const covalentResponse = await fetch(
+            `https://api.covalenthq.com/v1/1/address/${address}/balances_v2/?key=${process.env.COVALENT_API_KEY}`
+          );
+          const covalentData: CovalentResponse = await covalentResponse.json();
+          covalentData.data.items.forEach((token) => {
+            assets.push({ type: 'token', name: token.contract_name, balance: token.balance });
+          });
+        } catch (error) {
+          console.error('Failed to fetch ERC-20 tokens:', error);
+        }
 
-        // Or type it in the forEach:
-        covalentData.data.items.forEach((token: CovalentResponse['data']['items'][0]) => {
-        assets.push({ type: 'token', name: token.contract_name, balance: token.balance });
-        });
-
-        // Fetch NFTs using OpenSea API
-        const openseaResponse = await fetch(
-          `https://api.opensea.io/api/v1/assets?owner=${address}&limit=50`
-        );
-        const openseaData = await openseaResponse.json();
-        openseaData.assets.forEach((nft: { name: any; token_id: any; image_url: any; }) => {
-          assets.push({ type: 'nft', name: nft.name, id: nft.token_id, image: nft.image_url });
-        });
+        try {
+          const openseaResponse = await fetch(
+            `https://api.opensea.io/api/v1/assets?owner=${address}&limit=50`
+          );
+          const openseaData = await openseaResponse.json();
+          openseaData.assets.forEach((nft: { name: any; token_id: any; image_url: any; }) => {
+            assets.push({ type: 'nft', name: nft.name, id: nft.token_id, image: nft.image_url });
+          });
+        } catch (error) {
+          console.error('Failed to fetch NFTs from OpenSea:', error);
+        }
         break;
 
       case 'Solana':
-        // Fetch Solana assets
-        const connection = new Connection('https://api.mainnet-beta.solana.com');
-        const publicKey = new PublicKey(address);
+        try {
+          const connection = new Connection('https://api.mainnet-beta.solana.com');
+          const publicKey = new PublicKey(address);
 
-        // Fetch tokens
-        const tokenAccounts = await connection.getTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID });
-        tokenAccounts.value.forEach((account) => {
-          assets.push({ type: 'token', name: 'SOL', balance: account.account.lamports.toString() });
-        });
+          // Fetch tokens
+          const tokenAccounts = await connection.getTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID });
+          tokenAccounts.value.forEach((account) => {
+            assets.push({ type: 'token', name: 'SOL', balance: account.account.lamports.toString() });
+          });
 
-        // Fetch NFTs using Metaplex
-        const metaplex = new Metaplex(connection);
-        const nfts = await metaplex.nfts().findAllByOwner({ owner: publicKey });
+          // Fetch NFTs using Metaplex
+          const metaplex = new Metaplex(connection);
+          const nfts = await metaplex.nfts().findAllByOwner({ owner: publicKey });
 
-         nfts.forEach((nft) => {
+          nfts.forEach((nft) => {
             if ('name' in nft && 'uri' in nft && 'mint' in nft) {
-                assets.push({
+              assets.push({
                 type: 'nft',
                 name: nft.name,
                 id: nft.mint.address.toString(),
                 image: nft.uri,
-                });
+              });
             }
-            });
+          });
+        } catch (error) {
+          console.error('Failed to fetch Solana assets:', error);
+        }
         break;
 
       default:

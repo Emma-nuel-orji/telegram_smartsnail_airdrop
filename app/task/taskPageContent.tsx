@@ -99,22 +99,35 @@ const TaskPageContent: React.FC = () => {
     const duration = 2 * 1000; // 2 seconds
     const end = Date.now() + duration;
   
+    // Create a canvas to ensure confetti is on top
+    const canvas = document.createElement("canvas");
+    canvas.style.position = "fixed";
+    canvas.style.top = "0";
+    canvas.style.left = "0";
+    canvas.style.width = "100vw";
+    canvas.style.height = "100vh";
+    canvas.style.pointerEvents = "none"; // Ensures clicks go through
+    canvas.style.zIndex = "9999"; // Ensures it's above everything
+    document.body.appendChild(canvas);
+  
     const interval = setInterval(() => {
       if (Date.now() > end) {
         clearInterval(interval);
+        document.body.removeChild(canvas); // Remove canvas after animation
         return;
       }
+  
       confetti({
         particleCount: 50,
         startVelocity: 30,
         spread: 360,
-        origin: {
-          x: Math.random(),
-          y: Math.random() - 0.2, // Slightly above the center
-        },
+        origin: { x: 0.5, y: 0.3 }, // Centered near the top
+        zIndex: 9999, // Ensure it appears above popups
       });
+  
     }, 250); // Fire confetti every 250ms for the duration
   };
+  
  
 
 
@@ -209,7 +222,8 @@ useEffect(() => {
   
       if (isConnected) {
         await disconnect();
-        setWalletStatus(false); // Ensure local state updates
+        setWalletStatus(false); 
+        localStorage.removeItem("wallet_connected"); // Remove stored status
   
         setTaskCompleted(false);
         if (selectedTask.id === 18) {
@@ -223,15 +237,19 @@ useEffect(() => {
       }
   
       await connect();
-      setWalletStatus(true); // Update local state
+      setWalletStatus(true); 
+      localStorage.setItem("wallet_connected", "true"); // Persist connection status
   
       if (selectedTask.id === 18) {
         setTaskCompleted(true);
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
-            task.id === 18 ? { ...task, completed: true, completedTime: new Date().toISOString() } : task
+        setTasks(prevTasks =>
+          prevTasks.map(task =>
+            task.id === 18
+              ? { ...task, completed: true, completedTime: new Date().toISOString() }
+              : task
           )
         );
+  
   
         const walletRewardKey = 'wallet_connect_rewarded';
         const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
@@ -676,7 +694,7 @@ useEffect(() => {
                 <button 
                   className="popup-button"
                   onClick={handleRedeemCode} 
-                  disabled={loading}
+                  disabled={loading || (selectedTask.completed && selectedTask.id !== 22)}
                 >
                   {loading ? "Redeeming..." : "Redeem Code"}
                 </button>
@@ -696,7 +714,7 @@ useEffect(() => {
                 <button 
                   className="popup-button"
                   onClick={handleWalletAction}
-                  disabled={loading}
+                  disabled={loading || (selectedTask.completed && selectedTask.id !== 18)}
                 >
                   {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
                 </button>

@@ -111,6 +111,41 @@ export default function BoostPageContent() {
     stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed +
     (stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed);
 
+const triggerConfetti = () => {
+  const duration = 2 * 1000; // 2 seconds
+  const end = Date.now() + duration;
+
+  // Create a canvas to ensure confetti is on top
+  const canvas = document.createElement("canvas");
+  canvas.style.position = "fixed";
+  canvas.style.top = "0";
+  canvas.style.left = "0";
+  canvas.style.width = "100vw";
+  canvas.style.height = "100vh";
+  canvas.style.pointerEvents = "none"; // Ensures clicks go through
+  canvas.style.zIndex = "9999"; // Ensures it's above everything
+  document.body.appendChild(canvas);
+
+  const interval = setInterval(() => {
+    if (Date.now() > end) {
+      clearInterval(interval);
+      document.body.removeChild(canvas); // Remove canvas after animation
+      return;
+    }
+
+    confetti({
+      particleCount: 50,
+      startVelocity: 30,
+      spread: 360,
+      origin: { x: 0.5, y: 0.3 }, // Centered near the top
+      zIndex: 9999, // Ensure it appears above popups
+    });
+
+  }, 250); // Fire confetti every 250ms for the duration
+};
+
+  
+
   // Fetch Stock Data
   const fetchStockData = useCallback(async () => {
     try {

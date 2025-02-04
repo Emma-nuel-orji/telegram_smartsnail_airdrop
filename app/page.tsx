@@ -692,7 +692,7 @@ useEffect(() => {
               </Link>
             </div>
           </div>
-        </div>
+        
 
         {/* Wallet address - shows below icons when connected */}
         {isConnected && walletAddress && (
@@ -700,7 +700,7 @@ useEffect(() => {
             Connected: {formatWalletAddress(walletAddress)}
           </div>
         )}
-      
+      </div>
 
 
 
@@ -738,14 +738,6 @@ useEffect(() => {
           : 'African Giant Snail/god NFT'}
       </span>
     </div>
-
-    <button
-  className="glass-shimmer-button text-white font-semibold px-3 py-1 rounded-md shadow-md mr-4 transform flex items-center"
->
-<Link href="/fightClub">Fight Club : </Link>
-</button>
-
-
   </div>
 
   
@@ -795,29 +787,43 @@ useEffect(() => {
       </div>
 
 
-      <div className="flex-grow flex items-center justify-center" >
-      {/* Video with Click Handler */}
-      <div className="relative mt-4" onClick={handleClick}>
-        <video src="/images/snails.mp4" autoPlay muted loop />
-        
-        {/* Floating Clicks Animation */}
-        {clicks.map((click) => (
-    <div
+      <div className="relative flex-grow flex items-center justify-center">
+  {/* Fight Club Button (Top Right Corner) */}
+  <div className="absolute top-4 right-4">
+    <Link href="/fightClub">
+      <button className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2">
+        <img
+          src="/images/boxing-gloves.png"
+          alt="Fight Club"
+          className="w-6 h-6" // Adjust size as needed
+        />
+       
+      </button>
+    </Link>
+  </div>
+
+  {/* Video with Click Handler */}
+  <div className="relative mt-4" onClick={handleClick}>
+    <video src="/images/snails.mp4" autoPlay muted loop className="w-full h-auto" />
+    
+    {/* Floating Clicks Animation */}
+    {clicks.map((click) => (
+      <div
         key={click.id}
         className="absolute text-5xl font-bold text-white opacity-0"
         style={{
-            top: `${click.y - 42}px`,
-            left: `${click.x - 28}px`,
-            animation: 'float 1s ease-out'
+          top: `${click.y - 42}px`,
+          left: `${click.x - 28}px`,
+          animation: 'float 1s ease-out',
         }}
         onAnimationEnd={() => handleAnimationEnd(click.id)}
-    >
+      >
         +{click.tappingRate}
-    </div>
-      ))}
-    </div>
-
+      </div>
+    ))}
+  </div>
 </div>
+
 
 
 
