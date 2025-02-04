@@ -694,7 +694,7 @@ useEffect(() => {
           </div>
         
 
-        {/* Wallet address - shows below icons when connected */}
+      
         {isConnected && walletAddress && (
           <div className="w-full text-center mt-2 p-2 text-sm font-medium text-gray-600">
             Connected: {formatWalletAddress(walletAddress)}
@@ -788,7 +788,11 @@ useEffect(() => {
 
 
       <div className="relative flex-grow flex items-center justify-center">
-  {/* Fight Club Button (Top Right Corner) */}
+  
+ 
+
+  {/* Video with Click Handler */}
+  <div className="relative mt-4" onClick={handleClick}>
   <div className="absolute top-4 right-4">
     <Link href="/fightClub">
       <button className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2">
@@ -801,9 +805,6 @@ useEffect(() => {
       </button>
     </Link>
   </div>
-
-  {/* Video with Click Handler */}
-  <div className="relative mt-4" onClick={handleClick}>
     <video src="/images/snails.mp4" autoPlay muted loop className="w-full h-auto" />
     
     {/* Floating Clicks Animation */}
