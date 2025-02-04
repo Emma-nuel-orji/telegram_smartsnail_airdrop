@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import ScrollingText from '@/components/ScrollingText';
+import { useWallet } from './context/walletContext';
 import { WalletProvider } from './context/walletContext';
 import { WalletSection } from '../components/WalletSection';
 import { ConnectButton } from './ConnectButton';
@@ -152,6 +153,13 @@ export default function Home() {
   const [ripplePosition, setRipplePosition] = useState({ x: 0, y: 0 });
   const [isClicked, setIsClicked] = useState(false);
   const syncManager = useRef<UserSyncManager>();
+  const { isConnected, walletAddress } = useWallet(); // Destructure walletAddress from useWallet
+
+  const formatWalletAddress = (address: string | null) => {
+    if (!address) return '';
+    return `${address.slice(0, 5)}...${address.slice(-4)}`;
+  };
+
 
   const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
 
@@ -677,6 +685,12 @@ useEffect(() => {
           <img src="/images/info/output-onlinepngtools (1).png" width={24} height={24} alt="info" />
         </Link></div>
       </div>
+      {/* Wallet Address (Displayed below the icons) */}
+  {isConnected && walletAddress && (
+    <div className="mt-2 p-2 text-sm font-medium text-gray-600">
+      Connected: {formatWalletAddress(walletAddress)}
+    </div>
+  )}
     </div>
   
 

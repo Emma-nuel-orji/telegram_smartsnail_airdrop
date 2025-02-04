@@ -81,7 +81,8 @@ const TaskPageContent: React.FC = () => {
     return 0;
   });
   const [selectedSection, setSelectedSection] = useState<"main" | "daily" | "partners">("main");
-  const { isConnected, connect, disconnect } = useWallet();
+  const { connect, disconnect } = useWallet();
+  const [isConnected, setIsConnected] = useState(false); 
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [inputCode, setInputCode] = useState("");
   const [message, setMessage] = useState<string>("");
@@ -137,42 +138,50 @@ const TaskPageContent: React.FC = () => {
   ];
 
   // Filter tasks based on the selected section
-  
+
   const filteredTasks = tasks.filter((task) => task.section === selectedSection);
-  useEffect(() => {
-    const storedCompletedTasks = JSON.parse(localStorage.getItem("completedTasks") || "[]");
-    const storedPoints = parseInt(localStorage.getItem("totalPoints") || "0", 10);
-    const updatedTasks = tasks.map((task) =>
-      storedCompletedTasks.includes(task.id) ? { ...task, completed: true } : task
-    );
-    setTasks(updatedTasks);
-    setTotalPoints(storedPoints);
-  }, []);
+  
+  // Modified initial loading effect
+useEffect(() => {
+  const storedCompletedTasks = JSON.parse(localStorage.getItem("completedTasks") || "[]");
+  const storedPoints = parseInt(localStorage.getItem("totalPoints") || "0", 10);
+  
+  // Only mark non-flexible tasks as completed
+  const updatedTasks = tasks.map((task) =>
+    storedCompletedTasks.includes(task.id) && task.type !== "flexible"
+      ? { ...task, completed: true }
+      : task
+  );
+  
+  setTasks(updatedTasks);
+  setTotalPoints(storedPoints);
+}, []);
 
+// Modified wallet reward check effect
+useEffect(() => {
+  if (selectedTask?.id === 18) {
+    // Use a specific localStorage key for wallet rewards
+    const hasBeenRewardedBefore = localStorage.getItem('wallet_connect_rewarded') === 'true';
+    setHasBeenRewarded(hasBeenRewardedBefore);
+  }
+}, [selectedTask]);
 
-  useEffect(() => {
-    if (selectedTask?.id === 18) {
-      // Check if wallet connection task has been completed before
-      const completedTasks = JSON.parse(localStorage.getItem('completedTasks') || '[]');
-      setHasBeenRewarded(completedTasks.includes(18));
-    }
-  }, [selectedTask]);
-
-const handleTaskCompleted = (taskId: number, reward: number) => {
+  const handleTaskCompleted = (taskId: number, reward: number) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId
           ? { 
               ...task, 
-              completed: task.type !== "flexible", // Only keep non-flexible tasks completed
-              completedTime: task.type !== "flexible" ? new Date().toISOString() : null
+              completed: true,
+              completedTime: new Date().toISOString()
             }
           : task
       )
     );
   
-    // Update localStorage only for non-flexible tasks
-    if (tasks.find(task => task.id === taskId)?.type !== "flexible") {
+    // Only store non-flexible tasks in localStorage
+    const taskToComplete = tasks.find(task => task.id === taskId);
+    if (taskToComplete && taskToComplete.type !== "flexible") {
       const completedTasks = new Set(JSON.parse(localStorage.getItem("completedTasks") || "[]"));
       completedTasks.add(taskId);
       localStorage.setItem("completedTasks", JSON.stringify([...completedTasks]));
@@ -180,64 +189,110 @@ const handleTaskCompleted = (taskId: number, reward: number) => {
   
     // Reward the user
     if (reward) {
-      setUserPoints((prevPoints) => prevPoints + reward);
+      setTotalPoints((prevPoints) => {
+        const newPoints = prevPoints + reward;
+        localStorage.setItem("totalPoints", newPoints.toString());
+        return newPoints;
+      });
     }
   };
   
   
   
-  const handleWalletConnection = async () => {
-    if (!selectedTask) return;
-  
-    try {
-      setLoading(true);
-  
-      if (isConnected) {
-        await disconnect();
-        setTaskCompleted(false);
-        return;
-      }
-  
-      await connect();
-  
-      // Handle Task 18 logic
+  // Modified handleWalletConnection function
+const handleWalletConnection = async () => {
+  if (!selectedTask) return;
+
+  try {
+    setLoading(true);
+
+    if (isConnected) {
+      await disconnect(); // Disconnect the wallet
+      setTaskCompleted(false); // Reset task completion state
+      
+      // For task 18, we want to update the tasks state to show it as not completed
       if (selectedTask.id === 18) {
-        const isFirstConnection = !localStorage.getItem("task18Completed");
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === 18 ? { ...task, completed: false, completedTime: null } : task
+          )
+        );
+      }
+      return;
+    }
+
+    await connect(); // Connect the wallet
+
+    // Handle Task 18 logic
+    if (selectedTask.id === 18) {
+      setTaskCompleted(true); // Mark task as completed in state
+      
+      // Update tasks state to show it as completed
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === 18 ? { ...task, completed: true, completedTime: new Date().toISOString() } : task
+        )
+      );
+
+      // Check if this account has been rewarded before using localStorage
+      const walletRewardKey = 'wallet_connect_rewarded';
+      const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
+
+      // Only trigger confetti and reward if never rewarded before
+      if (!hasBeenRewardedBefore) {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
         
-        // Mark task as completed
-        setTaskCompleted(true);
+        // Mark as rewarded permanently
+        localStorage.setItem(walletRewardKey, 'true');
         
-        if (isFirstConnection) {
-          // Trigger confetti
-          triggerConfetti();
-          // Store completion status
-          localStorage.setItem("task18Completed", "true");
-          
-          // Handle reward
-          if (selectedTask.reward) {
-            // Update points in state and localStorage
-            setTotalPoints(prevPoints => {
-              const newPoints = prevPoints + (selectedTask.reward ?? 0);
-              localStorage.setItem("totalPoints", newPoints.toString());
-              return newPoints;
-            });
-            
-            // Update task completion status
-            handleTaskCompleted(18, selectedTask.reward);
-            setMessage(`Congratulations! You earned ${selectedTask.reward} shells!`);
+        // Record the reward on the server
+        try {
+          const response = await fetch("/api/tasks/complete", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              taskId: selectedTask.id,
+              reward: selectedTask.reward ?? 0,
+              telegramId: WebApp.initDataUnsafe?.user?.id,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to record reward on server');
           }
-        } else {
-          setMessage("Wallet connected successfully!");
+
+          // Apply the reward locally
+          handleTaskCompleted(18, selectedTask.reward ?? 0);
+        } catch (error) {
+          console.error("Failed to record wallet connection reward:", error);
+          // Revert the reward flag if server recording failed
+          localStorage.removeItem(walletRewardKey);
+          setMessage("Failed to record reward. Please try again.");
         }
       }
-    } catch (error) {
-      console.error("Wallet interaction error:", error);
-      setMessage("Failed to connect wallet. Please try again.");
-    } finally {
-      setLoading(false);
     }
-  };
-  
+  } catch (error) {
+    console.error("Wallet interaction error:", error);
+    setMessage("Failed to connect wallet. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Modified useEffect for checking initial reward status
+useEffect(() => {
+  if (selectedTask?.id === 18) {
+    const walletRewardKey = 'wallet_connect_rewarded';
+    const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
+    setHasBeenRewarded(hasBeenRewardedBefore);
+  }
+}, [selectedTask]);
 
   
 

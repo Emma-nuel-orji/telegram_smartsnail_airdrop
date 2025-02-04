@@ -6,7 +6,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 export function ConnectButton() {
-  const { isConnected, walletAddress } = useWallet(); // Destructure walletAddress from useWallet
+  const { isConnected } = useWallet(); // Destructure walletAddress from useWallet
   const [showMessage, setShowMessage] = useState(false); // State to control message visibility
 
   const handleClick = () => {
@@ -39,19 +39,19 @@ export function ConnectButton() {
         </div>
       </button>
 
-      {/* Conditionally render the formatted wallet address below the wallet icon */}
+      {/* Conditionally render the formatted wallet address below the wallet icon
       {isConnected && walletAddress && (
         <div className="mt-2 p-2 text-sm font-medium text-gray-600">
           Connected: {formatWalletAddress(walletAddress)}
         </div>
-      )}
+      )} */}
 
       {/* Conditionally render the "Go to Task 18" message when not connected */}
       {!isConnected && showMessage && (
         <div className="absolute right-0 mt-2 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50 min-w-[200px]">
           <p className="text-sm font-medium text-gray-600">
             Wallet not connected. Go to{' '}
-            <a href="/task-18" className="text-blue-500 hover:underline">
+            <a className="text-blue-500 hover:underline">
               Task 18
             </a>{' '}
             to connect your wallet.
