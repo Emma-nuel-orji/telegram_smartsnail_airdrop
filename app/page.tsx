@@ -659,12 +659,15 @@ useEffect(() => {
         </div>
       )}
     
+     
+
     <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
   <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
     {/* Top section with brand and icons */}
     <div className="w-full flex items-center justify-between px-4 mb-2">
       {/* Brand */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-start">
+
         <span className="text-2xl font-semibold">SmartSnail</span>
         <span className="text-sm text-gray-400">Marketplace</span>
       </div>
@@ -706,7 +709,6 @@ useEffect(() => {
         )}
       </div>
     </div>
-  </div>
 
      
 
@@ -848,6 +850,7 @@ useEffect(() => {
   
   </div>
   
+  </div>
 
 );
 };

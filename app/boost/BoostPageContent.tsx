@@ -277,7 +277,7 @@ return () => {
             messages: [{
               address: receiverAddress, // Now this is guaranteed to be a string
               amount: String(Math.floor(priceTon * 1e9)), // Convert to nanotons and ensure integer
-              payload: paymentReference
+            
             }]
           };
     
