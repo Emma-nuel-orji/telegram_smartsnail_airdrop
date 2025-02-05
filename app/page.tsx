@@ -703,7 +703,7 @@ useEffect(() => {
 
         {/* Wallet address */}
         {isConnected && walletAddress && (
-          <div className="w-full text-sm font-medium text-gray-600 mt-2">
+          <div className="flex w-full text-sm font-medium text-gray-600 mt-2">
             Connected: {formatWalletAddress(walletAddress)}
           </div>
         )}
@@ -804,7 +804,7 @@ useEffect(() => {
   <div className="relative mt-4" onClick={handleClick}>
   {/* Fight Club Button - Prevent Click Effect */}
   <div className="absolute top-4 right-4 z-20">
-              <Link href="/fightClub" passHref>
+              <Link href="/fights" passHref>
                 <button
                   onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
