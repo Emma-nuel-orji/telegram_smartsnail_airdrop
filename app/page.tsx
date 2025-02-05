@@ -154,7 +154,11 @@ export default function Home() {
   const [isClicked, setIsClicked] = useState(false);
   const syncManager = useRef<UserSyncManager>();
   const { isConnected, walletAddress } = useWallet(); // Destructure walletAddress from useWallet
+  
 
+  const handleFightClubClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
   const formatWalletAddress = (address: string | null) => {
     if (!address) return '';
     return `${address.slice(0, 3)}...${address.slice(-3)}`;
@@ -655,53 +659,56 @@ useEffect(() => {
         </div>
       )}
     
-     
+    <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
+  <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
+    {/* Top section with brand and icons */}
+    <div className="w-full flex items-center justify-between px-4 mb-2">
+      {/* Brand */}
+      <div className="flex flex-col items-center">
+        <span className="text-2xl font-semibold">SmartSnail</span>
+        <span className="text-sm text-gray-400">Marketplace</span>
+      </div>
 
-     
- <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
-      <div className="fixed top-[-2rem] left-0 w-full px-4 pt-8 z-10 flex flex-col items-center text-white">
-        {/* Top section with brand and icons */}
-        <div className="w-full flex items-center justify-between px-4 mb-2">
-          <div className="flex flex-col items-center">
-            <span className="text-2xl font-semibold">SmartSnail</span>
-            <span className="text-sm text-gray-400">Marketplace</span>
+      {/* Icons and wallet section */}
+      <div className="flex flex-col items-center">
+        {/* Icons row */}
+        <div className="flex items-center space-x-4">
+          <div className="relative hover:bg-gray-100 p-1 rounded-lg">
+            <Link href="/Leaderboard">
+              <img
+                src="/images/info/output-onlinepngtools (4).png"
+                width={24}
+                height={24}
+                alt="Leaderboard"
+              />
+            </Link>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="relative hover:bg-gray-100 p-1 rounded-lg">
-              <Link href="/Leaderboard">
-                <img
-                  src="/images/info/output-onlinepngtools (4).png"
-                  width={24}
-                  height={24}
-                  alt="Leaderboard"
-                />
-              </Link>
-            </div>
+          <ConnectButton />
 
-            <ConnectButton />
-
-            <div className="relative hover:bg-gray-100 p-1 rounded-lg">
-              <Link href="/info">
-                <img
-                  src="/images/info/output-onlinepngtools (1).png"
-                  width={24}
-                  height={24}
-                  alt="info"
-                />
-              </Link>
-            </div>
+          <div className="relative hover:bg-gray-100 p-1 rounded-lg">
+            <Link href="/info">
+              <img
+                src="/images/info/output-onlinepngtools (1).png"
+                width={24}
+                height={24}
+                alt="info"
+              />
+            </Link>
           </div>
-        
+        </div>
 
-      
+        {/* Wallet address */}
         {isConnected && walletAddress && (
-          <div className="w-full text-center mt-2 p-2 text-sm font-medium text-gray-600">
+          <div className="text-sm font-medium text-gray-600 mt-2">
             Connected: {formatWalletAddress(walletAddress)}
           </div>
         )}
       </div>
+    </div>
+  </div>
 
+     
 
 
     {/* User Stats Section */}
@@ -793,19 +800,32 @@ useEffect(() => {
 
   {/* Video with Click Handler */}
   <div className="relative mt-4" onClick={handleClick}>
-  <div className="absolute top-4 right-4">
-    <Link href="/fightClub">
-      <button className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2">
+  {/* Fight Club Button - Prevent Click Effect */}
+  <div className="absolute top-4 right-4 z-20">
+              <Link href="/fightClub" passHref>
+                <button
+                  onClick={handleFightClubClick}
+                  className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
+                >
         <img
           src="/images/boxing-gloves.png"
           alt="Fight Club"
           className="w-6 h-6" // Adjust size as needed
         />
-       
       </button>
     </Link>
   </div>
-    <video src="/images/snails.mp4" autoPlay muted loop className="w-full h-auto" />
+
+  {/* Video */}
+  <video
+    src="/images/snails.mp4"
+    autoPlay
+    muted
+    loop
+    className="w-full h-auto"
+  />
+
+
     
     {/* Floating Clicks Animation */}
     {clicks.map((click) => (
@@ -825,16 +845,9 @@ useEffect(() => {
   </div>
 </div>
 
-
-
-
   
   </div>
-  {notification && (
-    <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
-      {sanitizedNotification}
-    </div>
-  )}
-</div>
+  
+
 );
 };
