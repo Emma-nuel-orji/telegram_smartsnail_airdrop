@@ -703,7 +703,7 @@ useEffect(() => {
 
         {/* Wallet address */}
         {isConnected && walletAddress && (
-          <div className="text-sm font-medium text-gray-600 mt-2">
+          <div className="w-full text-sm font-medium text-gray-600 mt-2">
             Connected: {formatWalletAddress(walletAddress)}
           </div>
         )}
