@@ -582,7 +582,7 @@ useEffect(() => {
         <div className="radial-gradient-overlay"></div>
       </div>
 
-{/* Welcome Popup */}
+    {/* Welcome Popup */}
 {showWelcomePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
           {/* Background Blur Effect */}
@@ -658,7 +658,7 @@ useEffect(() => {
           </div>
         </div>
       )}
-    
+
      
 
     <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
@@ -673,9 +673,9 @@ useEffect(() => {
       </div>
 
       {/* Icons and wallet section */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col w-full">
         {/* Icons row */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-end  space-x-4">
           <div className="relative hover:bg-gray-100 p-1 rounded-lg">
             <Link href="/Leaderboard">
               <img
@@ -703,10 +703,11 @@ useEffect(() => {
 
         {/* Wallet address */}
         {isConnected && walletAddress && (
-          <div className="flex w-full text-sm font-medium text-gray-600 mt-2">
-            Connected: {formatWalletAddress(walletAddress)}
-          </div>
-        )}
+    <div className="flex w-full justify-end text-sm font-medium text-gray-600 mt-2 whitespace-nowrap">
+      <span>Connected: </span>
+      <span>{formatWalletAddress(walletAddress)}</span>
+    </div>
+  )}
       </div>
     </div>
 
