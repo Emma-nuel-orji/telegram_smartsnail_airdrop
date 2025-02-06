@@ -82,7 +82,8 @@ const TaskPageContent: React.FC = () => {
   });
   const [selectedSection, setSelectedSection] = useState<"main" | "daily" | "partners">("main");
   const { connect, disconnect } = useWallet();
-  const [isConnected, setIsConnected] = useState(false); 
+  const { isConnected } = useWallet();
+  // const [isConnected, setIsConnected] = useState(false); 
   const [walletStatus, setWalletStatus] = useState(isConnected);
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [inputCode, setInputCode] = useState("");
@@ -94,6 +95,8 @@ const TaskPageContent: React.FC = () => {
   const [sharing, setSharing] = useState(false);
   const [hasBeenRewarded, setHasBeenRewarded] = useState(false);
 
+
+  
 
   const triggerConfetti = () => {
     const duration = 2 * 1000; // 2 seconds
@@ -137,19 +140,19 @@ const TaskPageContent: React.FC = () => {
     setTelegramId(userId || null);
   }, []);
 
-  const taskData: Task[] = [
-    {
-      id: 22,
-      description: "Join X(Twitter) Space",
-      image: "/images/daily/join twitter everyday.png",
-      batchId: "batch_2024_001",
-      completed: false,
-      section: "daily",
-      type: "daily",
-      link: "https://x.com/some_space",
-      completedTime: null,
-    },
-  ];
+  // const taskData: Task[] = [
+  //   {
+  //     id: 22,
+  //     description: "Join X(Twitter) Space",
+  //     image: "/images/daily/join twitter everyday.png",
+  //     batchId: "batch_2024_001",
+  //     completed: false,
+  //     section: "daily",
+  //     type: "daily",
+  //     link: "https://x.com/some_space",
+  //     completedTime: null,
+  //   },
+  // ];
 
   // Filter tasks based on the selected section
 
@@ -186,7 +189,7 @@ useEffect(() => {
         task.id === taskId
           ? { 
               ...task, 
-              completed: true,
+              completed: ![18, 22].includes(taskId),
               completedTime: new Date().toISOString()
             }
           : task
@@ -648,11 +651,12 @@ useEffect(() => {
 
       <div className="tasks-grid">
         {filteredTasks.map((task) => (
-          <div
-            key={task.id}
-            className={`task-card ${task.completed ? 'completed' : ''}`}
-            onClick={() => !task.completed && handleTaskClick(task)}
-          >
+         <div
+         key={task.id}
+         className={`task-card ${task.completed && task.type !== 'flexible' ? 'completed' : ''}`}
+         onClick={() => (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
+       >
+       
             <div>
               <img src={task.image} alt={task.description} className="task-image" />
               {task.completed && (

@@ -87,7 +87,7 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
     return () => {
       if (tonConnectUIRef.current) {
         // Clean up connection on unmount
-        tonConnectUIRef.current.disconnect();
+        tonConnectUIRef.current?.disconnect();
         localStorage.removeItem('ton-connect-ui_connected-wallet');
       }
     };
@@ -108,7 +108,7 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
     try {
       if (tonConnectUI && isConnected) {
         console.log('Disconnecting wallet...');
-        await tonConnectUI.disconnect();
+        tonConnectUIRef.current?.disconnect();
         localStorage.removeItem('ton-connect-ui_connected-wallet');
         setWalletAddress(null);
         setIsConnected(false);
