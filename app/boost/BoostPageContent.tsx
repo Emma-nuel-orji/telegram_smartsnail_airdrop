@@ -215,17 +215,18 @@ return () => {
       }
   
       // Check wallet connection for TON payments
-      const { isConnected, tonConnectUI, walletAddress } = useWallet();
-      if (paymentMethod === "TON" && (!isConnected || !tonConnectUI || !walletAddress)) {
-        alert("Please connect your TON wallet first.");
-        return;
+      if (paymentMethod === "TON") {
+        const { isConnected, tonConnectUI, walletAddress } = useWallet();
+        if (!isConnected || !tonConnectUI || !walletAddress) {
+          alert("Please connect your TON wallet first.");
+          return;
+        }
       }
   
       setIsProcessing(true);
   
-      // Generate a TON-compatible payment reference
-      const paymentReference = generateTonCompatibleReference();
-  
+      const paymentReference = `TX-${Date.now()}`;
+      
       const payload = {
         email: purchaseEmail,
         paymentMethod: paymentMethod.toUpperCase(),
@@ -256,13 +257,12 @@ return () => {
   
       if (response.data.success) {
         if (paymentMethod === "TON") {
-          // Ensure tonConnectUI is not null before using it
-          if (!tonConnectUI) {
-            console.error("TON Connect UI is not initialized.");
-            alert("Payment configuration error. Please contact support.");
+          const { isConnected, tonConnectUI, walletAddress } = useWallet();
+          if (!isConnected || !tonConnectUI || !walletAddress) {
+            alert("Please connect your TON wallet first.");
             return;
           }
-  
+    
           // Check if receiver address exists
           const receiverAddress = process.env.NEXT_PUBLIC_RECEIVER_ADDRESS;
           if (!receiverAddress) {
@@ -270,17 +270,17 @@ return () => {
             alert("Payment configuration error. Please contact support.");
             return;
           }
-  
+    
           // Create and send transaction
           const transaction = {
             validUntil: Math.floor(Date.now() / 1000) + 360,
             messages: [{
               address: receiverAddress, // Now this is guaranteed to be a string
               amount: String(Math.floor(priceTon * 1e9)), // Convert to nanotons and ensure integer
-              payload: paymentReference
+            
             }]
           };
-  
+    
           try {
             const result = await tonConnectUI.sendTransaction(transaction);
             if (result) {
@@ -313,12 +313,7 @@ return () => {
     }
   };
   
-  // Helper function to generate a TON-compatible reference
-  const generateTonCompatibleReference = (): string => {
-    const randomBytes = crypto.getRandomValues(new Uint8Array(32));
-    return Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
-  };
-  
+
 
   const handlePaymentViaStars = async (paymentMethod?: string) => {
     if (paymentMethod !== "Stars") {

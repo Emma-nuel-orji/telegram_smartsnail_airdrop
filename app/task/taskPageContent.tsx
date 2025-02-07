@@ -253,7 +253,8 @@ useEffect(() => {
           )
         );
   
-  
+        
+
         const walletRewardKey = 'wallet_connect_rewarded';
         const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
   
