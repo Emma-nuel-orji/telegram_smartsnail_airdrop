@@ -583,7 +583,82 @@ useEffect(() => {
       </div>
 
     
+{/* Welcome Popup */}
+{showWelcomePopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 transition-all duration-500 ease-in-out">
+          {/* Background Blur Effect */}
+          <div
+            className="absolute inset-0 bg-cover bg-center filter blur-lg transition-all duration-500 ease-in-out scale-110"
+            style={{ backgroundImage: 'url("/path/to/your/background-image.jpg")' }}
+          ></div>
 
+          {/* Solid Background Overlay */}
+          <div className="absolute inset-0 bg-black bg-opacity-60 z-10"></div>
+
+          {/* Popup Content */}
+          <div className="relative z-20 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-600 text-white p-6 rounded-md text-center w-full max-w-md mx-4">
+            <h2 className="text-2xl font-bold mb-4">Welcome onboard {firstName}!</h2>
+
+            {/* Video Section */}
+            <div className="mb-4 w-full relative">
+              <div className={`transition-opacity duration-300 ${isVideoLoading ? 'opacity-0' : 'opacity-100'}`}>
+                <video 
+                  className="rounded-md mx-auto"
+                  width="320"
+                  height="240"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  onLoadedData={() => setTimeout(() => setIsVideoLoading(false), 100)}
+                  onError={() => {
+                    setIsVideoLoading(false);
+                    setVideoError(true);
+                  }}
+                >
+                  <source src="/videos/speedsnail.webm" type="video/webm" />
+                  <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+
+              {videoError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-purple-800/20 rounded-md">
+                  <div className="text-center p-4">
+                    <p className="text-white/80 text-sm">
+                      Unable to load welcome video. Please refresh.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Scrolling Text */}
+              <ScrollingText />
+
+            {/* Claim Button */}
+             <button
+      className={`relative overflow-hidden mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600`}
+      onClick={handleClaim}
+    >
+      {isClicked && (
+        <span
+          className="absolute rounded-full bg-white opacity-50 animate-ping"
+          style={{
+            width: "200px",
+            height: "200px",
+           
+          }}
+        ></span>
+      )}
+      Claim
+    </button>
+
+            
+          </div>
+        </div>
+      )}
      
 
     <div className="w-full z-10 min-h-screen flex flex-col items-center text-white">
@@ -678,22 +753,12 @@ useEffect(() => {
     </div>
   </div>
 
-          
   
 
   {notification && <div className="notification">{sanitizedNotification}</div>}
       {error && <div className="error">{error}</div>}
       <div className="fixed bottom-0 left-0 w-full px-4 pb-4 z-10">
         <div className="w-full bg-[#f9c035] rounded-full mt-4">
-
-        <button onClick={() => {
-  localStorage.clear();
-  sessionStorage.clear();
-  window.location.reload(); // Reload to reflect changes
-}}>
-  Clear Storage
-</button>
-
           <div
             className="bg-gradient-to-r from-[#f3c45a] to-[#fffad0] h-4 rounded-full"
             style={{ width: `${(energy / maxEnergy) * 100}%` }}
