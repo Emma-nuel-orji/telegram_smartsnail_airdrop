@@ -678,7 +678,15 @@ useEffect(() => {
     </div>
   </div>
 
-  <button onClick={() => {
+          
+  
+
+  {notification && <div className="notification">{sanitizedNotification}</div>}
+      {error && <div className="error">{error}</div>}
+      <div className="fixed bottom-0 left-0 w-full px-4 pb-4 z-10">
+        <div className="w-full bg-[#f9c035] rounded-full mt-4">
+
+        <button onClick={() => {
   localStorage.clear();
   sessionStorage.clear();
   window.location.reload(); // Reload to reflect changes
@@ -686,12 +694,6 @@ useEffect(() => {
   Clear Storage
 </button>
 
-  
-
-  {notification && <div className="notification">{sanitizedNotification}</div>}
-      {error && <div className="error">{error}</div>}
-      <div className="fixed bottom-0 left-0 w-full px-4 pb-4 z-10">
-        <div className="w-full bg-[#f9c035] rounded-full mt-4">
           <div
             className="bg-gradient-to-r from-[#f3c45a] to-[#fffad0] h-4 rounded-full"
             style={{ width: `${(energy / maxEnergy) * 100}%` }}
