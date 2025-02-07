@@ -678,6 +678,14 @@ useEffect(() => {
     </div>
   </div>
 
+  <button onClick={() => {
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.reload(); // Reload to reflect changes
+}}>
+  Clear Storage
+</button>
+
   
 
   {notification && <div className="notification">{sanitizedNotification}</div>}
