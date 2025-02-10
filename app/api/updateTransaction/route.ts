@@ -1,29 +1,26 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/lib/prisma"; // Make sure your Prisma instance is correctly imported
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/prisma';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export async function POST(req: NextRequest) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const { orderId, transactionReference } = req.body;
-
-  if (!orderId || !transactionReference) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
   }
 
   try {
+    const { orderId, transactionReference } = await req.json();
+
+    if (!orderId || !transactionReference) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
     const updatedOrder = await prisma.order.update({
       where: { orderId },
       data: { transactionReference, status: "SUCCESS" },
     });
 
-    return res.json({ success: true, updatedOrder });
+    return NextResponse.json({ success: true, updatedOrder }, { status: 200 });
   } catch (error) {
     console.error("Database update error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
