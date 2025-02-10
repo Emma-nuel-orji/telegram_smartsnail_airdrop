@@ -43,15 +43,16 @@ interface PurchasePayload {
   email: string;
   paymentMethod: string;
   bookCount: number;
-  tappingRate: number;  // Changed from totalTappingRate
-  coinsReward: number;  // Changed from totalPoints
-  priceTon: number;     // Changed from totalTon
-  priceStars: number;   // Changed from starsAmount
+  tappingRate: number;
+  coinsReward: number;
+  priceTon: number;
+  priceStars: number;
   fxckedUpBagsQty: number;
   humanRelationsQty: number;
-  telegramId: string;
-  referrerId: string;
-  paymentReference: string;
+  telegramId?: string;
+  referrerId?: string;
+  userId?: string | null;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
 }
 
 // Initial Stock Limit
@@ -77,7 +78,7 @@ export default function BoostPageContent() {
   } = useBoostContext();
 
   // State Management
-  const { isConnected } = useWallet();
+  const { isConnected, tonConnectUI, walletAddress } = useWallet();
   const [isClient, setIsClient] = useState(false);
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [uniqueCode, setUniqueCode] = useState("");
@@ -94,6 +95,7 @@ export default function BoostPageContent() {
   // const [isSocketConnected, setIsSocketConnected] = useState(false);
 
   // UI States
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showFuckedUpInfo, setShowFuckedUpInfo] = useState(false);
@@ -203,7 +205,6 @@ return () => {
   // Purchase Handler
   const handlePurchase = async (paymentMethod: string) => {
     try {
-      // Input validation
       if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
         alert("Please enter a valid email to proceed with the purchase.");
         return;
@@ -214,20 +215,24 @@ return () => {
         return;
       }
   
-      // Check wallet connection for TON payments
       if (paymentMethod === "TON") {
         const { isConnected, tonConnectUI, walletAddress } = useWallet();
         if (!isConnected || !tonConnectUI || !walletAddress) {
           alert("Please connect your TON wallet first.");
           return;
         }
+  
+        const receiverAddress = process.env.NEXT_PUBLIC_RECEIVER_ADDRESS;
+        if (!receiverAddress) {
+          console.error("Receiver address not configured");
+          alert("Payment configuration error. Please contact support.");
+          return;
+        }
       }
   
       setIsProcessing(true);
   
-      const paymentReference = `TX-${Date.now()}`;
-      
-      const payload = {
+      const initialPayload = {
         email: purchaseEmail,
         paymentMethod: paymentMethod.toUpperCase(),
         bookCount: totalBooks,
@@ -237,9 +242,8 @@ return () => {
         priceStars: priceStars,
         fxckedUpBagsQty,
         humanRelationsQty,
-        telegramId: telegramId || '',
-        referrerId: referrerId || '',
-        paymentReference,
+        telegramId: telegramId ? String(telegramId) : '',
+        referrerId: referrerId ? String(referrerId) : '',
       };
   
       const headers = {
@@ -249,52 +253,40 @@ return () => {
           : {})
       };
   
-      const endpoint = paymentMethod.toUpperCase() === "STARS" 
-        ? "/api/paymentByStars" 
-        : "/api/purchase";
+      const orderResponse = await axios.post("/api/purchase", initialPayload, { headers });
   
-      const response = await axios.post(endpoint, payload, { headers });
+      if (!orderResponse.data || !orderResponse.data.orderId) {
+        throw new Error("Invalid response from purchase API");
+      }
   
-      if (response.data.success) {
-        if (paymentMethod === "TON") {
-          const { isConnected, tonConnectUI, walletAddress } = useWallet();
-          if (!isConnected || !tonConnectUI || !walletAddress) {
-            alert("Please connect your TON wallet first.");
-            return;
-          }
-    
-          // Check if receiver address exists
-          const receiverAddress = process.env.NEXT_PUBLIC_RECEIVER_ADDRESS;
-          if (!receiverAddress) {
-            console.error("Receiver address not configured");
-            alert("Payment configuration error. Please contact support.");
-            return;
-          }
-    
-          // Create and send transaction
-          const transaction = {
-            validUntil: Math.floor(Date.now() / 1000) + 360,
-            messages: [{
-              address: receiverAddress, // Now this is guaranteed to be a string
-              amount: String(Math.floor(priceTon * 1e9)), // Convert to nanotons and ensure integer
-            
-            }]
-          };
-    
-          try {
-            const result = await tonConnectUI.sendTransaction(transaction);
-            if (result) {
-              router.push(`/wallet?orderId=${response.data.orderId}`);
-              return;
-            }
-          } catch (txError) {
-            console.error("TON transaction error:", txError);
-            alert("Transaction failed. Please try again.");
-            return;
-          }
+      const orderId = orderResponse.data.orderId;
+  
+      if (paymentMethod === "TON") {
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 360,
+          messages: [{
+            address: process.env.NEXT_PUBLIC_RECEIVER_ADDRESS!,
+            amount: String(Math.floor(priceTon * 1e9)),
+          }]
+        };
+  
+        try {
+          const tonResult = await tonConnectUI.sendTransaction(transaction);
+          if (!tonResult) throw new Error("Transaction result missing");
+  
+          await axios.post("/api/verify-payment", {
+            orderId,
+            transactionHash: tonResult.boc,
+            paymentMethod: "TON"
+          });
+  
+          router.push(`/wallet?orderId=${orderId}`);
+          return;
+        } catch (txError) {
+          console.error("TON transaction error:", txError);
+          alert("Transaction failed. Please try again.");
         }
-  
-        // Handle success for other payment methods
+      } else {
         alert("Purchase successful! Check your email for details.");
         setFxckedUpBagsQty(0);
         setHumanRelationsQty(0);

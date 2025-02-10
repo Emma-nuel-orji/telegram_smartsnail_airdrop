@@ -30,48 +30,106 @@ const tonweb = new TonWeb(
  * @returns Returns true if the payment is valid.
  */
 
+interface VerificationResult {
+  success: boolean;
+  error?: string;
+  details?: {
+    expectedAmount: number;
+    receivedAmount: number;
+    expectedDestination: string;
+    actualDestination: string;
+  };
+}
 
-const verifyTonPayment = async (paymentReference: string, expectedAmount: number): Promise<boolean> => {
+interface TransactionResponse {
+  result: {
+    amount: string;
+    destination: string;
+    // Add other transaction fields you might need
+  };
+}
+
+const verifyTonPayment = async (
+  transactionHash: string, 
+  expectedAmount: number
+): Promise<VerificationResult> => {
   try {
-    const url = `${TON_TESTNET_API_URL}/getTransaction`;
-    console.log("Requesting:", url, "with params:", { hash: paymentReference, api_key: TON_API_KEY });
-
-    const response = await axios.get(url, {
-      params: { hash: paymentReference, api_key: TON_API_KEY },
+    // Log verification attempt
+    console.log("🔵 Verifying transaction:", {
+      hash: transactionHash,
+      expectedAmount,
+      destinationWallet: TON_WALLET_ADDRESS
     });
 
+    // Make API request
+    const response = await axios.get<TransactionResponse>(`${TON_TESTNET_API_URL}/getTransaction`, {
+      params: {
+        hash: transactionHash,
+        api_key: TON_API_KEY
+      },
+      timeout: 10000 // 10 second timeout
+    });
+
+    console.log("🟢 API Response Status:", response.status);
+
     if (response.status !== 200) {
-      console.error(`API response status: ${response.status}`, response.data);
-      throw new Error("Failed to fetch transaction details.");
+      return {
+        success: false,
+        error: `API returned status ${response.status}`,
+      };
     }
 
     const transaction = response.data.result;
-    console.log("Transaction data:", transaction);
-
+    
     if (!transaction) {
-      throw new Error("Transaction not found.");
+      return {
+        success: false,
+        error: "Transaction not found"
+      };
     }
 
     const { amount, destination } = transaction;
+    const receivedAmount = parseInt(amount, 10);
 
+    // Create verification details
+    const details = {
+      expectedAmount,
+      receivedAmount,
+      expectedDestination: TON_WALLET_ADDRESS,
+      actualDestination: destination
+    };
+
+    // Verify destination
     if (destination !== TON_WALLET_ADDRESS) {
-      console.error("Transaction destination does not match the expected wallet address.");
-      return false;
+      return {
+        success: false,
+        error: "Destination address mismatch",
+        details
+      };
     }
 
-    if (parseInt(amount, 10) !== expectedAmount) {
-      console.error("Transaction amount does not match the expected amount.");
-      return false;
+    // Verify amount
+    if (receivedAmount !== expectedAmount) {
+      return {
+        success: false,
+        error: "Amount mismatch",
+        details
+      };
     }
 
-    console.log("Transaction verified successfully:", transaction);
-    return true;
-  } catch (error: unknown) {
-    console.error(
-      "Error verifying Ton payment:",
-      axios.isAxiosError(error) ? error.response?.data || error.message : error
-    );
-    return false;
+    // Success case
+    console.log("✅ Transaction verified successfully:", details);
+    return {
+      success: true,
+      details
+    };
+
+  } catch (error) {
+    console.error("❌ Error verifying TON payment:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred"
+    };
   }
 };
 

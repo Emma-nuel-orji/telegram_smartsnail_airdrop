@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from "zod";
+import { ObjectId } from "mongodb";
 import { prisma } from '@/lib/prisma';
 import { PrismaClient, Book } from '@prisma/client';
 import {
@@ -64,6 +65,9 @@ interface OrderWithTransactions extends Order {
 const requiredEnv = ["SECRET_KEY", "NEXT_PUBLIC_REDIRECT_URL"];
 const redirectUrl = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://default.redirect.url';
 
+
+
+
 requiredEnv.forEach((env) => {
   if (!process.env[env]) {
     throw new Error(`Environment variable ${env} is missing`);
@@ -83,7 +87,7 @@ const requestSchema = z.object({
   humanRelationsQty: z.number().int().nonnegative().optional().default(0),
   telegramId: z.string().optional().default(""),
   referrerId: z.string().optional().default(""),
-  paymentReference: z.string(),
+  // paymentReference: z.string().nullable(),
 });
 
 
@@ -253,7 +257,8 @@ export async function POST(req: NextRequest): Promise<Response> {
       stockResults.totalAmount,
       stockResults.tappingRate,
       stockResults.points,
-      validatedData.referrerId
+      validatedData.referrerId,
+      validatedData.orderId,
     );
 
     return new NextResponse(JSON.stringify({
@@ -346,13 +351,21 @@ booksToPurchase: BookPurchaseInfo[], bookMap: { [k: string]: { tappingRate: numb
 
 async function processPayment(
   paymentMethod: string,
-  paymentReference: string | null,
+  paymentReference: string | null, // This must be the actual transaction hash
   totalAmount: number,
   redirectUrl: string
 ) {
   try {
-    // Initial payment flow - create new order
+    console.log("🛠️ Received processPayment request with data:", {
+      paymentMethod,
+      paymentReference,
+      totalAmount,
+      redirectUrl,
+    });
+
+    // Check if paymentReference is missing
     if (!paymentReference) {
+      console.warn("⚠️ Missing paymentReference! Creating a new order in PENDING state.");
       const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const newOrder = await prisma.order.create({
         data: {
@@ -360,21 +373,26 @@ async function processPayment(
           paymentMethod,
           totalAmount,
           status: "PENDING",
-          transactionReference: null, // Add this field to your schema if not present
+          transactionReference: null,
         },
       });
+
+      console.log("✅ New PENDING order created:", { orderId: newOrder.orderId });
       return { orderId: newOrder.orderId };
     }
 
     // TON payment verification flow
     if (paymentMethod === "TON") {
-      // First verify the payment
+      console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
       const isTonPaymentValid = await verifyTonPayment(paymentReference, totalAmount);
+      
       if (!isTonPaymentValid) {
+        console.error("❌ TON payment verification failed: Invalid transaction.");
         throw new Error("TON payment verification failed: Invalid transaction");
       }
 
-      // Find order by payment reference
+      // Find existing order
+      console.log("🔍 Searching for existing order with reference:", paymentReference);
       const existingOrder = await prisma.order.findFirst({
         where: {
           OR: [
@@ -385,7 +403,7 @@ async function processPayment(
       });
 
       if (!existingOrder) {
-        // Create a new order if one doesn't exist
+        console.log("⚠️ No existing order found. Creating a new order.");
         const newOrderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         const newOrder = await prisma.order.create({
           data: {
@@ -396,13 +414,15 @@ async function processPayment(
             transactionReference: paymentReference,
           },
         });
+
+        console.log("✅ New SUCCESS order created:", { orderId: newOrder.orderId });
         return {
           message: `TON payment verified successfully for Order ID: ${newOrder.orderId}`,
           orderId: newOrder.orderId,
         };
       }
 
-      // Update existing order
+      console.log("✅ Existing order found. Updating order status to SUCCESS.");
       const updatedOrder = await prisma.order.update({
         where: { orderId: existingOrder.orderId },
         data: {
@@ -419,6 +439,7 @@ async function processPayment(
 
     // CARD payment flow
     if (paymentMethod === "CARD") {
+      console.log("🔵 Initiating Flutterwave payment...");
       const paymentRef = `TX-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const flutterwavePaymentResponse = await initiateFlutterwavePayment(
         paymentRef,
@@ -427,9 +448,11 @@ async function processPayment(
       );
 
       if (!flutterwavePaymentResponse?.success) {
+        console.error("❌ Flutterwave payment initiation failed: Invalid response.");
         throw new Error("Flutterwave payment initiation failed: Invalid response");
       }
 
+      console.log("✅ Flutterwave payment successful. Updating order status.");
       const updatedOrder = await prisma.order.update({
         where: { orderId: flutterwavePaymentResponse.orderId },
         data: {
@@ -448,10 +471,11 @@ async function processPayment(
   } catch (error) {
     // Enhanced error handling
     const errorMessage = error instanceof Error ? error.message : "Unknown payment processing error";
-    console.error("Payment processing error:", errorMessage);
+    console.error("❌ Payment processing error:", errorMessage);
     throw new Error(errorMessage);
   }
 }
+
 
 
 async function updateDatabaseTransaction(
@@ -463,13 +487,14 @@ async function updateDatabaseTransaction(
   totalAmount: number,
   tappingRate: number,
   points: number,
+  orderId: string | null,
   referrerId?: string
 ) {
   const MAX_RETRIES = 3;
 
   return prisma.$transaction(async (tx) => {
+    // Validate books first
     const purchasedBooks: { bookId: string; quantity: number }[] = [];
-
     for (const { id, qty } of booksToPurchase) {
       if (!id) continue;
       const book = await tx.book.findFirst({ where: { id } });
@@ -477,11 +502,25 @@ async function updateDatabaseTransaction(
       purchasedBooks.push({ bookId: book.id, quantity: qty });
     }
 
-    await tx.generatedCode.updateMany({
-      where: { code: { in: codes } },
-      data: { isUsed: true },
+    // Fetch or create user
+    let user = await tx.user.findUnique({
+      where: { telegramId: BigInt(telegramId) },
     });
 
+    if (!user) {
+      user = await tx.user.create({
+        data: {
+          telegramId: BigInt(telegramId),
+          email,
+          tappingRate: 1,
+          points: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    // Validate codes
     const generatedCodes = await tx.generatedCode.findMany({
       where: { code: { in: codes } },
       select: { code: true, batchId: true },
@@ -491,49 +530,47 @@ async function updateDatabaseTransaction(
       throw new Error("Some codes are invalid or missing a batchId.");
     }
 
-    await tx.purchase.create({
+    // Create purchase first so we have the purchase ID
+    const purchase = await tx.purchase.create({
       data: {
-        userId: telegramId,
+        userId: user.id,
         paymentType: paymentMethod,
         amountPaid: totalAmount,
         booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
-        codes: {
-          create: generatedCodes.map(({ code, batchId }) => ({
-            code,
-            batchId,
-          })),
-        },
-        bookId: booksToPurchase.length > 0 
-          ? booksToPurchase.every(book => book.id === booksToPurchase[0].id)
-            ? booksToPurchase[0].id || "UnknownBook"
-            : booksToPurchase.map(book => book.id).join(",") 
-          : "NoBookSelected",
-          fxckedUpBagsQty: booksToPurchase.find(book => book.title.includes("FxckedUpBags"))?.qty || 0,
-          humanRelationsQty: booksToPurchase.find(book => book.title === "Human Relations")?.qty || 0,
-        },
+        orderId: orderId ? orderId : null,
+        bookId: booksToPurchase.length === 1 ? booksToPurchase[0].id : null,
+        fxckedUpBagsQty:
+          booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
+        humanRelationsQty:
+          booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
+      },
     });
 
-    const user = await tx.user.upsert({
+    // Update codes with purchase ID
+    await tx.generatedCode.updateMany({
+      where: { code: { in: codes } },
+      data: { 
+        isUsed: true,
+        purchaseId: purchase.id,
+      },
+    });
+
+    // Update user points and tapping rate
+    await tx.user.update({
       where: { telegramId: BigInt(telegramId) },
-      update: {
+      data: {
         tappingRate: { increment: tappingRate },
         points: { increment: points },
       },
-      create: {
-        telegramId: BigInt(telegramId),
-        tappingRate: tappingRate,
-        points: points,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
     });
 
+    // Handle referrer bonus
     if (referrerId && referrerId !== telegramId) {
-      const referrerExists = await tx.user.findUnique({
+      const referrer = await tx.user.findUnique({
         where: { telegramId: BigInt(referrerId) },
       });
 
-      if (!referrerExists) {
+      if (!referrer) {
         throw new Error("Referrer ID does not exist.");
       }
 
@@ -546,6 +583,7 @@ async function updateDatabaseTransaction(
       });
     }
 
+    // Attempt to send purchase email with retry logic
     let retryCount = 0;
     while (retryCount < MAX_RETRIES) {
       try {
@@ -559,133 +597,17 @@ async function updateDatabaseTransaction(
       }
     }
 
-
     return user;
   });
 }
 
+// ✅ Ensure this function is correctly defined
+async function sendPurchaseEmail(
+  email: string,
+  books: { bookId: string; quantity: number }[],
+  codes: string[]
+) {
+  console.log(`Sending email to ${email}...`);
+  return new Promise((resolve) => setTimeout(resolve, 1000)); // Simulated delay
 }
-
-// export async function POST(request: NextRequest) {
-//   try {
-//     console.log("1. Starting POST request handling");
-    
-//     let body;
-//     try {
-//       body = await request.json();
-//       console.log("2. Request body:", body);
-//     } catch (error) {
-//       console.error("Error parsing request body:", error);
-//       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-//     }
-
-//     // Telegram validation
-//     if (process.env.NODE_ENV !== 'development') {
-//       console.log("3. Production environment - checking Telegram auth");
-//       const initData = request.headers.get('x-telegram-init-data');
-//       if (!initData) {
-//         return NextResponse.json({ error: "Missing Telegram authentication" }, { status: 401 });
-//       }
-
-//       const telegramData = validateTelegramWebAppData(initData);
-//       if (!telegramData) {
-//         return NextResponse.json({ error: "Invalid Telegram authentication" }, { status: 403 });
-//       }
-//     } else {
-//       console.log("3. Development environment - checking basic auth");
-//       const { telegramId, email } = body;
-//       if (!telegramId && !email) {
-//         return NextResponse.json({ error: "Telegram ID or email must be provided." }, { status: 400 });
-//       }
-//     }
-
-//     console.log("4. Validating schema");
-//     let validatedData;
-//     try {
-//       validatedData = requestSchema.parse(body);
-//       console.log("5. Validated data:", validatedData);
-//     } catch (error) {
-//       console.error("Schema validation error:", error);
-//       return NextResponse.json(
-//         {
-//           error: "Invalid request data",
-//           details: error instanceof z.ZodError ? error.errors : "Unknown validation error",
-//         },
-//         { status: 400 }
-//       );
-//     }
-
-//     const {
-//       email,
-//       paymentMethod,
-//       fxckedUpBagsQty,
-//       humanRelationsQty,
-//       telegramId,
-//       paymentReference,
-//       referrerId, 
-//     } = validatedData;
-
-//     console.log("6. Checking purchase quantities");
-//     if (fxckedUpBagsQty <= 0 && humanRelationsQty <= 0) {
-//       return NextResponse.json(
-//         { error: "At least one book must be purchased." },
-//         { status: 400 }
-//       );
-//     }
-
-//     const redirectUrl = "/home";
-
-//     try {
-//       console.log("7. Preparing purchase data");
-//       const { booksToPurchase, bookMap } = await preparePurchaseData(fxckedUpBagsQty, humanRelationsQty);
-      
-//       console.log("8. Validating stock and calculating totals");
-//       const { totalAmount, totalTappingRate, totalPoints, codes, updatedStocks } =
-//         await validateStockAndCalculateTotals(booksToPurchase, bookMap, paymentMethod);
-
-//       console.log("9. Processing payment");
-//       await processPayment(paymentMethod, paymentReference, totalAmount, redirectUrl);
-
-//       console.log("10. Updating database");
-//       const user = await updateDatabaseTransaction(
-//         booksToPurchase,
-//         codes,
-//         telegramId,
-//         email,
-//         paymentMethod,
-//         totalAmount,
-//         totalTappingRate,
-//         totalPoints,
-//         referrerId
-//       );
-
-//       console.log("11. Purchase successful");
-//       return NextResponse.json({
-//         message: `Purchase successful. Codes will be emailed to ${email}.`,
-//         updatedTappingRate: user.tappingRate,
-//         points: user.points,
-//         codes: codes,
-//         stockStatus: updatedStocks,
-//         redirectUrl: "/home",
-//       });
-//     } catch (error) {
-//       console.error("Error in purchase processing:", error);
-//       return NextResponse.json(
-//         {
-//           error: "An error occurred while processing the request.",
-//           details: error instanceof Error ? error.message : "Unknown error",
-//         },
-//         { status: 500 }
-//       );
-//     }
-//   } catch (outer_error) {
-//     console.error("Outer error handler caught:", outer_error);
-//     return NextResponse.json(
-//       {
-//         error: "An unexpected error occurred.",
-//         details: outer_error instanceof Error ? outer_error.message : "Unknown error",
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
+};

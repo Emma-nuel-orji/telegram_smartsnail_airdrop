@@ -136,7 +136,7 @@ model Order {
 }
 
 model Purchase {
-  id                  String      @id @default(cuid()) @map("_id") @db.ObjectId
+  id                  String      @id @default(auto()) @map("_id") @db.ObjectId
   userId              String      @db.ObjectId
   bookId              String      @db.ObjectId
   paymentType         String

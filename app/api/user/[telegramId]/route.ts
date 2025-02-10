@@ -5,7 +5,7 @@ import { z } from 'zod';
 const userSchema = z.object({
   telegramId: z.string()
     .min(1, "Telegram ID is required")
-    .regex(/^\d+$/, "Telegram ID must be numeric")
+    .regex(/^[0-9]+$/, "Telegram ID must be numeric")
     .transform(val => BigInt(val)),
   username: z.string().nullable(),
   first_name: z.string().nullable(),
@@ -22,22 +22,20 @@ export async function GET(
   { params }: { params: { telegramId: string } }
 ): Promise<Response> {
   try {
-    // Convert string to BigInt safely
-    const telegramId = BigInt(params.telegramId);
+    if (!/^[0-9]+$/.test(params.telegramId)) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Invalid Telegram ID format' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     
-    const user = await prisma.user.findFirst({
-      where: {
-        telegramId: telegramId
-      }
-    });
+    const telegramId = BigInt(params.telegramId);
+    const user = await prisma.user.findFirst({ where: { telegramId } });
 
     if (!user) {
       return new NextResponse(
         JSON.stringify({ error: 'User not found' }),
-        { 
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        }
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -49,10 +47,7 @@ export async function GET(
 
     return new NextResponse(
       JSON.stringify(responseUser),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -61,10 +56,7 @@ export async function GET(
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }
@@ -76,23 +68,15 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     if (!validationResult.success) {
       return new NextResponse(
-        JSON.stringify({
-          error: 'Validation error',
-          details: validationResult.error.flatten()
-        }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: 'Validation error', details: validationResult.error.flatten() }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     const userData = validationResult.data;
     
     const user = await prisma.user.upsert({
-      where: {
-        telegramId: userData.telegramId
-      },
+      where: { telegramId: userData.telegramId },
       update: {
         username: userData.username,
         firstName: userData.first_name,
@@ -123,10 +107,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     return new NextResponse(
       JSON.stringify(responseUser),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error processing request:', error);
@@ -135,10 +116,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }
