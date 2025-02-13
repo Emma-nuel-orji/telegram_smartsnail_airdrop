@@ -203,106 +203,110 @@ return () => {
   
 
   // Purchase Handler
-  const handlePurchase = async (paymentMethod: string) => {
-    try {
-      if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
-        alert("Please enter a valid email to proceed with the purchase.");
-        return;
-      }
   
-      if (totalBooks === 0) {
-        alert("Please select at least one book to purchase.");
-        return;
-      }
-  
-      if (paymentMethod === "TON") {
-        const { isConnected, tonConnectUI, walletAddress } = useWallet();
-        if (!isConnected || !tonConnectUI || !walletAddress) {
-          alert("Please connect your TON wallet first.");
-          return;
-        }
-  
-        const receiverAddress = process.env.NEXT_PUBLIC_RECEIVER_ADDRESS;
-        if (!receiverAddress) {
-          console.error("Receiver address not configured");
-          alert("Payment configuration error. Please contact support.");
-          return;
-        }
-      }
-  
-      setIsProcessing(true);
-  
-      const initialPayload = {
-        email: purchaseEmail,
-        paymentMethod: paymentMethod.toUpperCase(),
-        bookCount: totalBooks,
-        tappingRate: tappingRate,
-        coinsReward: points,
-        priceTon: priceTon,
-        priceStars: priceStars,
-        fxckedUpBagsQty,
-        humanRelationsQty,
-        telegramId: telegramId ? String(telegramId) : '',
-        referrerId: referrerId ? String(referrerId) : '',
-      };
-  
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(process.env.NODE_ENV === 'production' && window.Telegram?.WebApp?.initData 
-          ? { 'x-telegram-init-data': window.Telegram.WebApp.initData }
-          : {})
-      };
-  
-      const orderResponse = await axios.post("/api/purchase", initialPayload, { headers });
-  
-      if (!orderResponse.data || !orderResponse.data.orderId) {
-        throw new Error("Invalid response from purchase API");
-      }
-  
-      const orderId = orderResponse.data.orderId;
-  
-      if (paymentMethod === "TON") {
-        const transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 360,
-          messages: [{
-            address: process.env.NEXT_PUBLIC_RECEIVER_ADDRESS!,
-            amount: String(Math.floor(priceTon * 1e9)),
-          }]
-        };
-  
-        try {
-          const tonResult = await tonConnectUI.sendTransaction(transaction);
-          if (!tonResult) throw new Error("Transaction result missing");
-  
-          await axios.post("/api/verify-payment", {
-            orderId,
-            transactionHash: tonResult.boc,
-            paymentMethod: "TON"
-          });
-  
-          router.push(`/wallet?orderId=${orderId}`);
-          return;
-        } catch (txError) {
-          console.error("TON transaction error:", txError);
-          alert("Transaction failed. Please try again.");
-        }
-      } else {
-        alert("Purchase successful! Check your email for details.");
-        setFxckedUpBagsQty(0);
-        setHumanRelationsQty(0);
-        await fetchStockData();
-      }
-  
-    } catch (error) {
-      console.error("Purchase error:", error);
-      if (axios.isAxiosError(error)) {
-        alert(`Purchase failed: ${error.response?.data?.error || error.message}`);
-      } else {
-        alert("Purchase failed. Please try again.");
-      }
-    } finally {
-      setIsProcessing(false);
+const handlePurchase = async (paymentMethod: string) => {
+  try {
+    if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
+      alert("Please enter a valid email to proceed with the purchase.");
+      return;
     }
+
+    if (totalBooks === 0) {
+      alert("Please select at least one book to purchase.");
+      return;
+    }
+
+    if (paymentMethod === "TON") {
+      if (!isConnected || !tonConnectUI || !walletAddress) {
+        alert("Please connect your TON wallet first.");
+        return;
+      }
+
+      const receiverAddress = process.env.NEXT_PUBLIC_RECEIVER_ADDRESS;
+      if (!receiverAddress) {
+        console.error("Receiver address not configured");
+        alert("Payment configuration error. Please contact support.");
+        return;
+      }
+    }
+
+    setIsProcessing(true);
+
+    const initialPayload = {
+      email: purchaseEmail,
+      paymentMethod: paymentMethod.toUpperCase(),
+      bookCount: totalBooks,
+      tappingRate: tappingRate,
+      coinsReward: points,
+      priceTon: priceTon,
+      priceStars: priceStars,
+      fxckedUpBagsQty,
+      humanRelationsQty,
+      telegramId: telegramId ? String(telegramId) : '',
+      referrerId: referrerId ? String(referrerId) : '',
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(process.env.NODE_ENV === 'production' && window.Telegram?.WebApp?.initData 
+        ? { 'x-telegram-init-data': window.Telegram.WebApp.initData }
+        : {})
+    };
+
+    const orderResponse = await axios.post("/api/purchase", initialPayload, { headers });
+
+    if (!orderResponse.data || !orderResponse.data.orderId) {
+      throw new Error("Invalid response from purchase API");
+    }
+
+    const orderId = orderResponse.data.orderId;
+
+    if (paymentMethod === "TON") {
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 360,
+        messages: [{
+          address: process.env.NEXT_PUBLIC_RECEIVER_ADDRESS!,
+          amount: String(Math.floor(priceTon * 1e9)),
+        }]
+      };
+
+      try {
+        if (!tonConnectUI) {
+          throw new Error("TON Connect UI is not initialized.");
+        }
+
+        const tonResult = await tonConnectUI.sendTransaction(transaction);
+        if (!tonResult) throw new Error("Transaction result missing");
+
+        await axios.post("/api/verify-payment", {
+          orderId,
+          transactionHash: tonResult.boc,
+          paymentMethod: "TON"
+        });
+
+        router.push(`/wallet?orderId=${orderId}`);
+        return;
+      } catch (txError) {
+        console.error("TON transaction error:", txError);
+        alert("Transaction failed. Please try again.");
+      }
+    } else {
+      alert("Purchase successful! Check your email for details.");
+      setFxckedUpBagsQty(0);
+      setHumanRelationsQty(0);
+      await fetchStockData();
+    }
+
+  } catch (error) {
+    console.error("Purchase error:", error);
+    if (axios.isAxiosError(error)) {
+      alert(`Purchase failed: ${error.response?.data?.error || error.message}`);
+    } else {
+      alert("Purchase failed. Please try again.");
+    }
+  } finally {
+    setIsProcessing(false);
+  }
   };
   
 
