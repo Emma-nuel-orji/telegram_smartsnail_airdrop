@@ -8,7 +8,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
-const TON_WALLET_ADDRESS = process.env.TON_WALLET_ADDRESS;
+const TON_WALLET_ADDRESS = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS ?? "";
+
 const secretKey = process.env.SECRET_KEY!;
 const TON_TESTNET_API_URL = process.env.TON_TESTNET_API_URL;
 const TON_API_URL = process.env.TON_API_URL;
