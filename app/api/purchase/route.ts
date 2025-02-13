@@ -88,6 +88,10 @@ const requestSchema = z.object({
   telegramId: z.string().optional().default(""),
   referrerId: z.string().optional().default(""),
   // paymentReference: z.string().nullable(),
+  paymentReference: z.string().optional().default(""),
+
+  orderId: z.string().optional(),
+  
 });
 
 
@@ -243,7 +247,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const paymentResult = await processPayment(
       validatedData.paymentMethod,
-      validatedData.paymentReference,
+      validatedData.paymentReference || "",
       stockResults.totalAmount,
       process.env.NEXT_PUBLIC_REDIRECT_URL || ''
     );
@@ -531,6 +535,21 @@ async function updateDatabaseTransaction(
     }
 
     // Create purchase first so we have the purchase ID
+    console.log("📌 Reached purchase creation function"); 
+
+    console.log("🛠 Data being inserted into Prisma:", {
+      userId: user.id,
+      paymentType: paymentMethod,
+      amountPaid: totalAmount,
+      booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
+      orderId: orderId ? orderId : null,
+      bookId: booksToPurchase.length === 1 ? booksToPurchase[0].id : "",
+      fxckedUpBagsQty:
+        booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
+      humanRelationsQty:
+        booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
+    });
+    
     const purchase = await tx.purchase.create({
       data: {
         userId: user.id,
@@ -538,13 +557,14 @@ async function updateDatabaseTransaction(
         amountPaid: totalAmount,
         booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
         orderId: orderId ? orderId : null,
-        bookId: booksToPurchase.length === 1 ? booksToPurchase[0].id : null,
+        bookId: booksToPurchase.length === 1 ? booksToPurchase[0].id : "",
         fxckedUpBagsQty:
           booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
         humanRelationsQty:
           booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
       },
     });
+    
 
     // Update codes with purchase ID
     await tx.generatedCode.updateMany({
