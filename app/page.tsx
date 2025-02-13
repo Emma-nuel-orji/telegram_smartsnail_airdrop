@@ -11,103 +11,8 @@ import { WalletProvider } from './context/walletContext';
 import { WalletSection } from '../components/WalletSection';
 import { ConnectButton } from './ConnectButton';
 import { UserSyncManager } from '@/src/utils/userSync';
+import { PointsQueue } from '@/src/utils/userSync';
 
-class PointsQueue {
-  private queue: Array<{ points: number; timestamp: number; attempts: number }> = [];
-  private isProcessing: boolean = false;
-  private userId: string;
-  private retryTimeout: number = 1000;
-  private maxRetryTimeout: number = 32000;
-  private batchSize: number = 10;
-  private queueStorageKey: string;
-
-  constructor(userId: string) {
-    this.userId = userId;
-    this.queueStorageKey = `points_queue_${userId}`;
-    this.loadQueue();
-  }
-
-  private loadQueue() {
-    const saved = localStorage.getItem(this.queueStorageKey);
-    if (saved) {
-      this.queue = JSON.parse(saved);
-    }
-  }
-
-  private saveQueue() {
-    localStorage.setItem(this.queueStorageKey, JSON.stringify(this.queue));
-  }
-
-  public async addPoints(points: number) {
-    this.queue.push({
-      points,
-      timestamp: Date.now(),
-      attempts: 0
-    });
-    
-    this.saveQueue();
-    await this.processQueue();
-  }
-
-  private async processQueue() {
-    if (this.isProcessing || this.queue.length === 0) return;
-    
-    this.isProcessing = true;
-    const batch = this.queue.slice(0, this.batchSize);
-    
-    try {
-      const response = await fetch('/api/increase-points', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-ID': this.userId // Add user ID in header
-        },
-        body: JSON.stringify({
-          points: batch.reduce((sum, item) => sum + item.points, 0),
-          userId: this.userId,
-          batch: batch
-        }),
-      });
-
-      if (!response.ok) throw new Error('Server error');
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        this.queue.splice(0, batch.length);
-        this.saveQueue();
-        this.retryTimeout = 1000;
-        
-        if (this.queue.length > 0) {
-          setTimeout(() => this.processQueue(), 100);
-        }
-      } else {
-        throw new Error(result.message || 'Processing failed');
-      }
-    } catch (error) {
-      console.error('Queue processing error:', error);
-      await this.handleError(batch);
-    } finally {
-      this.isProcessing = false;
-    }
-  }
-
-  private async handleError(batch: Array<{ points: number; timestamp: number; attempts: number }>) {
-    const maxAttempts = 5;
-    this.queue = [
-      ...batch.filter(item => (item.attempts || 0) < maxAttempts).map(item => ({
-        ...item,
-        attempts: (item.attempts || 0) + 1
-      })),
-      ...this.queue.slice(batch.length)
-    ];
-    
-    this.saveQueue();
-    this.retryTimeout = Math.min(this.retryTimeout * 2, this.maxRetryTimeout);
-    
-    setTimeout(() => this.processQueue(), this.retryTimeout);
-  }
-}
 
 
 
@@ -170,13 +75,11 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const syncWithLocalStorage = (userData: any) => {
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('points', userData.points.toString());
-    localStorage.setItem('tappingRate', userData.tappingRate.toString());
-    localStorage.setItem('hasClaimedWelcome', userData.hasClaimedWelcome.toString());
-    localStorage.setItem('telegramId', userData.telegramId);
-    localStorage.setItem('lastSync', Date.now().toString());
-  };
+    const storageKey = `user_${userData.telegramId}`;
+    localStorage.setItem(storageKey, JSON.stringify(userData));
+    localStorage.setItem(`lastSync_${userData.telegramId}`, Date.now().toString());
+};
+
   
     // const clearLocalStorage = () => {
     //   localStorage.clear(); // Clears all data in localStorage
@@ -194,12 +97,12 @@ export default function Home() {
   const tg = (typeof window !== "undefined" && window.Telegram?.WebApp) || null;
 
   
-  const getLocalStorageData = () => {
-    const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    if (!telegramId) return null;
-    const userData = localStorage.getItem(`user_${telegramId}`);
+  const getLocalStorageData = (telegramId: string) => {
+    const storageKey = `user_${telegramId}`;
+    const userData = localStorage.getItem(storageKey);
     return userData ? JSON.parse(userData) : null;
-  };
+};
+
   const maxEnergy = 1500;
 
   
@@ -370,161 +273,151 @@ const handleClaim = async () => {
   }
 };
 
-  // Speed Reduction Effect
-  useEffect(() => {
-    let energyInterval: NodeJS.Timeout;
-    
-    if (isClicking && energy > 0) {
+useEffect(() => {
+  if (!isClicking && energy >= maxEnergy) return; 
+
+  let energyInterval: NodeJS.Timeout | null = null;
+  let refillInterval: NodeJS.Timeout | null = null;
+  let animationInterval: NodeJS.Timeout | null = null;
+
+  if (isClicking) {
+    if (energy > 0) {
+      // Energy Reduction when Clicking
       energyInterval = setInterval(() => {
-        setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
+        setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
       }, 500);
+
+      // Click Animation Effect (move clicks upwards)
+      animationInterval = setInterval(() => {
+        setClicks((prevClicks) =>
+          prevClicks.map((click) => ({
+            ...click,
+            y: click.y - 5, // Move clicks upwards for animation
+          }))
+        );
+      }, 100);
     }
-  
-    return () => {
-      if (energyInterval) clearInterval(energyInterval);
-    };
-  }, [isClicking, energy]);
-
-// Speed Refill Effect when energy is greater than 0
-useEffect(() => {
-  if (energy < maxEnergy && !isClicking) {
-    const refillInterval = setInterval(() => {
-      setEnergy((prev) => Math.min(maxEnergy, prev + 10));
-    }, 300);
-
-    return () => clearInterval(refillInterval);
+  } else {
+    if (energy < maxEnergy) {
+      // Energy Refill when Not Clicking
+      refillInterval = setInterval(() => {
+        setEnergy((prev) => Math.min(maxEnergy, prev + 10));
+      }, 300);
+    }
   }
-}, [energy, maxEnergy, isClicking]); // Dependency on isClicking
 
-
-// Energy Reduction when Clicking
-useEffect(() => {
-  if (isClicking && energy > 0) {
-    const energyInterval = setInterval(() => {
-      setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE)); // Reduce energy
-    }, 500); // Slow energy reduction (every 500ms)
-
-    return () => clearInterval(energyInterval);
-  }
-}, [isClicking]);
-
-// Energy Refill Effect (when energy reaches 0, stop clicking)
-useEffect(() => {
-  if (energy <= 0) {
-    setIsClicking(false);
-  }
-}, [energy]);
-
-// Click Animation Effect
-useEffect(() => {
-  if (isClicking && energy > 0) {
-    const animationInterval = setInterval(() => {
-      setClicks((prevClicks) =>
-        prevClicks.map((click) => ({
-          ...click,
-          y: click.y - 5, // Move clicks upwards slowly for animation
-        }))
-      );
-    }, 100);
-
-    return () => clearInterval(animationInterval);
-  }
-}, [isClicking, energy]);
+  return () => {
+    if (energyInterval) clearInterval(energyInterval);
+    if (refillInterval) clearInterval(refillInterval);
+    if (animationInterval) clearInterval(animationInterval);
+  };
+}, [isClicking, energy, maxEnergy]);
 
   // Initialize Telegram
   useEffect(() => {
     const initializeTelegram = async () => {
       setLoading(true);
       const startTime = Date.now();
-    
+  
       try {
+        console.log("🚀 Initializing Telegram Mini App...");
+  
         if (!window.Telegram?.WebApp) {
-          throw new Error('Telegram WebApp not available');
+          throw new Error("Telegram WebApp not available");
         }
-    
+  
         const tg = window.Telegram.WebApp;
         tg.ready();
-    
+  
         const userData = tg?.initDataUnsafe?.user;
         if (!userData?.id) {
-          throw new Error('Unable to get user information from Telegram');
+          throw new Error("Unable to get user information from Telegram");
         }
-    
+  
+        console.log(`📲 Telegram User Detected: ${JSON.stringify(userData)}`);
+  
         // Create a unique key for each Telegram account
         const storageKey = `user_${userData.id}`;
-
-// Get cached data specific to this Telegram ID
+  
+        // Check cached data
         const cachedUser = localStorage.getItem(storageKey)
-          ? JSON.parse(localStorage.getItem(storageKey) || '{}')
+          ? JSON.parse(localStorage.getItem(storageKey) || "{}")
           : null;
-
+  
         const lastSyncKey = `lastSync_${userData.id}`;
         const lastSync = localStorage.getItem(lastSyncKey);
         const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
-
-        // If we have recent cached data for this specific user, use it
+  
         if (cachedUser && lastSync && Date.now() - parseInt(lastSync, 10) < SYNC_INTERVAL) {
+          console.log("✅ Using cached user data:", cachedUser);
           setUser(cachedUser);
           setLoading(false);
         } else {
-          console.warn("Cached data is either missing or outdated. Fetching new data...");
-          // Handle data fetch logic here if needed
-          setLoading(false);
+          console.warn("⚠️ Cached data is missing or outdated. Fetching new data...");
         }
-    
-        // Always fetch fresh data from server for the specific Telegram ID
+  
+        // Fetch user from server
+        console.log(`🔍 Fetching user from server: /api/user/${userData.id}`);
         const response = await fetch(`/api/user/${userData.id}`);
-    
+  
         if (response.ok) {
           const serverUser = await response.json();
-          // Store data specific to this Telegram ID
+          console.log("✅ User fetched from server:", serverUser);
+  
           localStorage.setItem(storageKey, JSON.stringify(serverUser));
-          localStorage.setItem(`lastSync_${userData.id}`, Date.now().toString());
+          localStorage.setItem(lastSyncKey, Date.now().toString());
           setUser(serverUser);
           if (!serverUser.hasClaimedWelcome) setShowWelcomePopup(true);
         } else {
+          console.warn(`⚠️ User not found on server. Response: ${await response.text()}`);
+  
           if (!cachedUser) {
+            console.log(`📢 Creating new user with Telegram ID: ${userData.id}`);
+  
             const requestData = {
               telegramId: userData.id.toString(),
-              username: userData.username || '',
-              first_name: userData.first_name || '',
-              last_name: userData.last_name || '',
+              username: userData.username || "",
+              first_name: userData.first_name || "",
+              last_name: userData.last_name || "",
               points: 0,
               tappingRate: 1,
               hasClaimedWelcome: false,
               nft: false,
             };
-    
-            const createResponse = await fetch('/api/user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+  
+            const createResponse = await fetch("/api/user", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify(requestData),
             });
-    
+  
             if (!createResponse.ok) {
+              const errorMessage = await createResponse.text();
+              console.error(`❌ Failed to create user:`, errorMessage);
               throw new Error(`HTTP error! status: ${createResponse.status}`);
             }
-    
+  
             const newUser = await createResponse.json();
+            console.log("✅ User successfully created:", newUser);
+  
             localStorage.setItem(storageKey, JSON.stringify(newUser));
-            localStorage.setItem(`lastSync_${userData.id}`, Date.now().toString());
+            localStorage.setItem(lastSyncKey, Date.now().toString());
             setUser(newUser);
             if (!newUser.hasClaimedWelcome) setShowWelcomePopup(true);
           }
         }
       } catch (err) {
         const error = err as Error;
-        console.error('Initialization error:', error);
-        setError(error.message || 'Failed to initialize app');
-        
-        // Only use cached data for the specific Telegram ID
-        const storageKey = `user_${tg?.initDataUnsafe?.user?.id || 'unknown'}`;
+        console.error("❌ Initialization error:", error);
+        setError(error.message || "Failed to initialize app");
+  
+        const storageKey = `user_${tg?.initDataUnsafe?.user?.id || "unknown"}`;
         const cachedUser = localStorage.getItem(storageKey)
-          ? JSON.parse(localStorage.getItem(storageKey) || '{}')
+          ? JSON.parse(localStorage.getItem(storageKey) || "{}")
           : null;
-
-        
+  
         if (cachedUser) {
+          console.log("✅ Using fallback cached user data:", cachedUser);
           setUser(cachedUser);
           setError(null);
         }
@@ -534,9 +427,10 @@ useEffect(() => {
         setTimeout(() => setLoading(false), remainingTime);
       }
     };
-
+  
     initializeTelegram();
   }, []);
+  
 
   // Load stored data effect
   useEffect(() => {
