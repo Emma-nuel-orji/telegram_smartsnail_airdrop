@@ -15,67 +15,66 @@ const userSchema = z.object({
     email: z.string().email().nullable().optional()
 });
 
-// This explicitly declares which HTTP methods are allowed
-export async function POST(req: NextRequest): Promise<Response> {
+// Helper function to serialize user data
+function serializeUser(user: any) {
+    return {
+      ...user,
+      id: user.id.toString(),
+      telegramId: user.telegramId.toString(),
+      points: Number(user.points),
+      hasClaimedWelcome: user.hasClaimedWelcome ?? false,
+      createdAt: user.createdAt?.toISOString(),
+      updatedAt: user.updatedAt?.toISOString(),
+    };
+  }
+  
+  // ✅ POST: Create or Update User
+  export async function POST(req: NextRequest): Promise<Response> {
     try {
-        const jsonBody = await req.json();
-        console.log("📥 Received request body:", jsonBody);
-
-        const validationResult = userSchema.safeParse(jsonBody);
-        if (!validationResult.success) {
-            console.error("❌ Validation error:", validationResult.error.flatten());
-            return new NextResponse(
-                JSON.stringify({
-                    error: "Validation error",
-                    details: validationResult.error.flatten(),
-                }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
-            );
-        }
-
-        const userData = validationResult.data;
-        const user = await prisma.user.upsert({
-            where: { telegramId: userData.telegramId },
-            update: {
-                username: userData.username,
-                firstName: userData.first_name,
-                lastName: userData.last_name,
-                points: userData.points,
-                tappingRate: userData.tappingRate,
-                hasClaimedWelcome: userData.hasClaimedWelcome,
-                nft: userData.nft,
-                email: userData.email ?? undefined,
-                updatedAt: new Date(),
-            },
-            create: {
-                telegramId: userData.telegramId,
-                username: userData.username,
-                firstName: userData.first_name,
-                lastName: userData.last_name,
-                points: userData.points,
-                tappingRate: userData.tappingRate,
-                hasClaimedWelcome: userData.hasClaimedWelcome,
-                nft: userData.nft,
-                email: userData.email ?? undefined,
-            },
-        });
-
-        return new NextResponse(
-            JSON.stringify({
-                ...user,
-                telegramId: user.telegramId.toString(),
-                points: Number(user.points),
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } }
-        );
+      const { telegramId, firstName, lastName, username } = await req.json();
+  
+      if (!telegramId || !/^[0-9]+$/.test(telegramId)) {
+        return NextResponse.json({ error: "Invalid Telegram ID" }, { status: 400 });
+      }
+  
+      let user = await prisma.user.upsert({
+        where: { telegramId: BigInt(telegramId) },
+        update: { firstName, lastName, username },
+        create: { telegramId: BigInt(telegramId), firstName, lastName, username },
+      });
+  
+      return NextResponse.json(serializeUser(user));
     } catch (error) {
-        console.error("❌ Error processing user creation request:", error);
-        return new NextResponse(
-            JSON.stringify({
-                error: "Internal server error",
-                details: (error as Error).message,
-            }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-        );
+      return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
     }
-}
+  }
+  
+  // ✅ PATCH: Increment Points
+  export async function PATCH(req: NextRequest): Promise<Response> {
+    try {
+      const { telegramId, increment } = await req.json();
+  
+      if (!telegramId || !/^[0-9]+$/.test(telegramId)) {
+        return NextResponse.json({ error: "Invalid Telegram ID" }, { status: 400 });
+      }
+  
+      if (!increment || isNaN(increment)) {
+        return NextResponse.json({ error: "Invalid increment value" }, { status: 400 });
+      }
+  
+      let user = await prisma.user.findFirst({ where: { telegramId: BigInt(telegramId) } });
+  
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+  
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { points: Number(user.points) + Number(increment) },
+      });
+  
+      return NextResponse.json(serializeUser(user));
+    } catch (error) {
+      return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
+    }
+  }

@@ -3,14 +3,15 @@ import { prisma } from '@/prisma/client';
 
 // Helper function to safely serialize user data
 function serializeUser(user: any) {
-    return {
-        ...user,
-        id: user.id.toString(), // MongoDB ObjectId
-        telegramId: user.telegramId.toString(),
-        points: user.points ? user.points.toString() : "0", // Handle points as BigInt
-        createdAt: user.createdAt?.toISOString(),
-        updatedAt: user.updatedAt?.toISOString()
-    };
+  return {
+    ...user,
+    id: user.id.toString(),
+    telegramId: user.telegramId.toString(),
+    points: Number(user.points),
+    hasClaimedWelcome: user.hasClaimedWelcome ?? false,
+    createdAt: user.createdAt?.toISOString(),
+    updatedAt: user.updatedAt?.toISOString(),
+  };
 }
 
 export async function GET(req: NextRequest): Promise<Response> {
