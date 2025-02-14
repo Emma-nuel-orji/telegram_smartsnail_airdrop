@@ -260,8 +260,8 @@ const handleClaim = async () => {
     };
 
     setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
     setShowWelcomePopup(false);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
     triggerConfetti();
 
   } catch (err) {
@@ -272,6 +272,15 @@ const handleClaim = async () => {
     setLoading(false);
   }
 };
+
+useEffect(() => {
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+  if (storedUser?.hasClaimedWelcome) {
+    setShowWelcomePopup(false); // ✅ Hide the popup on refresh
+  }
+}, []);
+
 
 useEffect(() => {
   if (!isClicking && energy >= maxEnergy) return; 
