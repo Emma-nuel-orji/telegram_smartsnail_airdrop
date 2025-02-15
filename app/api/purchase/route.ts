@@ -360,13 +360,12 @@ booksToPurchase: BookPurchaseInfo[], bookMap: { [k: string]: { tappingRate: numb
   return { totalAmount, tappingRate, points, codes, updatedStocks };
 
 }
-
 async function processPayment(
   paymentMethod: string,
-  paymentReference: string | null, // This must be the actual transaction hash
+  paymentReference: string | null,
   totalAmount: number,
   redirectUrl: string,
-  userId: string, // Added userId for purchase creation
+  userId: string,
   bookCount: number,
   bookId: string,
   fxckedUpBagsQty: number,
@@ -444,34 +443,49 @@ async function processPayment(
         });
       }
 
-      // 🔹 Create Purchase Record
+      // 🔹 Create Purchase Record with Transaction
       try {
-        const purchase = await prisma.purchase.create({
-          data: {
-            userId,
-            paymentType: "TON",
-            amountPaid: totalAmount,
-            booksBought: bookCount,
-            orderId: finalOrder.id,
-            bookId,
-            fxckedUpBagsQty,
-            humanRelationsQty,
-          },
+        const purchase = await prisma.$transaction(async (tx) => {
+          const createdPurchase = await tx.purchase.create({
+            data: {
+              userId,
+              paymentType: "TON",
+              amountPaid: totalAmount,
+              booksBought: bookCount,
+              orderId: finalOrder.orderId,
+              bookId,
+              fxckedUpBagsQty,
+              humanRelationsQty,
+            },
+          });
+
+          // Verify purchase was created successfully
+          if (!createdPurchase) {
+            throw new Error("Purchase creation failed");
+          }
+
+          return createdPurchase;
         });
+
         console.log("✅ Purchase record created:", purchase);
+        
+        return {
+          success: true,
+          message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
+          orderId: finalOrder.orderId,
+          purchaseId: purchase.id
+        };
       } catch (error) {
         console.error("❌ Failed to create purchase record:", error);
-        return { success: false, error: "Failed to create purchase record" };
+        // Roll back the order status if purchase creation fails
+        await prisma.order.update({
+          where: { orderId: finalOrder.orderId },
+          data: { status: "FAILED" }
+        });
+        throw new Error("Failed to create purchase record");
       }
-
-      return {
-        success: true,
-        message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
-        orderId: finalOrder.orderId,
-      };
     }
 
- 
     // CARD payment flow
     if (paymentMethod === "CARD") {
       console.log("🔵 Initiating Flutterwave payment...");
@@ -510,7 +524,6 @@ async function processPayment(
     throw new Error(errorMessage);
   }
 }
-
 
 
 async function updateDatabaseTransaction(
