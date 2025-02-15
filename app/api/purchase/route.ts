@@ -89,7 +89,7 @@ const requestSchema = z.object({
   referrerId: z.string().optional().default(""),
   // paymentReference: z.string().nullable(),
   paymentReference: z.string().optional().default(""),
-  bookIds: z.string().optional().default(""), 
+  bookIds: z.array(z.string()).optional().default([]),
   orderId: z.string().optional(),
   
 });
