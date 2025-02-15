@@ -203,6 +203,9 @@ return () => {
   
 
   // Purchase Handler
+  const fxckedUpBagsId = "6796dbfa223a935d969d56e6"; 
+  const humanRelationsId = "6796dbfa223a935d969d56e7"; 
+
   
 const handlePurchase = async (paymentMethod: string) => {
   try {
@@ -244,6 +247,11 @@ const handlePurchase = async (paymentMethod: string) => {
       humanRelationsQty,
       telegramId: telegramId ? String(telegramId) : '',
       referrerId: referrerId ? String(referrerId) : '',
+      bookIds: [
+        ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
+        ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
+      ],
+       
     };
 
     const headers = {

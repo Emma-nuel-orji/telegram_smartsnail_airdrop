@@ -89,7 +89,7 @@ const requestSchema = z.object({
   referrerId: z.string().optional().default(""),
   // paymentReference: z.string().nullable(),
   paymentReference: z.string().optional().default(""),
-
+  bookId: z.string().optional().default(""), 
   orderId: z.string().optional(),
   
 });
@@ -249,8 +249,14 @@ export async function POST(req: NextRequest): Promise<Response> {
       validatedData.paymentMethod,
       validatedData.paymentReference || "",
       stockResults.totalAmount,
-      process.env.NEXT_PUBLIC_REDIRECT_URL || ''
+      process.env.NEXT_PUBLIC_REDIRECT_URL || '',
+      validatedData.telegramId,
+      validatedData.bookCount, 
+      validatedData.bookId, 
+      validatedData.fxckedUpBagsQty, 
+      validatedData.humanRelationsQty 
     );
+    
 
     const userResult = await updateDatabaseTransaction(
       booksToPurchase,
@@ -357,7 +363,12 @@ async function processPayment(
   paymentMethod: string,
   paymentReference: string | null, // This must be the actual transaction hash
   totalAmount: number,
-  redirectUrl: string
+  redirectUrl: string,
+  userId: string, // Added userId for purchase creation
+  bookCount: number,
+  bookId: string,
+  fxckedUpBagsQty: number,
+  humanRelationsQty: number
 ) {
   try {
     console.log("🛠️ Received processPayment request with data:", {
@@ -385,17 +396,17 @@ async function processPayment(
       return { orderId: newOrder.orderId };
     }
 
-    // TON payment verification flow
+    // 🔹 TON Payment Verification Flow
     if (paymentMethod === "TON") {
       console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
-      const isTonPaymentValid = await verifyTonPayment(paymentReference, totalAmount);
       
+      const isTonPaymentValid = await verifyTonPayment(paymentReference, totalAmount);
       if (!isTonPaymentValid) {
         console.error("❌ TON payment verification failed: Invalid transaction.");
         throw new Error("TON payment verification failed: Invalid transaction");
       }
 
-      // Find existing order
+      // 🔹 Check for existing order
       console.log("🔍 Searching for existing order with reference:", paymentReference);
       const existingOrder = await prisma.order.findFirst({
         where: {
@@ -406,10 +417,11 @@ async function processPayment(
         },
       });
 
+      let finalOrder;
       if (!existingOrder) {
         console.log("⚠️ No existing order found. Creating a new order.");
         const newOrderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        const newOrder = await prisma.order.create({
+        finalOrder = await prisma.order.create({
           data: {
             orderId: newOrderId,
             paymentMethod,
@@ -418,29 +430,46 @@ async function processPayment(
             transactionReference: paymentReference,
           },
         });
-
-        console.log("✅ New SUCCESS order created:", { orderId: newOrder.orderId });
-        return {
-          message: `TON payment verified successfully for Order ID: ${newOrder.orderId}`,
-          orderId: newOrder.orderId,
-        };
+        console.log("✅ New SUCCESS order created:", finalOrder);
+      } else {
+        console.log("✅ Existing order found. Updating order status to SUCCESS.");
+        finalOrder = await prisma.order.update({
+          where: { orderId: existingOrder.orderId },
+          data: {
+            status: "SUCCESS",
+            transactionReference: paymentReference,
+          },
+        });
       }
 
-      console.log("✅ Existing order found. Updating order status to SUCCESS.");
-      const updatedOrder = await prisma.order.update({
-        where: { orderId: existingOrder.orderId },
-        data: {
-          status: "SUCCESS",
-          transactionReference: paymentReference,
-        },
-      });
+      // 🔹 Create Purchase Record
+      try {
+        const purchase = await prisma.purchase.create({
+          data: {
+            userId,
+            paymentType: "TON",
+            amountPaid: totalAmount,
+            booksBought: bookCount,
+            orderId: finalOrder.id,
+            bookId,
+            fxckedUpBagsQty,
+            humanRelationsQty,
+          },
+        });
+        console.log("✅ Purchase record created:", purchase);
+      } catch (error) {
+        console.error("❌ Failed to create purchase record:", error);
+        return { success: false, error: "Failed to create purchase record" };
+      }
 
       return {
-        message: `TON payment verified successfully for Order ID: ${updatedOrder.orderId}`,
-        orderId: updatedOrder.orderId,
+        success: true,
+        message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
+        orderId: finalOrder.orderId,
       };
     }
 
+ 
     // CARD payment flow
     if (paymentMethod === "CARD") {
       console.log("🔵 Initiating Flutterwave payment...");
