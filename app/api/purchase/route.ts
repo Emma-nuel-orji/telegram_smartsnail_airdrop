@@ -89,7 +89,7 @@ const requestSchema = z.object({
   referrerId: z.string().optional().default(""),
   // paymentReference: z.string().nullable(),
   paymentReference: z.string().optional().default(""),
-  bookId: z.string().optional().default(""), 
+  bookIds: z.string().optional().default(""), 
   orderId: z.string().optional(),
   
 });
@@ -252,7 +252,9 @@ export async function POST(req: NextRequest): Promise<Response> {
       process.env.NEXT_PUBLIC_REDIRECT_URL || '',
       validatedData.telegramId,
       validatedData.bookCount, 
-      validatedData.bookId, 
+      Array.isArray(validatedData.bookIds) && validatedData.bookIds.length > 0 
+    ? validatedData.bookIds[0] 
+    : "",
       validatedData.fxckedUpBagsQty, 
       validatedData.humanRelationsQty 
     );
