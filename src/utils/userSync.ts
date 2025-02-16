@@ -144,30 +144,28 @@ export class UserSyncManager {
     }, this.syncInterval);
   }
 
-  public async syncWithServer(): Promise<void> {  // Change from private to public
+  public async syncWithServer(): Promise<void> {
     try {
       const response = await fetch(`/api/user/${this.userId}`);
-      if (!response.ok) throw new Error("Failed to sync with server");
+      if (!response.ok) throw new Error('Failed to sync with server');
   
       const serverData = await response.json();
-      const localData = JSON.parse(localStorage.getItem(this.localStorageKey) || "{}");
   
-      // Merge points safely
-      const mergedPoints = Math.max(serverData.points || 0, localData.points || 0);
-      
-      const mergedData = {
+      // 🛠 Merge local updates before overwriting
+      const localData = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
+  
+      const updatedData = {
         ...serverData,
-        points: mergedPoints,
+        points: Math.max(serverData.points, localData.points || 0), // Keep the highest points
       };
   
-      localStorage.setItem(this.localStorageKey, JSON.stringify(mergedData));
-      this.broadcastUpdate(mergedData);
-  
-      console.log("Sync complete:", { localPoints: localData.points, serverPoints: serverData.points, mergedPoints });
+      localStorage.setItem(this.localStorageKey, JSON.stringify(updatedData));
+      this.broadcastUpdate(updatedData);
     } catch (error) {
-      console.error("Sync failed:", error);
+      console.error('Sync failed:', error);
     }
   }
+  
   
   
 

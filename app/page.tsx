@@ -135,54 +135,57 @@ export default function Home() {
   const lastEnergyReduction = useRef<number>(0); // Track last reduction time
   const ENERGY_REDUCTION_DELAY = 300; // Minimum time between energy reductions (ms)
   
-  const handleClick = async (e: React.MouseEvent) => {
-    if (!user?.telegramId || energy <= 0) return;
-    const syncManager = new UserSyncManager(user.telegramId);
-  
-    setIsClicking(true);
-    setSpeed((prev) => Math.min(prev + 0.1, 5));
-  
-    const newClick = {
-      id: Date.now(),
-      x: e.clientX,
-      y: e.clientY,
-      tappingRate: user.tappingRate || 1,
-    };
-  
-    setClicks((prev) => [...prev, newClick]);
-  
-    const tappingRate = Number(user.tappingRate) || 1;
-  
-    // Optimistically update UI
-    setUser((prevUser) => ({
-      ...prevUser!,
-      points: (prevUser?.points || 0) + tappingRate,
-    }));
-  
-    // ✅ Only reduce energy if enough time has passed
-    const now = Date.now();
-    if (now - lastEnergyReduction.current > ENERGY_REDUCTION_DELAY) {
-      setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
-      lastEnergyReduction.current = now; // Update last reduction time
-    }
-  
-    // Sync with server
-    await syncManager.addPoints(tappingRate);
-    await syncManager.syncWithServer(); 
+  const lastClickTime = useRef(0);
 
-    if (inactivityTimeout.current) {
-      clearTimeout(inactivityTimeout.current);
-    }
-  
-    inactivityTimeout.current = setTimeout(() => {
-      setIsClicking(false);
-      setSpeed((prev) => Math.max(1, prev - 0.2));
-    }, 1000);
-  
-    setTimeout(() => {
-      setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
-    }, 1000);
+const handleClick = async (e: React.MouseEvent) => {
+  if (!user?.telegramId || energy <= 0) return;
+  const syncManager = new UserSyncManager(user.telegramId);
+
+  setIsClicking(true);
+  setSpeed((prev) => Math.min(prev + 0.1, 5));
+
+  const newClick = {
+    id: Date.now(),
+    x: e.clientX,
+    y: e.clientY,
+    tappingRate: user.tappingRate || 1,
   };
+
+  setClicks((prev) => [...prev, newClick]);
+
+  const tappingRate = Number(user.tappingRate) || 1;
+
+  // ✅ Optimistically update points
+  setUser((prevUser) => ({
+    ...prevUser!,
+    points: (prevUser?.points || 0) + tappingRate,
+  }));
+
+  // ✅ Ensure energy reduces only once per click
+  const now = Date.now();
+  if (now - lastClickTime.current > 50) { // Prevent multiple reductions per click
+    setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
+    lastClickTime.current = now;
+  }
+
+  // ✅ Sync points but prevent energy from reducing multiple times
+  await syncManager.addPoints(tappingRate);
+  await syncManager.syncWithServer();
+
+  if (inactivityTimeout.current) {
+    clearTimeout(inactivityTimeout.current);
+  }
+
+  inactivityTimeout.current = setTimeout(() => {
+    setIsClicking(false);
+    setSpeed((prev) => Math.max(1, prev - 0.2));
+  }, 1000);
+
+  setTimeout(() => {
+    setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
+  }, 1000);
+};
+
 
   useEffect(() => {
     let syncManager: UserSyncManager | null = null;

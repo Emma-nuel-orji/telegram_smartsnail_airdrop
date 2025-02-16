@@ -541,7 +541,6 @@ async function processPayment(
   }
 }
 
-
 async function updateDatabaseTransaction(
   booksToPurchase: BookPurchaseInfo[],
   codes: string[],
@@ -584,7 +583,7 @@ async function updateDatabaseTransaction(
       });
     }
   
-    // Validate codes before creating purchase
+    // Validate codes
     const generatedCodes = await tx.generatedCode.findMany({
       where: { code: { in: codes } },
       select: { code: true, batchId: true },
@@ -594,23 +593,57 @@ async function updateDatabaseTransaction(
       throw new Error("Some codes are invalid or missing a batchId.");
     }
   
-    // 📌 Create the purchase first
+    const purchaseData: {
+      userId: string;
+      paymentType: string;
+      amountPaid: number;
+      booksBought: number;
+      fxckedUpBagsQty?: number;
+      humanRelationsQty?: number;
+      orderId?: string;
+      bookId?: string;
+      [key: string]: any;
+    } = {
+      userId: user.id,
+      paymentType: paymentMethod,
+      amountPaid: totalAmount,
+      booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
+      fxckedUpBagsQty: booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
+      humanRelationsQty: booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
+    };
+    
+    // Convert `bookId` safely
+    if (booksToPurchase.length === 1 && booksToPurchase[0].id) {
+      try {
+        purchaseData.bookId = new ObjectId(booksToPurchase[0].id).toString();
+      } catch (error) {
+        console.error("Invalid bookId format:", booksToPurchase[0].id);
+      }
+    }
+    
+    // Ensure `orderId` exists and is valid
+    if (orderId) {
+      try {
+        purchaseData.orderId = new ObjectId(orderId).toString();
+      } catch (error) {
+        console.error("Invalid orderId format:", orderId);
+      }
+    }
+    
+    // Remove `undefined` values
+    Object.keys(purchaseData).forEach(
+      (key) => purchaseData[key] === undefined && delete purchaseData[key]
+    );
+    
+    // Debugging: Print final data before inserting
+    console.log("Final Purchase Data:", JSON.stringify(purchaseData, null, 2));
+    
     const purchase = await tx.purchase.create({
-      data: {
-        userId: user.id,
-        paymentType: paymentMethod,
-        amountPaid: totalAmount,
-        booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
-        orderId: orderId ? orderId : null,
-        bookId: booksToPurchase.length === 1 ? booksToPurchase[0].id : "",
-        fxckedUpBagsQty:
-          booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
-        humanRelationsQty:
-          booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
-      },
+      data: purchaseData
     });
+    
   
-    // 📌 Update user points & tapping rate (AFTER purchase is created)
+    // Update user points & tapping rate
     await tx.user.update({
       where: { telegramId: BigInt(telegramId) },
       data: {
@@ -619,7 +652,7 @@ async function updateDatabaseTransaction(
       },
     });
   
-    // 📌 Handle referrer bonus (Only after successful purchase)
+    // Handle referrer bonus
     if (referrerId && referrerId !== telegramId) {
       const referrer = await tx.user.findUnique({
         where: { telegramId: BigInt(referrerId) },
@@ -638,7 +671,7 @@ async function updateDatabaseTransaction(
       });
     }
   
-    // 📌 Finally, mark the codes as used (AFTER all previous steps succeed)
+    // Mark codes as used
     await tx.generatedCode.updateMany({
       where: { code: { in: codes } },
       data: { 
@@ -646,8 +679,8 @@ async function updateDatabaseTransaction(
         purchaseId: purchase.id,
       },
     });
-    
-    // Attempt to send purchase email with retry logic
+
+    // Send email with retry logic
     let retryCount = 0;
     while (retryCount < MAX_RETRIES) {
       try {
