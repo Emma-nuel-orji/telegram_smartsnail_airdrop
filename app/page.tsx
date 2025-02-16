@@ -95,7 +95,7 @@ export default function Home() {
   const REFILL_RATE = 40;    // Amount of speed to refill per interval
   const ENERGY_REDUCTION_RATE =  20; // Amount of energy to reduce per interval
   const tg = (typeof window !== "undefined" && window.Telegram?.WebApp) || null;
-
+  const maxEnergy = 1500;
   
   const getLocalStorageData = (telegramId: string) => {
     const storageKey = `user_${telegramId}`;
@@ -103,7 +103,7 @@ export default function Home() {
     return userData ? JSON.parse(userData) : null;
 };
 
-  const maxEnergy = 1500;
+  
 
   
   const triggerConfetti = () => {
@@ -129,9 +129,12 @@ export default function Home() {
   // };
 
 
-
+  // const [pendingEnergyReduction, setPendingEnergyReduction] = useState(0);
+  // const energyUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
   
-
+  const lastEnergyReduction = useRef<number>(0); // Track last reduction time
+  const ENERGY_REDUCTION_DELAY = 300; // Minimum time between energy reductions (ms)
+  
   const handleClick = async (e: React.MouseEvent) => {
     if (!user?.telegramId || energy <= 0) return;
     const syncManager = new UserSyncManager(user.telegramId);
@@ -149,19 +152,24 @@ export default function Home() {
     setClicks((prev) => [...prev, newClick]);
   
     const tappingRate = Number(user.tappingRate) || 1;
-    
-    // Update UI optimistically
+  
+    // Optimistically update UI
     setUser((prevUser) => ({
       ...prevUser!,
       points: (prevUser?.points || 0) + tappingRate,
     }));
   
+    // ✅ Only reduce energy if enough time has passed
+    const now = Date.now();
+    if (now - lastEnergyReduction.current > ENERGY_REDUCTION_DELAY) {
+      setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
+      lastEnergyReduction.current = now; // Update last reduction time
+    }
+  
     // Sync with server
-    await syncManager.addPoints(user.tappingRate || 1);
-  
-    // Handle energy reduction and cleanup
-    setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
-  
+    await syncManager.addPoints(tappingRate);
+    await syncManager.syncWithServer(); 
+
     if (inactivityTimeout.current) {
       clearTimeout(inactivityTimeout.current);
     }
@@ -175,8 +183,6 @@ export default function Home() {
       setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
     }, 1000);
   };
-
-
 
   useEffect(() => {
     let syncManager: UserSyncManager | null = null;

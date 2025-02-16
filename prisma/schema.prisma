@@ -136,22 +136,22 @@ model Order {
 }
 
 model Purchase {
-  id                  String      @id @default(auto()) @map("_id") @db.ObjectId
-  userId              String      @db.ObjectId
-  bookId              String      @db.ObjectId
-  paymentType         String
-  amountPaid          Float
-  booksBought         Int
-  fxckedUpBagsQty  Int? // Optional
-  humanRelationsQty Int? // Optional
-  createdAt           DateTime    @default(now())
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String        @db.ObjectId
+  bookId            String?       @db.ObjectId  // Make sure this is optional (has ?)
+  paymentType       String
+  amountPaid        Float
+  booksBought       Int
+  orderId           String?       @db.ObjectId  // Optional
+  fxckedUpBagsQty   Int?         // Optional
+  humanRelationsQty Int?         // Optional
+  createdAt         DateTime     @default(now())
 
   // Relations
-  user                User        @relation(fields: [userId], references: [id])
-  book                Book        @relation(fields: [bookId], references: [id])
-  codes               GeneratedCode[]
-  orderId             String?     @db.ObjectId // Foreign key to Order
-  order               Order?      @relation("OrderPurchases", fields: [orderId], references: [id])
+  user              User         @relation(fields: [userId], references: [id])
+  book              Book?        @relation(fields: [bookId], references: [id])  // Make optional
+  codes             GeneratedCode[]
+  order             Order?       @relation("OrderPurchases", fields: [orderId], references: [id])
 }
 
 
