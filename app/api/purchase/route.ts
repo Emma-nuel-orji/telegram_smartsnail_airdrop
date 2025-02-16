@@ -94,6 +94,15 @@ const requestSchema = z.object({
   
 });
 
+// console.log("Request Body:", req.body);
+// console.log("Query Params:", req.query);
+// console.log("Authenticated User:", req.user);
+
+
+// const orderId = generatedOrderId ? String(generatedOrderId) : undefined;
+// const userIdString = String(userId);
+// const bookIdString = bookId ? String(bookId) : "";
+
 
 
 export async function GET(req: NextRequest) {
@@ -182,6 +191,8 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
 }
 
 
+
+
 export async function POST(req: NextRequest): Promise<Response> {
   console.log("1. Starting POST request handling");
   
@@ -214,7 +225,12 @@ export async function POST(req: NextRequest): Promise<Response> {
     console.log("4. Validating schema");
     let validatedData;
     try {
-      validatedData = requestSchema.parse(data);  // Use 'data' instead of 'body'
+      if (!data.telegramId || !data.paymentMethod) {
+        return NextResponse.json({ error: "Missing required fields: telegramId or paymentMethod" }, { status: 400 });
+      }
+      
+      validatedData = requestSchema.parse(data);
+      
       console.log("5. Validated data:", validatedData);
     } catch (error) {
       console.error("Schema validation error:", error);
@@ -448,12 +464,12 @@ async function processPayment(
         const purchase = await prisma.$transaction(async (tx) => {
           const createdPurchase = await tx.purchase.create({
             data: {
-              userId,
+              userId: userId,
               paymentType: "TON",
               amountPaid: totalAmount,
               booksBought: bookCount,
               orderId: finalOrder.orderId,
-              bookId,
+              bookId: bookId,
               fxckedUpBagsQty,
               humanRelationsQty,
             },
@@ -549,12 +565,12 @@ async function updateDatabaseTransaction(
       if (!book) throw new Error(`Book with ID "${id}" not found.`);
       purchasedBooks.push({ bookId: book.id, quantity: qty });
     }
-
+  
     // Fetch or create user
     let user = await tx.user.findUnique({
       where: { telegramId: BigInt(telegramId) },
     });
-
+  
     if (!user) {
       user = await tx.user.create({
         data: {
@@ -567,33 +583,18 @@ async function updateDatabaseTransaction(
         },
       });
     }
-
-    // Validate codes
+  
+    // Validate codes before creating purchase
     const generatedCodes = await tx.generatedCode.findMany({
       where: { code: { in: codes } },
       select: { code: true, batchId: true },
     });
-
+  
     if (generatedCodes.length !== codes.length) {
       throw new Error("Some codes are invalid or missing a batchId.");
     }
-
-    // Create purchase first so we have the purchase ID
-    console.log("📌 Reached purchase creation function"); 
-
-    console.log("🛠 Data being inserted into Prisma:", {
-      userId: user.id,
-      paymentType: paymentMethod,
-      amountPaid: totalAmount,
-      booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
-      orderId: orderId ? orderId : null,
-      bookId: booksToPurchase.length === 1 ? booksToPurchase[0].id : "",
-      fxckedUpBagsQty:
-        booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
-      humanRelationsQty:
-        booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
-    });
-    
+  
+    // 📌 Create the purchase first
     const purchase = await tx.purchase.create({
       data: {
         userId: user.id,
@@ -608,18 +609,8 @@ async function updateDatabaseTransaction(
           booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
       },
     });
-    
-
-    // Update codes with purchase ID
-    await tx.generatedCode.updateMany({
-      where: { code: { in: codes } },
-      data: { 
-        isUsed: true,
-        purchaseId: purchase.id,
-      },
-    });
-
-    // Update user points and tapping rate
+  
+    // 📌 Update user points & tapping rate (AFTER purchase is created)
     await tx.user.update({
       where: { telegramId: BigInt(telegramId) },
       data: {
@@ -627,26 +618,35 @@ async function updateDatabaseTransaction(
         points: { increment: points },
       },
     });
-
-    // Handle referrer bonus
+  
+    // 📌 Handle referrer bonus (Only after successful purchase)
     if (referrerId && referrerId !== telegramId) {
       const referrer = await tx.user.findUnique({
         where: { telegramId: BigInt(referrerId) },
       });
-
+  
       if (!referrer) {
         throw new Error("Referrer ID does not exist.");
       }
-
+  
       const totalBooksPurchased = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
       const referrerReward = totalBooksPurchased * 20000;
-
+  
       await tx.user.update({
         where: { telegramId: BigInt(referrerId) },
         data: { points: { increment: referrerReward } },
       });
     }
-
+  
+    // 📌 Finally, mark the codes as used (AFTER all previous steps succeed)
+    await tx.generatedCode.updateMany({
+      where: { code: { in: codes } },
+      data: { 
+        isUsed: true,
+        purchaseId: purchase.id,
+      },
+    });
+    
     // Attempt to send purchase email with retry logic
     let retryCount = 0;
     while (retryCount < MAX_RETRIES) {
@@ -665,13 +665,4 @@ async function updateDatabaseTransaction(
   });
 }
 
-// ✅ Ensure this function is correctly defined
-async function sendPurchaseEmail(
-  email: string,
-  books: { bookId: string; quantity: number }[],
-  codes: string[]
-) {
-  console.log(`Sending email to ${email}...`);
-  return new Promise((resolve) => setTimeout(resolve, 1000)); // Simulated delay
 }
-};
