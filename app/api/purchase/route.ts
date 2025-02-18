@@ -458,7 +458,17 @@ async function processPayment(
           },
         });
       }
-
+      
+      const book = await prisma.book.findUnique({
+        where: { id: bookId },
+      });
+      
+      if (!book) {
+        throw new Error("Book not found");
+      }
+      
+      const coinsReward = book.coinsReward;
+      
       // 🔹 Create Purchase Record with Transaction
       try {
         const purchase = await prisma.$transaction(async (tx) => {
@@ -470,9 +480,10 @@ async function processPayment(
               amountPaid: totalAmount,
               booksBought: bookCount,
               orderReference: finalOrder.orderId,
-              bookId: bookId,
+               bookId: book.id,
               fxckedUpBagsQty,
               humanRelationsQty,
+              coinsReward: coinsReward 
             },
           });
 
@@ -595,6 +606,26 @@ async function updateDatabaseTransaction(
       throw new Error("Some codes are invalid or missing a batchId.");
     }
   
+    let totalCoinsReward = BigInt(0); // Initialize as BigInt
+
+if (booksToPurchase.length > 0) {
+  const bookIds = booksToPurchase.map((book) => book.id); // Extract book IDs
+
+  const books = await tx.book.findMany({
+    where: { id: { in: bookIds } }, // Fetch books in one query
+    select: { id: true, coinsReward: true },
+  });
+
+  // Sum up the total coinsReward as BigInt
+  totalCoinsReward = books.reduce(
+    (sum, book) => sum + BigInt(book.coinsReward ?? 0),
+    BigInt(0)
+  );
+}
+
+// Convert BigInt to Number if needed
+const coinsRewardNumber = Number(totalCoinsReward);
+   
     const purchaseData: {
       userId: string;
       paymentType: string;
@@ -603,6 +634,7 @@ async function updateDatabaseTransaction(
       fxckedUpBagsQty?: number;
       humanRelationsQty?: number;
       orderId?: string;
+      coinsReward: number; 
       bookId?: string;
       [key: string]: any;
     } = {
@@ -612,6 +644,7 @@ async function updateDatabaseTransaction(
       booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
       fxckedUpBagsQty: booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
       humanRelationsQty: booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
+      coinsReward: coinsRewardNumber, 
     };
     
     // Convert `bookId` safely

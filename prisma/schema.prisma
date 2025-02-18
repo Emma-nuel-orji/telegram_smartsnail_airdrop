@@ -147,6 +147,7 @@ model Purchase {
   fxckedUpBagsQty   Int?         // Optional
   humanRelationsQty Int?         // Optional
   createdAt         DateTime     @default(now())
+  coinsReward     BigInt
 
   // Relations
   user              User         @relation(fields: [userId], references: [id])
