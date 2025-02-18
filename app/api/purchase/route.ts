@@ -623,12 +623,9 @@ async function updateDatabaseTransaction(
     
     // Ensure `orderId` exists and is valid
     if (orderId) {
-      try {
-        purchaseData.orderId = new ObjectId(orderId).toString();
-      } catch (error) {
-        console.error("Invalid orderId format:", orderId);
-      }
+      purchaseData.orderId = orderId;
     }
+    
     
     // Remove `undefined` values
     Object.keys(purchaseData).forEach(

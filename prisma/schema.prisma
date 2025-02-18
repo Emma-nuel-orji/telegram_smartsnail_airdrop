@@ -122,7 +122,7 @@ model Book {
 
 
 model Order {
-  id                  String      @id @default(auto()) @map("_id") @db.ObjectId
+  id                  String       @id @default(cuid()) @map("_id") 
   orderId             String      @unique
   paymentMethod       String
   totalAmount         Float
@@ -142,7 +142,7 @@ model Purchase {
   paymentType       String
   amountPaid        Float
   booksBought       Int
-  orderId           String?       @db.ObjectId  // Optional
+  orderId           String?       
   fxckedUpBagsQty   Int?         // Optional
   humanRelationsQty Int?         // Optional
   createdAt         DateTime     @default(now())
