@@ -627,89 +627,88 @@ if (booksToPurchase.length > 0) {
 // Convert BigInt to Number if needed
 
    
-    const purchaseData: {
-      userId: string;
-      paymentType: string;
-      amountPaid: number;
-      booksBought: number;
-      fxckedUpBagsQty?: number;
-      humanRelationsQty?: number;
-      orderId?: string;
-      coinsReward: bigint;
-      bookId?: string;
-      [key: string]: any;
-    } = {
-      userId: user.id,
-      paymentType: paymentMethod,
-      amountPaid: totalAmount,
-      booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
-      fxckedUpBagsQty: booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
-      humanRelationsQty: booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
-      coinsReward: totalCoinsReward,  
-    };
-    purchaseData.coinsReward = totalCoinsReward;
+const purchaseData: {
+  userId: string;
+  paymentType: string;
+  amountPaid: number;
+  booksBought: number;
+  fxckedUpBagsQty?: number;
+  humanRelationsQty?: number;
+  orderReference?: string; // Use orderReference instead of orderId
+  coinsReward: bigint;
+  bookId?: string;
+  [key: string]: any;
+} = {
+  userId: user.id,
+  paymentType: paymentMethod,
+  amountPaid: totalAmount,
+  booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
+  fxckedUpBagsQty: booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
+  humanRelationsQty: booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
+  coinsReward: totalCoinsReward, // Ensure this is a bigint
+};
 
-    // Convert `bookId` safely
-    if (booksToPurchase.length === 1 && booksToPurchase[0].id) {
-      try {
-        purchaseData.bookId = new ObjectId(booksToPurchase[0].id).toString();
-      } catch (error) {
-        console.error("Invalid bookId format:", booksToPurchase[0].id);
-      }
+// Convert `bookId` safely
+if (booksToPurchase.length === 1 && booksToPurchase[0].id) {
+  try {
+    purchaseData.bookId = new ObjectId(booksToPurchase[0].id).toString();
+  } catch (error) {
+    console.error("Invalid bookId format:", booksToPurchase[0].id);
+    throw new Error(`Invalid bookId format: ${booksToPurchase[0].id}`);
+  }
+}
+
+// Ensure `orderReference` exists and is valid
+if (orderId) {
+  purchaseData.orderReference = orderId;
+} else {
+  // Generate a default orderReference if not provided
+  purchaseData.orderReference = `AUTO-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  console.log(`Generated orderReference: ${purchaseData.orderReference}`);
+}
+
+// Remove `undefined` values
+Object.keys(purchaseData).forEach(
+  (key) => purchaseData[key] === undefined && delete purchaseData[key]
+);
+
+// Debugging: Print final data before inserting
+const logData = { ...purchaseData, coinsReward: purchaseData.coinsReward.toString() };
+console.log("Final Purchase Data:", JSON.stringify(logData, null, 2));
+
+try {
+  const purchase = await tx.purchase.create({
+    data: purchaseData,
+  });
+  console.log("Purchase created successfully:", purchase.id);
+
+  // Update user points & tapping rate
+  await tx.user.update({
+    where: { telegramId: BigInt(telegramId) },
+    data: {
+      tappingRate: { increment: tappingRate },
+      points: { increment: points },
+    },
+  });
+
+  // Handle referrer bonus
+  if (referrerId && referrerId !== telegramId) {
+    const referrer = await tx.user.findUnique({
+      where: { telegramId: BigInt(referrerId) },
+    });
+
+    if (!referrer) {
+      throw new Error("Referrer ID does not exist.");
     }
 
-    // Ensure `orderId` exists and is valid
-    
-    if (orderId) {
-      purchaseData.orderReference = orderId;
-    } else {
-      // Generate a default orderReference if not provided
-      purchaseData.orderReference = `AUTO-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      console.log(`Generated orderReference: ${purchaseData.orderReference}`);
-    }  
-    
-    // Remove `undefined` values
-    Object.keys(purchaseData).forEach(
-      (key) => purchaseData[key] === undefined && delete purchaseData[key]
-    );
-    
-    // Debugging: Print final data before inserting
-    const logData = {...purchaseData, coinsReward: purchaseData.coinsReward.toString()};
-    console.log("Final Purchase Data:", JSON.stringify(logData, null, 2));
-    
-    try {
-      const purchase = await tx.purchase.create({
-        data: purchaseData,
-      });
-      console.log("Purchase created successfully:", purchase.id);
-      
-      // Update user points & tapping rate
-      await tx.user.update({
-        where: { telegramId: BigInt(telegramId) },
-        data: {
-          tappingRate: { increment: tappingRate },
-          points: { increment: points },
-        },
-      });
-    
-      // Handle referrer bonus
-      if (referrerId && referrerId !== telegramId) {
-        const referrer = await tx.user.findUnique({
-          where: { telegramId: BigInt(referrerId) },
-        });
-    
-        if (!referrer) {
-          throw new Error("Referrer ID does not exist.");
-        }
-    
-        const totalBooksPurchased = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
-        const referrerReward = totalBooksPurchased * 20000;
-    
-        await tx.user.update({
-          where: { telegramId: BigInt(referrerId) },
-          data: { points: { increment: referrerReward } },
-        });
-      }
+    const totalBooksPurchased = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
+    const referrerReward = totalBooksPurchased * 20000;
+
+    await tx.user.update({
+      where: { telegramId: BigInt(referrerId) },
+      data: { points: { increment: referrerReward } },
+    });
+  }
     
       // Mark codes as used
       await tx.generatedCode.updateMany({
