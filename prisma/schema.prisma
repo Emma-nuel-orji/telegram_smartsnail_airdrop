@@ -151,7 +151,7 @@ model Purchase {
   user              User         @relation(fields: [userId], references: [id])
   book              Book?        @relation(fields: [bookId], references: [id])  // Make optional
   codes             GeneratedCode[]
-  order             Order?       @relation("OrderPurchases", fields: [orderId], references: [id])
+   order             Order?       @relation("OrderPurchases", fields: [orderReference], references: [orderId])
 }
 
 
