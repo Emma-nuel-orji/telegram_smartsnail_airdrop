@@ -624,7 +624,7 @@ if (booksToPurchase.length > 0) {
 }
 
 // Convert BigInt to Number if needed
-const coinsRewardNumber = Number(totalCoinsReward);
+
    
     const purchaseData: {
       userId: string;
@@ -634,7 +634,7 @@ const coinsRewardNumber = Number(totalCoinsReward);
       fxckedUpBagsQty?: number;
       humanRelationsQty?: number;
       orderId?: string;
-      coinsReward: number; 
+      coinsReward: bigint;
       bookId?: string;
       [key: string]: any;
     } = {
@@ -644,9 +644,10 @@ const coinsRewardNumber = Number(totalCoinsReward);
       booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
       fxckedUpBagsQty: booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
       humanRelationsQty: booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
-      coinsReward: coinsRewardNumber, 
+      coinsReward: totalCoinsReward,  
     };
-    
+    purchaseData.coinsReward = totalCoinsReward;
+
     // Convert `bookId` safely
     if (booksToPurchase.length === 1 && booksToPurchase[0].id) {
       try {
@@ -672,7 +673,10 @@ if (orderId) {
     );
     
     // Debugging: Print final data before inserting
-    console.log("Final Purchase Data:", JSON.stringify(purchaseData, null, 2));
+    console.log("Final Purchase Data:", JSON.stringify(
+      {...purchaseData, coinsReward: purchaseData.coinsReward.toString()},
+      null, 2
+    ));
     
     const purchase = await tx.purchase.create({
       data: purchaseData
