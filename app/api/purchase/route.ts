@@ -468,7 +468,7 @@ async function processPayment(
               paymentType: "TON",
               amountPaid: totalAmount,
               booksBought: bookCount,
-              orderId: finalOrder.orderId, 
+              orderReference: finalOrder.orderId,
               bookId: bookId,
               fxckedUpBagsQty,
               humanRelationsQty,
@@ -478,6 +478,7 @@ async function processPayment(
           // Verify purchase was created successfully
           if (!createdPurchase) {
             throw new Error("Purchase creation failed");
+            
           }
 
           return createdPurchase;
