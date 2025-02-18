@@ -142,7 +142,7 @@ model Purchase {
   paymentType       String
   amountPaid        Float
   booksBought       Int
-  orderId           String?       
+  orderReference    String?        
   fxckedUpBagsQty   Int?         // Optional
   humanRelationsQty Int?         // Optional
   createdAt         DateTime     @default(now())

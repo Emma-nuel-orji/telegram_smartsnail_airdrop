@@ -622,9 +622,13 @@ async function updateDatabaseTransaction(
     }
     
     // Ensure `orderId` exists and is valid
-    if (orderId) {
-      purchaseData.orderId = orderId;
-    }
+    
+if (orderId) {
+  purchaseData.orderReference = orderId; // Use consistent field name!
+  console.log(`Including orderId in purchase data: ${orderId}`);
+} else {
+  console.log("Warning: No orderId provided for purchase");
+}
     
     
     // Remove `undefined` values
