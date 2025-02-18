@@ -388,132 +388,89 @@ async function processPayment(
   humanRelationsQty: number
 ) {
   try {
-    console.log("🛠️ Received processPayment request with data:", {
+    console.log("🛠️ Received processPayment request:", {
       paymentMethod,
       paymentReference,
       totalAmount,
       redirectUrl,
     });
 
-    // Check if paymentReference is missing
     if (!paymentReference) {
-      console.warn("⚠️ Missing paymentReference! Creating a new order in PENDING state.");
+      console.warn("⚠️ Missing paymentReference! Creating PENDING order.");
       const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const newOrder = await prisma.order.create({
-        data: {
-          orderId,
-          paymentMethod,
-          totalAmount,
-          status: "PENDING",
-          transactionReference: null,
-        },
+        data: { orderId, paymentMethod, totalAmount, status: "PENDING" },
       });
-
-      console.log("✅ New PENDING order created:", { orderId: newOrder.orderId });
       return { orderId: newOrder.orderId };
     }
 
-    // 🔹 TON Payment Verification Flow
     if (paymentMethod === "TON") {
-      console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
-      
+      console.log("🔍 Verifying TON payment:", paymentReference);
       const isTonPaymentValid = await verifyTonPayment(paymentReference, totalAmount);
-      if (!isTonPaymentValid) {
-        console.error("❌ TON payment verification failed: Invalid transaction.");
-        throw new Error("TON payment verification failed: Invalid transaction");
-      }
+      if (!isTonPaymentValid) throw new Error("TON payment verification failed");
 
-      // 🔹 Check for existing order
-      console.log("🔍 Searching for existing order with reference:", paymentReference);
       const existingOrder = await prisma.order.findFirst({
-        where: {
-          OR: [
-            { orderId: paymentReference },
-            { transactionReference: paymentReference }
-          ]
-        },
+        where: { OR: [{ orderId: paymentReference }, { transactionReference: paymentReference }] },
       });
 
       let finalOrder;
       if (!existingOrder) {
-        console.log("⚠️ No existing order found. Creating a new order.");
-        const newOrderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        console.log("⚠️ No existing order. Creating new SUCCESS order.");
         finalOrder = await prisma.order.create({
           data: {
-            orderId: newOrderId,
+            orderId: `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`,
             paymentMethod,
             totalAmount,
             status: "SUCCESS",
             transactionReference: paymentReference,
           },
         });
-        console.log("✅ New SUCCESS order created:", finalOrder);
       } else {
-        console.log("✅ Existing order found. Updating order status to SUCCESS.");
+        console.log("✅ Updating existing order to SUCCESS.");
         finalOrder = await prisma.order.update({
           where: { orderId: existingOrder.orderId },
-          data: {
-            status: "SUCCESS",
-            transactionReference: paymentReference,
-          },
+          data: { status: "SUCCESS", transactionReference: paymentReference },
         });
       }
-      
+
+      console.log("✅ Order processed successfully:", finalOrder);
+
       const book = await prisma.book.findUnique({
         where: { id: bookId },
       });
       
       if (!book) {
-        throw new Error("Book not found");
+        throw new Error(`Book with ID "${bookId}" not found.`);
       }
-      
-      const coinsReward = book.coinsReward;
-      
-      // 🔹 Create Purchase Record with Transaction
-      try {
-        const purchase = await prisma.$transaction(async (tx) => {
-          const orderReference = finalOrder?.orderId || "PENDING";
-          const createdPurchase = await tx.purchase.create({
-            data: {
-              userId: new ObjectId(userId).toString(),
-              paymentType: "TON",
-              amountPaid: parseFloat(totalAmount.toString()),
-              booksBought: bookCount,
-              orderReference: finalOrder.orderId,
-              bookId: book?.id ? new ObjectId(book.id).toString() : null,
-              fxckedUpBagsQty,
-              humanRelationsQty,
-              coinsReward: Number(coinsReward),
-            },
-          });
 
-          // Verify purchase was created successfully
-          if (!createdPurchase) {
-            throw new Error("Purchase creation failed");
+      // Call updateDatabaseTransaction to handle purchase creation
+      const purchase = await updateDatabaseTransaction(
+        [{
+          id: bookId, qty: bookCount,
+          title: '',
+          bookId: '',
+          book: book
+        }],
+        [],
+        userId,
+        "", // No email in this flow
+        paymentMethod,
+        totalAmount,
+        0, // No tappingRate provided in this context
+        0, // No points provided in this context
+        finalOrder.orderId
+      );
 
-          }
-
-          return createdPurchase;
-        });
-
-        console.log("✅ Purchase record created:", purchase);
-        
-        return {
-          success: true,
-          message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
-          orderId: finalOrder.orderId,
-          purchaseId: purchase.id
-        };
-      } catch (error) {
-        console.error("❌ Failed to create purchase record:", error);
-        // Roll back the order status if purchase creation fails
-        await prisma.order.update({
-          where: { orderId: finalOrder.orderId },
-          data: { status: "FAILED" }
-        });
-        throw new Error("Failed to create purchase record");
-      }
+      return {
+        success: true,
+        message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
+        orderId: finalOrder.orderId,
+        purchaseId: purchase.id,
+      };
     }
+
+   
+
 
     // CARD payment flow
     if (paymentMethod === "CARD") {
