@@ -475,15 +475,15 @@ async function processPayment(
           const orderReference = finalOrder?.orderId || "PENDING";
           const createdPurchase = await tx.purchase.create({
             data: {
-              userId: userId,
+              userId: new ObjectId(userId).toString(),
               paymentType: "TON",
               amountPaid: totalAmount,
               booksBought: bookCount,
               orderReference: finalOrder.orderId,
-               bookId: book.id,
+              bookId: book?.id ? new ObjectId(book.id).toString() : null,
               fxckedUpBagsQty,
               humanRelationsQty,
-              coinsReward: coinsReward 
+              coinsReward: BigInt(coinsReward),
             },
           });
 
