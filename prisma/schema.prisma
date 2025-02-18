@@ -133,7 +133,8 @@ model Order {
   // Relationships
   purchases           Purchase[]  @relation("OrderPurchases") // One-to-many relation to Purchase
   pendingTransactions PendingTransaction[]
-}
+} 
+
 
 model Purchase {
   id                String        @id @default(auto()) @map("_id") @db.ObjectId
