@@ -477,13 +477,13 @@ async function processPayment(
             data: {
               userId: new ObjectId(userId).toString(),
               paymentType: "TON",
-              amountPaid: totalAmount,
+              amountPaid: parseFloat(totalAmount.toString()),
               booksBought: bookCount,
               orderReference: finalOrder.orderId,
               bookId: book?.id ? new ObjectId(book.id).toString() : null,
               fxckedUpBagsQty,
               humanRelationsQty,
-              coinsReward: BigInt(coinsReward),
+              coinsReward: Number(coinsReward),
             },
           });
 
