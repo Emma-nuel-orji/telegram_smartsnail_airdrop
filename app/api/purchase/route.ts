@@ -621,8 +621,9 @@ if (booksToPurchase.length > 0) {
     (sum, book) => sum + BigInt(book.coinsReward ?? 0),
     BigInt(0)
   );
+  // purchaseData.coinsReward = totalCoinsReward;
 }
-
+  
 // Convert BigInt to Number if needed
 
    
@@ -656,16 +657,16 @@ if (booksToPurchase.length > 0) {
         console.error("Invalid bookId format:", booksToPurchase[0].id);
       }
     }
-    
+
     // Ensure `orderId` exists and is valid
     
-if (orderId) {
-  purchaseData.orderReference = orderId; // Use consistent field name!
-  console.log(`Including orderId in purchase data: ${orderId}`);
-} else {
-  console.log("Warning: No orderId provided for purchase");
-}
-    
+    if (orderId) {
+      purchaseData.orderReference = orderId;
+    } else {
+      // Generate a default orderReference if not provided
+      purchaseData.orderReference = `AUTO-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      console.log(`Generated orderReference: ${purchaseData.orderReference}`);
+    }  
     
     // Remove `undefined` values
     Object.keys(purchaseData).forEach(
@@ -673,69 +674,86 @@ if (orderId) {
     );
     
     // Debugging: Print final data before inserting
-    console.log("Final Purchase Data:", JSON.stringify(
-      {...purchaseData, coinsReward: purchaseData.coinsReward.toString()},
-      null, 2
-    ));
+    const logData = {...purchaseData, coinsReward: purchaseData.coinsReward.toString()};
+    console.log("Final Purchase Data:", JSON.stringify(logData, null, 2));
     
-    const purchase = await tx.purchase.create({
-      data: purchaseData
-    });
-    
-  
-    // Update user points & tapping rate
-    await tx.user.update({
-      where: { telegramId: BigInt(telegramId) },
-      data: {
-        tappingRate: { increment: tappingRate },
-        points: { increment: points },
-      },
-    });
-  
-    // Handle referrer bonus
-    if (referrerId && referrerId !== telegramId) {
-      const referrer = await tx.user.findUnique({
-        where: { telegramId: BigInt(referrerId) },
+    try {
+      const purchase = await tx.purchase.create({
+        data: purchaseData,
       });
-  
-      if (!referrer) {
-        throw new Error("Referrer ID does not exist.");
-      }
-  
-      const totalBooksPurchased = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
-      const referrerReward = totalBooksPurchased * 20000;
-  
+      console.log("Purchase created successfully:", purchase.id);
+      
+      // Update user points & tapping rate
       await tx.user.update({
-        where: { telegramId: BigInt(referrerId) },
-        data: { points: { increment: referrerReward } },
+        where: { telegramId: BigInt(telegramId) },
+        data: {
+          tappingRate: { increment: tappingRate },
+          points: { increment: points },
+        },
       });
-    }
-  
-    // Mark codes as used
-    await tx.generatedCode.updateMany({
-      where: { code: { in: codes } },
-      data: { 
-        isUsed: true,
-        purchaseId: purchase.id,
-      },
-    });
-
-    // Send email with retry logic
-    let retryCount = 0;
-    while (retryCount < MAX_RETRIES) {
-      try {
-        await sendPurchaseEmail(email, purchasedBooks, codes);
-        break;
-      } catch (emailError) {
-        retryCount++;
-        if (retryCount === MAX_RETRIES) {
-          throw new Error("Failed to send email after maximum retries.");
+    
+      // Handle referrer bonus
+      if (referrerId && referrerId !== telegramId) {
+        const referrer = await tx.user.findUnique({
+          where: { telegramId: BigInt(referrerId) },
+        });
+    
+        if (!referrer) {
+          throw new Error("Referrer ID does not exist.");
+        }
+    
+        const totalBooksPurchased = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
+        const referrerReward = totalBooksPurchased * 20000;
+    
+        await tx.user.update({
+          where: { telegramId: BigInt(referrerId) },
+          data: { points: { increment: referrerReward } },
+        });
+      }
+    
+      // Mark codes as used
+      await tx.generatedCode.updateMany({
+        where: { code: { in: codes } },
+        data: { 
+          isUsed: true,
+          purchaseId: purchase.id,
+        },
+      });
+    
+      // Send email with retry logic
+      let retryCount = 0;
+      while (retryCount < MAX_RETRIES) {
+        try {
+          await sendPurchaseEmail(email, purchasedBooks, codes);
+          break;
+        } catch (emailError) {
+          retryCount++;
+          if (retryCount === MAX_RETRIES) {
+            throw new Error("Failed to send email after maximum retries.");
+          }
         }
       }
+      
+    
+      
+      return user;
+      
+    } catch (error) {
+      // Handle the 'error is of type unknown' issue by type checking
+      if (error instanceof Error) {
+        console.error("Purchase creation error details:", {
+          error: error.message,
+          code: (error as any).code, // Type assertion for potential Prisma error properties
+          meta: (error as any).meta,
+          data: logData,
+        });
+      } else {
+        console.error("Unknown error type:", error);
+      }
+      throw error;
     }
-
-    return user;
+    
   });
-}
 
+}
 }
