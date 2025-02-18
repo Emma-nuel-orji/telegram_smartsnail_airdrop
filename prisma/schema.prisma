@@ -140,7 +140,7 @@ model Purchase {
   id                String        @id @default(auto()) @map("_id") @db.ObjectId
   userId            String        @db.ObjectId
   bookId            String?       @db.ObjectId  
-  paymentType       PaymentType
+  paymentType       String
   amountPaid        Float
   booksBought       Int
   orderReference    String?        
