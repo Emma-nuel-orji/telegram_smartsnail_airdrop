@@ -442,6 +442,7 @@ async function processPayment(
       if (!book) {
         throw new Error(`Book with ID "${bookId}" not found.`);
       }
+      
 
       // Call updateDatabaseTransaction to handle purchase creation
       const purchase = await updateDatabaseTransaction(
