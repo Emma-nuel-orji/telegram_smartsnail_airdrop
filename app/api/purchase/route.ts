@@ -462,6 +462,7 @@ async function processPayment(
       // 🔹 Create Purchase Record with Transaction
       try {
         const purchase = await prisma.$transaction(async (tx) => {
+          const orderReference = finalOrder?.orderId || "PENDING";
           const createdPurchase = await tx.purchase.create({
             data: {
               userId: userId,
@@ -478,7 +479,7 @@ async function processPayment(
           // Verify purchase was created successfully
           if (!createdPurchase) {
             throw new Error("Purchase creation failed");
-            
+
           }
 
           return createdPurchase;
