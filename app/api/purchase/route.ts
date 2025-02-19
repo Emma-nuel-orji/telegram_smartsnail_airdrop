@@ -44,6 +44,20 @@ interface Order {
   updatedAt: Date;
 }
 
+interface PurchaseData {
+  _id?: ObjectId;
+  userId: ObjectId;
+  bookId: ObjectId;
+  paymentType: string;
+  amountPaid: number;
+  booksBought: number;
+  orderReference: string;
+  fxckedUpBagsQty: number;
+  humanRelationsQty: number;
+  coinsReward: number;
+  createdAt: Date;
+}
+
 interface PendingTransaction {
   id: string;
   orderId: string;
