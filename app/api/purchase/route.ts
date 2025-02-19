@@ -473,28 +473,40 @@ export async function POST(req: NextRequest): Promise<Response> {
         try {
           const purchase = await prisma.$transaction(async (tx) => {
             const orderReference = finalOrder?.orderId || "PENDING";
-            const userObjectId = new ObjectId(userId);
-            const bookObjectId = new ObjectId(bookId);
+            
+            new ObjectId(userId);
+            new ObjectId(bookId);
+    
+            const purchaseData = {
+              // Keep IDs as strings for Prisma
+              userId: userId,
+              bookId: bookId,
+              
+              // String field - no casting needed
+              paymentType: "TON",
+              orderReference: finalOrder.orderId,
+              
+              // Cast all numeric fields to integers using Math.floor
+              amountPaid: Math.floor(Number(totalAmount)),
+              booksBought: Math.floor(Number(bookCount)),
+              fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
+              humanRelationsQty: Math.floor(Number(humanRelationsQty)),
+              coinsReward: Math.floor(Number(coinsReward)),
+              
+              // Add createdAt explicitly
+              createdAt: new Date()
+            };
+    
+            console.log("Final Purchase Data:", JSON.stringify(purchaseData, null, 2));
+    
             const createdPurchase = await tx.purchase.create({
-              data: {
-                userId: userObjectId.toString(),
-                paymentType: "TON",
-                amountPaid: parseFloat(totalAmount.toString()),
-                booksBought: bookCount,
-                orderReference: finalOrder.orderId,
-                bookId: bookObjectId.toString(),
-                fxckedUpBagsQty: Math.floor(fxckedUpBagsQty),
-                humanRelationsQty: Math.floor(humanRelationsQty),
-                coinsReward: Math.floor(Number(coinsReward)),
-              },
+              data: purchaseData
             });
-
-            // Verify purchase was created successfully
+    
             if (!createdPurchase) {
               throw new Error("Purchase creation failed");
-
             }
-
+    
             return createdPurchase;
           });
 
