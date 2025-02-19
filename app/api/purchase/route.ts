@@ -502,7 +502,7 @@ export async function POST(req: NextRequest): Promise<Response> {
               booksBought: Math.floor(Number(bookCount)),
               fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
               humanRelationsQty: Math.floor(Number(humanRelationsQty)),
-              coinsReward: BigInt(Math.floor(Number(coinsReward))),
+              coinsReward: (Math.floor(Number(coinsReward))),
 
               
               // Add createdAt explicitly
