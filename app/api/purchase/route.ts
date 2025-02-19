@@ -482,7 +482,7 @@ export async function POST(req: NextRequest): Promise<Response> {
               userId: userId,
               bookId: bookId,
               
-              // String field - no casting needed
+            
               paymentType: "TON",
               orderReference: finalOrder.orderId,
               amountPaid: Math.floor(Number(totalAmount)),
