@@ -485,8 +485,6 @@ export async function POST(req: NextRequest): Promise<Response> {
               // String field - no casting needed
               paymentType: "TON",
               orderReference: finalOrder.orderId,
-              
-              // Cast all numeric fields to integers using Math.floor
               amountPaid: Math.floor(Number(totalAmount)),
               booksBought: Math.floor(Number(bookCount)),
               fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
