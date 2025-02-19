@@ -493,11 +493,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     
             const purchaseData = {
               // Keep IDs as strings for Prisma
-              userId: userId,
-              bookId: bookId,
+              userId: new ObjectId(userId).toString(), 
+              bookId: bookId ? new ObjectId(bookId).toString() : null,
       
               paymentType: "TON",
-              orderReference: finalOrder.orderId,
+              orderReference: finalOrder?.orderId ?? null,
               amountPaid: Math.floor(Number(totalAmount)),
               booksBought: Math.floor(Number(bookCount)),
               fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
@@ -508,7 +508,12 @@ export async function POST(req: NextRequest): Promise<Response> {
               createdAt: new Date()
             };
     
-            console.log("Final Purchase Data:", JSON.stringify(purchaseData, null, 2));
+            const safePurchaseData = JSON.parse(JSON.stringify(purchaseData, (_, value) =>
+              typeof value === "bigint" ? value.toString() : value
+            ));
+            
+            console.log("Final Purchase Data:", safePurchaseData);
+            
     
             const createdPurchase = await tx.purchase.create({
               data: purchaseData
