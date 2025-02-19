@@ -502,17 +502,21 @@ export async function POST(req: NextRequest): Promise<Response> {
               booksBought: Math.floor(Number(bookCount)),
               fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
               humanRelationsQty: Math.floor(Number(humanRelationsQty)),
-              coinsReward: Math.floor(Number(coinsReward)),
+              coinsReward: BigInt(Math.floor(Number(coinsReward))),
+
               
               // Add createdAt explicitly
               createdAt: new Date()
             };
     
-            const safePurchaseData = JSON.parse(JSON.stringify(purchaseData, (_, value) =>
-              typeof value === "bigint" ? value.toString() : value
-            ));
-            
-            console.log("Final Purchase Data:", safePurchaseData);
+            console.log(
+              "Final Purchase Data:",
+              JSON.parse(
+                JSON.stringify(purchaseData, (_, value) =>
+                  typeof value === "bigint" ? value.toString() : value
+                )
+              )
+            );
             
     
             const createdPurchase = await tx.purchase.create({
