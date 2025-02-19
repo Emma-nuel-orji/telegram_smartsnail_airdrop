@@ -669,7 +669,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         fxckedUpBagsQty?: number;
         humanRelationsQty?: number;
         orderReference?: string; // Use orderReference instead of orderId
-        coinsReward: bigint;
+        coinsReward: number;
         bookId?: string;
         [key: string]: any;
       } = {
@@ -679,7 +679,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         booksBought: booksToPurchase.reduce((sum, book) => sum + book.qty, 0),
         fxckedUpBagsQty: booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
         humanRelationsQty: booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
-        coinsReward: totalCoinsReward, // Ensure this is a bigint
+        coinsReward: Number(totalCoinsReward), 
       };
 
       // Convert `bookId` safely
