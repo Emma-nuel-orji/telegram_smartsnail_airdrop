@@ -416,6 +416,8 @@ async function processPayment(
       let finalOrder;
       if (!existingOrder) {
         console.log("⚠️ No existing order. Creating new SUCCESS order.");
+        // console.log("Final Purchase Data before insert:", JSON.stringify(purchaseData, null, 2));
+
         finalOrder = await prisma.order.create({
           data: {
             orderId: `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`,
@@ -442,7 +444,7 @@ async function processPayment(
       if (!book) {
         throw new Error(`Book with ID "${bookId}" not found.`);
       }
-      
+
 
       // Call updateDatabaseTransaction to handle purchase creation
       const purchase = await updateDatabaseTransaction(
@@ -604,6 +606,7 @@ const purchaseData: {
   fxckedUpBagsQty: booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"))?.qty || 0,
   humanRelationsQty: booksToPurchase.find((book) => book.title === "Human Relations")?.qty || 0,
   coinsReward: totalCoinsReward, // Ensure this is a bigint
+  createdAt: new Date(), 
 };
 
 // Convert `bookId` safely
