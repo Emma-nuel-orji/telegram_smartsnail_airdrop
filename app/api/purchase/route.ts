@@ -653,7 +653,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
       if (generatedCodes.length !== codes.length) {
         throw new Error("Some codes are invalid or missing a batchId.");
       }
-
+ 
       let totalCoinsReward = 0;
 
       if (booksToPurchase.length > 0) {
