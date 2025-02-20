@@ -604,6 +604,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
   }
 
+  
   async function updateDatabaseTransaction(
     booksToPurchase: BookPurchaseInfo[],
     codes: string[],
