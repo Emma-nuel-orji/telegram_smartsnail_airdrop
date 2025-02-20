@@ -23,9 +23,9 @@ interface StockCalculationResult {
 interface BookPurchaseInfo {
   title: string;
   qty: number;
-  id: string; // Make this required
-  bookId: string; // Make this required
-  book: Book; // Make this required
+  id: string; 
+  bookId: string; 
+  book: Omit<Book, 'coinsReward'> & { coinsReward: number };
 }
 
 interface Order {
@@ -57,6 +57,8 @@ interface PurchaseData {
   coinsReward: number;
   createdAt: Date;
 }
+
+
 
 interface PendingTransaction {
   id: string;
@@ -93,10 +95,10 @@ const requestSchema = z.object({
   email: z.string().email(),
   paymentMethod: z.enum(["TON", "CARD"]),
   bookCount: z.number().int().nonnegative(),
-  tappingRate: z.number().nonnegative(),           // Changed to match schema
-  coinsReward: z.number().nonnegative(),           // Changed to match schema
-  priceTon: z.number().nonnegative(),              // Changed to match schema
-  priceStars: z.number().int().nonnegative(),      // Changed to match schema
+  tappingRate: z.number().nonnegative(),           
+  coinsReward: z.number().int().nonnegative(),           
+  priceTon: z.number().nonnegative(),              
+  priceStars: z.number().int().nonnegative(),      
   fxckedUpBagsQty: z.number().int().nonnegative().optional().default(0),
   humanRelationsQty: z.number().int().nonnegative().optional().default(0),
   telegramId: z.string().optional().default(""),
@@ -182,12 +184,22 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
         return null;
       }
 
+      const convertedBook = {
+        ...book,
+        coinsReward: Number(book.coinsReward),
+        priceCard: Number(book.priceCard),
+        priceTon: Number(book.priceTon)
+      };
+
       return {
         qty,
         id: book.id,
         title: book.title,
         bookId: book.id,
-        book // Make sure book object is included
+        book: {
+          ...book,
+          coinsReward: Number(book.coinsReward) // Convert bigint to number
+        }
       };
     })
     .filter((info): info is BookPurchaseInfo => info !== null);
@@ -198,12 +210,21 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
 
   console.log("Final booksToPurchase:", booksToPurchase);
 
-  // Create bookMap from the books array
-  const bookMap = Object.fromEntries(books.map(book => [book.title, book]));
+  // Create bookMap with converted coinsReward
+  const bookMap = Object.fromEntries(
+    books.map(book => [
+      book.title,
+      {
+        ...book,
+        coinsReward: Number(book.coinsReward),
+        priceCard: Number(book.priceCard),
+        priceTon: Number(book.priceTon)
+      }
+    ])
+  );
 
   return { booksToPurchase, bookMap };
 }
-
 
 export async function POST(req: NextRequest): Promise<Response> {
   console.log("1. Starting POST request handling");
@@ -338,7 +359,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
 
   async function validateStockAndCalculateTotals(
-    booksToPurchase: BookPurchaseInfo[], bookMap: { [k: string]: { tappingRate: number; coinsReward: bigint; priceTon: number; priceStars: number; id: string; description: string; author: string; priceCard: number; stockLimit: number; title: string; usedStock: number; }; }, paymentMethod: string): Promise<StockCalculationResult> {
+    booksToPurchase: BookPurchaseInfo[], bookMap: { [k: string]: { tappingRate: number; coinsReward: number; priceTon: number; priceStars: number; id: string; description: string; author: string; priceCard: number; stockLimit: number; title: string; usedStock: number; }; }, paymentMethod: string): Promise<StockCalculationResult> {
     let totalAmount = 0;
     let tappingRate = 0;
     let points = 0;

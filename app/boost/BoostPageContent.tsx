@@ -28,7 +28,7 @@ interface StockLimit {
 interface BookSchema {
   id: string;
   author: string;
-  coinsReward: bigint;
+  coinsReward: number;
   description: string;
   priceCard: number;
   priceStars: number;
