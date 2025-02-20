@@ -656,7 +656,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         throw new Error("Some codes are invalid or missing a batchId.");
       }
 
-      let totalCoinsReward = BigInt(0); // Initialize as BigInt
+      let totalCoinsReward = 0;
 
       if (booksToPurchase.length > 0) {
         const bookIds = booksToPurchase.map((book) => book.id); // Extract book IDs
@@ -668,10 +668,9 @@ export async function POST(req: NextRequest): Promise<Response> {
 
         // Sum up the total coinsReward as BigInt
         totalCoinsReward = books.reduce(
-          (sum, book) => sum + BigInt(book.coinsReward ?? 0),
-          BigInt(0)
+          (sum, book) => sum + Number(book.coinsReward ?? 0),
+          0
         );
-        // purchaseData.coinsReward = totalCoinsReward;
       }
 
       // Convert BigInt to Number if needed
