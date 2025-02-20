@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 import { prisma } from '@/lib/prisma';
-import { PrismaClient, Book } from '@prisma/client';
+import { PrismaClient, Book, Prisma } from '@prisma/client';
 import {
   verifyTonPayment,
   initiateFlutterwavePayment,
@@ -106,7 +106,7 @@ const requestSchema = z.object({
   // paymentReference: z.string().nullable(),
   paymentReference: z.string().optional().default(""),
   bookIds: z.array(z.string()).optional().default([]),
-  orderId: z.string().optional(),
+   orderId: z.string().nullable().optional(),
 
 });
 
@@ -278,65 +278,76 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
 
 
-    console.log("6. Checking purchase quantities");
-    if (validatedData.fxckedUpBagsQty < 0 || validatedData.humanRelationsQty < 0) {
-      throw new Error("Invalid purchase quantities");
-    }
+    const result = await prisma.$transaction(async (tx) => {
+      // Prepare purchase data
+      const { booksToPurchase, bookMap } = await preparePurchaseData(
+        validatedData.fxckedUpBagsQty,
+        validatedData.humanRelationsQty
+      );
 
-    console.log("7. Preparing purchase data");
-    const { booksToPurchase, bookMap } = await preparePurchaseData(
-      validatedData.fxckedUpBagsQty,
-      validatedData.humanRelationsQty
-    );
+     // Validate stock and calculate totals
+      const stockResults = await validateStockAndCalculateTotals(
+        tx,
+        booksToPurchase,
+        bookMap,
+        validatedData.paymentMethod
+      );
 
-    const stockResults = await validateStockAndCalculateTotals(
-      booksToPurchase,
-      bookMap,
-      validatedData.paymentMethod
-    );
-
-    const paymentResult = await processPayment(
-      validatedData.paymentMethod,
-      validatedData.paymentReference || "",
-      stockResults.totalAmount,
-      process.env.NEXT_PUBLIC_REDIRECT_URL || '',
-      validatedData.telegramId,
-      validatedData.bookCount,
-      Array.isArray(validatedData.bookIds) && validatedData.bookIds.length > 0
-        ? validatedData.bookIds[0]
-        : "",
-      validatedData.fxckedUpBagsQty,
-      validatedData.humanRelationsQty
-    );
+    // Process payment
+      const paymentResult = await processPayment(
+        tx,
+        validatedData.paymentMethod,
+        validatedData.paymentReference || "",
+        stockResults.totalAmount,
+        process.env.NEXT_PUBLIC_REDIRECT_URL || '',
+        validatedData.telegramId,
+        validatedData.bookCount,
+        Array.isArray(validatedData.bookIds) && validatedData.bookIds.length > 0
+          ? validatedData.bookIds[0]
+          : "",
+        validatedData.fxckedUpBagsQty,
+        validatedData.humanRelationsQty
+      );
 
 
     const userResult = await updateDatabaseTransaction(
-      booksToPurchase,
-      stockResults.codes,
-      validatedData.telegramId,
-      validatedData.email,
-      validatedData.paymentMethod,
-      stockResults.totalAmount,
-      stockResults.tappingRate,
-      stockResults.points,
-      validatedData.referrerId,
-      validatedData.orderId,
-    );
+        tx,
+        booksToPurchase,
+        stockResults.codes,
+        validatedData.telegramId,
+        validatedData.email,
+        validatedData.paymentMethod,
+        stockResults.totalAmount,
+        stockResults.tappingRate,
+        stockResults.points,
+        validatedData.orderId,
+        validatedData.referrerId
+      );
+ const safeUser = {
+        ...userResult,
+        telegramId: userResult.telegramId.toString(),
+        id: userResult.id.toString(),
+        points: Number(userResult.points),
+        tappingRate: Number(userResult.tappingRate)
+      };
 
-    return new NextResponse(JSON.stringify({
-      success: true,
-      message: "Purchase completed successfully",
-      orderId: paymentResult.orderId,
-      stockStatus: stockResults.updatedStocks,
-      userUpdate: userResult
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      return {
+        success: true,
+        message: "Purchase completed successfully",
+        orderId: paymentResult.orderId,
+        stockStatus: stockResults.updatedStocks,
+        userUpdate: safeUser
+      };
+    }, {
+      timeout: 30000,
+      maxWait: 5000
     });
+
+    return NextResponse.json(result);
+
   } catch (error) {
     console.error("Error in purchase processing:", error);
-
-    // Properly type the error response
+    
     let statusCode = 500;
     let errorMessage = "An unknown error occurred";
 
@@ -345,54 +356,40 @@ export async function POST(req: NextRequest): Promise<Response> {
       errorMessage = "Validation error";
     } else if (error instanceof Error) {
       errorMessage = error.message;
-      // You can add more specific error type checks here
       statusCode = error.name === 'ValidationError' ? 400 : 500;
     }
 
-    return new NextResponse(JSON.stringify({
+    return NextResponse.json({
       success: false,
       error: errorMessage,
-    }), {
-      status: statusCode,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }, { status: statusCode });
   }
+}
 
-
+type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>;
   async function validateStockAndCalculateTotals(
-    booksToPurchase: BookPurchaseInfo[], bookMap: { [k: string]: { tappingRate: number; coinsReward: number; priceTon: number; priceStars: number; id: string; description: string; author: string; priceCard: number; stockLimit: number; title: string; usedStock: number; }; }, paymentMethod: string): Promise<StockCalculationResult> {
-    let totalAmount = 0;
-    let tappingRate = 0;
-    let points = 0;
-    const codes: string[] = [];
+  tx: Prisma.TransactionClient,
+  booksToPurchase: BookPurchaseInfo[],
+  bookMap: { [k: string]: any },
+  paymentMethod: string
+): Promise<StockCalculationResult> {
+  let totalAmount = 0;
+  let tappingRate = 0;
+  let points = 0;
+  const codes: string[] = [];
+  let totalQty = 0;
+  let updatedStocks: Array<{ title: string; stockStatus: string }> = [];
 
-    // Go through the books and calculate total quantity
-    let totalQty = 0;
-    let updatedStocks: Array<{ title: string; stockStatus: string }> = [];
-
-    for (const purchaseInfo of booksToPurchase) {
-      const { qty, book } = purchaseInfo;
-
-      // Validate book data
-      if (!book) {
-        console.error(`Missing book data for ${purchaseInfo.title}`);
-        throw new Error(`Book details not found for ${purchaseInfo.title}`);
-      }
-
-      // Add the quantity of books to the total quantity
-      totalQty += qty;
-
-      const bookTappingRate = book.tappingRate || 0;
-      const bookPoints = book.coinsReward || 0;
-
-      tappingRate += qty * bookTappingRate;
-
-      // Convert all values to number for consistent calculation
-      points += qty * Number(bookPoints);
-
-      // Calculate total amount based on payment method
-      totalAmount += qty * (paymentMethod === "TON" ? 1 : 2.3);
+  for (const purchaseInfo of booksToPurchase) {
+    const { qty, book } = purchaseInfo;
+    if (!book) {
+      throw new Error(`Book details not found for ${purchaseInfo.title}`);
     }
+    totalQty += qty;
+    tappingRate += qty * (book.tappingRate || 0);
+    points += qty * Number(book.coinsReward || 0);
+    totalAmount += qty * (paymentMethod === "TON" ? 1 : 2.3);
+  }
 
     // Fetch the unused codes based on the total quantity of books to purchase
     const availableCodes = await prisma.generatedCode.findMany({
@@ -410,17 +407,18 @@ export async function POST(req: NextRequest): Promise<Response> {
     return { totalAmount, tappingRate, points, codes, updatedStocks };
 
   }
-  async function processPayment(
-    paymentMethod: string,
-    paymentReference: string | null,
-    totalAmount: number,
-    redirectUrl: string,
-    userId: string,
-    bookCount: number,
-    bookId: string,
-    fxckedUpBagsQty: number,
-    humanRelationsQty: number
-  ) {
+ async function processPayment(
+  tx: Prisma.TransactionClient, 
+  paymentMethod: string,
+  paymentReference: string | null,
+  totalAmount: number,
+  redirectUrl: string,
+  userId: string,
+  bookCount: number,
+  bookId: string,
+  fxckedUpBagsQty: number,
+  humanRelationsQty: number
+) {
     try {
       console.log("🛠️ Received processPayment request with data:", {
         paymentMethod,
@@ -606,6 +604,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
 
   async function updateDatabaseTransaction(
+    tx: Prisma.TransactionClient, 
     booksToPurchase: BookPurchaseInfo[],
     codes: string[],
     telegramId: string,
@@ -614,20 +613,18 @@ export async function POST(req: NextRequest): Promise<Response> {
     totalAmount: number,
     tappingRate: number,
     points: number,
-    orderId: string | null,
+   orderId: string | null | undefined, 
     referrerId?: string
   ) {
     const MAX_RETRIES = 3;
 
-    return prisma.$transaction(async (tx) => {
-      // Validate books first
-      const purchasedBooks: { bookId: string; quantity: number }[] = [];
-      for (const { id, qty } of booksToPurchase) {
-        if (!id) continue;
-        const book = await tx.book.findFirst({ where: { id } });
-        if (!book) throw new Error(`Book with ID "${id}" not found.`);
-        purchasedBooks.push({ bookId: book.id, quantity: qty });
-      }
+    const purchasedBooks: { bookId: string; quantity: number }[] = [];
+  for (const { id, qty } of booksToPurchase) {
+    if (!id) continue;
+    const book = await tx.book.findFirst({ where: { id } });
+    if (!book) throw new Error(`Book with ID "${id}" not found.`);
+    purchasedBooks.push({ bookId: book.id, quantity: qty });
+  }
 
       // Fetch or create user
       let user = await tx.user.findUnique({
@@ -807,8 +804,5 @@ export async function POST(req: NextRequest): Promise<Response> {
         }
         throw error;
       }
-
-    });
-
   }
-}
+
