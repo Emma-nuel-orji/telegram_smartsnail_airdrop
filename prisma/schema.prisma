@@ -103,7 +103,7 @@ model GeneratedCode {
 model Book {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   author      String
-  coinsReward BigInt
+  coinsReward Int
   description String
   priceCard   Float
   priceStars  Int
