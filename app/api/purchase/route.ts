@@ -205,8 +205,6 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
 }
 
 
-
-
 export async function POST(req: NextRequest): Promise<Response> {
   console.log("1. Starting POST request handling");
 
