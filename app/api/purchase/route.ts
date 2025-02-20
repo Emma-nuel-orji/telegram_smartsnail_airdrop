@@ -604,7 +604,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
   }
 
-  
+
   async function updateDatabaseTransaction(
     booksToPurchase: BookPurchaseInfo[],
     codes: string[],
@@ -788,7 +788,10 @@ export async function POST(req: NextRequest): Promise<Response> {
 
 
 
-        return user;
+        return {
+        ...user,
+        telegramId: user.telegramId.toString(), 
+      };
 
       } catch (error) {
         // Handle the 'error is of type unknown' issue by type checking
