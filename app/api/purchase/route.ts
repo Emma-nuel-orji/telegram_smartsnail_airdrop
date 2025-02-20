@@ -502,7 +502,9 @@ export async function POST(req: NextRequest): Promise<Response> {
               booksBought: Math.floor(Number(bookCount)),
               fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
               humanRelationsQty: Math.floor(Number(humanRelationsQty)),
-              coinsReward: (Math.floor(Number(coinsReward))),
+              coinsReward: typeof coinsReward === 'bigint' 
+              ? Number(coinsReward)
+              : Math.floor(Number(coinsReward)),
 
               
               // Add createdAt explicitly
@@ -512,11 +514,16 @@ export async function POST(req: NextRequest): Promise<Response> {
             console.log(
               "Final Purchase Data:",
               JSON.parse(
-                JSON.stringify(purchaseData, (_, value) =>
+                JSON.stringify(purchaseData, (key, value) =>
                   typeof value === "bigint" ? value.toString() : value
                 )
               )
             );
+
+            if (purchaseData.coinsReward > Number.MAX_SAFE_INTEGER || 
+              purchaseData.coinsReward < Number.MIN_SAFE_INTEGER) {
+            throw new Error('coinsReward value is outside safe integer bounds');
+          }
             
     
             const createdPurchase = await tx.purchase.create({
