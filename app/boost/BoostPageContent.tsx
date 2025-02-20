@@ -240,7 +240,7 @@ const handlePurchase = async (paymentMethod: string) => {
       paymentMethod: paymentMethod.toUpperCase(),
       bookCount: totalBooks,
       tappingRate: tappingRate,
-      coinsReward: points,
+      coinsReward: Number(points),
       priceTon: priceTon,
       priceStars: priceStars,
       fxckedUpBagsQty,
