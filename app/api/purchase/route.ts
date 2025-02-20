@@ -722,6 +722,9 @@ export async function POST(req: NextRequest): Promise<Response> {
           data: purchaseData,
         });
         console.log("Purchase created successfully:", purchase.id);
+        console.log("Total Coins Reward (BigInt):", totalCoinsReward.toString());
+        console.log("Total Coins Reward (Number):", Number(totalCoinsReward));
+        
 
         // Update user points & tapping rate
         await tx.user.update({
