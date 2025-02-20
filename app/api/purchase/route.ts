@@ -500,7 +500,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           throw new Error("Book not found");
         }
 
-        const coinsReward = book.coinsReward;
+        const coinsReward = Math.floor(Number(book.coinsReward));
 
         // 🔹 Create Purchase Record with Transaction
         try {
@@ -521,30 +521,18 @@ export async function POST(req: NextRequest): Promise<Response> {
               booksBought: Math.floor(Number(bookCount)),
               fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
               humanRelationsQty: Math.floor(Number(humanRelationsQty)),
-              coinsReward: typeof coinsReward === 'bigint' 
-              ? Number(coinsReward)
-              : Math.floor(Number(coinsReward)),
-
-              
-              // Add createdAt explicitly
-              createdAt: new Date()
-            };
+              coinsReward,
+          
+            // Explicitly set createdAt timestamp
+            createdAt: new Date(),
+          };
     
-            console.log(
-              "Final Purchase Data:",
-              JSON.parse(
-                JSON.stringify(purchaseData, (key, value) =>
-                  typeof value === "bigint" ? value.toString() : value
-                )
-              )
-            );
+          console.log("coinsReward type:", typeof purchaseData.coinsReward);
 
-            if (purchaseData.coinsReward > Number.MAX_SAFE_INTEGER || 
-              purchaseData.coinsReward < Number.MIN_SAFE_INTEGER) {
-            throw new Error('coinsReward value is outside safe integer bounds');
+          if (typeof purchaseData.coinsReward !== "number") {
+            throw new Error(`Invalid coinsReward type: ${typeof purchaseData.coinsReward}`);
           }
-            
-    
+           
             const createdPurchase = await tx.purchase.create({
               data: purchaseData
             });
