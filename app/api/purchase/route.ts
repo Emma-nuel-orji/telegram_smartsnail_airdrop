@@ -526,6 +526,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             // Explicitly set createdAt timestamp
             createdAt: new Date(),
           };
+          
     
           console.log("coinsReward type:", typeof purchaseData.coinsReward);
 
