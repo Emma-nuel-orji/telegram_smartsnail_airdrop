@@ -80,7 +80,7 @@ interface OrderWithTransactions extends Order {
 // Environment variables validation
 const requiredEnv = ["SECRET_KEY", "NEXT_PUBLIC_REDIRECT_URL"];
 const redirectUrl = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://default.redirect.url';
-
+const JSONbig = require('json-bigint');
 
 
 
@@ -233,7 +233,8 @@ export async function POST(req: NextRequest): Promise<Response> {
     const data = await req.json();
     console.log("2. Request body:", data);
 
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env.NODE_ENV !== 'development') 
+      {
       console.log("3. Production environment - checking Telegram auth");
 
       // Use 'req' instead of 'request'
@@ -526,7 +527,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             // Explicitly set createdAt timestamp
             createdAt: new Date(),
           };
-          
+
     
           console.log("coinsReward type:", typeof purchaseData.coinsReward);
 
@@ -723,7 +724,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
       // Debugging: Print final data before inserting
       const logData = { ...purchaseData, coinsReward: purchaseData.coinsReward.toString() };
-      console.log("Final Purchase Data:", JSON.stringify(logData, null, 2));
+      console.log("Final Purchase Data:",JSONbig.stringify(logData, null, 2));
 
       try {
         const purchase = await tx.purchase.create({
