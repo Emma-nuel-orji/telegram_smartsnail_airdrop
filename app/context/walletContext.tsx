@@ -9,6 +9,7 @@ interface WalletContextType {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   tonConnectUI: TonConnectUI | null;
+  blockchain?: string;
 }
 
 const WalletContext = createContext<WalletContextType>({
