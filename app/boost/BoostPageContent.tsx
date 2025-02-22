@@ -207,130 +207,128 @@ return () => {
   const humanRelationsId = "6796dbfa223a935d969d56e7"; 
 
   
-const handlePurchase = async (paymentMethod: string) => {
-  try {
-    if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
-      alert("Please enter a valid email to proceed with the purchase.");
-      return;
-    }
-
-    if (totalBooks === 0) {
-      alert("Please select at least one book to purchase.");
-      return;
-    }
-
-    if (paymentMethod === "TON") {
-      console.log("2. TON payment selected, checking wallet connection");
-      console.log("isConnected:", isConnected);
-      console.log("tonConnectUI:", !!tonConnectUI);
-      console.log("walletAddress:", walletAddress);
-
-      if (!isConnected || !tonConnectUI || !walletAddress) {
-        alert("Wallet not connected, go to task 18 to connect wallet.");
+  const handlePurchase = async (paymentMethod: string) => {
+    try {
+      if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
+        alert("Please enter a valid email to proceed with the purchase.");
         return;
       }
-    }
-
-    setIsProcessing(true);
-    
-
-    const initialPayload = {
-      email: purchaseEmail,
-      paymentMethod: paymentMethod.toUpperCase(),
-      bookCount: totalBooks,
-      tappingRate: tappingRate,
-      coinsReward: Number(points),
-      priceTon: priceTon,
-      priceStars: priceStars,
-      fxckedUpBagsQty,
-      humanRelationsQty,
-      telegramId: telegramId ? String(telegramId) : '',
-      referrerId: referrerId ? String(referrerId) : '',
-      bookIds: [
-        ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
-        ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
-      ],
-       
-    };
-    console.log("3. Creating order with payload:", initialPayload);
-
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(process.env.NODE_ENV === 'production' && window.Telegram?.WebApp?.initData 
-        ? { 'x-telegram-init-data': window.Telegram.WebApp.initData }
-        : {})
-    };
-
-    const orderResponse = await axios.post("/api/purchase", initialPayload, { headers });
-    console.log("4. Order response:", orderResponse.data);
-
-    if (!orderResponse.data || !orderResponse.data.orderId) {
-      throw new Error("Invalid response from purchase API");
-    }
-
-    const orderId = orderResponse.data.orderId;
-
-    if (paymentMethod === "TON") {
-      console.log("5. Preparing TON transaction");
-      console.log("priceTon:", priceTon);
-      console.log("receiverAddress:", process.env.NEXT_PUBLIC_RECEIVER_ADDRESS);
-      
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 360,
-        messages: [{
-          address: process.env.NEXT_PUBLIC_RECEIVER_ADDRESS!,
-          amount: String(Math.floor(priceTon * 1e9)),
-        }]
-      };
-      console.log("6. Transaction object:", transaction);
-
-      try {
-        console.log("7. About to send TON transaction");
-        if (!tonConnectUI) {
-          throw new Error("TON Connect UI is not initialized.");
+  
+      if (totalBooks === 0) {
+        alert("Please select at least one book to purchase.");
+        return;
+      }
+  
+      if (paymentMethod === "TON") {
+        console.log("2. TON payment selected, checking wallet connection");
+        console.log("isConnected:", isConnected);
+        console.log("tonConnectUI:", !!tonConnectUI);
+        console.log("walletAddress:", walletAddress);
+  
+        if (!isConnected || !tonConnectUI || !walletAddress) {
+          alert("Wallet not connected, go to task 18 to connect wallet.");
+          return;
         }
-
-        console.log("8. Calling sendTransaction");
-        const tonResult = await tonConnectUI.sendTransaction(transaction);
-        console.log("9. TON transaction result:", tonResult);
-
-        if (!tonResult) throw new Error("Transaction result missing");
-
-        console.log("10. Verifying payment with backend");
-        await axios.post("/api/verify-payment", {
-          orderId,
-          transactionHash: tonResult.boc,
-          paymentMethod: "TON"
-        });
-
-        alert("Purchase successful! Check your email for details.");
-        router.push(`/wallet?orderId=${orderId}`);
-        return;
-      } catch (txError) {
-        console.error("TON transaction error:", txError);
-        alert("Transaction failed. Please try again.");
-        return;
+  
+        console.log("3. Preparing TON transaction");
+  
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 360,
+          messages: [
+            {
+              address: process.env.NEXT_PUBLIC_RECEIVER_ADDRESS!,
+              amount: String(Math.floor(priceTon * 1e9)),
+            },
+          ],
+        };
+  
+        try {
+          console.log("4. Sending TON transaction...");
+          const tonResult = await tonConnectUI.sendTransaction(transaction);
+          console.log("5. TON transaction result:", tonResult);
+  
+          if (!tonResult || !tonResult.boc) {
+            throw new Error("Transaction failed or missing data.");
+          }
+  
+          console.log("6. Verifying TON transaction with backend...");
+          const verifyResponse = await axios.post("/api/verify-payment", {
+            transactionHash: tonResult.boc,
+            paymentMethod: "TON",
+          });
+  
+          console.log("7. Verification response:", verifyResponse.data);
+          if (!verifyResponse.data || !verifyResponse.data.success) {
+            throw new Error("Payment verification failed.");
+          }
+  
+          console.log("8. TON payment verified! Now creating order...");
+  
+        } catch (txError) {
+          console.error("TON transaction error:", txError);
+          alert("Transaction failed. Please try again.");
+          return;
+        }
       }
+  
+      setIsProcessing(true);
+  
+      const orderPayload = {
+        email: purchaseEmail,
+        paymentMethod: paymentMethod.toUpperCase(),
+        bookCount: totalBooks,
+        tappingRate: tappingRate,
+        coinsReward: Number(points),
+        priceTon: priceTon,
+        priceStars: priceStars,
+        fxckedUpBagsQty,
+        humanRelationsQty,
+        telegramId: telegramId ? String(telegramId) : '',
+        referrerId: referrerId ? String(referrerId) : '',
+        bookIds: [
+          ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
+          ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
+        ],
+      };
+  
+      console.log("9. Creating order with payload:", orderPayload);
+  
+      const headers = {
+        "Content-Type": "application/json",
+        ...(process.env.NODE_ENV === "production" &&
+        window.Telegram?.WebApp?.initData
+          ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
+          : {}),
+      };
+  
+      const orderResponse = await axios.post("/api/purchase", orderPayload, {
+        headers,
+      });
+  
+      console.log("10. Order response:", orderResponse.data);
+  
+      if (!orderResponse.data || !orderResponse.data.orderId) {
+        throw new Error("Invalid response from purchase API");
+      }
+  
+      const orderId = orderResponse.data.orderId;
+  
+      console.log("11. Purchase successful!");
+      alert("Purchase successful! Check your email for details.");
+      router.push(`/wallet?orderId=${orderId}`);
+  
+    } catch (error) {
+      console.error("Purchase error:", error);
+      if (axios.isAxiosError(error)) {
+        alert(`Purchase failed: ${error.response?.data?.error || error.message}`);
+      } else {
+        alert("Purchase failed. Please try again.");
+      }
+    } finally {
+      setIsProcessing(false);
     }
-
-    // This should never execute for TON payments due to the return statements above
-    console.log("11. Non-TON payment success");
-    alert("Purchase successful! Check your email for details.");
-    setFxckedUpBagsQty(0);
-    setHumanRelationsQty(0);
-    await fetchStockData();
-
-  } catch (error) {
-    console.error("Purchase error:", error);
-    if (axios.isAxiosError(error)) {
-      alert(`Purchase failed: ${error.response?.data?.error || error.message}`);
-    } else {
-      alert("Purchase failed. Please try again.");
-    }
-  } finally {
-    setIsProcessing(false);
-  }
-};
+  };
+  
   
 
 
