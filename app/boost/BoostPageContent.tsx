@@ -220,20 +220,19 @@ const handlePurchase = async (paymentMethod: string) => {
     }
 
     if (paymentMethod === "TON") {
-      if (!isConnected || !tonConnectUI || !walletAddress) {
-        alert("Please connect your TON wallet first.");
-        return;
-      }
+      console.log("2. TON payment selected, checking wallet connection");
+      console.log("isConnected:", isConnected);
+      console.log("tonConnectUI:", !!tonConnectUI);
+      console.log("walletAddress:", walletAddress);
 
-      const receiverAddress = process.env.NEXT_PUBLIC_RECEIVER_ADDRESS;
-      if (!receiverAddress) {
-        console.error("Receiver address not configured");
-        alert("Payment configuration error. Please contact support.");
+      if (!isConnected || !tonConnectUI || !walletAddress) {
+        alert("Wallet not connected, go to task 18 to connect wallet.");
         return;
       }
     }
 
     setIsProcessing(true);
+    
 
     const initialPayload = {
       email: purchaseEmail,
@@ -253,6 +252,7 @@ const handlePurchase = async (paymentMethod: string) => {
       ],
        
     };
+    console.log("3. Creating order with payload:", initialPayload);
 
     const headers = {
       'Content-Type': 'application/json',
@@ -262,6 +262,7 @@ const handlePurchase = async (paymentMethod: string) => {
     };
 
     const orderResponse = await axios.post("/api/purchase", initialPayload, { headers });
+    console.log("4. Order response:", orderResponse.data);
 
     if (!orderResponse.data || !orderResponse.data.orderId) {
       throw new Error("Invalid response from purchase API");
@@ -270,6 +271,10 @@ const handlePurchase = async (paymentMethod: string) => {
     const orderId = orderResponse.data.orderId;
 
     if (paymentMethod === "TON") {
+      console.log("5. Preparing TON transaction");
+      console.log("priceTon:", priceTon);
+      console.log("receiverAddress:", process.env.NEXT_PUBLIC_RECEIVER_ADDRESS);
+      
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
         messages: [{
@@ -277,33 +282,43 @@ const handlePurchase = async (paymentMethod: string) => {
           amount: String(Math.floor(priceTon * 1e9)),
         }]
       };
+      console.log("6. Transaction object:", transaction);
 
       try {
+        console.log("7. About to send TON transaction");
         if (!tonConnectUI) {
           throw new Error("TON Connect UI is not initialized.");
         }
 
+        console.log("8. Calling sendTransaction");
         const tonResult = await tonConnectUI.sendTransaction(transaction);
+        console.log("9. TON transaction result:", tonResult);
+
         if (!tonResult) throw new Error("Transaction result missing");
 
+        console.log("10. Verifying payment with backend");
         await axios.post("/api/verify-payment", {
           orderId,
           transactionHash: tonResult.boc,
           paymentMethod: "TON"
         });
 
+        alert("Purchase successful! Check your email for details.");
         router.push(`/wallet?orderId=${orderId}`);
         return;
       } catch (txError) {
         console.error("TON transaction error:", txError);
         alert("Transaction failed. Please try again.");
+        return;
       }
-    } else {
-      alert("Purchase successful! Check your email for details.");
-      setFxckedUpBagsQty(0);
-      setHumanRelationsQty(0);
-      await fetchStockData();
     }
+
+    // This should never execute for TON payments due to the return statements above
+    console.log("11. Non-TON payment success");
+    alert("Purchase successful! Check your email for details.");
+    setFxckedUpBagsQty(0);
+    setHumanRelationsQty(0);
+    await fetchStockData();
 
   } catch (error) {
     console.error("Purchase error:", error);
@@ -315,7 +330,7 @@ const handlePurchase = async (paymentMethod: string) => {
   } finally {
     setIsProcessing(false);
   }
-  };
+};
   
 
 

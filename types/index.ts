@@ -13,3 +13,16 @@
     mediaType?: string;
     reward?: number;
   }
+
+  // types.ts
+  export interface VerifyPaymentRequest {
+  orderId: string;
+  transactionHash: string;
+  paymentMethod: string;
+  totalAmount: number;
+  userId: string;
+  bookCount: number;
+  bookId: string;
+  fxckedUpBagsQty: number;
+  humanRelationsQty: number;
+}

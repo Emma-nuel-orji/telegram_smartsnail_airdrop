@@ -407,7 +407,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
     return { totalAmount, tappingRate, points, codes, updatedStocks };
 
   }
- async function processPayment(
+ export async function processPayment(
   tx: Prisma.TransactionClient, 
   paymentMethod: string,
   paymentReference: string | null,
