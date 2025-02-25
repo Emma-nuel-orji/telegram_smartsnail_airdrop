@@ -105,7 +105,7 @@ export default function BoostPageContent() {
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
   const tappingRate = fxckedUpBagsQty * 4 + humanRelationsQty * 7;
   const points = fxckedUpBagsQty * 100000 + humanRelationsQty * 30000;
-  const priceTon = totalBooks * 1;
+  const priceTon = totalBooks * 0.001;
   const priceStars = totalBooks * 4 * 100;
 
   // Stock Calculations
