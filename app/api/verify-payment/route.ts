@@ -24,12 +24,24 @@ export async function POST(request: Request) {
       paymentMethod
     });
 
-    if (!orderId || !transactionHash || paymentMethod !== 'TON') {
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields or invalid payment method' },
-        { status: 400 }
-      );
-    }
+    // In your verify-payment/route.ts
+if (paymentMethod === 'TON') {
+  // For TON payments, only require transactionHash
+  if (!transactionHash) {
+    return NextResponse.json(
+      { success: false, error: 'Missing transaction hash for TON payment' },
+      { status: 400 }
+    );
+  }
+} else {
+  // For other payment methods, require orderId
+  if (!orderId || !transactionHash) {
+    return NextResponse.json(
+      { success: false, error: 'Missing required fields' },
+      { status: 400 }
+    );
+  }
+}
 
     // Use Prisma transaction
     const result = await prisma.$transaction(async (tx) => {

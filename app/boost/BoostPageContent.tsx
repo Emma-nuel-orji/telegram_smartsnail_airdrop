@@ -269,6 +269,10 @@ const transaction = {
           const verifyResponse = await axios.post("/api/verify-payment", {
             transactionHash: tonResult.boc,
             paymentMethod: "TON",
+            totalAmount: priceTon,
+            userId: userId,
+            fxckedUpBagsQty: fxckedUpBagsQty,
+            humanRelationsQty: humanRelationsQty
           });
   
           console.log("7. Verification response:", verifyResponse.data);
