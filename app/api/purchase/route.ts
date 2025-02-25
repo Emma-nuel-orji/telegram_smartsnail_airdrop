@@ -413,9 +413,9 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
   paymentReference: string | null,
   totalAmount: number,
   redirectUrl: string,
-  userId: string,
+  userId:  string | null,
   bookCount: number,
-  bookId: string,
+  bookId:  string | null,
   fxckedUpBagsQty: number,
   humanRelationsQty: number
 ) {
@@ -445,19 +445,20 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
         return { orderId: newOrder.orderId };
       }
 
-      // 🔹 TON Payment Verification Flow
+
       if (paymentMethod === "TON") {
         console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
-
+    
+        // Make sure your verifyTonPayment function is fixed as shown in the previous artifact
         const isTonPaymentValid = await verifyTonPayment(paymentReference, totalAmount);
         if (!isTonPaymentValid) {
           console.error("❌ TON payment verification failed: Invalid transaction.");
           throw new Error("TON payment verification failed: Invalid transaction");
         }
-
+    
         // 🔹 Check for existing order
         console.log("🔍 Searching for existing order with reference:", paymentReference);
-        const existingOrder = await prisma.order.findFirst({
+        const existingOrder = await tx.order.findFirst({
           where: {
             OR: [
               { orderId: paymentReference },
@@ -465,12 +466,12 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
             ]
           },
         });
-
+    
         let finalOrder;
         if (!existingOrder) {
           console.log("⚠️ No existing order found. Creating a new order.");
           const newOrderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-          finalOrder = await prisma.order.create({
+          finalOrder = await tx.order.create({
             data: {
               orderId: newOrderId,
               paymentMethod,
@@ -482,7 +483,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
           console.log("✅ New SUCCESS order created:", finalOrder);
         } else {
           console.log("✅ Existing order found. Updating order status to SUCCESS.");
-          finalOrder = await prisma.order.update({
+          finalOrder = await tx.order.update({
             where: { orderId: existingOrder.orderId },
             data: {
               status: "SUCCESS",
@@ -490,29 +491,34 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
             },
           });
         }
-
-        const book = await prisma.book.findUnique({
-          where: { id: bookId },
-        });
-
-        if (!book) {
-          throw new Error("Book not found");
+    
+        // Only try to find the book if bookId is provided
+        let book = null;
+        let coinsReward = 0;
+        
+        if (bookId) {
+          book = await tx.book.findUnique({
+            where: { id: bookId },
+          });
+          
+          if (book) {
+            coinsReward = Math.floor(Number(book.coinsReward));
+          }
         }
 
-        const coinsReward = Math.floor(Number(book.coinsReward));
-
+        
         // 🔹 Create Purchase Record with Transaction
         try {
-          const purchase = await prisma.$transaction(async (tx) => {
+          const purchase = await prisma.$transaction(async (innerTx) => {
             const orderReference = finalOrder?.orderId || "PENDING";
             
-            new ObjectId(userId);
-            new ObjectId(bookId);
+            // Only convert userId and bookId to ObjectId if they exist
+            // const userIdObj = userId ? new ObjectId(userId).toString() : null;
+            // const bookIdObj = bookId ? new ObjectId(bookId).toString() : null;
     
-            const purchaseData = {
-              // Keep IDs as strings for Prisma
-              userId: new ObjectId(userId).toString(), 
-              bookId: bookId ? new ObjectId(bookId).toString() : null,
+            const purchaseData: Prisma.PurchaseUncheckedCreateInput = {
+              userId: userId ? new ObjectId(userId).toString() : "",
+              bookId: bookId ? new ObjectId(bookId).toString() : "",
       
               paymentType: "TON",
               orderReference: finalOrder?.orderId ?? null,
@@ -522,18 +528,17 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               humanRelationsQty: Math.floor(Number(humanRelationsQty)),
               coinsReward,
           
-            // Explicitly set createdAt timestamp
-            createdAt: new Date(),
-          };
-
+              // Explicitly set createdAt timestamp
+              createdAt: new Date(),
+            };
     
-          console.log("coinsReward type:", typeof purchaseData.coinsReward);
-
-          if (typeof purchaseData.coinsReward !== "number") {
-            throw new Error(`Invalid coinsReward type: ${typeof purchaseData.coinsReward}`);
-          }
+            console.log("coinsReward type:", typeof purchaseData.coinsReward);
+    
+            if (typeof purchaseData.coinsReward !== "number") {
+              throw new Error(`Invalid coinsReward type: ${typeof purchaseData.coinsReward}`);
+            }
            
-            const createdPurchase = await tx.purchase.create({
+            const createdPurchase = await innerTx.purchase.create({
               data: purchaseData
             });
     
@@ -543,9 +548,9 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
     
             return createdPurchase;
           });
-
+    
           console.log("✅ Purchase record created:", purchase);
-
+    
           return {
             success: true,
             message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
@@ -555,13 +560,14 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
         } catch (error) {
           console.error("❌ Failed to create purchase record:", error);
           // Roll back the order status if purchase creation fails
-          await prisma.order.update({
+          await tx.order.update({
             where: { orderId: finalOrder.orderId },
             data: { status: "FAILED" }
           });
           throw new Error("Failed to create purchase record");
         }
       }
+      
 
       // CARD payment flow
       if (paymentMethod === "CARD") {
