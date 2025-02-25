@@ -17,122 +17,97 @@ const TON_API_KEY = process.env.TON_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.BOT_API;
 const TELEGRAM_API_URL = process.env.TELEGRAM_API_URL;
 
-// Initialize TonWeb with the endpoint
-const tonweb = new TonWeb(
-  new TonWeb.HttpProvider(TON_TESTNET_API_URL, {
-    apiKey: TON_API_KEY, // Pass your API key here
-  })
-);
+// Check environment variables
+if (!TON_TESTNET_API_URL || !TON_API_KEY || !TON_WALLET_ADDRESS) {
+  throw new Error("❌ Missing required environment variables for TON API");
+}
 
 /**
- * Verifies Ton payment using the provided reference and amount.
- * @param paymentReference - Transaction reference from Ton payment.
- * @param expectedAmount - Expected amount to be paid.
- * @returns Returns true if the payment is valid.
+ * Computes the SHA256 transaction hash from a BOC.
+ * @param boc - The base64-encoded BOC transaction.
+ * @returns The computed transaction hash.
  */
+const computeTransactionHash = (boc: string): string => {
+  const bocBuffer = Buffer.from(boc, "base64");
+  return crypto.createHash("sha256").update(bocBuffer).digest("hex");
+};
 
-interface VerificationResult {
-  success: boolean;
-  error?: string;
-  details?: {
-    expectedAmount: number;
-    receivedAmount: number;
-    expectedDestination: string;
-    actualDestination: string;
-  };
-}
-
-interface TransactionResponse {
-  result: {
-    amount: string;
-    destination: string;
-    // Add other transaction fields you might need
-  };
-}
-
-const verifyTonPayment = async (
-  transactionHash: string, 
-  expectedAmount: number
-): Promise<VerificationResult> => {
+/**
+ * Fetches the raw BOC from the TON API and computes the correct hash.
+ * @param transactionId - The transaction ID (not the hash).
+ * @returns The correct transaction hash or null if it fails.
+ */
+const getTransactionHash = async (transactionId: string): Promise<string | null> => {
   try {
-    // Log verification attempt
-    console.log("🔵 Verifying transaction:", {
-      hash: transactionHash,
-      expectedAmount,
-      destinationWallet: TON_WALLET_ADDRESS
+    const response = await axios.get(`${TON_TESTNET_API_URL}/getTransactionBOC`, {
+      params: { id: transactionId, api_key: TON_API_KEY },
     });
 
-    // Make API request
-    const response = await axios.get<TransactionResponse>(`${TON_TESTNET_API_URL}/getTransaction`, {
-      params: {
-        hash: transactionHash,
-        api_key: TON_API_KEY
-      },
-      timeout: 10000 // 10 second timeout
+    if (response.status !== 200 || !response.data.result) {
+      console.error("🚨 Transaction BOC not found.");
+      return null;
+    }
+
+    const boc = response.data.result.boc;
+    return computeTransactionHash(boc);
+  } catch (error) {
+    console.error("❌ Error fetching transaction BOC:", error);
+    return null;
+  }
+};
+
+/**
+ * Verifies a TON transaction using the correct hash.
+ * @param transactionId - Transaction ID.
+ * @param expectedAmount - Expected amount to be paid.
+ * @returns Verification result.
+ */
+const verifyTonPayment = async (transactionId: string, expectedAmount: number) => {
+  try {
+    console.log("🔵 Fetching correct transaction hash...");
+    const correctHash = await getTransactionHash(transactionId);
+    if (!correctHash) {
+      return { success: false, error: "Could not retrieve correct transaction hash." };
+    }
+
+    console.log("✅ Correct Transaction Hash:", correctHash);
+
+    // Fetch transaction details using the computed hash
+    const response = await axios.get(`${TON_TESTNET_API_URL}/getTransaction`, {
+      params: { hash: correctHash, api_key: TON_API_KEY },
     });
 
-    console.log("🟢 API Response Status:", response.status);
-
-    if (response.status !== 200) {
-      return {
-        success: false,
-        error: `API returned status ${response.status}`,
-      };
+    if (response.status !== 200 || !response.data.result) {
+      return { success: false, error: "Transaction not found" };
     }
 
     const transaction = response.data.result;
-    
-    if (!transaction) {
-      return {
-        success: false,
-        error: "Transaction not found"
-      };
-    }
+    const receivedAmount = parseInt(transaction.amount, 10);
 
-    const { amount, destination } = transaction;
-    const receivedAmount = parseInt(amount, 10);
-
-    // Create verification details
     const details = {
       expectedAmount,
       receivedAmount,
       expectedDestination: TON_WALLET_ADDRESS,
-      actualDestination: destination
+      actualDestination: transaction.destination,
     };
 
-    // Verify destination
-    if (destination !== TON_WALLET_ADDRESS) {
-      return {
-        success: false,
-        error: "Destination address mismatch",
-        details
-      };
+    if (transaction.destination !== TON_WALLET_ADDRESS) {
+      return { success: false, error: "Destination address mismatch", details };
     }
 
-    // Verify amount
     if (receivedAmount !== expectedAmount) {
-      return {
-        success: false,
-        error: "Amount mismatch",
-        details
-      };
+      return { success: false, error: "Amount mismatch", details };
     }
 
-    // Success case
-    console.log("✅ Transaction verified successfully:", details);
-    return {
-      success: true,
-      details
-    };
+    console.log("✅ Transaction verified:", details);
+    return { success: true, details };
 
   } catch (error) {
-    console.error("❌ Error verifying TON payment:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred"
-    };
+    console.error("❌ Error verifying transaction:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error occurred" };
   }
 };
+
 
 
 /**
