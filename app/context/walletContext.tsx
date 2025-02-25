@@ -97,7 +97,7 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
     try {
       if (tonConnectUI && !isConnected) {
         console.log('Connecting wallet...');
-        await tonConnectUI.openModal(); 
+        await tonConnectUI.connectWallet(); 
       }
     } catch (error) {
       console.error('Failed to connect wallet:', error);
