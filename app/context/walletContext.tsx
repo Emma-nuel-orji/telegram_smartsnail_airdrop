@@ -1,3 +1,5 @@
+'use client';
+
 import { THEME, TonConnectUI, ConnectedWallet } from '@tonconnect/ui';
 import { createContext, useContext, ReactNode, useState, useEffect, useRef } from 'react';
 
@@ -47,8 +49,7 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
             },
             walletsListConfiguration: {
               includeWallets: [], // Configure which wallets to show
-            },
-            network: 'testnet', // Set to testnet
+            }
           });
 
           setTonConnectUI(tonConnectUIRef.current);
