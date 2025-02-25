@@ -236,7 +236,8 @@ return () => {
   }
 
   // Validate receiver address
-  const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS; // Correct variable name
+  // const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS; 
+  const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
 if (!receiverAddress) {
   console.error("Receiver address is not configured in environment variables.");
   alert("Receiver address is not configured. Please contact support.");
