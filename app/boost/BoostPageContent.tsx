@@ -146,7 +146,6 @@ const triggerConfetti = () => {
   }, 250); // Fire confetti every 250ms for the duration
 };
 
-  
 
   // Fetch Stock Data
   const fetchStockData = useCallback(async () => {
@@ -547,7 +546,8 @@ const handlePaymentSuccess = async () => {
 
       {/* Payment Buttons */}
       <div className="payment-buttons">
-        <button onClick={() => handlePurchase("Ton")} disabled={isProcessing}>
+        <button onClick={() => handlePurchase("TON")} disabled={isProcessing}>
+
           {isProcessing ? <span className="spinner-gear"></span> : "Pay with TON"}
         </button>
         <button onClick={() => handlePurchase("Card")} disabled={isProcessing}>
