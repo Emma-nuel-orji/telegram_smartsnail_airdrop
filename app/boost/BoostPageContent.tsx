@@ -236,7 +236,7 @@ return () => {
   }
 
   // Validate receiver address
-  const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESSS;
+  const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS;
   if (!receiverAddress) {
     alert("Receiver address is not configured. Please contact support.");
     return;
