@@ -229,13 +229,26 @@ return () => {
           return;
         }
   
+         // Validate priceTon
+  if (!priceTon || priceTon <= 0) {
+    alert("Invalid payment amount. Please try again.");
+    return;
+  }
+
+  // Validate receiver address
+  const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESSS;
+  if (!receiverAddress) {
+    alert("Receiver address is not configured. Please contact support.");
+    return;
+  }
+
         console.log("3. Preparing TON transaction");
   
         const transaction = {
           validUntil: Math.floor(Date.now() / 1000) + 360,
           messages: [
             {
-              address: process.env.NEXT_PUBLIC_RECEIVER_ADDRESS!,
+              address: receiverAddress,
               amount: String(Math.floor(priceTon * 1e9)),
             },
           ],
@@ -516,8 +529,8 @@ const handlePaymentSuccess = async () => {
               </div>
             )}
           </div> 
-          <p>+2 Tapping Rate</p>
-          <p>+70,000 Shells per Copy</p>
+          <p>+7 Tapping Rate</p>
+          <p>+30,000 Shells per Copy</p>
           <input
             type="number"
             value={humanRelationsQty}
