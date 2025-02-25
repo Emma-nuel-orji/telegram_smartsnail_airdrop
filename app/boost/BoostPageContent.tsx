@@ -266,6 +266,9 @@ const transaction = {
           }
   
           console.log("6. Verifying TON transaction with backend...");
+
+          const userId = window.Telegram.WebApp.initDataUnsafe?.user?.id || undefined;
+
           const verifyResponse = await axios.post("/api/verify-payment", {
             transactionHash: tonResult.boc,
             paymentMethod: "TON",
