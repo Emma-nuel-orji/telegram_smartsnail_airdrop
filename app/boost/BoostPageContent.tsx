@@ -145,7 +145,7 @@ const triggerConfetti = () => {
 
   }, 250); // Fire confetti every 250ms for the duration
 };
-
+  
 
   // Fetch Stock Data
   const fetchStockData = useCallback(async () => {
