@@ -236,23 +236,24 @@ return () => {
   }
 
   // Validate receiver address
-  const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS;
-  if (!receiverAddress) {
-    alert("Receiver address is not configured. Please contact support.");
-    return;
-  }
+  const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS; // Correct variable name
+if (!receiverAddress) {
+  console.error("Receiver address is not configured in environment variables.");
+  alert("Receiver address is not configured. Please contact support.");
+  return;
+}
 
-        console.log("3. Preparing TON transaction");
-  
-        const transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 360,
-          messages: [
-            {
-              address: receiverAddress,
-              amount: String(Math.floor(priceTon * 1e9)),
-            },
-          ],
-        };
+console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
+
+const transaction = {
+  validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
+  messages: [
+    {
+      address: receiverAddress, // Use the validated receiver address
+      amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
+    },
+  ],
+};
   
         try {
           console.log("4. Sending TON transaction...");
