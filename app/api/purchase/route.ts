@@ -518,6 +518,8 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               throw new Error("Invalid userId: userId cannot be null");
             }
 
+            const userIdString = userId.toString();
+
             // Validate bookCount
             console.log("bookCount:", bookCount);
     const booksBoughtValue = Math.floor(Number(bookCount || 0)); // Default to 0 if bookCount is undefined or null
@@ -533,7 +535,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               coinsReward: coinsReward,
               createdAt: new Date(),
               user: {
-                connect: { id: userId }, // Link to an existing User
+                connect: { id: userIdString }, 
               },
               book: bookId ? { connect: { id: bookId } } : undefined, 
               order: finalOrder?.orderId ? { connect: { orderId: finalOrder.orderId } } : undefined,
