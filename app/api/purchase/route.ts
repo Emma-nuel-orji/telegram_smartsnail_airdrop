@@ -527,7 +527,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               paymentType: "TON",
               
               amountPaid: Math.floor(Number(totalAmount)),
-              booksBought: Math.floor(Number(bookCount)),
+              booksBought: Math.floor(Math.max(bookCount || 0, 0)),
               fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
               humanRelationsQty: Math.floor(Number(humanRelationsQty)),
               coinsReward: coinsReward,
