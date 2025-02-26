@@ -445,6 +445,10 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
       return { success: true, orderId: newOrder.orderId };
     }
 
+    function isPurchase(purchase: any): purchase is { id: string } {
+      return purchase && typeof purchase.id === "string";
+    }
+
       if (paymentMethod === "TON") {
         console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
     
@@ -518,7 +522,25 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               throw new Error("Invalid userId: userId cannot be null");
             }
 
-            const userIdObjectId = new ObjectId(userId);
+             const userIdNumber = Number(userId);
+
+            if (isNaN(userIdNumber)) {
+              throw new Error("Invalid userId: userId must be a number");
+            }
+
+             // Check if the User exists
+             const user = await innerTx.user.findUnique({
+              where: { telegramId: userIdNumber }, // Use telegramId to find the user
+            });
+        
+            if (!user) {
+              console.error(`User with telegramId ${userIdNumber} does not exist. Marking payment as pending.`);
+              await innerTx.order.update({
+                where: { orderId: finalOrder.orderId },
+                data: { status: "PENDING" },
+              });
+              return { success: false, message: `User with telegramId ${userIdNumber} does not exist. Payment marked as pending.` };
+            }
 
             // Validate bookCount
             console.log("bookCount:", bookCount);
@@ -535,7 +557,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               coinsReward: coinsReward,
               createdAt: new Date(),
               user: {
-                connect: { id: userIdObjectId.toHexString() }, 
+                connect: { id: user.id }, 
               },
               book: bookId ? { connect: { id: bookId } } : undefined, 
               order: finalOrder?.orderId ? { connect: { orderId: finalOrder.orderId } } : undefined,
@@ -559,7 +581,11 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
           });
         
           console.log("✅ Purchase record created:", purchase);
-        
+
+          // Use the type guard to ensure purchase has an id property
+          if (!isPurchase(purchase)) {
+            throw new Error("Purchase creation failed: Invalid purchase record");
+          }
           return {
             success: true,
             message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
