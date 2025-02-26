@@ -57,24 +57,18 @@ const getTransactionHash = async (transactionId: string): Promise<string | null>
 };
 
 /**
- * Verifies a TON transaction using the correct hash.
- * @param transactionId - Transaction ID.
+ * Verifies a TON transaction using its hash.
+ * @param transactionHash - Transaction hash in hex format.
  * @param expectedAmount - Expected amount to be paid.
  * @returns Verification result.
  */
-const verifyTonPayment = async (transactionId: string, expectedAmount: number) => {
+const verifyTonPayment = async (transactionHash: string, expectedAmount: number) => {
   try {
-    console.log("🔵 Fetching correct transaction hash...");
-    const correctHash = await getTransactionHash(transactionId);
-    if (!correctHash) {
-      return { success: false, error: "Could not retrieve correct transaction hash." };
-    }
-
-    console.log("✅ Correct Transaction Hash:", correctHash);
-
-    // Fetch transaction details using the computed hash
+    console.log("🔵 Verifying transaction with hash:", transactionHash);
+    
+    // Fetch transaction details directly using the hash
     const response = await axios.get(`${TON_TESTNET_API_URL}/getTransaction`, {
-      params: { hash: correctHash, api_key: TON_API_KEY },
+      params: { hash: transactionHash, api_key: TON_API_KEY },
     });
 
     if (response.status !== 200 || !response.data.result) {
@@ -101,7 +95,6 @@ const verifyTonPayment = async (transactionId: string, expectedAmount: number) =
 
     console.log("✅ Transaction verified:", details);
     return { success: true, details };
-
   } catch (error) {
     console.error("❌ Error verifying transaction:", error);
     return { success: false, error: error instanceof Error ? error.message : "Unknown error occurred" };
