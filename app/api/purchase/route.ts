@@ -422,11 +422,15 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
   try {
       console.log("🛠️ Received processPayment request with data:", {
         paymentMethod,
-        paymentReference,
-        totalAmount,
-        redirectUrl,
-      });
-
+      paymentReference,
+      totalAmount,
+      redirectUrl,
+      userId,
+      bookCount,
+      bookId,
+      fxckedUpBagsQty,
+      humanRelationsQty,
+    });
       // Check if paymentReference is missing
       if (!paymentReference) {
         console.warn("⚠️ Missing paymentReference! Creating a new order in PENDING state.");
@@ -498,6 +502,33 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
           });
         }
     
+
+        // Add null check and error handling
+if (!finalOrder) {
+  throw new Error("Failed to create or retrieve order");
+}
+        // When fetching the order after creation, ensure you include the id field:
+       finalOrder = await tx.order.findUnique({
+          where: { orderId: finalOrder.orderId },
+          select: {
+            id: true,       // Make sure this is included
+            // _id: true, 
+            orderId: true,
+            paymentMethod: true,
+            totalAmount: true,
+            status: true,
+            createdAt: true,
+            transactionReference: true
+          }
+        });
+
+        if (!finalOrder) {
+          throw new Error("Failed to retrieve complete order details");
+        }
+        
+        console.log("Final order for purchase creation:", finalOrder);
+
+
         // Only try to find the book if bookId is provided
         let book = null;
         let coinsReward = 0;
@@ -547,6 +578,13 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
     const booksBoughtValue = Math.floor(Number(bookCount || 0)); // Default to 0 if bookCount is undefined or null
     console.log("booksBought value:", booksBoughtValue);
 
+          console.log("Order details for connection:", {
+            id: finalOrder.id,
+            // _id: finalOrder._id, 
+            orderId: finalOrder.orderId
+          });
+            
+
             const purchaseData: Prisma.PurchaseCreateInput = {
               paymentType: "TON",
               
@@ -560,7 +598,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
                 connect: { id: user.id }, 
               },
               book: bookId ? { connect: { id: bookId } } : undefined, 
-              order: finalOrder?.orderId ? { connect: { orderId: finalOrder.orderId } } : undefined,
+              order: finalOrder?.id ? { connect: { id: finalOrder.id } } : undefined,
             };
         
             console.log("coinsReward type:", typeof purchaseData.coinsReward);
