@@ -23,7 +23,7 @@ async function verifyTonPayment(
   expectedAmount: number, 
   orderId: string 
 ): Promise<{ success: boolean; transaction?: any; error?: string }> {
-  const apiKey = 'process.env.TON_API_KEY;';
+  const apiKey = process.env.TON_API_KEY; 
   const apiUrl = `https://testnet.toncenter.com/api/v2/getTransactions?address=${walletAddress}&limit=10&api_key=${apiKey}`;
 
   try {
@@ -35,7 +35,7 @@ async function verifyTonPayment(
     for (const tx of transactions) {
       const inMsg = tx.in_msg;
       if (
-        inMsg.destination === 'TESTNET_TON_WALLET_ADDRESS' &&
+        inMsg.destination === TESTNET_TON_WALLET_ADDRESS && 
         inMsg.value === expectedAmount.toString() && 
         inMsg.message === `Payment for order ${orderId}` 
       ) {

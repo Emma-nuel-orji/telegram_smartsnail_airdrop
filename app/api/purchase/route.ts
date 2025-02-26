@@ -448,7 +448,10 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
       if (paymentMethod === "TON") {
         console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
     
-        const walletAddress = "user_wallet_address"; // Get this from the user
+        const walletAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS ?? ""; // Provide a default value
+        if (!walletAddress) {
+          throw new Error("Testnet wallet address is not defined");
+        }
       const isTonPaymentValid = await verifyTonPayment(walletAddress, totalAmount, paymentReference);
         if (!isTonPaymentValid) {
           console.error("❌ TON payment verification failed: Invalid transaction.");
@@ -516,6 +519,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
             }
 
             // Validate bookCount
+            console.log("bookCount:", bookCount);
     const booksBoughtValue = Math.floor(Number(bookCount || 0)); // Default to 0 if bookCount is undefined or null
     console.log("booksBought value:", booksBoughtValue);
 
