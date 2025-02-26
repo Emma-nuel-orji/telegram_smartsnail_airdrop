@@ -17,56 +17,37 @@ const TON_API_KEY = process.env.TON_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.BOT_API;
 const TELEGRAM_API_URL = process.env.TELEGRAM_API_URL;
 
-// Check environment variables
-if (!TON_TESTNET_API_URL || !TON_API_KEY || !TON_WALLET_ADDRESS) {
-  throw new Error("❌ Missing required environment variables for TON API");
-}
+async function verifyTonPayment(
+  walletAddress: string, // Explicitly define as string
+  expectedAmount: number, // Explicitly define as number
+  orderId: string // Explicitly define as string
+): Promise<{ success: boolean; transaction?: any; error?: string }> {
+  const apiKey = 'TON_API_KEY';
+  const apiUrl = `https://testnet.toncenter.com/api/v2/getTransactions?address=${walletAddress}&limit=10&api_key=${apiKey}`;
 
-/**
- * Verifies a TON transaction using its hash.
- * @param transactionHash - Transaction hash in hex format.
- * @param expectedAmount - Expected amount to be paid.
- * @returns Verification result.
- */
-const verifyTonPayment = async (transactionHash: string, expectedAmount: number) => {
   try {
-    console.log("🔵 Verifying transaction with hash:", transactionHash);
-    
-    // Fetch transaction details directly using the hash
-    const response = await axios.get(`${TON_TESTNET_API_URL}/getTransaction`, {
-      params: { hash: transactionHash, api_key: TON_API_KEY },
-    });
+    // Fetch transactions for the wallet address
+    const response = await axios.get(apiUrl);
+    const transactions = response.data.result;
 
-    if (response.status !== 200 || !response.data.result) {
-      return { success: false, error: "Transaction not found" };
+    // Check each transaction for the payment
+    for (const tx of transactions) {
+      const inMsg = tx.in_msg;
+      if (
+        inMsg.destination === 'your_wallet_address' && // Your wallet address
+        inMsg.value === expectedAmount.toString() && // Expected amount in nanoton
+        inMsg.message === `Payment for order ${orderId}` // Metadata (optional)
+      ) {
+        return { success: true, transaction: tx };
+      }
     }
 
-    const transaction = response.data.result;
-    const receivedAmount = parseInt(transaction.amount, 10);
-
-    const details = {
-      expectedAmount,
-      receivedAmount,
-      expectedDestination: TON_WALLET_ADDRESS,
-      actualDestination: transaction.destination,
-    };
-
-    if (transaction.destination !== TON_WALLET_ADDRESS) {
-      return { success: false, error: "Destination address mismatch", details };
-    }
-
-    if (receivedAmount !== expectedAmount) {
-      return { success: false, error: "Amount mismatch", details };
-    }
-
-    console.log("✅ Transaction verified:", details);
-    return { success: true, details };
+    return { success: false, error: 'Payment not found' };
   } catch (error) {
-    console.error("❌ Error verifying transaction:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error occurred" };
+    console.error('Error fetching transactions:', error);
+    return { success: false, error: 'Failed to fetch transactions' };
   }
-};
-
+}
 
 
 /**
