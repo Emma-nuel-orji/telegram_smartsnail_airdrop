@@ -515,6 +515,10 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               throw new Error("Invalid userId: userId cannot be null");
             }
 
+            // Validate bookCount
+    const booksBoughtValue = Math.floor(Number(bookCount || 0)); // Default to 0 if bookCount is undefined or null
+    console.log("booksBought value:", booksBoughtValue);
+
             const purchaseData: Prisma.PurchaseCreateInput = {
               paymentType: "TON",
               

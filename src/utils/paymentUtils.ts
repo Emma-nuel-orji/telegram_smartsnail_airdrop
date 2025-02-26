@@ -9,7 +9,8 @@ dotenv.config();
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const TON_WALLET_ADDRESS = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS ?? "";
-
+const TESTNET_TON_WALLET_ADDRESS = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS ?? "";
+// NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS=0QDOvVBvh6G1x1U6Odj0cHrdnuDZLcvC40w67j0VaXDkYqnK
 const secretKey = process.env.SECRET_KEY!;
 const TON_TESTNET_API_URL = process.env.TON_TESTNET_API_URL;
 const TON_API_URL = process.env.TON_API_URL;
@@ -18,11 +19,11 @@ const TELEGRAM_BOT_TOKEN = process.env.BOT_API;
 const TELEGRAM_API_URL = process.env.TELEGRAM_API_URL;
 
 async function verifyTonPayment(
-  walletAddress: string, // Explicitly define as string
-  expectedAmount: number, // Explicitly define as number
-  orderId: string // Explicitly define as string
+  walletAddress: string, 
+  expectedAmount: number, 
+  orderId: string 
 ): Promise<{ success: boolean; transaction?: any; error?: string }> {
-  const apiKey = 'TON_API_KEY';
+  const apiKey = 'process.env.TON_API_KEY;';
   const apiUrl = `https://testnet.toncenter.com/api/v2/getTransactions?address=${walletAddress}&limit=10&api_key=${apiKey}`;
 
   try {
@@ -34,9 +35,9 @@ async function verifyTonPayment(
     for (const tx of transactions) {
       const inMsg = tx.in_msg;
       if (
-        inMsg.destination === 'your_wallet_address' && // Your wallet address
-        inMsg.value === expectedAmount.toString() && // Expected amount in nanoton
-        inMsg.message === `Payment for order ${orderId}` // Metadata (optional)
+        inMsg.destination === 'TESTNET_TON_WALLET_ADDRESS' &&
+        inMsg.value === expectedAmount.toString() && 
+        inMsg.message === `Payment for order ${orderId}` 
       ) {
         return { success: true, transaction: tx };
       }
