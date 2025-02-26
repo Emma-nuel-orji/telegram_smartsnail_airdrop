@@ -23,40 +23,6 @@ if (!TON_TESTNET_API_URL || !TON_API_KEY || !TON_WALLET_ADDRESS) {
 }
 
 /**
- * Computes the SHA256 transaction hash from a BOC.
- * @param boc - The base64-encoded BOC transaction.
- * @returns The computed transaction hash.
- */
-const computeTransactionHash = (boc: string): string => {
-  const bocBuffer = Buffer.from(boc, "base64");
-  return crypto.createHash("sha256").update(bocBuffer).digest("hex");
-};
-
-/**
- * Fetches the raw BOC from the TON API and computes the correct hash.
- * @param transactionId - The transaction ID (not the hash).
- * @returns The correct transaction hash or null if it fails.
- */
-const getTransactionHash = async (transactionId: string): Promise<string | null> => {
-  try {
-    const response = await axios.get(`${TON_TESTNET_API_URL}/getTransactionBOC`, {
-      params: { id: transactionId, api_key: TON_API_KEY },
-    });
-
-    if (response.status !== 200 || !response.data.result) {
-      console.error("🚨 Transaction BOC not found.");
-      return null;
-    }
-
-    const boc = response.data.result.boc;
-    return computeTransactionHash(boc);
-  } catch (error) {
-    console.error("❌ Error fetching transaction BOC:", error);
-    return null;
-  }
-};
-
-/**
  * Verifies a TON transaction using its hash.
  * @param transactionHash - Transaction hash in hex format.
  * @param expectedAmount - Expected amount to be paid.
