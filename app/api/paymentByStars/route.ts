@@ -8,7 +8,7 @@ if (!TELEGRAM_BOT_TOKEN) {
   console.error("TELEGRAM_BOT_TOKEN is not set in the environment variables");
 }
 
-const bot = new Bot(TELEGRAM_BOT_TOKEN);
+const bot = new Bot(TELEGRAM_BOT_TOKEN as string);
 
 export async function POST(request: NextRequest) {
   try {
