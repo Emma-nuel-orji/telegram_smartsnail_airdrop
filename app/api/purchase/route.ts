@@ -630,14 +630,14 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
           console.log("✅ Purchase record created:", createdPurchase);
 
           // Use the type guard to ensure purchase has an id property
-          if (!isPurchase(purchase)) {
+          if (!isPurchase(createdPurchase)) {
             throw new Error("Purchase creation failed: Invalid purchase record");
           }
           return {
             success: true,
             message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
             orderId: finalOrder.orderId,
-            purchaseId: purchase.id,
+            purchaseId: createdPurchase.id,
           };
         } catch (error) {
           console.error("❌ Failed to create purchase record:", error);
