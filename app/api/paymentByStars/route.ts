@@ -1,10 +1,10 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { prisma } from '@/prisma/client';
 import { sendPurchaseEmail } from "@/src/utils/emailUtils";
 
 const TELEGRAM_BOT_TOKEN = process.env.BOT_API;
-const PROVIDER_TOKEN = process.env.PROVIDER_TOKEN; // Add this to your env variables
+const PROVIDER_TOKEN = process.env.PROVIDER_TOKEN;
 
 if (!TELEGRAM_BOT_TOKEN) {
   console.error("TELEGRAM_BOT_TOKEN is not set in the environment variables");
@@ -14,12 +14,9 @@ const api = axios.create({
   baseURL: `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/`,
 });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
     const {
       email,
       title,
@@ -33,15 +30,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       referrerId,
       tappingRate,
       totalPoints,
-    } = req.body;
+    } = body;
 
     // Enhanced input validation
     if (!email || !email.includes('@')) {
-      return res.status(400).json({ error: "Invalid email address" });
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
     }
 
     if (!bookCount || bookCount < 1 || !amount || amount < 0) {
-      return res.status(400).json({ error: "Invalid purchase details" });
+      return NextResponse.json({ error: "Invalid purchase details" }, { status: 400 });
     }
 
     // Create payload for Telegram payment
@@ -101,17 +98,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
     });
-    
 
     // Return the invoice link to the frontend
-    res.status(200).json({ 
+    return NextResponse.json({ 
       invoiceLink: paymentResponse.data.result
     });
 
   } catch (error) {
     console.error("Error processing payment:", error);
-    res.status(500).json({ 
+    return NextResponse.json({ 
       error: error instanceof Error ? error.message : "An unexpected error occurred" 
-    });
+    }, { status: 500 });
   }
 }
