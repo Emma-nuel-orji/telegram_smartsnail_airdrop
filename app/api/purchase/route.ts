@@ -595,9 +595,7 @@ if (!finalOrder) {
               coinsReward: coinsReward,
               createdAt: new Date(),
 
-              orderReference: finalOrder?.orderId,
-              order: finalOrder?.orderId ? { connect: { orderId: finalOrder.orderId } } : undefined,
-            };
+             
               user: {
                 connect: { id: user.id }, 
               },
@@ -605,6 +603,8 @@ if (!finalOrder) {
               // order: {
               //   connect: { orderId: finalOrder.orderId }
               // }
+              orderReference: finalOrder?.orderId,
+              order: finalOrder?.orderId ? { connect: { orderId: finalOrder.orderId } } : undefined,
             };
             
         
