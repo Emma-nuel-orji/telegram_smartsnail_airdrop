@@ -107,6 +107,7 @@ model Book {
   description String
   priceCard   Float
   priceStars  Int
+  googleDriveLink String?
   priceTon    Float
   stockLimit  Int
   tappingRate Int

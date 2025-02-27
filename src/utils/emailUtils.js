@@ -14,30 +14,38 @@ const transporter = nodemailer.createTransport({
 
 // Send purchase email
 export const sendPurchaseEmail = async (email, purchases, codes) => {
-  let bookTitles = [];
-  let attachedFiles = [];
+  let bookDetails = [];
 
   for (const purchase of purchases) {
     const book = await prisma.book.findUnique({ where: { id: purchase.bookId } });
     if (!book) continue;
 
-    bookTitles.push(`${book.title} (x${purchase.quantity})`);
-    attachedFiles.push(`/path/to/books/${book.title}.pdf`); // Adjust to actual file paths
+    // Replace this with actual Google Drive links stored in your database
+    const googleDriveLink = book.googleDriveLink || "https://drive.google.com/file/d/yourfileid/view?usp=sharing";
+    
+    bookDetails.push(`${book.title} (x${purchase.quantity}) - [Download](${googleDriveLink})`);
   }
+ 
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: process.env.SMARTSNAIL_EMAIL,
     to: email,
     subject: 'Your Books and Codes',
     text: `
       Thank you for your purchase!
-      Books: ${bookTitles.join(', ')}
+      Books:
+      ${bookDetails.join('\n')}
+      
       Codes: ${codes.join(', ')}
     `,
-    attachments: attachedFiles.map((file) => ({
-      filename: file.split('/').pop(),
-      path: file,
-    })),
+    html: `
+      <p>Thank you for your purchase!</p>
+      <p><strong>Books:</strong></p>
+      <ul>
+        ${bookDetails.map(book => `<li>${book}</li>`).join('')}
+      </ul>
+      <p><strong>Codes:</strong> ${codes.join(', ')}</p>
+    `,
   };
 
   try {
@@ -47,6 +55,7 @@ export const sendPurchaseEmail = async (email, purchases, codes) => {
     console.error('Error sending purchase email:', error);
   }
 };
+
 
 // Send redemption email
 export const sendRedemptionEmail = async (email) => {

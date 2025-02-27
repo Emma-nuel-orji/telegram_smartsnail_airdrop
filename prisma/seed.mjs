@@ -8,25 +8,27 @@ async function main() {
   await prisma.book.createMany({
     data: [
       {
-        title: 'FxckedUpBags (Undo Yourself)',  // Exact match for the search
+        title: 'FxckedUpBags (Undo Yourself)',  
         description:
           'FxckedUpBags by <b>AlexanderTheSage</b> explores personal transformation and self-discipline, focusing on how mindset and choices shape success.',
-        priceTon: 1.0,
+        priceTon: 2.0,
         priceCard: 4,
-        priceStars: 400,
+        priceStars: 270,
         author: 'AlexanderTheSage',
         coinsReward: 100000,
         tappingRate: 4,
         stockLimit: 10000,
+        googleDriveLink: "https://docs.google.com/document/d/176_SmffC_e3Kb95iAek1geC4gKJawdSu/edit?usp=drivesdk&ouid=111743446115601227158&rtpof=true&sd=true", 
         usedStock: 0,
       },
+      
       {
         title: 'Human Relations',  // Exact match for the search
         description:
           'The book Human Relations by <b>Kennedy E. O.</b> was inspired by the need to properly educate individuals about the nature of life and its existence using the principles of human relations...',
-        priceTon: 1.0,
+        priceTon: 2.0,
         author: 'Kennedy E. O.',
-        priceStars: 400,
+        priceStars: 270,
         priceCard: 4,
         coinsReward: 30000,
         tappingRate: 7,

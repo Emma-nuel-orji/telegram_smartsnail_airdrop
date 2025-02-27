@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
+import { Bot } from "grammy";
 import { prisma } from '@/prisma/client';
-import { sendPurchaseEmail } from "@/src/utils/emailUtils";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const PROVIDER_TOKEN = process.env.PROVIDER_TOKEN;
 
 if (!TELEGRAM_BOT_TOKEN) {
   console.error("TELEGRAM_BOT_TOKEN is not set in the environment variables");
 }
 
-const api = axios.create({
-  baseURL: `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/`,
-});
+const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +28,7 @@ export async function POST(request: NextRequest) {
       totalPoints,
     } = body;
 
-    // Enhanced input validation
+    // Validate inputs
     if (!email || !email.includes('@')) {
       return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
     }
@@ -53,33 +49,28 @@ export async function POST(request: NextRequest) {
       totalPoints,
     });
 
-    // Create Telegram payment invoice
-    const paymentResponse = await api.post('createInvoiceLink', {
+    // 🛑 Use an empty provider token for XTR payments!
+    const invoiceLink = await bot.api.createInvoiceLink(
       title,
       description,
       payload,
-      provider_token: PROVIDER_TOKEN,
-      currency: "XTR", // XTR represents Stars in Telegram
-      prices: [{ 
-        amount: Number(amount),
+      "", // Empty provider token for Telegram Stars
+      "XTR", 
+      [{ 
+        amount: Number(amount), 
         label 
-      }],
-      need_email: true, // Request email from user during payment
-    });
+      }]
+    );
 
-    if (!paymentResponse.data.result) {
-      throw new Error("Failed to create payment invoice");
-    }
-
-    // Store pending transaction in database
+    // Store transaction in the database
     const validOrderId = await prisma.order.findFirst({
-      where: { status: "PENDING" }, // Find a pending order
+      where: { status: "PENDING" }, 
     });
-    
+
     if (!validOrderId) {
       throw new Error("Valid order ID not found.");
     }
-    
+
     await prisma.pendingTransaction.create({
       data: {
         email,
@@ -94,15 +85,13 @@ export async function POST(request: NextRequest) {
         payloadData: payload,
         status: "PENDING",
         order: {
-          connect: { id: validOrderId.id }, // Use the fetched valid order ID
+          connect: { id: validOrderId.id },
         },
       },
     });
 
-    // Return the invoice link to the frontend
-    return NextResponse.json({ 
-      invoiceLink: paymentResponse.data.result
-    });
+    // ✅ Return invoice link to frontend
+    return NextResponse.json({ invoiceLink });
 
   } catch (error) {
     console.error("Error processing payment:", error);
