@@ -603,8 +603,9 @@ if (!finalOrder) {
               // order: {
               //   connect: { orderId: finalOrder.orderId }
               // }
-              orderReference: finalOrder?.orderId,
-              order: finalOrder?.orderId ? { connect: { orderId: finalOrder.orderId } } : undefined,
+              order: finalOrder?.orderId ? { 
+                connect: { orderId: finalOrder.orderId } 
+              } : undefined,
             };
             
         
