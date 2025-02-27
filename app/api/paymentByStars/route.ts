@@ -3,7 +3,7 @@ import axios from "axios";
 import { prisma } from '@/prisma/client';
 import { sendPurchaseEmail } from "@/src/utils/emailUtils";
 
-const TELEGRAM_BOT_TOKEN = process.env.BOT_API;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const PROVIDER_TOKEN = process.env.PROVIDER_TOKEN;
 
 if (!TELEGRAM_BOT_TOKEN) {
