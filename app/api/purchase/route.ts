@@ -548,7 +548,7 @@ if (!finalOrder) {
         
         // 🔹 Create Purchase Record with Transaction
         try {
-          const purchase = await tx.$transaction(async (innerTx) => {
+          const purchase = await prisma.$transaction(async (tx) => {
             const orderReference = finalOrder?.orderId || "PENDING";
             
             if (!userId) {
