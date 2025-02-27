@@ -595,7 +595,7 @@ if (!finalOrder) {
               coinsReward: coinsReward,
               createdAt: new Date(),
 
-              orderReference: finalOrder.orderId,
+              
               user: {
                 connect: { id: user.id }, 
               },
@@ -604,6 +604,7 @@ if (!finalOrder) {
                 connect: { orderId: finalOrder.orderId }
               }
             };
+
         
             console.log("coinsReward type:", typeof purchaseData.coinsReward);
         
