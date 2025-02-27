@@ -436,7 +436,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
         console.warn("⚠️ Missing paymentReference! Creating a new order in PENDING state.");
         const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-        const newOrder = await prisma.$transaction(async (tx) => {
+      
           const order = await tx.order.create({
             data: {
               orderId,
@@ -447,8 +447,6 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
             },
           });
           console.log("✅ New PENDING order created:", order);
-          return order;
-        });
   
         return { success: true, orderId: newOrder.orderId };
       }
@@ -507,6 +505,8 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
           console.log("✅ New SUCCESS order created:", finalOrder);
         } else {
           console.log("✅ Existing order found. Updating order status to SUCCESS.");
+
+
           finalOrder = await tx.order.update({
             where: { orderId: existingOrder.orderId },
             data: {
@@ -556,20 +556,12 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
         }
 
         
-        // 🔹 Create Purchase Record with Transaction
-        try {
-          const purchase = await prisma.$transaction(async (tx) => {
-            const orderReference = finalOrder?.orderId || "PENDING";
-            
-            if (!userId) {
-              throw new Error("Invalid userId: userId cannot be null");
-            }
+        // 🔹 Create Purchase Record
+      try {
+       
+        const userIdNumber = Number(userId);
+        if (!userId || isNaN(userIdNumber)) throw new Error("Invalid userId: userId must be a valid number");
 
-             const userIdNumber = Number(userId);
-
-            if (isNaN(userIdNumber)) {
-              throw new Error("Invalid userId: userId must be a number");
-            }
 
              // Check if the User exists
              const user = await tx.user.findUnique({
@@ -616,10 +608,8 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               // order: {
               //   connect: { orderId: finalOrder.orderId }
               // }
-              order: finalOrder?.orderId ? { 
-                connect: { orderId: finalOrder.orderId } 
-              } : undefined,
-            };
+               order: { connect: { orderId: finalOrder.orderId } }, 
+        };
             
         
             console.log("coinsReward type:", typeof purchaseData.coinsReward);
