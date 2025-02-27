@@ -10,6 +10,7 @@ import TelegramInit from "@/components/TelegramInit";
 import "./BoostPage.css";
 import { useRouter } from "next/navigation";
 import { useWallet } from '../context/walletContext';
+import Confetti from "react-confetti";
 
 // import { generateHMACSignature } from "@/src/utils/paymentUtils"
 
@@ -58,7 +59,7 @@ interface PurchasePayload {
 // Initial Stock Limit
 const INITIAL_STOCK_LIMIT = {
   fxckedUpBagsLimit: 10000,
-  humanRelationsLimit: 15000,
+  humanRelationsLimit: 10000,
   fxckedUpBagsUsed: 0,
   fxckedUpBags: 0,
   humanRelationsUsed: 0,
@@ -78,6 +79,7 @@ export default function BoostPageContent() {
   } = useBoostContext();
 
   // State Management
+  const [showConfetti, setShowConfetti] = useState(false);
   const { isConnected, tonConnectUI, walletAddress } = useWallet();
   const [isClient, setIsClient] = useState(false);
   const [telegramId, setTelegramId] = useState<string | null>(null);
@@ -151,6 +153,7 @@ const triggerConfetti = () => {
   const fetchStockData = useCallback(async () => {
     try {
       const stockResponse = await axios.get("/api/stock");
+      console.log("Fetched stock data:", stockResponse.data); // Debugging log
       setStockLimit(stockResponse.data);
     } catch (error) {
       console.error("Error fetching stock data:", error);
@@ -335,6 +338,7 @@ const transaction = {
       const orderId = orderResponse.data.orderId;
   
       console.log("11. Purchase successful!");
+      handlePaymentSuccess();
       alert("Purchase successful! Check your email for details.");
       router.push(`/wallet?orderId=${orderId}`);
   
@@ -373,39 +377,39 @@ const transaction = {
     setIsProcessing(true);
   
     try {
-      const payload = {
+      const payload = JSON.stringify({  
         email: purchaseEmail,
         title: `Stars Payment for ${totalBooks} Books`,
         description: `Stars payment includes ${fxckedUpBagsQty} FxckedUpBags and ${humanRelationsQty} Human Relations books.`,
-        amount: priceStars,
+        amount: Math.round(priceStars),  
         label: "SMARTSNAIL Stars Payment",
         paymentMethod: "Stars",
         bookCount: totalBooks,
         tappingRate,
         points,
         priceTon,
-        priceStars,
+        priceStars: Math.round(priceStars), 
         fxckedUpBagsQty,
         humanRelationsQty,
         telegramId,
         referrerId,
-      };
-  
-      // Set headers object and conditionally add Telegram init data only in production
-      const headers: { [key: string]: string } = {};
-  
-      if (process.env.NODE_ENV === 'production') {
-        const initData = window.Telegram.WebApp.initData;
-        headers['x-telegram-init-data'] = initData;
-      }
-  
-      const response = await axios.post("/api/paymentByStars", payload, {
-        headers: headers,
       });
   
+      // Set headers and conditionally add Telegram init data
+      const headers: { [key: string]: string } = {
+        "Content-Type": "application/json",  
+      };
+  
+      if (process.env.NODE_ENV === "production") {
+        const initData = window.Telegram.WebApp.initData;
+        headers["x-telegram-init-data"] = initData;
+      }
+  
+      const response = await axios.post("/api/paymentByStars", payload, { headers });
+  
       if (response.data.invoiceLink) {
-        // Instead of showing success alert immediately, redirect to Telegram's payment interface
-        window.location.href = response.data.invoiceLink;
+        window.location.href = response.data.invoiceLink; 
+        handlePaymentSuccess();
       } else {
         throw new Error("Failed to create payment link");
       }
@@ -417,9 +421,13 @@ const transaction = {
     }
   };
   
+  
 // Function to handle successful payment callback
 const handlePaymentSuccess = async () => {
   try {
+    setShowConfetti(true); // 🎉 Show confetti
+    setTimeout(() => setShowConfetti(false), 5000); // Stop confetti after 5s
+
     // Reset quantities
     setFxckedUpBagsQty(0);
     setHumanRelationsQty(0);
@@ -470,6 +478,8 @@ const handlePaymentSuccess = async () => {
   }
 
   return (
+    <>
+    {showConfetti && <Confetti />}
     <div className="boost-page">
       {/* {loading && <Loader />} */}
 
@@ -609,6 +619,7 @@ const handlePaymentSuccess = async () => {
 
       {/* Message Display */}
       {message && <p className="message">{message}</p>}
+      </>
     </div>
   );
 }

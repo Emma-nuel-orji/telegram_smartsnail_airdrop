@@ -51,16 +51,16 @@ export async function POST(request: NextRequest) {
 
     // 🛑 Use an empty provider token for XTR payments!
     const invoiceLink = await bot.api.createInvoiceLink(
-      title,
-      description,
-      payload,
-      "", // Empty provider token for Telegram Stars
-      "XTR", 
-      [{ 
-        amount: Number(amount), 
-        label 
-      }]
-    );
+        title,
+        description,
+        payload,
+        "", // Empty provider token for Telegram Stars
+        "XTR", 
+        [{ 
+          label: label || "Book Payment",
+          amount: Math.round(Number(amount)) // Ensure amount is a whole number
+        }]
+      );
 
     // Store transaction in the database
     const validOrderId = await prisma.order.findFirst({

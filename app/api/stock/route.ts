@@ -14,58 +14,55 @@ export async function GET(req: NextRequest) {
   try {
     const bookStocks = await Promise.all(
       Object.values(books).map(async (book: Book) => {
-        // Count of all generated codes for the book
         const totalAssigned = await prisma.generatedCode.count({
           where: { bookId: book.id },
         });
 
-        // Fetch redeemed codes
         const redeemedCodes = await prisma.generatedCode.findMany({
           where: { bookId: book.id },
         });
 
-        // Calculate remaining stock using the helper function
         const stockInfo = calculateStock(book, redeemedCodes);
+        console.log(`Stock Calculation for ${book.title}:`, stockInfo); // Debugging
 
-        // Detailed stock information
+        const usedStock = Number(stockInfo.split('/')[0]); // Ensure correct parsing
+
         return {
           id: book.id,
           title: book.title,
-          fxckedUpBagsLimit: book.id === 'fxckedUpBags' ? book.stockLimit : 10000,
-          humanRelationsLimit: book.id === 'humanRelations' ? book.stockLimit : 10000,
-          fxckedUpBagsUsed: book.id === 'fxckedUpBags' ? Number(stockInfo.split('/')[0]) : 0,
-          humanRelationsUsed: book.id === 'humanRelations' ? Number(stockInfo.split('/')[0]) : 0,
-          fxckedUpBags: book.id === 'fxckedUpBags' ? totalAssigned : 0,
-          humanRelations: book.id === 'humanRelations' ? totalAssigned : 0,
+          stockLimit: book.stockLimit || 10000, // Default limit
           assigned: totalAssigned,
-          used: Number(stockInfo.split('/')[0]),
-          remaining: book.stockLimit - Number(stockInfo.split('/')[0]),
+          used: usedStock,
+          remaining: book.stockLimit - usedStock,
         };
       })
     );
 
-    // Combine and transform the data to match the expected format
+    // Reduce to aggregate fxckedUpBags & humanRelations
     const stockData = bookStocks.reduce((acc, book) => {
-      acc.fxckedUpBagsLimit = Math.max(acc.fxckedUpBagsLimit, book.fxckedUpBagsLimit);
-      acc.humanRelationsLimit = Math.max(acc.humanRelationsLimit, book.humanRelationsLimit);
-      acc.fxckedUpBagsUsed += book.fxckedUpBagsUsed;
-      acc.humanRelationsUsed += book.humanRelationsUsed;
-      acc.fxckedUpBags += book.fxckedUpBags;
-      acc.humanRelations += book.humanRelations;
+      if (book.id === 'fxckedUpBags') {
+        acc.fxckedUpBagsLimit = book.stockLimit;
+        acc.fxckedUpBagsUsed = book.used;
+        acc.fxckedUpBags = book.assigned;
+      } else if (book.id === 'humanRelations') {
+        acc.humanRelationsLimit = book.stockLimit;
+        acc.humanRelationsUsed = book.used;
+        acc.humanRelations = book.assigned;
+      }
       return acc;
     }, {
-      fxckedUpBagsLimit: 0,
-      humanRelationsLimit: 0,
+      fxckedUpBagsLimit: 10000,
+      humanRelationsLimit: 10000,
       fxckedUpBagsUsed: 0,
       humanRelationsUsed: 0,
       fxckedUpBags: 0,
       humanRelations: 0,
     });
 
-    // Respond with aggregated stock data
     return NextResponse.json(stockData);
   } catch (error) {
     console.error('Error fetching stock data:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
