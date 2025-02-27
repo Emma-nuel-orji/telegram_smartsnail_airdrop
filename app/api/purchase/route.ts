@@ -435,19 +435,23 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
       if (!paymentReference) {
         console.warn("⚠️ Missing paymentReference! Creating a new order in PENDING state.");
         const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        const newOrder = await prisma.order.create({
-          data: {
-            orderId,
-            paymentMethod,
-            totalAmount,
-            status: "PENDING",
-            transactionReference: null,
-          },
-        });
 
-        console.log("✅ New PENDING order created:", { orderId: newOrder.orderId });
-      return { success: true, orderId: newOrder.orderId };
-    }
+        const newOrder = await prisma.$transaction(async (tx) => {
+          const order = await tx.order.create({
+            data: {
+              orderId,
+              paymentMethod,
+              totalAmount,
+              status: "PENDING",
+              transactionReference: null,
+            },
+          });
+          console.log("✅ New PENDING order created:", order);
+          return order;
+        });
+  
+        return { success: true, orderId: newOrder.orderId };
+      }
 
     function isPurchase(purchase: any): purchase is { id: string } {
       return purchase && typeof purchase.id === "string";
@@ -476,6 +480,14 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
             ]
           },
         });
+
+         console.log("🔍 Existing order lookup result:", existingOrder);
+
+        if (!existingOrder) {
+          console.log("⚠️ No existing order found. Creating a new order.");
+        } else {
+          console.log("✅ Found existing order:", existingOrder);
+        }
     
         let finalOrder;
         if (!existingOrder) {
@@ -507,10 +519,12 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
 
 
         // Add null check and error handling
-if (!finalOrder) {
-  throw new Error("Failed to create or retrieve order");
-}
+        if (!finalOrder) {
+          throw new Error("Failed to create or retrieve order");
+        }
         // When fetching the order after creation, ensure you include the id field:
+
+        console.log("🔍 Final order before retrieval:", finalOrder);
 
         const confirmedOrder = await tx.order.findUnique({
           where: { id: finalOrder.id },
@@ -524,10 +538,6 @@ if (!finalOrder) {
         finalOrder = confirmedOrder;
         
 
-        if (!finalOrder) {
-          throw new Error("Failed to retrieve complete order details");
-        }
-        
         console.log("Final order for purchase creation:", finalOrder);
 
 
