@@ -602,7 +602,8 @@ if (!finalOrder) {
               book: bookId ? { connect: { id: bookId } } : undefined, 
               order: {
                 connect: { orderId: finalOrder.orderId }
-              },
+              }
+            };
         
             console.log("coinsReward type:", typeof purchaseData.coinsReward);
         
