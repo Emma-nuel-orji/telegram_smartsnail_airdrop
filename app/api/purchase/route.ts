@@ -595,16 +595,18 @@ if (!finalOrder) {
               coinsReward: coinsReward,
               createdAt: new Date(),
 
-              
+              orderReference: finalOrder?.orderId,
+              order: finalOrder?.orderId ? { connect: { orderId: finalOrder.orderId } } : undefined,
+            };
               user: {
                 connect: { id: user.id }, 
               },
               book: bookId ? { connect: { id: bookId } } : undefined, 
-              order: {
-                connect: { orderId: finalOrder.orderId }
-              }
+              // order: {
+              //   connect: { orderId: finalOrder.orderId }
+              // }
             };
-
+            
         
             console.log("coinsReward type:", typeof purchaseData.coinsReward);
         
