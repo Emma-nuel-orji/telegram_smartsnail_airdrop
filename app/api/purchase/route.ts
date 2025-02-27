@@ -618,7 +618,7 @@ if (!finalOrder) {
               throw new Error(`Invalid coinsReward type: ${typeof purchaseData.coinsReward}`);
             }
         
-            const createdPurchase = await innerTx.purchase.create({
+            const createdPurchase = await tx.purchase.create({
               data: purchaseData,
             });
         
