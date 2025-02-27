@@ -562,13 +562,14 @@ if (!finalOrder) {
             }
 
              // Check if the User exists
-             const user = await innerTx.user.findUnique({
+             const user = await tx.user.findUnique({
               where: { telegramId: userIdNumber }, // Use telegramId to find the user
             });
         
             if (!user) {
               console.error(`User with telegramId ${userIdNumber} does not exist. Marking payment as pending.`);
-              await innerTx.order.update({
+
+            await tx.order.update({
                 where: { orderId: finalOrder.orderId },
                 data: { status: "PENDING" },
               });
