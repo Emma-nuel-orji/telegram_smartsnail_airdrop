@@ -150,6 +150,7 @@ model Purchase {
   coinsReward       Int
 
 
+
   // Relations
   user              User         @relation(fields: [userId], references: [id])
   book              Book?        @relation(fields: [bookId], references: [id])  // Make optional
