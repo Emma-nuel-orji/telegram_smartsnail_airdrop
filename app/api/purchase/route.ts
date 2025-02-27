@@ -513,7 +513,7 @@ if (!finalOrder) {
         // When fetching the order after creation, ensure you include the id field:
 
         const confirmedOrder = await tx.order.findUnique({
-          where: { transactionReference: paymentReference },
+          where: { id: finalOrder.id },
           select: { id: true, orderId: true }
         });
         
