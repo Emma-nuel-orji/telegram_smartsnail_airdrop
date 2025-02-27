@@ -600,8 +600,9 @@ if (!finalOrder) {
                 connect: { id: user.id }, 
               },
               book: bookId ? { connect: { id: bookId } } : undefined, 
-              order: finalOrder?.orderId ? { connect: { orderId: finalOrder.orderId } } : undefined,
-            };
+              order: {
+                connect: { orderId: finalOrder.orderId }
+              }
         
             console.log("coinsReward type:", typeof purchaseData.coinsReward);
         
@@ -616,7 +617,7 @@ if (!finalOrder) {
             if (!createdPurchase) {
               throw new Error("Purchase creation failed");
             }
-            
+
         
             return createdPurchase;
           });
