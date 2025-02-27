@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       fxckedUpBagsQty,
       humanRelationsQty,
       telegramId,
-      referrerId,
+      referrerId: referrerId || null,
       tappingRate,
       totalPoints,
     });
