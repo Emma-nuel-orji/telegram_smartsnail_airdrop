@@ -481,6 +481,8 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
         if (!existingOrder) {
           console.log("⚠️ No existing order found. Creating a new order.");
           const newOrderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+
           finalOrder = await tx.order.create({
             data: {
               orderId: newOrderId,
@@ -501,26 +503,26 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
             },
           });
         }
-    
+        console.log("🔍 Order retrieved for processing:", finalOrder);
+
 
         // Add null check and error handling
 if (!finalOrder) {
   throw new Error("Failed to create or retrieve order");
 }
         // When fetching the order after creation, ensure you include the id field:
-       finalOrder = await tx.order.findUnique({
-          where: { orderId: finalOrder.orderId },
-          select: {
-            id: true,       // Make sure this is included
-            // _id: true, 
-            orderId: true,
-            paymentMethod: true,
-            totalAmount: true,
-            status: true,
-            createdAt: true,
-            transactionReference: true
-          }
+
+        const confirmedOrder = await tx.order.findUnique({
+          where: { transactionReference: paymentReference },
+          select: { id: true, orderId: true }
         });
+        
+        if (!confirmedOrder) {
+          throw new Error("Order retrieval failed after creation.");
+        }
+        
+        finalOrder = confirmedOrder;
+        
 
         if (!finalOrder) {
           throw new Error("Failed to retrieve complete order details");
@@ -546,7 +548,7 @@ if (!finalOrder) {
         
         // 🔹 Create Purchase Record with Transaction
         try {
-          const purchase = await prisma.$transaction(async (innerTx) => {
+          const purchase = await tx.$transaction(async (innerTx) => {
             const orderReference = finalOrder?.orderId || "PENDING";
             
             if (!userId) {
@@ -575,10 +577,10 @@ if (!finalOrder) {
 
             // Validate bookCount
             console.log("bookCount:", bookCount);
-    const booksBoughtValue = Math.floor(Number(bookCount || 0)); // Default to 0 if bookCount is undefined or null
-    console.log("booksBought value:", booksBoughtValue);
+            const booksBoughtValue = Math.floor(Number(bookCount || 0)); 
+            console.log("booksBought value:", booksBoughtValue);
 
-          console.log("Order details for connection:", {
+            console.log("Order details for connection:", {
             id: finalOrder.id,
             // _id: finalOrder._id, 
             orderId: finalOrder.orderId
