@@ -622,15 +622,12 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
               data: purchaseData,
             });
         
-            if (!createdPurchase) {
+            if (!createdPurchase) 
               throw new Error("Purchase creation failed");
-            }
+            
 
         
-            return createdPurchase;
-          });
-        
-          console.log("✅ Purchase record created:", purchase);
+          console.log("✅ Purchase record created:", createdPurchase);
 
           // Use the type guard to ensure purchase has an id property
           if (!isPurchase(purchase)) {
