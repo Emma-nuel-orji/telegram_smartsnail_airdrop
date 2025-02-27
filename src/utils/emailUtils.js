@@ -1,13 +1,14 @@
+import 'dotenv/config';
 import nodemailer from 'nodemailer';
 import { prisma } from '@/prisma/client';
-import 'dotenv/config';
 
 // Configure the transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.SMARTSNAIL_EMAIL,
-    pass: process.env.SMARTSNAIL_PASSWORD,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+
   },
 });
 
@@ -25,7 +26,7 @@ export const sendPurchaseEmail = async (email, purchases, codes) => {
   }
 
   const mailOptions = {
-    from: process.env.SMARTSNAIL_EMAIL,
+    from: process.env.EMAIL_USER,
     to: email,
     subject: 'Your Books and Codes',
     text: `
@@ -50,7 +51,7 @@ export const sendPurchaseEmail = async (email, purchases, codes) => {
 // Send redemption email
 export const sendRedemptionEmail = async (email) => {
   const mailOptions = {
-    from: process.env.SMARTSNAIL_EMAIL,
+    from: process.env.EMAIL_USER,
     to: email,
     subject: 'Code Redemption Successful',
     text: 'Congratulations! Your code has been successfully redeemed, and you have been rewarded with 100,000 shells.',
