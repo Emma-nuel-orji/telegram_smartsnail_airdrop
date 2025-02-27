@@ -448,7 +448,7 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
           });
           console.log("✅ New PENDING order created:", order);
   
-        return { success: true, orderId: newOrder.orderId };
+          return { success: true, orderId: order.orderId };
       }
 
     function isPurchase(purchase: any): purchase is { id: string } {
