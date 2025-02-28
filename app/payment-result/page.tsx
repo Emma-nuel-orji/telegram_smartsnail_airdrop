@@ -31,7 +31,13 @@ const PaymentResultContent = () => {
       ? "Stars"
       : "USD";
 
-  useEffect(() => {
+      useEffect(() => {
+        console.log("🟡 Checking userId before API call:", userId);
+        
+        if (!userId) {
+          console.error("❌ userId is NULL, not making API call.");
+          return;
+        }
     const fetchUserTappingRate = async () => {
       if (!userId) return;
       try {

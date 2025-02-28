@@ -37,30 +37,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid purchase details" }, { status: 400 });
     }
 
-    // Create payload for Telegram payment
+    // Create a simplified payload for Telegram payment
     const payload = JSON.stringify({
       email,
       bookCount,
-      fxckedUpBagsQty,
-      humanRelationsQty,
-      telegramId,
-      referrerId: referrerId || null,
-      tappingRate,
-      totalPoints,
+      telegramId
     });
 
-    // 🛑 Use an empty provider token for XTR payments!
-    const invoiceLink = await bot.api.createInvoiceLink(
-        title,
-        description,
-        payload,
-        "", // Empty provider token for Telegram Stars
-        "XTR", 
-        [{ 
+    // Create invoice link using object parameter style
+    const invoiceLink = await bot.api.createInvoiceLink({
+      title: title || "Book Payment",
+      description: description || "Payment for books via Telegram Stars",
+      payload,
+      provider_token: "",
+      currency: "XTR",
+      prices: [
+        {
           label: label || "Book Payment",
-          amount: Math.round(Number(amount)) // Ensure amount is a whole number
-        }]
-      );
+          amount: Math.round(Number(amount))
+        }
+      ]
+    });
 
     // Store transaction in the database
     const validOrderId = await prisma.order.findFirst({
@@ -70,6 +67,18 @@ export async function POST(request: NextRequest) {
     if (!validOrderId) {
       throw new Error("Valid order ID not found.");
     }
+
+    // Create full payload for database
+    const fullPayload = JSON.stringify({
+      email,
+      bookCount,
+      fxckedUpBagsQty,
+      humanRelationsQty,
+      telegramId,
+      referrerId: referrerId || null,
+      tappingRate,
+      totalPoints,
+    });
 
     await prisma.pendingTransaction.create({
       data: {
@@ -82,7 +91,7 @@ export async function POST(request: NextRequest) {
         referrerId,
         tappingRate,
         totalPoints,
-        payloadData: payload,
+        payloadData: fullPayload,
         status: "PENDING",
         order: {
           connect: { id: validOrderId.id },
@@ -90,7 +99,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ✅ Return invoice link to frontend
+    // Return invoice link to frontend
     return NextResponse.json({ invoiceLink });
 
   } catch (error) {

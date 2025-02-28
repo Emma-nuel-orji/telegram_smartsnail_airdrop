@@ -83,6 +83,25 @@ export default function BoostPageContent() {
   const { isConnected, tonConnectUI, walletAddress } = useWallet();
   const [isClient, setIsClient] = useState(false);
   const [telegramId, setTelegramId] = useState<string | null>(null);
+
+// Fetch user ID when telegramId is available
+useEffect(() => {
+  const fetchUserData = async () => {
+    if (!telegramId) return; // Prevent API call if telegramId is missing
+
+    try {
+      const response = await axios.get(`/api/user/${telegramId}`);
+      console.log("✅ Fetched user data:", response.data);
+
+      setUserId(response.data.id); // Ensure userId is correctly set
+    } catch (error) {
+      console.error("🔥 Error fetching user ID:", error);
+    }
+  };
+
+  fetchUserData();
+}, [telegramId]); // Runs when telegramId changes
+
   const [uniqueCode, setUniqueCode] = useState("");
   const [referralLink, setReferralLink] = useState("");
   const [referrerId, setReferrerId] = useState("");
@@ -340,7 +359,13 @@ const transaction = {
       console.log("11. Purchase successful!");
       handlePaymentSuccess();
       alert("Purchase successful! Check your email for details.");
-      router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
+      console.log("Redirecting with userId:", userId);
+
+      if (userId) {
+        router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
+      } else {
+        console.error("User ID is missing. Payment result page might not load correctly.");
+      }
 
   
     } catch (error) {
@@ -437,7 +462,7 @@ const handlePaymentSuccess = async () => {
     await fetchStockData();
 
     // Show success message
-    alert("Purchase successful! Check your email for details.");
+    alert("Purchase successful! Check your email fooor details.");
   } catch (error) {
     console.error("Error handling payment success:", error);
   }
