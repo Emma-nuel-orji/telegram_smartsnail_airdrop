@@ -1,23 +1,27 @@
 'use client';
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import React, { Suspense } from "react";
+import axios from "axios";
 
-// Separate component for the payment result content
 const PaymentResultContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [previousTappingRate, setPreviousTappingRate] = useState(0);
+  const [newTappingRate, setNewTappingRate] = useState(0);
+  const [coinsReward, setCoinsReward] = useState(0);
 
   const status = searchParams.get("status");
   const orderId = searchParams.get("orderId");
   const amount = searchParams.get("amount");
   const paymentMethod = searchParams.get("paymentMethod");
+  const userId = searchParams.get("userId");
 
   const message =
     status === "success"
       ? "Payment Successful!"
       : status === "failure"
-      ? "Payment Failed!" 
+      ? "Payment Failed!"
       : "Unknown Payment Status";
 
   const currency =
@@ -26,6 +30,21 @@ const PaymentResultContent = () => {
       : paymentMethod === "Stars"
       ? "Stars"
       : "USD";
+
+  useEffect(() => {
+    const fetchUserTappingRate = async () => {
+      if (!userId) return;
+      try {
+        const response = await axios.get(`/api/user/${userId}`);
+        setPreviousTappingRate(response.data.tappingRate);
+        setNewTappingRate(response.data.newTappingRate || response.data.tappingRate);
+        setCoinsReward(response.data.coinsReward);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    fetchUserTappingRate();
+  }, [userId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -89,6 +108,9 @@ const PaymentResultContent = () => {
             <p>
               Amount Paid: {amount} {currency}
             </p>
+            <p>
+              🎉 Congratulations! You've earned {coinsReward} coins and your new tapping rate is {newTappingRate} (Previous: {previousTappingRate})!
+            </p>
           </div>
         )}
         <button
@@ -116,7 +138,6 @@ const PaymentResultContent = () => {
   );
 };
 
-// Main page component
 const PaymentResultPage = () => {
   return (
     <Suspense fallback={<div>Loading..</div>}>
@@ -124,6 +145,5 @@ const PaymentResultPage = () => {
     </Suspense>
   );
 };
-
 
 export default PaymentResultPage;

@@ -340,7 +340,8 @@ const transaction = {
       console.log("11. Purchase successful!");
       handlePaymentSuccess();
       alert("Purchase successful! Check your email for details.");
-      router.push(`/wallet?orderId=${orderId}`);
+      router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
+
   
     } catch (error) {
       console.error("Purchase error:", error);
@@ -619,7 +620,8 @@ const handlePaymentSuccess = async () => {
 
       {/* Message Display */}
       {message && <p className="message">{message}</p>}
-      </>
+      
     </div>
+    </>
   );
 }
