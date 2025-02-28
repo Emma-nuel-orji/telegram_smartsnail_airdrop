@@ -44,20 +44,18 @@ export async function POST(request: NextRequest) {
       telegramId
     });
 
-    // Create invoice link using object parameter style
-    const invoiceLink = await bot.api.createInvoiceLink({
-      title: title || "Book Payment",
-      description: description || "Payment for books via Telegram Stars",
+    // Use the positional parameter style as expected by the Grammy library
+    const invoiceLink = await bot.api.createInvoiceLink(
+      title || "Book Payment",
+      description || "Payment for books via Telegram Stars",
       payload,
-      provider_token: "",
-      currency: "XTR",
-      prices: [
-        {
-          label: label || "Book Payment",
-          amount: Math.round(Number(amount))
-        }
-      ]
-    });
+      "", // Empty provider token for Telegram Stars
+      "XTR",
+      [{ 
+        label: label || "Book Payment",
+        amount: Math.max(1, Math.round(Number(amount))) // Ensure amount is at least 1
+      }]
+    );
 
     // Store transaction in the database
     const validOrderId = await prisma.order.findFirst({
