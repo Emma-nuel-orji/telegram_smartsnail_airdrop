@@ -74,7 +74,7 @@ const result = await prisma.$transaction(async (tx) => {
     paymentMethod,
     transactionHash, 
     totalAmount,
-    '', 
+     
     userId,
     bookCount,
     bookId,
