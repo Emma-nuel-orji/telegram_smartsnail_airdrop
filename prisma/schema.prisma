@@ -175,7 +175,7 @@ model PendingTransaction {
   status            String    // e.g., "PENDING", "COMPLETED"
 
   // Foreign key and relation
-  orderId           String   @db.ObjectId
+  orderId           String   
   order             Order    @relation(fields: [orderId], references: [id])
 
   createdAt         DateTime @default(now())
