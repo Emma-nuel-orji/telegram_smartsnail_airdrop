@@ -13,27 +13,30 @@ type Referral = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, referrerId } = await request.json();
+    const { userTelegramId, referrerTelegramId } = await request.json();
 
-    // Validate input
-    if (!userId || !referrerId) {
-      return NextResponse.json({ error: 'Missing userId or referrerId' }, { status: 400 });
+    if (!userTelegramId || !referrerTelegramId) {
+      return NextResponse.json({ error: 'Missing userTelegramId or referrerTelegramId' }, { status: 400 });
     }
 
-    // Check if the user already has a referral
+    // Convert to BigInt
+    const userId = BigInt(userTelegramId);
+    const referrerId = BigInt(referrerTelegramId);
+
+    // Check if the user has already been referred
     const existingReferral = await prisma.referral.findFirst({
-      where: { referrerId, referredId: userId }, 
+      where: { referrerId, referredId: userId },
     });
 
     if (existingReferral) {
       return NextResponse.json({ error: 'User has already been referred' }, { status: 400 });
     }
 
-    // Create the referral
+    // Create referral
     const referral = await prisma.referral.create({
       data: {
         referrerId,
-        referredId: userId, 
+        referredId: userId,
       },
     });
 
@@ -44,32 +47,36 @@ export async function POST(request: NextRequest) {
   }
 }
 
+
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get('userId');
+    const telegramId = request.nextUrl.searchParams.get('telegramId');
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+    if (!telegramId) {
+      return NextResponse.json({ error: 'Missing telegramId' }, { status: 400 });
     }
+
+    const userId = BigInt(telegramId);
 
     // Fetch referrer details
     const referrer = await prisma.referral.findFirst({
-      where: { referrerId: userId }, 
-      include: { referrer: true }, 
+      where: { referredId: userId },
+      select: { referrerId: true },
     });
 
     // Fetch referrals made by this user
     const referrals = await prisma.referral.findMany({
       where: { referrerId: userId },
-      select: { referredId: true }, 
+      select: { referredId: true },
     });
 
     return NextResponse.json({
-      referrals: referrals.map(r => r.referredId),
-      referrer: referrer?.referrer?.username ?? null,
+      referrals: referrals.map(r => r.referredId.toString()), // Convert BigInt to string for JSON
+      referrer: referrer?.referrerId?.toString() ?? null, // Convert BigInt to string for JSON
     });
   } catch (error) {
     console.error('Error fetching referral data:', error);
     return NextResponse.json({ error: 'Error fetching referral data' }, { status: 500 });
   }
 }
+

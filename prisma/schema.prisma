@@ -70,15 +70,15 @@ model Task {
 // Referral model
 model Referral {
   id         String   @id @default(cuid()) @map("_id") @db.ObjectId
-  referrerId String   @db.ObjectId // Foreign key to User (referrer)
-  referredId String   @db.ObjectId // Foreign key to User (referred user)
+  referrerId BigInt
+  referredId BigInt
   createdAt  DateTime @default(now())
-  
 
-  // Relations
-  referrer User @relation("Referrer", fields: [referrerId], references: [id]) // Referring user
-  referred User @relation("ReferredBy", fields: [referredId], references: [id]) // Referred user
+  // Fix relations to reference telegramId instead of id
+  referrer User @relation("Referrer", fields: [referrerId], references: [telegramId]) 
+  referred User @relation("ReferredBy", fields: [referredId], references: [telegramId])
 }
+
 
 // GeneratedCode model
 model GeneratedCode {

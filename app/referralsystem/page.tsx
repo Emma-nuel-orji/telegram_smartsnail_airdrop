@@ -28,6 +28,23 @@ export default function ReferralSystemPage() {
           }
 
           setUserId(userIdFromTelegram);
+
+          // Extract referrer ID from URL (Telegram start parameter)
+          const urlParams = new URLSearchParams(window.location.search);
+          const referrerTelegramId = urlParams.get("start");
+
+          if (referrerTelegramId && userIdFromTelegram !== referrerTelegramId) {
+            // Save referral to backend
+            await fetch("/api/referrals", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userTelegramId: userIdFromTelegram,
+                referrerTelegramId,
+              }),
+            });
+          }
+
         } catch (err) {
           console.error('Failed to initialize Telegram WebApp:', err);
           setError('Failed to initialize Telegram WebApp. Please try again.');

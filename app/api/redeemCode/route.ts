@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("📩 Incoming redemption request:", body);
 
-    const { userId, uniqueCode, referrerId, email }: RedemptionRequest = body;
+    const { userId, uniqueCode, referrerId: referrerTelegramId, email }: RedemptionRequest = body;
+
 
     // Validate required input fields
     if (!userId || !uniqueCode || !email) {
@@ -121,30 +122,29 @@ export async function POST(request: NextRequest) {
 }
 
 // ✅ Helper function to validate or fetch the referrer ID
-async function getReferrerId(userId: string, referrerId?: string): Promise<string | null> {
+async function getReferrerId(userId: string, referrerTelegramId?: string): Promise<string | null> {
   try {
-    if (referrerId) {
-      referrerId = referrerId.trim(); // ✅ Trim extra spaces
+    if (referrerTelegramId) {
+      referrerTelegramId = referrerTelegramId.trim(); // ✅ Trim spaces
 
-      if (ObjectId.isValid(referrerId)) {
-        // If referrerId is a valid ObjectId, query Prisma
-        const referrer = await prisma.user.findUnique({ where: { id: referrerId } });
-        return referrer ? referrerId : null;
-      } else {
-        // If it's an email or username, try finding it
-        const referrer = await prisma.user.findUnique({
-          where: {
-            OR: [
-              { email: referrerId }, // If it's an email
-              { username: referrerId }, // If it's a username
-            ],
-          },
-        });
-        return referrer ? referrer.id : null;
+      if (referrerTelegramId === "SMARTSNAIL") {
+        return "SMARTSNAIL"; // ✅ Special case
       }
+
+      if (!/^\d+$/.test(referrerTelegramId)) { // ✅ Ensure it's a valid number
+        console.error("❌ Invalid referrer Telegram ID:", referrerTelegramId);
+        return null;
+      }
+
+      // Convert to BigInt and validate in the database
+      const referrer = await prisma.user.findUnique({ 
+        where: { telegramId: BigInt(referrerTelegramId) } 
+      });
+
+      return referrer ? referrerTelegramId : null;
     }
 
-    // If no referrerId was provided, try to fetch it from the referrals table
+    // Fetch referrer from the referral table (if not provided)
     const referral = await prisma.referral.findFirst({
       where: { referredId: userId },
       select: { referrerId: true },
@@ -152,7 +152,8 @@ async function getReferrerId(userId: string, referrerId?: string): Promise<strin
 
     return referral?.referrerId || null;
   } catch (error) {
-    console.error("❌ Error validating or fetching referrer ID:", error);
+    console.error("Error validating or fetching referrer ID:", error);
     return null;
   }
 }
+
