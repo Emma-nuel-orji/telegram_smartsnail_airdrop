@@ -152,7 +152,8 @@ async function getReferrerId(userId: string, referrerTelegramId?: string): Promi
       select: { referrerId: true },
     });
 
-    return referral?.referrerId || null;
+    return referral?.referrerId ? referral.referrerId.toString() : null;
+
   } catch (error) {
     console.error("Error validating or fetching referrer ID:", error);
     return null;
