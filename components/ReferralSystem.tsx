@@ -54,20 +54,22 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
 
   return (
     <div className="referral-container">
-      <div className="ref">
-        <image 
-          className="imag" 
-          src="/images/tasks/invite a telegram premium friend.png" 
-          alt="Invite a friend" 
-        />
-      </div>
-      <div className="ref">
-        <image 
-          className="imag" 
-          src="/images/tasks/invite friend.png" 
-          alt="Invite friend" 
-        />
-      </div>
+  <div className="ref">
+    <img 
+      className="imag" 
+      src="/images/tasks/invite a telegram premium friend.png" 
+      alt="Invite a friend" 
+    />
+  </div>
+  <div className="ref">
+    <img 
+      className="imag" 
+      src="/images/tasks/invite friend.png" 
+      alt="Invite friend" 
+    />
+  </div>
+
+
       <br />
 
       {referrer && (
