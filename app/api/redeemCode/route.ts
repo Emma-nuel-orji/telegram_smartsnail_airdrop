@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ Special Case: If referrerId is "SMARTSNAIL", skip validation and reward directly
-    if (referrerId?.trim() === "SMARTSNAIL") {
+    if (referrerTelegramId?.trim() === "SMARTSNAIL") {
+
       await prisma.generatedCode.update({
         where: { code: uniqueCode },
         data: {
