@@ -80,18 +80,30 @@ export default function BoostPageContent() {
 
   // State Management
   const [showConfetti, setShowConfetti] = useState(false);
-const [windowSize, setWindowSize] = useState({
-  width: typeof window !== 'undefined' ? window.innerWidth : 0,
-  height: typeof window !== 'undefined' ? window.innerHeight : 0
-});
-
-useEffect(() => {
-  const handleResize = () => {
-    setWindowSize({
-      width: window.innerWidth,
-      height: window.innerHeight
-    });
-  };
+  const [windowSize, setWindowSize] = useState({
+    width: 0,
+    height: 0
+  });
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+  
+      const handleResize = () => {
+        setWindowSize({
+          width: window.innerWidth,
+          height: window.innerHeight
+        });
+      };
+  
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, []);
+  
   
   window.addEventListener('resize', handleResize);
   return () => window.removeEventListener('resize', handleResize);
@@ -379,7 +391,9 @@ const transaction = {
       console.log("Redirecting with userId:", userId);
 
       if (userId) {
-        router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
+        setTimeout(() => {
+          router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
+        }, 2000);
       } else {
         console.error("User ID is missing. Payment result page might not load correctly.");
       }
