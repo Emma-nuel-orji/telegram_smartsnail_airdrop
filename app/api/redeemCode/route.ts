@@ -10,16 +10,21 @@ interface RedemptionRequest {
 }
 
 export async function POST(request: NextRequest) {
- try {
-   const { userId, uniqueCode, referrerId, email }: RedemptionRequest = await request.json();
+  try {
+    const body = await request.json();
+    console.log("📩 Incoming redemption request:", body);
 
-   // Validate required input fields
-   if (!userId || !uniqueCode || !email) {
-     return NextResponse.json(
-       { error: 'Missing required fields: userId, uniqueCode, or email.' },
-       { status: 400 }
-     );
-   }
+    const { userId, uniqueCode, referrerId, email }: RedemptionRequest = body;
+
+    // Validate required input fields
+    if (!userId || !uniqueCode || !email) {
+      console.error("❌ Missing required fields:", { userId, uniqueCode, email });
+      return NextResponse.json(
+        { error: 'Missing required fields: userId, uniqueCode, or email.' },
+        { status: 400 }
+      );
+    }
+
 
    // Check if the unique code exists and whether it has already been redeemed
    const code = await prisma.generatedCode.findUnique({

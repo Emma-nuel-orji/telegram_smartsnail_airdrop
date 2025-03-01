@@ -20,9 +20,9 @@ export async function GET(
   { params }: { params: { telegramId: string } }
 ): Promise<Response> {
   try {
-    if (!/^[0-9]+$/.test(params.telegramId)) {
-      return NextResponse.json({ error: "Invalid Telegram ID format" }, { status: 400 });
-    }
+    // if (!/^[0-9]+$/.test(params.telegramId)) {
+    //   return NextResponse.json({ error: "Invalid Telegram ID format" }, { status: 400 });
+    // }
 
     const user = await prisma.user.findFirst({ where: { telegramId: BigInt(params.telegramId) } });
 

@@ -358,7 +358,7 @@ const transaction = {
   
       console.log("11. Purchase successful!");
       handlePaymentSuccess();
-      alert("Purchase successful! Check your email for details.");
+     
       console.log("Redirecting with userId:", userId);
 
       if (userId) {
@@ -434,8 +434,9 @@ const transaction = {
       const response = await axios.post("/api/paymentByStars", payload, { headers });
   
       if (response.data.invoiceLink) {
+        localStorage.setItem("starsPaymentSuccess", "true");
         window.location.href = response.data.invoiceLink; 
-        handlePaymentSuccess();
+       
       } else {
         throw new Error("Failed to create payment link");
       }
@@ -448,25 +449,41 @@ const transaction = {
   };
   
   
+  useEffect(() => {
+    const paymentSuccess = localStorage.getItem("starsPaymentSuccess");
+  
+    if (paymentSuccess) {
+      handlePaymentSuccess();
+      localStorage.removeItem("starsPaymentSuccess"); // Clear after use
+    }
+  }, []);
+
+
 // Function to handle successful payment callback
 const handlePaymentSuccess = async () => {
   try {
-    setShowConfetti(true); // 🎉 Show confetti
+    console.log("Triggering confetti... 🎉");
+
+    // ✅ Ensure confetti state update applies
+    setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 5000); // Stop confetti after 5s
 
-    // Reset quantities
+    // ✅ Delay alerts slightly to allow confetti to be visible first
+    setTimeout(() => {
+      alert("Purchase successful! Check your email for details.");
+    }, 500);
+
+    // Reset purchase quantities
     setFxckedUpBagsQty(0);
     setHumanRelationsQty(0);
 
-    // Refresh stock
+    // Refresh stock data
     await fetchStockData();
-
-    // Show success message
-    alert("Purchase successful! Check your email fooor details.");
   } catch (error) {
     console.error("Error handling payment success:", error);
   }
 };
+
 
   // Code Redemption Handler
   const handleCodeRedemption = async () => {
@@ -505,7 +522,14 @@ const handlePaymentSuccess = async () => {
 
   return (
     <>
-    {showConfetti && <Confetti />}
+    {showConfetti && (
+      <Confetti
+        width={windowSize.width}
+        height={windowSize.height}
+        recycle={false}
+        numberOfPieces={500}
+      />
+    )}
     <div className="boost-page">
       {/* {loading && <Loader />} */}
 
