@@ -132,9 +132,10 @@ export async function POST(request: Request) {
       }
     });
 
-    if (!result.success) {
-      return NextResponse.json(result, { status: 400 });
+    if (!result || !result.success) {
+      return NextResponse.json(result ?? { error: "Undefined result" }, { status: 400 });
     }
+    
 
     return NextResponse.json(result);
   } catch (error) {
