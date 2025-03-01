@@ -33,6 +33,7 @@ type Click = {
 };
 
 export default function Home() {
+  const [telegramId, setTelegramId] = useState<string | null>(null);
   const [user, setUser] = useState<null | {
     telegramId: string;
     points: number;
@@ -41,6 +42,25 @@ export default function Home() {
     last_name?: string | null;
     hasClaimedWelcome?: boolean;
   }>(null);
+  
+  useEffect(() => {
+    console.log("🔍 Checking telegramId before API call:", telegramId);
+  
+    const fetchUserData = async () => {
+      if (!telegramId) return;
+      try {
+        const response = await axios.get(`/api/user/${telegramId}`);
+        console.log("✅ Fetched user data:", response.data);
+        
+        setUser(response.data);
+      } catch (error) {
+        console.error("🔥 Error fetching user data:", error);
+      }
+    };
+  
+    fetchUserData();
+  }, [telegramId]);
+  
 
   const [firstName, setFirstName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
