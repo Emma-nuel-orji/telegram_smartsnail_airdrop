@@ -389,7 +389,7 @@ const transaction = {
       if (userId) {
         setTimeout(() => {
           router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
-        }, 2000);
+        }, 4000);
       } else {
         console.error("User ID is missing. Payment result page might not load correctly.");
       }

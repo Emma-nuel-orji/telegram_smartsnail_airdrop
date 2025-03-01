@@ -32,6 +32,8 @@ async function main() {
         priceCard: 4,
         coinsReward: 30000,
         tappingRate: 7,
+        googleDriveLink: "https://drive.google.com/file/d/1IwcAYqAbYpxu0o9EuIhAgXoG-RKnLi19",
+        
         stockLimit: 10000,
         usedStock: 0,
       },

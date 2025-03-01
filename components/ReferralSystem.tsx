@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import './referral.css';
+import Link from "next/link";
 
 interface ReferralSystemProps {
   userId: string;
@@ -145,6 +146,14 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
     <div className="referral-container">
       {/* Header Section */}
       <div className="referral-header">
+      <Link href="/">
+          <img
+            src="/images/info/left-arrow.png" 
+            width={40}
+            height={40}
+            alt="back"
+          />
+        </Link>
         <h1 className="referral-title">Invite Friends & Earn</h1>
         <p className="referral-subtitle">
           Earn {referralData.referralRate} Shells for each friend who joins using your link
@@ -159,12 +168,12 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
           icon="fa-users" 
         />
         <StatCard 
-          title="Points Earned" 
+          title="Shells Earned" 
           value={referralData.totalEarned} 
           icon="fa-star" 
         />
         <StatCard 
-          title="Pending Points" 
+          title="Pending Shells" 
           value={referralData.pendingRewards} 
           icon="fa-clock" 
         />
