@@ -451,7 +451,7 @@ const transaction = {
       const response = await axios.post("/api/paymentByStars", payload, { headers });
   
       if (response.data.invoiceLink) {
-        localStorage.setItem("starsPaymentSuccess", "true");
+        // localStorage.setItem("starsPaymentSuccess", "true");
         window.location.href = response.data.invoiceLink; 
        
       } else {
@@ -467,13 +467,25 @@ const transaction = {
   
   
   useEffect(() => {
-    const paymentSuccess = localStorage.getItem("starsPaymentSuccess");
+    const verifyPayment = async () => {
+      try {
+        const response = await axios.post("/api/verify-payment", {
+          telegramId,
+          paymentMethod: "Stars",
+        });
   
-    if (paymentSuccess) {
-      handlePaymentSuccess();
-      localStorage.removeItem("starsPaymentSuccess"); // Clear after use
-    }
+        if (response.data.success) {
+          handlePaymentSuccess();
+        }
+      } catch (error) {
+        console.error("Payment verification failed:", error);
+      }
+    };
+  
+    verifyPayment();
   }, []);
+  
+  
 
 
 // Function to handle successful payment callback
