@@ -20,11 +20,14 @@ export async function GET(
   { params }: { params: { telegramId: string } }
 ): Promise<Response> {
   try {
-    // if (!/^[0-9]+$/.test(params.telegramId)) {
-    //   return NextResponse.json({ error: "Invalid Telegram ID format" }, { status: 400 });
-    // }
+    // Ensure telegramId is a valid number before converting it to BigInt
+    if (!/^\d+$/.test(params.telegramId)) {
+      return NextResponse.json({ error: "Invalid Telegram ID format" }, { status: 400 });
+    }
 
-    const user = await prisma.user.findFirst({ where: { telegramId: BigInt(params.telegramId) } });
+    const user = await prisma.user.findFirst({
+      where: { telegramId: BigInt(params.telegramId) },
+    });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -32,6 +35,9 @@ export async function GET(
 
     return NextResponse.json(serializeUser(user));
   } catch (error) {
-    return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error", details: (error as Error).message },
+      { status: 500 }
+    );
   }
 }

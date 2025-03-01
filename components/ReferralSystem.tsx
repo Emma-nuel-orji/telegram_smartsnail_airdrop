@@ -24,7 +24,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
     referrer: null,
     totalEarned: 0,
     pendingRewards: 0,
-    referralRate: 50,
+    referralRate: 30000,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [expandedStat, setExpandedStat] = useState<string | null>(null);

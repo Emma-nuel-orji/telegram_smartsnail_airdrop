@@ -23,13 +23,27 @@ export async function POST(request: NextRequest) {
     const userId = BigInt(userTelegramId);
     const referrerId = BigInt(referrerTelegramId);
 
+    // Prevent self-referral
+    if (userId === referrerId) {
+      return NextResponse.json({ error: 'User cannot refer themselves' }, { status: 400 });
+    }
+
     // Check if the user has already been referred
     const existingReferral = await prisma.referral.findFirst({
-      where: { referrerId, referredId: userId },
+      where: { referredId: userId },
     });
 
     if (existingReferral) {
       return NextResponse.json({ error: 'User has already been referred' }, { status: 400 });
+    }
+
+    // Verify referrer exists
+    const referrerExists = await prisma.user.findUnique({
+      where: { telegramId: referrerId },
+    });
+
+    if (!referrerExists) {
+      return NextResponse.json({ error: 'Invalid referrer ID' }, { status: 400 });
     }
 
     // Create referral
@@ -46,6 +60,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Error saving referral' }, { status: 500 });
   }
 }
+
 
 
 export async function GET(request: NextRequest) {
@@ -79,4 +94,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Error fetching referral data' }, { status: 500 });
   }
 }
+
+
 
