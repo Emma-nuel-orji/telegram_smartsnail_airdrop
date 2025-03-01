@@ -74,7 +74,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ Validate the referrer ID or fetch dynamically if not provided
-    const validatedReferrerId = await getReferrerId(userId, referrerId);
+    const validatedReferrerId = await getReferrerId(userId, referrerTelegramId);
+
     
     if (!validatedReferrerId) {
       return NextResponse.json(
