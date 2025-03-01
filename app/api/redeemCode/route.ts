@@ -148,7 +148,7 @@ async function getReferrerId(userId: string, referrerTelegramId?: string): Promi
 
     // Fetch referrer from the referral table (if not provided)
     const referral = await prisma.referral.findFirst({
-      where: { referredId: userId },
+      where: { referredId: BigInt(userId) }, 
       select: { referrerId: true },
     });
 
