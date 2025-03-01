@@ -26,7 +26,7 @@
     "@twa-dev/sdk": "^8.0.1",
     "@twa-dev/types": "^7.10.0",
     "@types/socket.io": "^3.0.1",
-    "axios": "^1.7.9",
+    "axios": "^1.8.1",
     "canvas-confetti": "^1.9.3",
     "cookie": "^1.0.2",
     "dotenv": "^16.4.7",

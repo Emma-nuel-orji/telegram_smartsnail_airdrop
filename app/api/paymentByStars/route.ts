@@ -78,17 +78,20 @@ export async function POST(request: NextRequest) {
       totalPoints,
     });
 
+    // Make sure totalPoints is included and convert to a number if needed
+    const points = totalPoints ? Number(totalPoints) : 0;
+
     await prisma.pendingTransaction.create({
       data: {
         email,
-        amount,
+        amount: Number(amount),
         bookCount,
         fxckedUpBagsQty,
         humanRelationsQty,
         telegramId,
-        referrerId,
-        tappingRate,
-        totalPoints,
+        referrerId: referrerId || null,
+        tappingRate: Number(tappingRate) || 0,
+        totalPoints: points, // Make sure this is included
         payloadData: fullPayload,
         status: "PENDING",
         order: {
