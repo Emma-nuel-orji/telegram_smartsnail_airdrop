@@ -17,8 +17,8 @@ interface PrismaUser {
   referrals: {
     id: string;
     createdAt: Date;
-    referrerId: string;
-    referredId: string;
+    referrerId: bigint;
+    referredId: bigint;
   }[];
 }
 
