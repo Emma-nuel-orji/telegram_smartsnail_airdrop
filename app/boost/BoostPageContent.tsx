@@ -80,34 +80,30 @@ export default function BoostPageContent() {
 
   // State Management
   const [showConfetti, setShowConfetti] = useState(false);
-  const [windowSize, setWindowSize] = useState({
-    width: 0,
-    height: 0
-  });
-  
-  useEffect(() => {
-    if (typeof window !== "undefined") {
+const [windowSize, setWindowSize] = useState({
+  width: 0,
+  height: 0
+});
+
+useEffect(() => {
+  if (typeof window !== "undefined") {
+    setWindowSize({
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+
+    const handleResize = () => {
       setWindowSize({
         width: window.innerWidth,
         height: window.innerHeight
       });
-  
-      const handleResize = () => {
-        setWindowSize({
-          width: window.innerWidth,
-          height: window.innerHeight
-        });
-      };
-  
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }
-  }, []);
-  
-  
-  window.addEventListener('resize', handleResize);
-  return () => window.removeEventListener('resize', handleResize);
-}, []);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }
+}, []); // ✅ 
+
 
   const { isConnected, tonConnectUI, walletAddress } = useWallet();
   const [isClient, setIsClient] = useState(false);
