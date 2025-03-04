@@ -4,7 +4,7 @@ import Script from "next/script";
 import { Providers } from "./providers";
 import { BoostProvider } from "./api/context/BoostContext";
 import ErrorBoundary from "./ErrorBoundary";
-import TelegramInitializer from "@/components/TelegramInitializer"; 
+import TelegramInitializer from "../src/components/TelegramInitializer"; 
 
 export const metadata: Metadata = {
   title: "Telegram Mini App",
