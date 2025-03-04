@@ -1,5 +1,3 @@
-// src/telegram-webapp.d.ts
-
 declare namespace Telegram {
     interface WebAppUser {
         id: number;
@@ -16,8 +14,29 @@ declare namespace Telegram {
             user?: WebAppUser;
         };
         close: () => void;
-        // Add other WebApp methods here as needed
+
+        // ✅ Add the showStory method
+        showStory?: (params: {
+            media: string;
+            mediaType: "photo" | "video";
+            sticker?: {
+                url: string;
+                width: number;
+                height: number;
+                position: { x: number; y: number };
+            };
+        }) => Promise<void>;
     }
 
     const WebApp: WebApp;
 }
+
+declare global {
+    interface Window {
+        Telegram: {
+            WebApp: Telegram.WebApp;
+        };
+    }
+}
+
+export {};
