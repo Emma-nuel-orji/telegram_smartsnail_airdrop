@@ -19,8 +19,9 @@
         "name": "next"
       }
     ],
+    "baseUrl": "./",
     "paths": {
-      "@/*": ["./*"],
+      "@/*": ["./*", "src/*"],
       "@telegram-apps/sdk": ["./node_modules/@twa-dev/sdk/dist/index.js"],
       "@loader": ["./loader", "./src/loader"],
       "@/prisma/*": ["./lib/prisma.ts"],
@@ -28,6 +29,7 @@
       "@/components/*": ["./components/*"],
       "@contexts/*": ["./app/api/context/*"],
       "@/src/*": ["./src/*"],
+      
       "@/app/*": ["./app/*"]
     }
   },
