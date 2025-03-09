@@ -70,15 +70,15 @@ model Task {
 // Referral model
 model Referral {
   id         String   @id @default(cuid()) @map("_id") @db.ObjectId
-  referrerId String   @db.ObjectId // Foreign key to User (referrer)
-  referredId String   @db.ObjectId // Foreign key to User (referred user)
+  referrerId BigInt
+  referredId BigInt
   createdAt  DateTime @default(now())
-  
 
-  // Relations
-  referrer User @relation("Referrer", fields: [referrerId], references: [id]) // Referring user
-  referred User @relation("ReferredBy", fields: [referredId], references: [id]) // Referred user
+  // Fix relations to reference telegramId instead of id
+  referrer User @relation("Referrer", fields: [referrerId], references: [telegramId]) 
+  referred User @relation("ReferredBy", fields: [referredId], references: [telegramId])
 }
+
 
 // GeneratedCode model
 model GeneratedCode {
@@ -101,50 +101,64 @@ model GeneratedCode {
 
 // Book model
 model Book {
-  id          String   @id @map("_id")
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   author      String
-  coinsReward BigInt  // Keep BigInt
-  createdAt   DateTime @db.Date
+  coinsReward Int
   description String
   priceCard   Float
-  priceStars  Int     // Changed to Int
+  priceStars  Int
+  googleDriveLink String?
   priceTon    Float
-  stockLimit  Int     // Changed to Int
-  tappingRate Int     // Changed to Int
+  stockLimit  Int
+  tappingRate Int
   title       String
-  usedStock   Int     // Changed to Int
+  usedStock   Int
+
   // Relations
   generatedCodes GeneratedCode[] // One-to-many relation to GeneratedCode
-  purchases      Purchase[] // One-to-many relation to Purchase
+  purchases      Purchase[]      // One-to-many relation to Purchase
+
+  @@map("Book") // Map this model to the MongoDB "Book" collection
 }
 
-// Purchase model
-model Purchase {
-  id          String   @id @default(cuid()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  bookId      String   @db.ObjectId
-  paymentType String
-  amountPaid  Float
-  booksBought Int
-  createdAt   DateTime @default(now())
-
-  // Relations
-  user  User            @relation(fields: [userId], references: [id])
-  book  Book            @relation(fields: [bookId], references: [id])
-  codes GeneratedCode[] // One-to-many relation to GeneratedCode
-}
 
 model Order {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId            String   @unique
-  paymentMethod      String
-  totalAmount        Float
-  status             String     // e.g., "PENDING", "COMPLETED"
-  createdAt          DateTime   @default(now())
+  id                  String       @id @default(cuid()) @map("_id") 
+  orderId             String      @unique
+  paymentMethod       String
+  totalAmount         Float
+  status              String      // e.g., "PENDING", "COMPLETED"
+  createdAt           DateTime    @default(now())
+  transactionReference String?
 
-  // Relationship to pending transactions
-  pendingTransactions PendingTransaction[]  
+  // Relationships
+  purchases           Purchase[]  @relation("OrderPurchases") // One-to-many relation to Purchase
+  pendingTransactions PendingTransaction[]
+} 
+
+
+model Purchase {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String        @db.ObjectId
+  bookId            String?       @db.ObjectId  
+  paymentType       String
+  amountPaid        Float
+  booksBought       Int
+  orderReference    String?        
+  fxckedUpBagsQty   Int?         // Optional
+  humanRelationsQty Int?         // Optional
+  createdAt         DateTime     @default(now())
+  coinsReward       Int
+
+
+
+  // Relations
+  user              User         @relation(fields: [userId], references: [id])
+  book              Book?        @relation(fields: [bookId], references: [id])  // Make optional
+  codes             GeneratedCode[]
+   order             Order?       @relation("OrderPurchases", fields: [orderReference], references: [orderId])
 }
+
 
 model PendingTransaction {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -161,7 +175,7 @@ model PendingTransaction {
   status            String    // e.g., "PENDING", "COMPLETED"
 
   // Foreign key and relation
-  orderId           String   @db.ObjectId
+  orderId           String   
   order             Order    @relation(fields: [orderId], references: [id])
 
   createdAt         DateTime @default(now())
@@ -182,3 +196,5 @@ model Nonce {
   value   String   @unique 
   usedAt  DateTime @default(now()) 
 }
+
+

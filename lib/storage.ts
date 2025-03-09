@@ -33,3 +33,11 @@ export async function getReferrer(userId: string) {
 
   return referral?.referrerId?.toString() || null; // ✅ Convert BigInt to string if needed
 }
+
+export function getWebAppUser() {
+  if (typeof window !== "undefined") {
+    const user = localStorage.getItem("webAppUser");
+    return user ? JSON.parse(user) : null;
+  }
+  return null;
+}
