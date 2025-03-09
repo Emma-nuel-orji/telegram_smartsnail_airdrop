@@ -17,14 +17,14 @@ import { PointsQueue } from '@/src/utils/userSync';
 
 
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: WebAppType;
-    };
-    pointsQueue?: PointsQueue;
-  }
-}
+// declare global {
+//   interface Window {
+//     Telegram?: {
+//       WebApp: WebAppType;
+//     };
+//     pointsQueue?: PointsQueue;
+//   }
+// }
 
 type Click = {
   id: number;
@@ -741,7 +741,7 @@ useEffect(() => {
   <div className="relative mt-4" onClick={handleClick}>
   {/* Fight Club Button - Prevent Click Effect */}
   <div className="absolute top-4 right-4 z-20">
-              <Link href="/fights" passHref>
+              <Link href="/staking" passHref>
                 <button
                   onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
