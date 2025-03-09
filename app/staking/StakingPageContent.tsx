@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Loader from "@/loader";
+import Link from "next/link";
 
 // Motivational messages that display while tapping
 const MOTIVATIONAL_MESSAGES = [
@@ -68,6 +69,11 @@ function StakingPageContent() {
     const fetchData = async () => {
       try {
         setLoading(true);
+  
+        if (!telegramId) {
+          throw new Error('Telegram ID is not available');
+        }
+  
         // Fetch user info
         const userResponse = await fetch(`/api/user/${telegramId}`);
         if (!userResponse.ok) throw new Error('Failed to fetch user info');
@@ -89,15 +95,28 @@ function StakingPageContent() {
         setLoading(false);
       }
     };
-    
-    fetchData();
-  }, []);
+  
+    if (telegramId) {
+      fetchData();
+    } else {
+      setError('Telegram ID is missing');
+    }
+  }, [telegramId]);
+  
   
   if (loading) return <Loader />;
   if (error) return <div className="error-container">Error: {error}</div>;
   
   return (
     <div className="staking-container">
+       <Link href="/">
+          <img
+            src="/images/info/left-arrow.png" 
+            width={40}
+            height={40}
+            alt="back"
+          />
+        </Link>
       <h1 className="staking-title">Support Your Fighter</h1>
       <p className="points-balance">Your Points Balance: {userPoints.toLocaleString()}</p>
       
