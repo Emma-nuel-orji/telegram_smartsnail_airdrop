@@ -24,6 +24,7 @@ interface Fighter {
   name: string;
   imageUrl?: string; 
   socialMedia?: string; 
+  stats?: Record<string, any>; 
 }
 
 interface Fight {
@@ -32,9 +33,16 @@ interface Fight {
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
+  date: string;
+  status: "upcoming" | "ongoing" | "completed";
 }
 
 interface FightCardProps {
+  fight: Fight;
+  userPoints: number;
+}
+
+interface FightCard {
   fight: Fight;
   userPoints: number;
 }
@@ -45,13 +53,35 @@ interface FighterStakingProps {
   fight: Fight;
   userPoints: number;
 }
+const [fights, setFights] = useState<Fight[]>([]);
+
+
+const defaultFight: Fight = {
+  id: "default-id",
+  fighter1: { id: "f1", name: "Fighter A", stats: {} }, // Ensure it's an object
+  fighter2: { id: "f2", name: "Fighter B", stats: {} },
+  date: new Date().toISOString(),
+  status: "upcoming",
+  title: "",
+  fightDate: new Date().toISOString() // Ensure it's a valid date
+};
+
+// const fight = fights?.[0] ?? defaultFight; // Safe fallback
 
 // This is the main page component
 export default function StakingPage() {
+  const [fights, setFights] = useState<Fight[]>([]);
+  const fight = fights?.[0] ?? defaultFight;
   return (
     <div className="page-container">
-      <FightCard />
-      
+      <StakingPageContent />
+      <FightCard fight={fight} userPoints={0} />
+      <FighterStaking
+        fighter={fight.fighter1}
+        opponent={fight.fighter2}
+        fight={fight}
+        userPoints={0}
+      />
     </div>
   );
 }

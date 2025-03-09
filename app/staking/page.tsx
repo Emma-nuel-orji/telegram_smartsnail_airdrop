@@ -3,13 +3,11 @@
 import dynamic from 'next/dynamic';
 import Loader from '@/loader';
 
-const FightCard = dynamic(() => import('./FightCard'), {
+const StakingPageContent = dynamic(() => import('./StakingPageContent'), {
   ssr: false,
-  loading: () => <Loader />, // Use your custom loader
+  loading: () => <Loader />,
 });
 
 export default function StakingPage() {
-  return <FightCard />;
+  return <StakingPageContent />;
 }
-
-
