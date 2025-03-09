@@ -314,7 +314,7 @@ const transaction = {
   
           console.log("6. Verifying TON transaction with backend...");
 
-          const userId = window.Telegram.WebApp.initDataUnsafe?.user?.id || undefined;
+          const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
 
           const verifyResponse = await axios.post("/api/verify-payment", {
             transactionHash: tonResult.boc,
@@ -454,9 +454,11 @@ const transaction = {
       };
   
       if (process.env.NODE_ENV === "production") {
-        const initData = window.Telegram.WebApp.initData;
-        headers["x-telegram-init-data"] = initData;
-      }
+        const initData = window.Telegram?.WebApp?.initData;
+        if (initData) {
+          headers["x-telegram-init-data"] = initData;
+        }
+      } // This closing brace was missing
   
       const response = await axios.post("/api/paymentByStars", payload, { headers });
   
