@@ -371,13 +371,14 @@ useEffect(() => {
   
     setSharing(true);
     try {
-      if (window.Telegram?.WebApp?.showStory) {  // ✅ Ensure showStory exists
-        const trackingId = `${telegramId}-${Date.now()}`;
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-        const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
+      const trackingId = `${telegramId}-${Date.now()}`;
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+      const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
   
-        console.log("📤 Sharing Story...");
+      console.log("📤 Attempting to Share...");
   
+      // Check if the story sharing is available
+      if (window.Telegram?.WebApp?.showStory) {
         await window.Telegram.WebApp.showStory({
           media: selectedTask.mediaUrl,
           mediaType: "video",
@@ -386,54 +387,66 @@ useEffect(() => {
             width: 100,
             height: 100,
             position: { x: 0.5, y: 0.9 },
-          },
+          }
         });
-  
         console.log("✅ Story Shared Successfully");
-  
-        let storyResponse = await fetch("/api/share-telegram-story", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            taskId: selectedTask.id,
-            telegramId: telegramId,
-            reward: selectedTask.reward,
-            trackingId: trackingId,
-          }),
+      } 
+      // Fallback to regular sharing if story isn't available
+      else if (window.Telegram?.WebApp?.openLink) {
+        // Create a data URL or use another method to share
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent("Check out this awesome content!")}`;
+        window.Telegram.WebApp.openLink(shareUrl);
+        console.log("✅ Shared via alternative method");
+      }
+      // Last resort - copy link to clipboard
+      else {
+        // Copy link to clipboard
+        navigator.clipboard.writeText(referralLink).then(() => {
+          WebApp.showAlert("Link copied to clipboard. Please share manually.");
         });
+        console.log("⚠️ Using clipboard fallback");
+      }
   
-        if (storyResponse.ok) {
-          setTasks((prev) =>
-            prev.map((task) =>
-              task.id === selectedTask.id ? { ...task, completed: true } : task
-            )
-          );
+      // Continue with the same reward logic
+      let storyResponse = await fetch("/api/share-telegram-story", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId: selectedTask.id,
+          telegramId: telegramId,
+          reward: selectedTask.reward,
+          trackingId: trackingId,
+        }),
+      });
   
-          setTotalPoints((prev) => prev + (selectedTask.reward ?? 0));
+      if (storyResponse.ok) {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === selectedTask.id ? { ...task, completed: true } : task
+          )
+        );
   
-          triggerConfetti();
-          setTaskCompleted(true);
-          setSelectedTask(null);
+        setTotalPoints((prev) => prev + (selectedTask.reward ?? 0));
   
-          WebApp.showPopup({
-            title: "Success!",
-            message: `Congratulations! You earned ${selectedTask.reward} shells!`,
-            buttons: [{ type: "ok" }],
-          });
-        } else {
-          throw new Error("Failed to complete task");
-        }
+        triggerConfetti();
+        setTaskCompleted(true);
+        setSelectedTask(null);
+  
+        WebApp.showPopup({
+          title: "Success!",
+          message: `Congratulations! You earned ${selectedTask.reward} shells!`,
+          buttons: [{ type: "ok" }],
+        });
       } else {
-        WebApp.showAlert("Please update your Telegram app to use this feature.");
+        throw new Error("Failed to complete task");
       }
     } catch (error) {
-      console.error("❌ Error sharing to story:", error);
-      WebApp.showAlert("Failed to share story. Please try again.");
+      console.error("❌ Error sharing:", error);
+      WebApp.showAlert("Failed to share. Please try again.");
     } finally {
       setSharing(false);
     }
   };
-  
 
   // Existing validation handler
   

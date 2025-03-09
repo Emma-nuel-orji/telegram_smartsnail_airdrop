@@ -66,6 +66,31 @@ function StakingPageContent() {
   
   // Fetch upcoming fights and user points
   useEffect(() => {
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined') {
+      try {
+        // Try to get Telegram WebApp data
+        if (window.Telegram?.WebApp) {
+          const webApp = window.Telegram.WebApp;
+          if (webApp.initDataUnsafe?.user?.id) {
+            setTelegramId(webApp.initDataUnsafe.user.id.toString());
+          } else {
+            // For development/testing without Telegram
+            setTelegramId("12345"); // Use a test ID for development
+            console.log("Using test Telegram ID for development");
+          }
+        } else {
+          setError("Telegram WebApp not initialized");
+        }
+      } catch (err) {
+        console.error("Error initializing Telegram data:", err);
+        setError("Failed to initialize Telegram data");
+      }
+    }
+  }, []);
+  
+  // Fetch upcoming fights and user points
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -98,8 +123,6 @@ function StakingPageContent() {
   
     if (telegramId) {
       fetchData();
-    } else {
-      setError('Telegram ID is missing');
     }
   }, [telegramId]);
   
