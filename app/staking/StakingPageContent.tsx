@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from "next/link";
+import Loader from "@/loader";
 
 // Motivational messages that display while tapping
 const MOTIVATIONAL_MESSAGES = [
@@ -116,7 +117,7 @@ export default function StakingPageContent() {
     }
   }, [telegramId]);
   
-  if (loading) return <div className="loading-container">Loading...</div>;
+  if (loading) return <Loader />;
   if (error) return <div className="error-container">Error: {error}</div>;
   
   return (
@@ -145,7 +146,7 @@ export default function StakingPageContent() {
       )}
     </div>
   );
-}
+
 
 function FightCard({ fight, userPoints }: FightCardProps) {
   return (
@@ -445,4 +446,5 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
       </div>
     </div>
   );
+}
 }
