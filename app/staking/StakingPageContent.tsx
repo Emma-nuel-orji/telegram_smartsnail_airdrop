@@ -56,6 +56,7 @@ export default function StakingPage() {
 
 // Separated the content component
 function StakingPageContent() {
+  const [telegramId, setTelegramId] = useState<string | null>(null);
   const router = useRouter();
   const [fights, setFights] = useState<Fight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,7 @@ function StakingPageContent() {
       try {
         setLoading(true);
         // Fetch user info
-        const userResponse = await fetch('/api/user');
+        const userResponse = await fetch(`/api/user/${telegramId}`);
         if (!userResponse.ok) throw new Error('Failed to fetch user info');
         const userData = await userResponse.json();
         setUserPoints(userData.points);
