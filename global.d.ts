@@ -27,6 +27,12 @@ interface TelegramWebApp {
       button_text_color?: string;
     };
   }
+
+  
+interface TelegramWebAppInitData {
+  user?: TelegramUser;
+  // Add other properties as needed
+}
   
  
 declare global {
@@ -35,4 +41,18 @@ declare global {
         WebApp: TelegramWebApp; // Ensure this matches the correct type
       };
     }
+  }
+
+  interface TelegramUser {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+  }
+
+  interface Window {
+    Telegram?: {
+      WebApp: TelegramWebApp;
+    };
   }
