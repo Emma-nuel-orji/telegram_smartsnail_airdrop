@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Link from "next/link";
 import Loader from "@/loader";
+import Link from "next/link";
 
 // Motivational messages that display while tapping
 const MOTIVATIONAL_MESSAGES = [
@@ -46,8 +46,18 @@ interface FighterStakingProps {
   userPoints: number;
 }
 
-// Separated content component
-export default function StakingPageContent() {
+// This is the main page component
+export default function StakingPage() {
+  return (
+    <div className="page-container">
+      <FightCard />
+      
+    </div>
+  );
+}
+
+// Separated the content component
+function StakingPageContent() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const router = useRouter();
   const [fights, setFights] = useState<Fight[]>([]);
@@ -55,7 +65,7 @@ export default function StakingPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [userPoints, setUserPoints] = useState(0);
   
-  // Fetch Telegram ID
+  // Fetch upcoming fights and user points
   useEffect(() => {
     // Check if we're in a browser environment
     if (typeof window !== 'undefined') {
@@ -117,19 +127,20 @@ export default function StakingPageContent() {
     }
   }, [telegramId]);
   
+  
   if (loading) return <Loader />;
   if (error) return <div className="error-container">Error: {error}</div>;
   
   return (
     <div className="staking-container">
-      <Link href="/">
-        <img
-          src="/images/info/left-arrow.png" 
-          width={40}
-          height={40}
-          alt="back"
-        />
-      </Link>
+       <Link href="/">
+          <img
+            src="/images/info/left-arrow.png" 
+            width={40}
+            height={40}
+            alt="back"
+          />
+        </Link>
       <h1 className="staking-title">Support Your Fighter</h1>
       <p className="points-balance">Your Points Balance: {userPoints.toLocaleString()}</p>
       
@@ -146,7 +157,7 @@ export default function StakingPageContent() {
       )}
     </div>
   );
-
+}
 
 function FightCard({ fight, userPoints }: FightCardProps) {
   return (
@@ -292,7 +303,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
     if (!canParticipate || stakeAmount <= 0) return;
   
     try {
-      // Make sure to include the telegramId in the request
       const response = await fetch('/api/stakes/place', {
         method: 'POST',
         headers: {
@@ -303,7 +313,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
           fighterId: fighter.id,
           stakeAmount,
           stakeType,
-          telegramId: window.Telegram?.WebApp?.initDataUnsafe?.user?.id.toString() || "12345"
         }),
       });
   
@@ -317,9 +326,8 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
       setBarLocked(false);
       setMessage('Stake placed successfully!');
   
-      // Refresh user points (fix the API endpoint to include telegramId)
-      const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id.toString() || "12345";
-      const userResponse = await fetch(`/api/user/${telegramId}`);
+      // Refresh user points
+      const userResponse = await fetch('/api/user');
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setLocalUserPoints(userData.points);
@@ -446,5 +454,4 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
       </div>
     </div>
   );
-}
 }
