@@ -36,15 +36,16 @@ interface Fight {
 }
 
 interface FightCardProps {
-  fight: Fight;
+  fight?: Fight;
   userPoints: number;
 }
 
 interface FighterStakingProps {
-  fighter: Fighter;
-  opponent: Fighter;
-  fight: Fight;
+  fighter?: Fighter;
+  opponent?: Fighter;
+  fight?: Fight;
   userPoints: number;
+  isActive: boolean;
 }
 
 // This is the main page component
@@ -142,10 +143,13 @@ function StakingPageContent() {
           />
         </Link>
       <h1 className="staking-title">Support Your Fighter</h1>
-      <p className="points-balance">Your Points Balance: {userPoints.toLocaleString()}</p>
+      <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
       
       {fights.length === 0 ? (
-        <div className="no-fights">No upcoming fights available</div>
+        // When no fights are available, show inactive fight card
+        <FightCard 
+          userPoints={userPoints}
+        />
       ) : (
         fights.map(fight => (
           <FightCard 
@@ -160,35 +164,39 @@ function StakingPageContent() {
 }
 
 function FightCard({ fight, userPoints }: FightCardProps) {
+  const isActive = !!fight;
+  
   return (
-    <div className="fight-card">
+    <div className={`fight-card ${!isActive ? 'inactive-fight' : ''}`}>
       <div className="fight-header">
-        <h2>{fight.title}</h2>
+        <h2>{fight ? fight.title : "No Current Fight"}</h2>
         <div className="fight-date">
-          {new Date(fight.fightDate).toLocaleString()}
+          {fight ? new Date(fight.fightDate).toLocaleString() : "To be announced"}
         </div>
       </div>
       
       <div className="fighters-container">
         <FighterStaking 
-          fighter={fight.fighter1} 
-          opponent={fight.fighter2}
+          fighter={fight?.fighter1}
+          opponent={fight?.fighter2}
           fight={fight}
           userPoints={userPoints}
+          isActive={isActive}
         />
         <div className="vs-container">VS</div>
         <FighterStaking 
-          fighter={fight.fighter2} 
-          opponent={fight.fighter1}
+          fighter={fight?.fighter2}
+          opponent={fight?.fighter1}
           fight={fight}
           userPoints={userPoints}
+          isActive={isActive}
         />
       </div>
     </div>
   );
 }
 
-function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStakingProps) {
+function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: FighterStakingProps) {
   const [stakeType, setStakeType] = useState('STARS');
   const [stakeAmount, setStakeAmount] = useState(0);
   const [tapping, setTapping] = useState(false);
@@ -203,7 +211,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
 
   const MAX_STARS = 100000;
   const MIN_POINTS_REQUIRED = 200000;
-  const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED;
+  const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive;
   
   // Handle continuous tapping
   const handleTapStart = () => {
@@ -309,8 +317,8 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          fightId: fight.id,
-          fighterId: fighter.id,
+          fightId: fight?.id,
+          fighterId: fighter?.id,
           stakeAmount,
           stakeType,
         }),
@@ -359,10 +367,10 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
   }, []);
   
   return (
-    <div className="fighter-staking">
+    <div className={`fighter-staking ${!isActive ? 'inactive' : ''}`}>
       <div className="fighter-info">
         <div className="fighter-image">
-          {fighter.imageUrl ? (
+          {fighter?.imageUrl ? (
             <Image 
               src={fighter.imageUrl} 
               alt={fighter.name} 
@@ -371,12 +379,14 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
               className="fighter-portrait"
             />
           ) : (
-            <div className="fighter-placeholder">{fighter.name[0]}</div>
+            <div className="fighter-placeholder">
+              {!isActive ? "?" : fighter?.name?.[0] || "?"}
+            </div>
           )}
         </div>
-        <h3 className="fighter-name">{fighter.name}</h3>
+        <h3 className="fighter-name">{fighter?.name || "Unknown Fighter"}</h3>
         
-        {fighter.socialMedia && (
+        {fighter?.socialMedia && isActive && (
           <a href={fighter.socialMedia} target="_blank" rel="noopener noreferrer" className="social-button">
             View Profile
           </a>
@@ -388,12 +398,14 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
           <button 
             className={`stake-type-button ${stakeType === 'STARS' ? 'active' : ''}`}
             onClick={() => setStakeType('STARS')}
+            disabled={!isActive}
           >
             Stake with Stars
           </button>
           <button 
             className={`stake-type-button ${stakeType === 'POINTS' ? 'active' : ''}`}
             onClick={() => setStakeType('POINTS')}
+            disabled={!isActive}
           >
             Stake with Points
           </button>
@@ -423,7 +435,13 @@ function FighterStaking({ fighter, opponent, fight, userPoints }: FighterStaking
           </div>
           {message && <div className="motivation-message">{message}</div>}
           
-          {!canParticipate && (
+          {!isActive && (
+            <div className="no-fight-message">
+              No current fight available
+            </div>
+          )}
+          
+          {isActive && !canParticipate && (
             <div className="insufficient-balance">
               Minimum 200,000 points required to participate
             </div>

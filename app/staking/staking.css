@@ -281,3 +281,44 @@
     color: #6c757d;
     font-size: 18px;
   }
+
+  .inactive-fight {
+    opacity: 0.8;
+    cursor: not-allowed;
+    border: 1px solid rgba(128, 0, 128, 0.3); /* Light purple border */
+  }
+  
+  .fighter-staking.inactive {
+    opacity: 0.7;
+  }
+  
+  .fighter-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 150px;
+    height: 150px;
+    background-color: rgba(128, 0, 128, 0.1); /* Very light purple background */
+    font-size: 48px;
+    color: rgba(128, 0, 128, 0.5); /* Medium purple text */
+    border-radius: 50%;
+    border: 2px dashed rgba(128, 0, 128, 0.3); /* Dashed light purple border */
+  }
+  
+  .no-fight-message {
+    color: #b366ff; /* Light purple */
+    font-weight: bold;
+    margin: 10px 0;
+    text-align: center;
+  }
+  
+  .inactive .stake-type-button,
+  .inactive .stake-button {
+    background-color: rgba(128, 0, 128, 0.2); /* Very light purple */
+    color: rgba(128, 0, 128, 0.6); /* Medium purple text */
+    border: 1px solid rgba(128, 0, 128, 0.3); /* Light purple border */
+  }
+  
+  .inactive .tapping-bar-track {
+    background-color: rgba(128, 0, 128, 0.1); /* Very light purple */
+  }
