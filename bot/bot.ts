@@ -17,6 +17,12 @@ const ADMIN_USER_IDS = process.env.ADMIN_USER_IDS?.split(',')
   .map(id => Number(id.trim()))
   .filter(id => !isNaN(id)) || [];
 
+  bot.telegram.setMyCommands([
+    { command: 'schedule_fight', description: 'Schedule a new fight' },
+    { command: 'resolve_fight', description: 'Resolve an existing fight' },
+    { command: 'list_fights', description: 'List all active fights' }
+  ]);
+
 interface NewFight {
   title?: string;
   date?: string;
