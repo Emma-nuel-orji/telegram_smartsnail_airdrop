@@ -134,14 +134,15 @@ function StakingPageContent() {
   
   return (
     <div className="staking-container">
-       <Link href="/">
-          <img
-            src="/images/info/left-arrow.png" 
-            width={40}
-            height={40}
-            alt="back"
-          />
-        </Link>
+      <Link href="/">
+        <img
+          src="/images/info/left-arrow.png" 
+          width={40}
+          height={40}
+          alt="back"
+          className="back-button"
+        />
+      </Link>
       <h1 className="staking-title">Support Your Fighter</h1>
       <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
       
@@ -200,25 +201,60 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: Figh
   const [stakeType, setStakeType] = useState('STARS');
   const [stakeAmount, setStakeAmount] = useState(0);
   const [tapping, setTapping] = useState(false);
-  const [barWidth, setBarWidth] = useState(0);
+  const [barHeight, setBarHeight] = useState(0);
   const [barLocked, setBarLocked] = useState(false);
   const [message, setMessage] = useState('');
   const [tapCount, setTapCount] = useState(0);
   const [lastTapTime, setLastTapTime] = useState(0);
   const [localUserPoints, setLocalUserPoints] = useState(userPoints);
+  const [buttonAnimation, setButtonAnimation] = useState('');
   const barDecayInterval = useRef<NodeJS.Timeout | null>(null);
   const messageInterval = useRef<NodeJS.Timeout | null>(null);
+  const fighterRef = useRef<HTMLDivElement>(null);
 
   const MAX_STARS = 100000;
   const MIN_POINTS_REQUIRED = 200000;
   const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive;
+
+  // Handle stake type selection with animation
+  const handleStakeTypeChange = (type: string) => {
+    if (!canParticipate) return;
+    
+    // Reset bar when changing stake type
+    setBarHeight(0);
+    setStakeAmount(0);
+    setBarLocked(false);
+    
+    // Apply animation to the selected button
+    setButtonAnimation(type);
+    setTimeout(() => setButtonAnimation(''), 700);
+    
+    setStakeType(type);
+  };
+  
+  // Create tap effect animation
+  const createTapEffect = (x: number, y: number) => {
+    if (!fighterRef.current) return;
+    
+    const ripple = document.createElement('div');
+    ripple.className = 'tap-effect';
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    
+    fighterRef.current.appendChild(ripple);
+    
+    setTimeout(() => {
+      ripple.remove();
+    }, 600);
+  };
   
   // Handle continuous tapping
-  const handleTapStart = () => {
+  const handleTapStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked) return;
 
     setTapping(true);
 
+    // Clear existing intervals
     if (barDecayInterval.current) {
       clearInterval(barDecayInterval.current);
     }
@@ -227,6 +263,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: Figh
       clearInterval(messageInterval.current);
     }
 
+    // Set motivational message interval
     messageInterval.current = setInterval(() => {
       const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
       setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
@@ -237,7 +274,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: Figh
     setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
   };
   
-  const handleTap = () => {
+  const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked || !tapping) return;
     
     const now = Date.now();
@@ -246,17 +283,32 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: Figh
     // Prevent extremely rapid tapping (likely automated)
     if (timeDiff < 50) return;
     
+    // Create tap effect
+    let x, y;
+    if ('touches' in e) {
+      // Touch event
+      const touch = e.touches[0];
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      x = touch.clientX - rect.left;
+      y = touch.clientY - rect.top;
+    } else {
+      // Mouse event
+      x = e.nativeEvent.offsetX;
+      y = e.nativeEvent.offsetY;
+    }
+    createTapEffect(x, y);
+    
     setLastTapTime(now);
     setTapCount(prev => prev + 1);
     
-    // Increase bar width based on tapping, with diminishing returns for rapid tapping
+    // Increase bar height based on tapping, with diminishing returns for rapid tapping
     const increment = Math.max(0.5, 2 - (timeDiff < 300 ? 0.5 : 0));
-    setBarWidth(prev => {
-      const newWidth = Math.min(100, prev + increment);
-      // Calculate stake amount based on bar width
-      const newStakeAmount = Math.floor((newWidth / 100) * MAX_STARS);
+    setBarHeight(prev => {
+      const newHeight = Math.min(100, prev + increment);
+      // Calculate stake amount based on bar height
+      const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
       setStakeAmount(newStakeAmount);
-      return newWidth;
+      return newHeight;
     });
   };
   
@@ -275,18 +327,18 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: Figh
     }
     
     barDecayInterval.current = setInterval(() => {
-      setBarWidth((prev) => {
+      setBarHeight((prev) => {
         if (prev <= 0) {
           if (barDecayInterval.current) {
             clearInterval(barDecayInterval.current);
           }
           return 0;
         }
-        const newWidth = prev - 0.5;
+        const newHeight = prev - 0.5;
         // Update stake amount as bar decreases
-        const newStakeAmount = Math.floor((newWidth / 100) * MAX_STARS);
+        const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
         setStakeAmount(newStakeAmount);
-        return newWidth;
+        return newHeight;
       });
     }, 100);
   };
@@ -329,7 +381,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: Figh
       }
   
       // Reset after successful stake
-      setBarWidth(0);
+      setBarHeight(0);
       setStakeAmount(0);
       setBarLocked(false);
       setMessage('Stake placed successfully!');
@@ -367,7 +419,17 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: Figh
   }, []);
   
   return (
-    <div className={`fighter-staking ${!isActive ? 'inactive' : ''}`}>
+    <div 
+      ref={fighterRef}
+      className={`fighter-staking ${!isActive ? 'inactive' : ''} ${tapping ? 'active-stake' : ''}`}
+      onMouseDown={handleTapStart}
+      onMouseUp={handleTapEnd}
+      onMouseLeave={handleTapEnd}
+      onMouseMove={tapping ? handleTap : undefined}
+      onTouchStart={handleTapStart}
+      onTouchEnd={handleTapEnd}
+      onTouchMove={tapping ? handleTap : undefined}
+    >
       <div className="fighter-info">
         <div className="fighter-image">
           {fighter?.imageUrl ? (
@@ -396,78 +458,69 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: Figh
       <div className="staking-controls">
         <div className="stake-type-selector">
           <button 
-            className={`stake-type-button ${stakeType === 'STARS' ? 'active' : ''}`}
-            onClick={() => setStakeType('STARS')}
+            className={`stake-type-button ${stakeType === 'STARS' ? 'active' : ''} ${buttonAnimation === 'STARS' ? 'btn-pulse' : ''}`}
+            onClick={() => handleStakeTypeChange('STARS')}
             disabled={!isActive}
           >
             Stake with Stars
           </button>
           <button 
-            className={`stake-type-button ${stakeType === 'POINTS' ? 'active' : ''}`}
-            onClick={() => setStakeType('POINTS')}
+            className={`stake-type-button ${stakeType === 'POINTS' ? 'active' : ''} ${buttonAnimation === 'POINTS' ? 'btn-pulse' : ''}`}
+            onClick={() => handleStakeTypeChange('POINTS')}
             disabled={!isActive}
           >
             Stake with Points
           </button>
         </div>
         
-        <div 
-          className={`tapping-bar-container ${!canParticipate ? 'disabled' : ''} ${barLocked ? 'locked' : ''}`}
-          onMouseDown={handleTapStart}
-          onMouseUp={handleTapEnd}
-          onMouseLeave={handleTapEnd}
-          onMouseMove={tapping ? handleTap : undefined}
-          onTouchStart={handleTapStart}
-          onTouchEnd={handleTapEnd}
-          onTouchMove={tapping ? handleTap : undefined}
-          onClick={handleBarClick}
-        >
-          <div className="tapping-bar-track">
-            <div 
-              className="tapping-bar-fill" 
-              style={{ width: `${barWidth}%` }}
-            >
-              <div className="tapping-bar-pulse"></div>
+        <div className="staking-area">
+          <div 
+            className={`tapping-bar-container ${!canParticipate ? 'disabled' : ''} ${barLocked ? 'locked' : ''}`}
+            onClick={handleBarClick}
+          >
+            <div className="tapping-bar-track">
+              <div 
+                className={`tapping-bar-fill ${stakeType.toLowerCase()}`} 
+                style={{ height: `${barHeight}%` }}
+              >
+                {tapping && <div className="tapping-bar-pulse"></div>}
+              </div>
             </div>
+            {message && (
+              <div className="motivation-message">{message}</div>
+            )}
           </div>
+          
           <div className="stake-amount">
             {stakeAmount.toLocaleString()} {stakeType === 'STARS' ? 'Stars' : 'Points'}
           </div>
-          {message && <div className="motivation-message">{message}</div>}
+          
+          {!canParticipate && isActive && (
+            <div className="insufficient-balance">
+              Minimum {MIN_POINTS_REQUIRED.toLocaleString()} points required to participate
+            </div>
+          )}
           
           {!isActive && (
             <div className="no-fight-message">
-              No current fight available
+              No active fight to support
             </div>
           )}
           
-          {isActive && !canParticipate && (
-            <div className="insufficient-balance">
-              Minimum 200,000 points required to participate
-            </div>
+          {isActive && (
+            <button 
+              className="stake-button"
+              onClick={submitStake}
+              disabled={!canParticipate || stakeAmount === 0 || !barLocked}
+            >
+              Place Stake
+            </button>
           )}
-        </div>
-        
-        <button 
-          className="stake-button"
-          disabled={!canParticipate || stakeAmount <= 0 || !barLocked}
-          onClick={submitStake}
-        >
-          Stake Now
-        </button>
-        
-        <div className="stake-info">
-          {stakeType === 'STARS' ? (
-            <>
-              <p>Win: {Math.floor(500000 + (stakeAmount / MAX_STARS * 500000)).toLocaleString()} points</p>
-              <p>Loss/Draw: {Math.floor(stakeAmount / MAX_STARS * 500000).toLocaleString()} points</p>
-            </>
-          ) : (
-            <>
-              <p>Win: {(stakeAmount * 2).toLocaleString()} points</p>
-              <p>Loss/Draw: 0 points</p>
-            </>
-          )}
+          
+          <div className="stake-info">
+            <p>Tap repeatedly to increase your stake</p>
+            <p>Tap the bar once to lock in your stake</p>
+          </div>
         </div>
       </div>
     </div>
