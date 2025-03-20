@@ -1,29 +1,28 @@
-// ErrorBoundary.tsx
-'use client';
-import { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from "react";
 
-interface Props {
-  children?: ReactNode;
+interface ErrorBoundaryProps {
+  children: ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-export default class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false
-  };
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-  public static getDerivedStateFromError(_: Error): State {
+  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Error caught by ErrorBoundary:", error, errorInfo);
   }
 
-  public render() {
+  render() {
     if (this.state.hasError) {
       return <h1>Sorry.. there was an error</h1>;
     }
@@ -31,3 +30,5 @@ export default class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;

@@ -489,10 +489,18 @@ export default function StakingPageContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0);
-  
+  const [isRouterReady, setIsRouterReady] = useState(false);
+
+  // Ensure the router is ready before using it
+  useEffect(() => {
+    if (router.isReady) {
+      setIsRouterReady(true);
+    }
+  }, [router]);
+
   // Fetch Telegram ID properly
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && isRouterReady) {
       try {
         if (window.Telegram?.WebApp) {
           const webApp = window.Telegram.WebApp;
@@ -509,18 +517,18 @@ export default function StakingPageContent() {
         setError("Failed to initialize Telegram data");
       }
     }
-  }, []);
-  
+  }, [isRouterReady]);
+
   // Fetch data once we have telegramId
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-  
+
         if (!telegramId) {
           throw new Error('Telegram ID is not available');
         }
-  
+
         // Fetch user info
         const userResponse = await fetch(`/api/user/${telegramId}`);
         if (!userResponse.ok) throw new Error('Failed to fetch user info');
@@ -542,15 +550,15 @@ export default function StakingPageContent() {
         setLoading(false);
       }
     };
-  
+
     if (telegramId) {
       fetchData();
     }
   }, [telegramId]);
-  
-  if (loading) return <Loader />;
+
+  if (!isRouterReady || loading) return <Loader />;
   if (error) return <div className="error-container">Error: {error}</div>;
-  
+
   return (
     <div className="staking-container">
       <Link href="/">
