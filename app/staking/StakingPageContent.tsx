@@ -1,7 +1,8 @@
+'use client';
 import React, { useState, useEffect, useRef } from "react";
 import Image from 'next/image';
 import Link from "next/link";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/navigation";
 import Loader from "@/loader";
 
 // Define interfaces for our data structures
@@ -493,11 +494,11 @@ export default function StakingPageContent() {
 
   // Ensure the router is ready before using it
   useEffect(() => {
-    if (router.isReady) {
+    if (typeof window !== "undefined") {
       setIsRouterReady(true);
     }
-  }, [router]);
-
+  }, []);
+  
   // Fetch Telegram ID properly
   useEffect(() => {
     if (typeof window !== 'undefined' && isRouterReady) {
