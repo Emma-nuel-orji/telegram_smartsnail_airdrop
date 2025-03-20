@@ -1,3 +1,566 @@
+/* Dark theme staking component CSS */
+.page-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.staking-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.back-button {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.back-button:hover {
+  transform: translateX(-5px);
+}
+
+.staking-title {
+  color: #d6abff;
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(214, 171, 255, 0.3);
+}
+
+.points-balance {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #b366ff;
+  margin-bottom: 30px;
+  font-weight: bold;
+}
+
+.fight-card {
+  width: 100%;
+  background-color: #1e1e1e;
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  transition: all 0.3s ease;
+}
+
+.fight-card:hover {
+  box-shadow: 0 8px 25px rgba(179, 102, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.inactive-fight {
+  opacity: 0.8;
+  cursor: not-allowed;
+  border: 1px solid rgba(128, 0, 128, 0.3); 
+  background-color: #171717;
+}
+
+.fight-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.fight-header h2 {
+  color: #d6abff;
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+}
+
+.fight-date {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.fighters-container {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.vs-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #b366ff;
+  width: 60px;
+  position: relative;
+}
+
+.vs-container::before,
+.vs-container::after {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent, #b366ff, transparent);
+}
+
+.vs-container::before {
+  top: 0;
+}
+
+.vs-container::after {
+  bottom: 0;
+}
+
+/* Fighter styling */
+.fighter-staking {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  position: relative;
+  border-radius: 10px;
+  background-color: #252525;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.fighter-staking:hover {
+  background-color: #2a2a2a;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(179, 102, 255, 0.3);
+}
+
+.fighter-staking.inactive {
+  opacity: 0.7;
+  background-color: #1a1a1a;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.fighter-staking.active-stake {
+  box-shadow: 0 0 15px rgba(179, 102, 255, 0.4);
+}
+
+.fighter-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.fighter-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 15px;
+  border: 3px solid rgba(179, 102, 255, 0.5);
+  box-shadow: 0 0 15px rgba(179, 102, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.fighter-image:hover {
+  transform: scale(1.05);
+  border-color: rgba(179, 102, 255, 0.8);
+}
+
+.fighter-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fighter-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 10px 0;
+  text-align: center;
+}
+
+.fighter-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;
+  height: 150px;
+  background-color: rgba(128, 0, 128, 0.1); 
+  font-size: 48px;
+  color: rgba(128, 0, 128, 0.5);
+  border-radius: 50%;
+  border: 2px dashed rgba(128, 0, 128, 0.3);
+}
+
+.social-button {
+  padding: 8px 16px;
+  background-color: rgba(179, 102, 255, 0.2);
+  color: #d6abff;
+  border: 1px solid rgba(179, 102, 255, 0.5);
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.social-button:hover {
+  background-color: rgba(179, 102, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Staking controls */
+.fighter-controls-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+}
+
+.staking-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stake-type-selector {
+  display: flex;
+  margin-bottom: 20px;
+  width: 100%;
+  justify-content: center;
+}
+
+.stake-type-button {
+  padding: 10px 15px;
+  margin: 0 5px;
+  background-color: #333;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.stake-type-button:hover {
+  background-color: #444;
+}
+
+.stake-type-button.active {
+  background-color: rgba(179, 102, 255, 0.3);
+  color: #ffffff;
+  border-color: rgba(179, 102, 255, 0.6);
+  box-shadow: 0 0 10px rgba(179, 102, 255, 0.2);
+}
+
+.stake-type-button.btn-pulse {
+  animation: buttonPulse 0.7s ease;
+}
+
+@keyframes buttonPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(179, 102, 255, 0.5); }
+  100% { transform: scale(1); }
+}
+
+.inactive .stake-type-button,
+.inactive .stake-button {
+  background-color: rgba(128, 0, 128, 0.2);
+  color: rgba(128, 0, 128, 0.6);
+  border: 1px solid rgba(128, 0, 128, 0.3);
+  cursor: not-allowed;
+}
+
+/* Vertical bar */
+.staking-area {
+  display: flex;
+  width: 100%;
+  height: 300px;
+  position: relative;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tapping-bar-container {
+  width: 60px;
+  height: 250px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tapping-bar-container.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tapping-bar-container.locked {
+  box-shadow: 0 0 15px rgba(179, 102, 255, 0.4);
+}
+
+.tapping-bar-track {
+  width: 100%;
+  height: 100%;
+  background-color: #333;
+  border-radius: 30px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #444;
+}
+
+.inactive .tapping-bar-track {
+  background-color: rgba(128, 0, 128, 0.1);
+}
+
+.tapping-bar-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, rgba(179, 102, 255, 1), rgba(179, 102, 255, 0.6));
+  border-radius: 30px;
+  transition: height 0.1s ease-out;
+}
+
+.tapping-bar-fill.stars {
+  background: linear-gradient(to top, rgba(255, 215, 0, 1), rgba(255, 215, 0, 0.6));
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.tapping-bar-fill.points {
+  background: linear-gradient(to top, rgba(179, 102, 255, 1), rgba(179, 102, 255, 0.6));
+  box-shadow: 0 0 10px rgba(179, 102, 255, 0.5);
+}
+
+.tapping-bar-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0; transform: scale(0.8); }
+  50% { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+.stake-amount {
+  text-align: center;
+  font-weight: bold;
+  color: #fff;
+  margin-top: 10px;
+  font-size: 1rem;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.motivation-message {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(179, 102, 255, 0.2);
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: #d6abff;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 0;
+  animation: fadeInOut 2s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, 10px); }
+  20% { opacity: 1; transform: translate(-50%, 0); }
+  80% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -10px); }
+}
+
+.stake-button {
+  margin-top: 15px;
+  padding: 12px 25px;
+  background: linear-gradient(45deg, #8a2be2, #b366ff);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(179, 102, 255, 0.3);
+}
+
+.stake-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(179, 102, 255, 0.5);
+  background: linear-gradient(45deg, #9b4dff, #c17aff);
+}
+
+.stake-button:disabled {
+  background: linear-gradient(45deg, #666, #888);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.stake-info {
+  margin-top: 25px;
+  text-align: center;
+  color: #999;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.insufficient-balance {
+  margin-top: 10px;
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 8px;
+  background-color: rgba(255, 107, 107, 0.1);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.no-fight-message {
+  margin-top: 10px;
+  color: #999;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 8px;
+  background-color: rgba(153, 153, 153, 0.1);
+  border-radius: 5px;
+  border: 1px solid rgba(153, 153, 153, 0.3);
+}
+
+/* Tap effect animation */
+.tap-effect {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: tapRipple 0.6s ease-out;
+  z-index: 10;
+}
+
+@keyframes tapRipple {
+  0% {
+    width: 0px;
+    height: 0px;
+    opacity: 0.8;
+  }
+  100% {
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+  }
+}
+
+/* Error container styles */
+.error-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  width: 100%;
+  padding: 20px;
+  color: #ff6b6b;
+  font-size: 1.2rem;
+  text-align: center;
+  background-color: rgba(255, 107, 107, 0.1);
+  border-radius: 10px;
+  margin: 20px auto;
+  max-width: 800px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .fighters-container {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .vs-container {
+    width: 100%;
+    height: 40px;
+    margin: 10px 0;
+  }
+
+  .vs-container::before,
+  .vs-container::after {
+    width: 40%;
+    height: 1px;
+  }
+
+  .vs-container::before {
+    left: 0;
+    top: 50%;
+  }
+
+  .vs-container::after {
+    right: 0;
+    top: 50%;
+  }
+
+  .staking-title {
+    font-size: 2rem;
+  }
+
+  .fighter-staking {
+    padding: 10px;
+  }
+
+  .fighter-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .stake-type-selector {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stake-type-button {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+/* Animation for when fighter is selected */
+@keyframes fighterSelect {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.fighter-selected {
+  animation: fighterSelect 0.5s ease;
+  box-shadow: 0 0 20px rgba(179, 102, 255, 0.6);
+}
+
 /* Add these styles to staking.css */
 
 .fighters-container {

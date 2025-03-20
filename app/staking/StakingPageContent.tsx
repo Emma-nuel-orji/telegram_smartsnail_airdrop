@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
 
+import "./staking.css";
+
 // Define interfaces for our data structures
 interface Fighter {
   id: string;
