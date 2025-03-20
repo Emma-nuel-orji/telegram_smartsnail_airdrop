@@ -304,38 +304,73 @@ function isTextMessage(msg) {
 
 // Handle messages for scheduling fights
 bot.on('message', async (ctx) => {
-    if (!isAdmin(ctx)) return;
-    if (!isTextMessage(ctx.message)) return;
-
+    console.log('Message received:', ctx.message);
+    console.log('Chat ID:', ctx.chat?.id);
+    
+    // Skip if not admin
+    if (!isAdmin(ctx)) {
+        console.log('User is not admin, skipping message handler');
+        return;
+    }
+    
+    // Skip if not text message
+    if (!isTextMessage(ctx.message)) {
+        console.log('Not a text message, skipping');
+        return;
+    }
+    
     const chatId = ctx.chat?.id;
-    if (!chatId) return;
-
+    if (!chatId) {
+        console.log('No chat ID found, skipping');
+        return;
+    }
+    
+    console.log('newFights state:', newFights);
+    console.log('newFights for this chat:', newFights[chatId]);
+    
+    // Skip if not creating a fight
+    if (!newFights[chatId]) {
+        console.log('No fight being created for this chat, skipping');
+        return;
+    }
+    
     const text = ctx.message.text;
-    if (!newFights[chatId]) return;
-
+    console.log('Processing text message:', text);
+    
     const currentFight = newFights[chatId];
+    console.log('Current fight state:', currentFight);
 
     try {
         if (!currentFight.title) {
+            console.log('Setting fight title to:', text);
             currentFight.title = text;
             ctx.reply('Please enter the fight date and time (YYYY-MM-DD HH:MM):');
         } else if (!currentFight.date) {
+            console.log('Processing date input:', text);
             if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(text)) {
+                console.log('Invalid date format');
                 ctx.reply('Invalid date format. Please use YYYY-MM-DD HH:MM.');
                 return;
             }
             const fightDate = new Date(text);
             if (fightDate <= new Date()) {
+                console.log('Fight date is in the past');
                 ctx.reply('Fight date must be in the future.');
                 return;
             }
+            console.log('Setting fight date to:', text);
             currentFight.date = text;
+            
+            console.log('Fetching fighters from database');
             const fighters = await prisma.fighter.findMany();
             if (fighters.length < 2) {
+                console.log('Not enough fighters in database');
                 ctx.reply('Not enough fighters in the database. Please add fighters first.');
                 delete newFights[chatId];
                 return;
             }
+            
+            console.log('Creating fighter selection buttons');
             const fighterButtons = fighters.map(f => [{
                 text: f.name,
                 callback_data: `fighter1_${f.id}`

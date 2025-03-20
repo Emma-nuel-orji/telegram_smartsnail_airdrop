@@ -1,11 +1,8 @@
-'use client';
 import React, { useState, useEffect, useRef } from "react";
 import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-
-import "./staking.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -45,7 +42,6 @@ interface FighterStakingProps {
   position: 'left' | 'right';
 }
 
-// Motivational messages that display while tapping
 const MOTIVATIONAL_MESSAGES = [
   "Wow! Keep supporting your fighter!",
   "Awesome support!",
@@ -119,7 +115,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
   const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive;
   const isFighter = fighter?.telegramId === telegramId;
 
-  // Fetch total support for this fighter
   useEffect(() => {
     if (fighter?.id && isActive) {
       fetchTotalSupport();
@@ -138,23 +133,19 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
     }
   };
 
-  // Handle stake type selection with animation
   const handleStakeTypeChange = (type: StakeTypeOption) => {
     if (!canParticipate) return;
     
-    // Reset bar when changing stake type
     setBarHeight(0);
     setStakeAmount(0);
     setBarLocked(false);
     
-    // Apply animation to the selected button
     setButtonAnimation(type);
     setTimeout(() => setButtonAnimation(''), 700);
     
     setStakeType(type);
   };
   
-  // Create tap effect animation
   const createTapEffect = (x: number, y: number) => {
     if (!fighterRef.current) return;
     
@@ -170,13 +161,11 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
     }, 600);
   };
   
-  // Handle continuous tapping
   const handleTapStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked || isFighter) return;
 
     setTapping(true);
 
-    // Clear existing intervals
     if (barDecayInterval.current) {
       clearInterval(barDecayInterval.current);
       barDecayInterval.current = null;
@@ -187,13 +176,11 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
       messageInterval.current = null;
     }
 
-    // Set motivational message interval
     messageInterval.current = setInterval(() => {
       const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
       setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
     }, 2000);
 
-    // Show initial message
     const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
     setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
   };
@@ -204,19 +191,15 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
     const now = Date.now();
     const timeDiff = now - lastTapTime;
     
-    // Prevent extremely rapid tapping (likely automated)
     if (timeDiff < 50) return;
     
-    // Create tap effect
     let x: number, y: number;
     if ('touches' in e) {
-      // Touch event
       const touch = e.touches[0];
       const rect = e.currentTarget.getBoundingClientRect();
       x = touch.clientX - rect.left;
       y = touch.clientY - rect.top;
     } else {
-      // Mouse event
       x = e.nativeEvent.offsetX;
       y = e.nativeEvent.offsetY;
     }
@@ -225,11 +208,9 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
     setLastTapTime(now);
     setTapCount(prev => prev + 1);
     
-    // Increase bar height based on tapping, with diminishing returns for rapid tapping
     const increment = Math.max(0.5, 2 - (timeDiff < 300 ? 0.5 : 0));
     setBarHeight(prev => {
       const newHeight = Math.min(100, prev + increment);
-      // Calculate stake amount based on bar height
       const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
       setStakeAmount(newStakeAmount);
       return newHeight;
@@ -246,7 +227,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
       messageInterval.current = null;
     }
   
-    // Start decay of bar if not locked
     if (barDecayInterval.current) {
       clearInterval(barDecayInterval.current);
       barDecayInterval.current = null;
@@ -262,7 +242,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
           return 0;
         }
         const newHeight = prev - 0.5;
-        // Update stake amount as bar decreases
         const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
         setStakeAmount(newStakeAmount);
         return newHeight;
@@ -273,16 +252,13 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
   const handleBarClick = () => {
     if (!canParticipate || isFighter) return;
 
-    // Lock/unlock the bar with a single tap
     setBarLocked(prev => !prev);
     if (!barLocked) {
-      // Clear decay interval when locking
       if (barDecayInterval.current) {
         clearInterval(barDecayInterval.current);
         barDecayInterval.current = null;
       }
     } else {
-      // Start decay when unlocking
       handleTapEnd();
     }
   };
@@ -301,7 +277,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
           fighterId: fighter?.id,
           stakeAmount,
           stakeType,
-          telegramId, // Include supporter's telegramId
+          telegramId,
         }),
       });
   
@@ -309,13 +285,11 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
         throw new Error('Failed to place stake');
       }
   
-      // Reset after successful stake
       setBarHeight(0);
       setStakeAmount(0);
       setBarLocked(false);
       setMessage('Stake placed successfully!');
   
-      // Refresh user points
       if (telegramId) {
         const userResponse = await fetch(`/api/user/${telegramId}`);
         if (userResponse.ok) {
@@ -324,7 +298,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
         }
       }
       
-      // Refresh total support
       fetchTotalSupport();
     } catch (error) {
       let errorMessage = 'An unexpected error occurred';
@@ -335,12 +308,10 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
     }
   };
   
-  // Update localUserPoints when userPoints prop changes
   useEffect(() => {
     setLocalUserPoints(userPoints);
   }, [userPoints]);
   
-  // Clean up intervals on unmount
   useEffect(() => {
     return () => {
       if (barDecayInterval.current) {
@@ -390,7 +361,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
           </a>
         )}
         
-        {/* Show total support for fighters viewing their own profile */}
         {isFighter && (
           <div className="fighter-support-stats">
             <h4>Your Fan Support</h4>
@@ -484,7 +454,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
   );
 }
 
-// Main component
 export default function StakingPageContent() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const router = useRouter();
@@ -494,14 +463,12 @@ export default function StakingPageContent() {
   const [userPoints, setUserPoints] = useState<number>(0);
   const [isRouterReady, setIsRouterReady] = useState(false);
 
-  // Ensure the router is ready before using it
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsRouterReady(true);
     }
   }, []);
   
-  // Fetch Telegram ID properly
   useEffect(() => {
     if (typeof window !== 'undefined' && isRouterReady) {
       try {
@@ -522,7 +489,6 @@ export default function StakingPageContent() {
     }
   }, [isRouterReady]);
 
-  // Fetch data once we have telegramId
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -532,13 +498,11 @@ export default function StakingPageContent() {
           throw new Error('Telegram ID is not available');
         }
 
-        // Fetch user info
         const userResponse = await fetch(`/api/user/${telegramId}`);
         if (!userResponse.ok) throw new Error('Failed to fetch user info');
         const userData = await userResponse.json();
         setUserPoints(userData.points);
         
-        // Fetch upcoming fights
         const fightsResponse = await fetch('/api/fights/upcoming');
         if (!fightsResponse.ok) throw new Error('Failed to fetch fights');
         const fightsData = await fightsResponse.json();
