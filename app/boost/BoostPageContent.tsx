@@ -673,9 +673,12 @@ const handlePaymentSuccess = async () => {
 
           {isProcessing ? <span className="spinner-gear"></span> : "Pay with TON"}
         </button>
-        <button onClick={() => handlePurchase("Card")} disabled={isProcessing}>
-          {isProcessing ? <span className="spinner-gear"></span> : "Pay with Card"}
-        </button>
+        <button
+      onClick={() => handlePurchase("Card")}
+      disabled={true} // Permanently disabled
+    >
+      Pay with Card
+    </button>
         <button onClick={() => handlePaymentViaStars("Stars")} disabled={isProcessing}>
           {isProcessing ? <span className="spinner-gear"></span> : "Pay with Stars"}
         </button>

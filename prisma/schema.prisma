@@ -226,18 +226,22 @@ model Fight {
 
 
 model Fighter {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
-  imageUrl     String?
-  telegramId   BigInt?   @unique
-  socialMedia  String?
-  points       BigInt    @default(0)
-  fightsAsF1   Fight[]   @relation("Fighter1Fights")
-  fightsAsF2   Fight[]   @relation("Fighter2Fights")
-  stakes       Stake[]
-  winnerOf     Fight[]   @relation("FightWinner") // ✅ Add this relation
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  imageUrl       String?
+  age            Int?      // Optional age field
+  height         Float?    // Optional height in meters
+  weight         Float?    // Optional weight in kilograms
+  fightingWeight Float?    // Optional fighting weight in kilograms
+  telegramId     BigInt?   @unique
+  socialMedia    String?
+  points         BigInt    @default(0)
+  fightsAsF1     Fight[]   @relation("Fighter1Fights")
+  fightsAsF2     Fight[]   @relation("Fighter2Fights")
+  stakes         Stake[]
+  winnerOf       Fight[]   @relation("FightWinner")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 

@@ -1,9 +1,11 @@
 import { Telegraf, Context } from 'telegraf';
 import { PrismaClient } from '@prisma/client';
-import { Update, CallbackQuery } from 'telegraf/typings/core/types/typegram';
-import dotenv from 'dotenv';
+import { Update, CallbackQuery, Message } from 'telegraf/typings/core/types/typegram';
+import * as dotenv from 'dotenv';
+
 dotenv.config(); 
 
+console.log('Bot starting up...');
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 if (!botToken) {
   throw new Error('TELEGRAM_BOT_TOKEN is not defined in the environment variables.');
@@ -12,16 +14,34 @@ if (!botToken) {
 const bot = new Telegraf(botToken);
 const prisma = new PrismaClient();
 
+bot.use((ctx, next) => {
+  console.log('Received update:', ctx.update);
+  return next();
+});
+
+// Add a simple test command
+bot.command('ping', (ctx) => {
+  console.log('Ping command received');
+  ctx.reply('Pong! Bot is alive.');
+});
+
+// Add this after creating the bot
+bot.telegram.getMe().then((botInfo) => {
+  console.log('Connected to bot:', botInfo.username);
+}).catch((error) => {
+  console.error('Failed to connect to Telegram:', error);
+});
+
 // List of admin user IDs
 const ADMIN_USER_IDS = process.env.ADMIN_USER_IDS?.split(',')
   .map(id => Number(id.trim()))
   .filter(id => !isNaN(id)) || [];
 
-  bot.telegram.setMyCommands([
-    { command: 'schedule_fight', description: 'Schedule a new fight' },
-    { command: 'resolve_fight', description: 'Resolve an existing fight' },
-    { command: 'list_fights', description: 'List all active fights' }
-  ]);
+bot.telegram.setMyCommands([
+  { command: 'schedule_fight', description: 'Schedule a new fight' },
+  { command: 'resolve_fight', description: 'Resolve an existing fight' },
+  { command: 'list_fights', description: 'List all active fights' }
+]);
 
 interface NewFight {
   title?: string;
@@ -31,7 +51,7 @@ interface NewFight {
 }
 
 // Store fights being created in memory
-const newFights: { [key: number]: NewFight } = {};
+const newFights: Record<number, NewFight> = {};
 
 // Function to check if a user is an admin
 function isAdmin(ctx: Context): boolean {
@@ -40,7 +60,7 @@ function isAdmin(ctx: Context): boolean {
 }
 
 // Middleware to check admin permissions
-function requireAdmin(ctx: Context, next: () => Promise<void>) {
+function requireAdmin(ctx: Context, next: () => Promise<void>): Promise<void> | undefined {
   if (!isAdmin(ctx)) {
     ctx.reply('You do not have permission to use this command.');
     return;
@@ -115,15 +135,17 @@ async function cancelFight(fightId: string) {
 
 // Command to schedule a new fight (admin only)
 bot.command('schedule_fight', (ctx) => requireAdmin(ctx, async () => {
-  const chatId = ctx.chat.id;
-  newFights[chatId] = {};
-  ctx.reply('Please enter the fight title:');
+  const chatId = ctx.chat?.id;
+  if (chatId) {
+    newFights[chatId] = {};
+    ctx.reply('Please enter the fight title:');
+  }
 }));
 
 // Command to resolve a fight (admin only)
 bot.command('resolve_fight', (ctx) => requireAdmin(ctx, async () => {
   try {
-    const chatId = ctx.chat.id;
+    const chatId = ctx.chat?.id;
     const fights = await getActiveFights();
 
     if (fights.length === 0) {
@@ -168,15 +190,22 @@ bot.command('list_fights', async (ctx) => {
   }
 });
 
+// Type guard for text messages
+function isTextMessage(msg: any): msg is Message.TextMessage {
+  return msg && 'text' in msg;
+}
+
 // Handling messages for scheduling fights
 bot.on('message', async (ctx) => {
   // Make sure this is an admin
   if (!isAdmin(ctx)) return;
   
   // Check if it's a text message
-  if (!ctx.message || !('text' in ctx.message)) return;
+  if (!isTextMessage(ctx.message)) return;
   
-  const chatId = ctx.chat.id;
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+  
   const text = ctx.message.text;
 
   if (!newFights[chatId]) return;
@@ -228,11 +257,16 @@ bot.on('message', async (ctx) => {
   }
 });
 
+// Type guard for callback queries with data
+function isDataCallbackQuery(query: any): query is CallbackQuery.DataQuery {
+  return query && 'data' in query;
+}
+
 // Handling callback queries for fighter selection and fight management
 bot.on('callback_query', async (ctx) => {
-  // Type casting to access Telegraf's callback data
-  const callbackQuery = ctx.callbackQuery as CallbackQuery.DataQuery;
-  const callbackData = callbackQuery.data;
+  if (!isDataCallbackQuery(ctx.callbackQuery)) return;
+  
+  const callbackData = ctx.callbackQuery.data;
   if (!callbackData) return;
   
   // Check if user is admin for callback queries that modify data
@@ -251,7 +285,7 @@ bot.on('callback_query', async (ctx) => {
   }
   
   // Get chatId from callbackQuery message
-  const chatId = callbackQuery.message?.chat.id;
+  const chatId = ctx.callbackQuery.message?.chat.id;
   if (!chatId) return;
 
   try {
@@ -282,8 +316,12 @@ bot.on('callback_query', async (ctx) => {
         currentFight.fighter2Id = fighter2Id;
         
         // Confirm fight details before saving
-        const fighter1 = await prisma.fighter.findUnique({ where: { id: currentFight.fighter1Id } });
-        const fighter2 = await prisma.fighter.findUnique({ where: { id: currentFight.fighter2Id } });
+        const fighter1 = await prisma.fighter.findUnique({ 
+          where: { id: currentFight.fighter1Id } 
+        });
+        const fighter2 = await prisma.fighter.findUnique({ 
+          where: { id: currentFight.fighter2Id } 
+        });
         
         await ctx.answerCbQuery();
         ctx.reply(
@@ -299,19 +337,24 @@ bot.on('callback_query', async (ctx) => {
         );
       } else if (callbackData === 'confirm_fight') {
         // Save the fight to database
-        await prisma.fight.create({
-          data: {
-            title: currentFight.title!,
-            fightDate: new Date(currentFight.date!),
-            fighter1Id: currentFight.fighter1Id!,
-            fighter2Id: currentFight.fighter2Id!,
-            status: 'SCHEDULED'
-          },
-        });
-        
-        await ctx.answerCbQuery();
-        ctx.reply('Fight scheduled successfully!');
-        delete newFights[chatId];
+        if (currentFight.title && currentFight.date && currentFight.fighter1Id && currentFight.fighter2Id) {
+          await prisma.fight.create({
+            data: {
+              title: currentFight.title,
+              fightDate: new Date(currentFight.date),
+              fighter1Id: currentFight.fighter1Id,
+              fighter2Id: currentFight.fighter2Id,
+              status: 'SCHEDULED'
+            },
+          });
+          
+          await ctx.answerCbQuery();
+          ctx.reply('Fight scheduled successfully!');
+          delete newFights[chatId];
+        } else {
+          await ctx.answerCbQuery();
+          ctx.reply('Missing fight details. Please try again.');
+        }
       } else if (callbackData === 'cancel_creation') {
         await ctx.answerCbQuery();
         ctx.reply('Fight creation cancelled.');
@@ -376,12 +419,6 @@ bot.on('callback_query', async (ctx) => {
           break;
         default:
           // This handles the case where the callback data is just resolve_fightId
-          if (!fight) {
-            await ctx.answerCbQuery();
-            ctx.reply('Fight not found.');
-            return;
-          }
-          
           const actionButtons = [
             [{ text: `${fight.fighter1.name} won`, callback_data: `resolve_${fight.id}_fighter1` }],
             [{ text: `${fight.fighter2.name} won`, callback_data: `resolve_${fight.id}_fighter2` }],

@@ -119,6 +119,13 @@ h3 {
   padding: 15px;
 }
 
+button:disabled {
+  background-color: #ccc; /* Gray background */
+  color: #666; /* Darker text for better contrast */
+  cursor: not-allowed; /* Show "not allowed" cursor */
+  opacity: 0.7; /* Reduce opacity */
+}
+
 .or-divider {
   position: relative;
   text-align: center;

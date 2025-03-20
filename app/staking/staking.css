@@ -560,3 +560,167 @@
   animation: fighterSelect 0.5s ease;
   box-shadow: 0 0 20px rgba(179, 102, 255, 0.6);
 }
+
+/* Add these styles to staking.css */
+
+.fighters-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.fighter-staking {
+  width: 45%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.vs-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ff5722;
+}
+
+.tapping-bar-container {
+  height: 300px;
+  width: 60px;
+  position: relative;
+  margin: 0 auto;
+}
+
+.tapping-bar-track {
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tapping-bar-fill {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background-color: #4CAF50;
+  transition: height 0.2s ease-out;
+  border-radius: 10px;
+}
+
+.tapping-bar-fill.stars {
+  background-color: #ffd700;
+}
+
+.tapping-bar-fill.points {
+  background-color: #4CAF50;
+}
+
+.motivation-message {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Make the fighter info section more compact */
+.fighter-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.fighter-portrait {
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ff5722;
+}
+
+.fighter-name {
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.social-button {
+  margin-top: 5px;
+  padding: 5px 10px;
+  background-color: #1e88e5;
+  color: white;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+/* Support animation */
+.tap-effect {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  transform: translate(-50%, -50%);
+  animation: ripple 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+}
+
+/* Adjustments for the stake info section */
+.stake-info {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.stake-amount {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.stake-button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: #ff5722;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.stake-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}

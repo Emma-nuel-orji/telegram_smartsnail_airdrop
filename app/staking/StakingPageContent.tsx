@@ -1,10 +1,46 @@
-'use client';
 import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Loader from "@/loader";
 import Link from "next/link";
-import "./staking.css";
+import { useRouter } from 'next/router';
+import Loader from "@/loader";
+
+// Define interfaces for our data structures
+interface Fighter {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  telegramId?: string;
+  socialMedia?: string;
+}
+
+interface Fight {
+  id: string;
+  title: string;
+  fightDate: string;
+  fighter1: Fighter;
+  fighter2: Fighter;
+}
+
+interface TotalSupport {
+  stars: number;
+  points: number;
+}
+
+interface FightCardProps {
+  fight?: Fight;
+  userPoints: number;
+  telegramId: string | null;
+}
+
+interface FighterStakingProps {
+  fighter?: Fighter;
+  opponent?: Fighter;
+  fight?: Fight;
+  userPoints: number;
+  isActive: boolean;
+  telegramId: string | null;
+  position: 'left' | 'right';
+}
 
 // Motivational messages that display while tapping
 const MOTIVATIONAL_MESSAGES = [
@@ -20,66 +56,450 @@ const MOTIVATIONAL_MESSAGES = [
   "Let's go!"
 ];
 
-interface Fighter {
-  id: string;
-  name: string;
-  imageUrl?: string; 
-  socialMedia?: string; 
-}
-
-interface Fight {
-  id: string;
-  title: string;
-  fightDate: string;
-  fighter1: Fighter;
-  fighter2: Fighter;
-}
-
-interface FightCardProps {
-  fight?: Fight;
-  userPoints: number;
-}
-
-interface FighterStakingProps {
-  fighter?: Fighter;
-  opponent?: Fighter;
-  fight?: Fight;
-  userPoints: number;
-  isActive: boolean;
-}
-
-// This is the main page component
-export default function StakingPage() {
+function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
+  const isActive = !!fight;
+  
   return (
-    <div className="page-container">
-      <StakingPageContent />
+    <div className={`fight-card ${!isActive ? 'inactive-fight' : ''}`}>
+      <div className="fight-header">
+        <h2>{fight ? fight.title : "No Current Fight"}</h2>
+        <div className="fight-date">
+          {fight ? new Date(fight.fightDate).toLocaleString() : "To be announced"}
+        </div>
+      </div>
+      
+      <div className="fighters-container">
+        <FighterStaking 
+          fighter={fight?.fighter1}
+          opponent={fight?.fighter2}
+          fight={fight}
+          userPoints={userPoints}
+          isActive={isActive}
+          telegramId={telegramId}
+          position="left"
+        />
+        <div className="vs-container">VS</div>
+        <FighterStaking 
+          fighter={fight?.fighter2}
+          opponent={fight?.fighter1}
+          fight={fight}
+          userPoints={userPoints}
+          isActive={isActive}
+          telegramId={telegramId}
+          position="right"
+        />
+      </div>
     </div>
   );
 }
 
-// Separated the content component
-function StakingPageContent() {
+function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegramId, position }: FighterStakingProps) {
+  type StakeTypeOption = 'STARS' | 'POINTS';
+  
+  const [stakeType, setStakeType] = useState<StakeTypeOption>('STARS');
+  const [stakeAmount, setStakeAmount] = useState<number>(0);
+  const [tapping, setTapping] = useState<boolean>(false);
+  const [barHeight, setBarHeight] = useState<number>(0);
+  const [barLocked, setBarLocked] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>('');
+  const [tapCount, setTapCount] = useState<number>(0);
+  const [lastTapTime, setLastTapTime] = useState<number>(0);
+  const [localUserPoints, setLocalUserPoints] = useState<number>(userPoints);
+  const [buttonAnimation, setButtonAnimation] = useState<string>('');
+  const [totalSupport, setTotalSupport] = useState<TotalSupport>({ stars: 0, points: 0 });
+  const barDecayInterval = useRef<NodeJS.Timeout | null>(null);
+  const messageInterval = useRef<NodeJS.Timeout | null>(null);
+  const fighterRef = useRef<HTMLDivElement | null>(null);
+
+  const MAX_STARS = 100000;
+  const MIN_POINTS_REQUIRED = 200000;
+  const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive;
+  const isFighter = fighter?.telegramId === telegramId;
+
+  // Fetch total support for this fighter
+  useEffect(() => {
+    if (fighter?.id && isActive) {
+      fetchTotalSupport();
+    }
+  }, [fighter, isActive]);
+
+  const fetchTotalSupport = async () => {
+    try {
+      const response = await fetch(`/api/stakes/total/${fighter?.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTotalSupport(data);
+      }
+    } catch (error) {
+      console.error("Error fetching total support:", error);
+    }
+  };
+
+  // Handle stake type selection with animation
+  const handleStakeTypeChange = (type: StakeTypeOption) => {
+    if (!canParticipate) return;
+    
+    // Reset bar when changing stake type
+    setBarHeight(0);
+    setStakeAmount(0);
+    setBarLocked(false);
+    
+    // Apply animation to the selected button
+    setButtonAnimation(type);
+    setTimeout(() => setButtonAnimation(''), 700);
+    
+    setStakeType(type);
+  };
+  
+  // Create tap effect animation
+  const createTapEffect = (x: number, y: number) => {
+    if (!fighterRef.current) return;
+    
+    const ripple = document.createElement('div');
+    ripple.className = 'tap-effect';
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    
+    fighterRef.current.appendChild(ripple);
+    
+    setTimeout(() => {
+      ripple.remove();
+    }, 600);
+  };
+  
+  // Handle continuous tapping
+  const handleTapStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!canParticipate || barLocked || isFighter) return;
+
+    setTapping(true);
+
+    // Clear existing intervals
+    if (barDecayInterval.current) {
+      clearInterval(barDecayInterval.current);
+      barDecayInterval.current = null;
+    }
+
+    if (messageInterval.current) {
+      clearInterval(messageInterval.current);
+      messageInterval.current = null;
+    }
+
+    // Set motivational message interval
+    messageInterval.current = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
+      setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
+    }, 2000);
+
+    // Show initial message
+    const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
+    setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
+  };
+  
+  const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!canParticipate || barLocked || !tapping || isFighter) return;
+    
+    const now = Date.now();
+    const timeDiff = now - lastTapTime;
+    
+    // Prevent extremely rapid tapping (likely automated)
+    if (timeDiff < 50) return;
+    
+    // Create tap effect
+    let x: number, y: number;
+    if ('touches' in e) {
+      // Touch event
+      const touch = e.touches[0];
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = touch.clientX - rect.left;
+      y = touch.clientY - rect.top;
+    } else {
+      // Mouse event
+      x = e.nativeEvent.offsetX;
+      y = e.nativeEvent.offsetY;
+    }
+    createTapEffect(x, y);
+    
+    setLastTapTime(now);
+    setTapCount(prev => prev + 1);
+    
+    // Increase bar height based on tapping, with diminishing returns for rapid tapping
+    const increment = Math.max(0.5, 2 - (timeDiff < 300 ? 0.5 : 0));
+    setBarHeight(prev => {
+      const newHeight = Math.min(100, prev + increment);
+      // Calculate stake amount based on bar height
+      const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
+      setStakeAmount(newStakeAmount);
+      return newHeight;
+    });
+  };
+  
+  const handleTapEnd = () => {
+    if (!canParticipate || barLocked || isFighter) return;
+  
+    setTapping(false);
+  
+    if (messageInterval.current) {
+      clearInterval(messageInterval.current);
+      messageInterval.current = null;
+    }
+  
+    // Start decay of bar if not locked
+    if (barDecayInterval.current) {
+      clearInterval(barDecayInterval.current);
+      barDecayInterval.current = null;
+    }
+    
+    barDecayInterval.current = setInterval(() => {
+      setBarHeight((prev) => {
+        if (prev <= 0) {
+          if (barDecayInterval.current) {
+            clearInterval(barDecayInterval.current);
+            barDecayInterval.current = null;
+          }
+          return 0;
+        }
+        const newHeight = prev - 0.5;
+        // Update stake amount as bar decreases
+        const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
+        setStakeAmount(newStakeAmount);
+        return newHeight;
+      });
+    }, 100);
+  };
+  
+  const handleBarClick = () => {
+    if (!canParticipate || isFighter) return;
+
+    // Lock/unlock the bar with a single tap
+    setBarLocked(prev => !prev);
+    if (!barLocked) {
+      // Clear decay interval when locking
+      if (barDecayInterval.current) {
+        clearInterval(barDecayInterval.current);
+        barDecayInterval.current = null;
+      }
+    } else {
+      // Start decay when unlocking
+      handleTapEnd();
+    }
+  };
+  
+  const submitStake = async () => {
+    if (!canParticipate || stakeAmount <= 0 || isFighter) return;
+  
+    try {
+      const response = await fetch('/api/stakes/place', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fightId: fight?.id,
+          fighterId: fighter?.id,
+          stakeAmount,
+          stakeType,
+          telegramId, // Include supporter's telegramId
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to place stake');
+      }
+  
+      // Reset after successful stake
+      setBarHeight(0);
+      setStakeAmount(0);
+      setBarLocked(false);
+      setMessage('Stake placed successfully!');
+  
+      // Refresh user points
+      if (telegramId) {
+        const userResponse = await fetch(`/api/user/${telegramId}`);
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          setLocalUserPoints(userData.points);
+        }
+      }
+      
+      // Refresh total support
+      fetchTotalSupport();
+    } catch (error) {
+      let errorMessage = 'An unexpected error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      setMessage(`Error: ${errorMessage}`);
+    }
+  };
+  
+  // Update localUserPoints when userPoints prop changes
+  useEffect(() => {
+    setLocalUserPoints(userPoints);
+  }, [userPoints]);
+  
+  // Clean up intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (barDecayInterval.current) {
+        clearInterval(barDecayInterval.current);
+        barDecayInterval.current = null;
+      }
+      if (messageInterval.current) {
+        clearInterval(messageInterval.current);
+        messageInterval.current = null;
+      }
+    };
+  }, []);
+  
+  return (
+    <div 
+      ref={fighterRef}
+      className={`fighter-staking ${position} ${!isActive ? 'inactive' : ''} ${tapping ? 'active-stake' : ''} ${isFighter ? 'is-fighter' : ''}`}
+      onMouseDown={handleTapStart}
+      onMouseUp={handleTapEnd}
+      onMouseLeave={handleTapEnd}
+      onMouseMove={tapping ? handleTap : undefined}
+      onTouchStart={handleTapStart}
+      onTouchEnd={handleTapEnd}
+      onTouchMove={tapping ? handleTap : undefined}
+    >
+      <div className="fighter-info">
+        <div className="fighter-image">
+          {fighter?.imageUrl ? (
+            <Image 
+              src={fighter.imageUrl} 
+              alt={fighter.name} 
+              width={150} 
+              height={150} 
+              className="fighter-portrait"
+            />
+          ) : (
+            <div className="fighter-placeholder">
+              {!isActive ? "?" : fighter?.name?.[0] || "?"}
+            </div>
+          )}
+        </div>
+        <h3 className="fighter-name">{fighter?.name || "Unknown Fighter"}</h3>
+        
+        {fighter?.socialMedia && isActive && (
+          <a href={fighter.socialMedia} target="_blank" rel="noopener noreferrer" className="social-button">
+            View Profile
+          </a>
+        )}
+        
+        {/* Show total support for fighters viewing their own profile */}
+        {isFighter && (
+          <div className="fighter-support-stats">
+            <h4>Your Fan Support</h4>
+            <div className="support-stats">
+              <div className="stat-item">
+                <span className="stat-label">Stars:</span>
+                <span className="stat-value">{totalSupport.stars.toLocaleString()}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Points:</span>
+                <span className="stat-value">{totalSupport.points.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <div className="staking-controls">
+        {!isFighter && (
+          <>
+            <div className="stake-type-selector">
+              <button 
+                className={`stake-type-button ${stakeType === 'STARS' ? 'active' : ''} ${buttonAnimation === 'STARS' ? 'btn-pulse' : ''}`}
+                onClick={() => handleStakeTypeChange('STARS')}
+                disabled={!isActive}
+              >
+                Stake with Stars
+              </button>
+              <button 
+                className={`stake-type-button ${stakeType === 'POINTS' ? 'active' : ''} ${buttonAnimation === 'POINTS' ? 'btn-pulse' : ''}`}
+                onClick={() => handleStakeTypeChange('POINTS')}
+                disabled={!isActive}
+              >
+                Stake with Points
+              </button>
+            </div>
+            
+            <div className="staking-area">
+              <div 
+                className={`tapping-bar-container ${!canParticipate ? 'disabled' : ''} ${barLocked ? 'locked' : ''}`}
+                onClick={handleBarClick}
+              >
+                <div className="tapping-bar-track">
+                  <div 
+                    className={`tapping-bar-fill ${stakeType.toLowerCase()}`} 
+                    style={{ height: `${barHeight}%` }}
+                  >
+                    {tapping && <div className="tapping-bar-pulse"></div>}
+                  </div>
+                </div>
+                {message && (
+                  <div className="motivation-message">{message}</div>
+                )}
+              </div>
+              
+              <div className="stake-amount">
+                {stakeAmount.toLocaleString()} {stakeType === 'STARS' ? 'Stars' : 'Points'}
+              </div>
+              
+              {!canParticipate && isActive && (
+                <div className="insufficient-balance">
+                  Minimum {MIN_POINTS_REQUIRED.toLocaleString()} points required to participate
+                </div>
+              )}
+              
+              {!isActive && (
+                <div className="no-fight-message">
+                  No active fight to support
+                </div>
+              )}
+              
+              {isActive && (
+                <button 
+                  className="stake-button"
+                  onClick={submitStake}
+                  disabled={!canParticipate || stakeAmount === 0 || !barLocked}
+                >
+                  Place Stake
+                </button>
+              )}
+              
+              <div className="stake-info">
+                <p>Tap repeatedly to increase your stake</p>
+                <p>Tap the bar once to lock in your stake</p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Main component
+export default function StakingPageContent() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const router = useRouter();
   const [fights, setFights] = useState<Fight[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [userPoints, setUserPoints] = useState(0);
+  const [userPoints, setUserPoints] = useState<number>(0);
   
-  // Fetch upcoming fights and user points
+  // Fetch Telegram ID properly
   useEffect(() => {
-    // Check if we're in a browser environment
     if (typeof window !== 'undefined') {
       try {
-        // Try to get Telegram WebApp data
         if (window.Telegram?.WebApp) {
           const webApp = window.Telegram.WebApp;
           if (webApp.initDataUnsafe?.user?.id) {
             setTelegramId(webApp.initDataUnsafe.user.id.toString());
           } else {
-            // For development/testing without Telegram
-            setTelegramId("12345"); // Use a test ID for development
-            console.log("Using test Telegram ID for development");
+            setError("Could not retrieve Telegram ID. Please open this app from Telegram.");
           }
         } else {
           setError("Telegram WebApp not initialized");
@@ -91,7 +511,7 @@ function StakingPageContent() {
     }
   }, []);
   
-  // Fetch upcoming fights and user points
+  // Fetch data once we have telegramId
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -128,7 +548,6 @@ function StakingPageContent() {
     }
   }, [telegramId]);
   
-  
   if (loading) return <Loader />;
   if (error) return <div className="error-container">Error: {error}</div>;
   
@@ -147,9 +566,9 @@ function StakingPageContent() {
       <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
       
       {fights.length === 0 ? (
-        // When no fights are available, show inactive fight card
         <FightCard 
           userPoints={userPoints}
+          telegramId={telegramId}
         />
       ) : (
         fights.map(fight => (
@@ -157,372 +576,10 @@ function StakingPageContent() {
             key={fight.id} 
             fight={fight} 
             userPoints={userPoints}
+            telegramId={telegramId}
           />
         ))
       )}
-    </div>
-  );
-}
-
-function FightCard({ fight, userPoints }: FightCardProps) {
-  const isActive = !!fight;
-  
-  return (
-    <div className={`fight-card ${!isActive ? 'inactive-fight' : ''}`}>
-      <div className="fight-header">
-        <h2>{fight ? fight.title : "No Current Fight"}</h2>
-        <div className="fight-date">
-          {fight ? new Date(fight.fightDate).toLocaleString() : "To be announced"}
-        </div>
-      </div>
-      
-      <div className="fighters-container">
-        <FighterStaking 
-          fighter={fight?.fighter1}
-          opponent={fight?.fighter2}
-          fight={fight}
-          userPoints={userPoints}
-          isActive={isActive}
-        />
-        <div className="vs-container">VS</div>
-        <FighterStaking 
-          fighter={fight?.fighter2}
-          opponent={fight?.fighter1}
-          fight={fight}
-          userPoints={userPoints}
-          isActive={isActive}
-        />
-      </div>
-    </div>
-  );
-}
-
-function FighterStaking({ fighter, opponent, fight, userPoints, isActive }: FighterStakingProps) {
-  const [stakeType, setStakeType] = useState('STARS');
-  const [stakeAmount, setStakeAmount] = useState(0);
-  const [tapping, setTapping] = useState(false);
-  const [barHeight, setBarHeight] = useState(0);
-  const [barLocked, setBarLocked] = useState(false);
-  const [message, setMessage] = useState('');
-  const [tapCount, setTapCount] = useState(0);
-  const [lastTapTime, setLastTapTime] = useState(0);
-  const [localUserPoints, setLocalUserPoints] = useState(userPoints);
-  const [buttonAnimation, setButtonAnimation] = useState('');
-  const barDecayInterval = useRef<NodeJS.Timeout | null>(null);
-  const messageInterval = useRef<NodeJS.Timeout | null>(null);
-  const fighterRef = useRef<HTMLDivElement>(null);
-
-  const MAX_STARS = 100000;
-  const MIN_POINTS_REQUIRED = 200000;
-  const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive;
-
-  // Handle stake type selection with animation
-  const handleStakeTypeChange = (type: string) => {
-    if (!canParticipate) return;
-    
-    // Reset bar when changing stake type
-    setBarHeight(0);
-    setStakeAmount(0);
-    setBarLocked(false);
-    
-    // Apply animation to the selected button
-    setButtonAnimation(type);
-    setTimeout(() => setButtonAnimation(''), 700);
-    
-    setStakeType(type);
-  };
-  
-  // Create tap effect animation
-  const createTapEffect = (x: number, y: number) => {
-    if (!fighterRef.current) return;
-    
-    const ripple = document.createElement('div');
-    ripple.className = 'tap-effect';
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-    
-    fighterRef.current.appendChild(ripple);
-    
-    setTimeout(() => {
-      ripple.remove();
-    }, 600);
-  };
-  
-  // Handle continuous tapping
-  const handleTapStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!canParticipate || barLocked) return;
-
-    setTapping(true);
-
-    // Clear existing intervals
-    if (barDecayInterval.current) {
-      clearInterval(barDecayInterval.current);
-    }
-
-    if (messageInterval.current) {
-      clearInterval(messageInterval.current);
-    }
-
-    // Set motivational message interval
-    messageInterval.current = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
-      setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
-    }, 2000);
-
-    // Show initial message
-    const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
-    setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
-  };
-  
-  const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!canParticipate || barLocked || !tapping) return;
-    
-    const now = Date.now();
-    const timeDiff = now - lastTapTime;
-    
-    // Prevent extremely rapid tapping (likely automated)
-    if (timeDiff < 50) return;
-    
-    // Create tap effect
-    let x, y;
-    if ('touches' in e) {
-      // Touch event
-      const touch = e.touches[0];
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      x = touch.clientX - rect.left;
-      y = touch.clientY - rect.top;
-    } else {
-      // Mouse event
-      x = e.nativeEvent.offsetX;
-      y = e.nativeEvent.offsetY;
-    }
-    createTapEffect(x, y);
-    
-    setLastTapTime(now);
-    setTapCount(prev => prev + 1);
-    
-    // Increase bar height based on tapping, with diminishing returns for rapid tapping
-    const increment = Math.max(0.5, 2 - (timeDiff < 300 ? 0.5 : 0));
-    setBarHeight(prev => {
-      const newHeight = Math.min(100, prev + increment);
-      // Calculate stake amount based on bar height
-      const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
-      setStakeAmount(newStakeAmount);
-      return newHeight;
-    });
-  };
-  
-  const handleTapEnd = () => {
-    if (!canParticipate || barLocked) return;
-  
-    setTapping(false);
-  
-    if (messageInterval.current) {
-      clearInterval(messageInterval.current);
-    }
-  
-    // Start decay of bar if not locked
-    if (barDecayInterval.current) {
-      clearInterval(barDecayInterval.current);
-    }
-    
-    barDecayInterval.current = setInterval(() => {
-      setBarHeight((prev) => {
-        if (prev <= 0) {
-          if (barDecayInterval.current) {
-            clearInterval(barDecayInterval.current);
-          }
-          return 0;
-        }
-        const newHeight = prev - 0.5;
-        // Update stake amount as bar decreases
-        const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
-        setStakeAmount(newStakeAmount);
-        return newHeight;
-      });
-    }, 100);
-  };
-  
-  const handleBarClick = () => {
-    if (!canParticipate) return;
-
-    // Lock/unlock the bar with a single tap
-    setBarLocked(prev => !prev);
-    if (!barLocked) {
-      // Clear decay interval when locking
-      if (barDecayInterval.current) {
-        clearInterval(barDecayInterval.current);
-      }
-    } else {
-      // Start decay when unlocking
-      handleTapEnd();
-    }
-  };
-  
-  const submitStake = async () => {
-    if (!canParticipate || stakeAmount <= 0) return;
-  
-    try {
-      const response = await fetch('/api/stakes/place', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fightId: fight?.id,
-          fighterId: fighter?.id,
-          stakeAmount,
-          stakeType,
-        }),
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to place stake');
-      }
-  
-      // Reset after successful stake
-      setBarHeight(0);
-      setStakeAmount(0);
-      setBarLocked(false);
-      setMessage('Stake placed successfully!');
-  
-      // Refresh user points
-      const userResponse = await fetch('/api/user');
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        setLocalUserPoints(userData.points);
-      }
-    } catch (error) {
-      let errorMessage = 'An unexpected error occurred';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      setMessage(`Error: ${errorMessage}`);
-    }
-  };
-  
-  // Update localUserPoints when userPoints prop changes
-  useEffect(() => {
-    setLocalUserPoints(userPoints);
-  }, [userPoints]);
-  
-  // Clean up intervals on unmount
-  useEffect(() => {
-    return () => {
-      if (barDecayInterval.current) {
-        clearInterval(barDecayInterval.current);
-      }
-      if (messageInterval.current) {
-        clearInterval(messageInterval.current);
-      }
-    };
-  }, []);
-  
-  return (
-    <div 
-      ref={fighterRef}
-      className={`fighter-staking ${!isActive ? 'inactive' : ''} ${tapping ? 'active-stake' : ''}`}
-      onMouseDown={handleTapStart}
-      onMouseUp={handleTapEnd}
-      onMouseLeave={handleTapEnd}
-      onMouseMove={tapping ? handleTap : undefined}
-      onTouchStart={handleTapStart}
-      onTouchEnd={handleTapEnd}
-      onTouchMove={tapping ? handleTap : undefined}
-    >
-      <div className="fighter-info">
-        <div className="fighter-image">
-          {fighter?.imageUrl ? (
-            <Image 
-              src={fighter.imageUrl} 
-              alt={fighter.name} 
-              width={150} 
-              height={150} 
-              className="fighter-portrait"
-            />
-          ) : (
-            <div className="fighter-placeholder">
-              {!isActive ? "?" : fighter?.name?.[0] || "?"}
-            </div>
-          )}
-        </div>
-        <h3 className="fighter-name">{fighter?.name || "Unknown Fighter"}</h3>
-        
-        {fighter?.socialMedia && isActive && (
-          <a href={fighter.socialMedia} target="_blank" rel="noopener noreferrer" className="social-button">
-            View Profile
-          </a>
-        )}
-      </div>
-      
-      <div className="staking-controls">
-        <div className="stake-type-selector">
-          <button 
-            className={`stake-type-button ${stakeType === 'STARS' ? 'active' : ''} ${buttonAnimation === 'STARS' ? 'btn-pulse' : ''}`}
-            onClick={() => handleStakeTypeChange('STARS')}
-            disabled={!isActive}
-          >
-            Stake with Stars
-          </button>
-          <button 
-            className={`stake-type-button ${stakeType === 'POINTS' ? 'active' : ''} ${buttonAnimation === 'POINTS' ? 'btn-pulse' : ''}`}
-            onClick={() => handleStakeTypeChange('POINTS')}
-            disabled={!isActive}
-          >
-            Stake with Points
-          </button>
-        </div>
-        
-        <div className="staking-area">
-          <div 
-            className={`tapping-bar-container ${!canParticipate ? 'disabled' : ''} ${barLocked ? 'locked' : ''}`}
-            onClick={handleBarClick}
-          >
-            <div className="tapping-bar-track">
-              <div 
-                className={`tapping-bar-fill ${stakeType.toLowerCase()}`} 
-                style={{ height: `${barHeight}%` }}
-              >
-                {tapping && <div className="tapping-bar-pulse"></div>}
-              </div>
-            </div>
-            {message && (
-              <div className="motivation-message">{message}</div>
-            )}
-          </div>
-          
-          <div className="stake-amount">
-            {stakeAmount.toLocaleString()} {stakeType === 'STARS' ? 'Stars' : 'Points'}
-          </div>
-          
-          {!canParticipate && isActive && (
-            <div className="insufficient-balance">
-              Minimum {MIN_POINTS_REQUIRED.toLocaleString()} points required to participate
-            </div>
-          )}
-          
-          {!isActive && (
-            <div className="no-fight-message">
-              No active fight to support
-            </div>
-          )}
-          
-          {isActive && (
-            <button 
-              className="stake-button"
-              onClick={submitStake}
-              disabled={!canParticipate || stakeAmount === 0 || !barLocked}
-            >
-              Place Stake
-            </button>
-          )}
-          
-          <div className="stake-info">
-            <p>Tap repeatedly to increase your stake</p>
-            <p>Tap the bar once to lock in your stake</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
