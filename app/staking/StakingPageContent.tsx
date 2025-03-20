@@ -556,5 +556,6 @@ export default function StakingPageContent() {
         ))
       )}
     </div>
+    
   );
 }
