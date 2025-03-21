@@ -406,7 +406,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
                 <span className="stat-value">{totalSupport.stars.toLocaleString()}</span>
               </div>
               <div className="stat-item">
-                <span className="stat-label">Points:</span>
+                <span className="stat-label">Shells:</span>
                 <span className="stat-value">{totalSupport.points.toLocaleString()}</span>
               </div>
             </div>
@@ -430,7 +430,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
                 onClick={() => handleStakeTypeChange('POINTS')}
                 disabled={!isActive}
               >
-                Stake with Points
+                Stake with Shells
               </button>
             </div>
             
@@ -458,7 +458,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
               
               {!canParticipate && isActive && (
                 <div className="insufficient-balance">
-                  Minimum {MIN_POINTS_REQUIRED.toLocaleString()} points required to participate
+                  Minimum {MIN_POINTS_REQUIRED.toLocaleString()} Shells required to participate
                 </div>
               )}
               
@@ -479,8 +479,14 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
               )}
               
               <div className="stake-info">
-                <p>Tap repeatedly to increase your stake</p>
-                <p>Tap the bar once to lock in your stake</p>
+                <div className="instruction">
+                  <span className="icon">👆</span>
+                  <p className="text">Tap repeatedly to increase your stake</p>
+                </div>
+                <div className="instruction">
+                  <span className="icon">🔒</span>
+                  <p className="text">Tap the bar once to lock in your stake</p>
+                </div>
               </div>
             </div>
           </>

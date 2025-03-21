@@ -371,12 +371,28 @@ useEffect(() => {
   
     setSharing(true);
     try {
-      if (window.Telegram?.WebApp?.showStory) {  // ✅ Ensure showStory exists
+      // Debugging: Check if showStory is available
+      if (window.Telegram?.WebApp?.showStory) {
+        console.log("showStory method is available.");
+  
+        // Test with a simple example
+        await window.Telegram.WebApp.showStory({
+          media: "https://example.com/path/to/video.mp4", // Replace with a valid URL
+          mediaType: "video",
+          sticker: {
+            url: "https://example.com/path/to/sticker.png", // Replace with a valid URL
+            width: 100,
+            height: 100,
+            position: { x: 0.5, y: 0.9 },
+          },
+        });
+  
+        console.log("✅ Story Shared Successfully");
+  
+        // Proceed with your existing logic
         const trackingId = `${telegramId}-${Date.now()}`;
         const appUrl = process.env.NEXT_PUBLIC_APP_URL;
         const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
-  
-        console.log("📤 Sharing Story...");
   
         await window.Telegram.WebApp.showStory({
           media: selectedTask.mediaUrl,
@@ -388,8 +404,6 @@ useEffect(() => {
             position: { x: 0.5, y: 0.9 },
           },
         });
-  
-        console.log("✅ Story Shared Successfully");
   
         let storyResponse = await fetch("/api/share-telegram-story", {
           method: "POST",
@@ -424,6 +438,7 @@ useEffect(() => {
           throw new Error("Failed to complete task");
         }
       } else {
+        console.log("showStory method is NOT available.");
         WebApp.showAlert("Please update your Telegram app to use this feature.");
       }
     } catch (error) {
