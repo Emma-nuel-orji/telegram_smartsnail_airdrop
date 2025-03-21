@@ -131,17 +131,16 @@
 
 .tapping-bar-fill {
   width: 100%;
-  background-color: #007bff;
+  background-color: #800080; /* Purple color */
   transition: height 0.1s;
 }
 
 .tapping-bar-pulse {
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(128, 0, 128, 0.5); /* Semi-transparent purple */
   animation: pulse 1s infinite;
 }
-
 @keyframes pulse {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -151,13 +150,13 @@
 .motivation-message {
   margin-top: 10px;
   text-align: center;
-  color: #007bff;
+  color: #800080; /* Purple color */
 }
 
 .stake-amount {
   margin-bottom: 10px;
   font-size: 1.2em;
-  color: #007bff;
+  color: #800080; /* Purple color */
 }
 
 .insufficient-balance, .no-fight-message {
@@ -169,9 +168,10 @@
   padding: 10px 20px;
   border: none;
   border-radius: 5px;
-  background-color: #007bff;
+  background-color: #800080; /* Purple color */
   color: #fff;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .stake-button:disabled {

@@ -1151,7 +1151,7 @@ html, body, #__next, [data-nextjs] {
   opacity: 0.9;
 }
 
-.fighters-container {
+/* .fighters-container {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -1174,7 +1174,7 @@ html, body, #__next, [data-nextjs] {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
+} */
 
 .fighter-info {
   display: flex;
@@ -1385,7 +1385,7 @@ html, body, #__next, [data-nextjs] {
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
   .fighters-container {
     flex-direction: column;
     align-items: center;
@@ -1399,7 +1399,7 @@ html, body, #__next, [data-nextjs] {
   .vs-container {
     margin: 16px 0;
   }
-}
+} */
 
 /* app/admin/AdminPage.css */
 
