@@ -71,7 +71,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 20px;
+  margin: 0 10px;
 }
 
 .fighter-staking {
@@ -88,15 +88,40 @@
 
 
 .fighter-info {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
 }
 
 .fighter-image {
-  margin-bottom: 10px;
+  width: 150px;
+  height: 150px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fighter-portrait {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.fighter-placeholder {
+  font-size: 64px;
+  color: #ccc;
 }
 
 .fighter-name {
-  margin: 10px 0;
+  font-size: 18px;
+  font-weight: bold;
+  margin: 8px 0;
+  text-align: center;
 }
 
 .social-button {
@@ -121,7 +146,7 @@
 }
 
 .stake-type-button {
-  padding: 10px 20px;
+  padding: 3px 10px;
   border: none;
   border-radius: 5px;
   background-color: #800080; 
@@ -246,6 +271,7 @@
 
 .staking-title {
   font-size: 2.5rem;
+  text-align: center;
   font-weight: bold;
   color: #333;
   margin-bottom: 10px;
@@ -298,7 +324,7 @@
   gap: 12px;
   margin-top: 20px;
   padding: 16px;
-  background-color: #f9f9f9;
+  background-color: #faf2fa;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
