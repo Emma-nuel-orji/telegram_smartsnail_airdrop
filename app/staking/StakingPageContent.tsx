@@ -68,6 +68,7 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         </div>
       </div>
       
+      
       <div className="fighters-container">
         <FighterStaking 
           fighter={fight?.fighter1}
