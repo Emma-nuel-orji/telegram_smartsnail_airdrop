@@ -84,6 +84,20 @@
   align-items: center;
 }
 
+.icon:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .stake-info {
+    padding: 12px;
+  }
+  .text {
+    font-size: 12px;
+  }
+}
+
 .tapping-bar-container {
   width: 20px;
   height: 200px;
@@ -178,4 +192,41 @@
 .points-balance {
   text-align: center;
   margin-bottom: 20px;
+}
+
+.stake-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.instruction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon {
+  font-size: 24px;
+  animation: bounce 1.5s infinite;
+}
+
+.text {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }

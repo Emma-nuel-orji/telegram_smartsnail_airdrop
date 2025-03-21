@@ -257,11 +257,12 @@ model Stake {
   fighterId    String    @db.ObjectId
   stakeAmount  Int       // Amount in stars (max 100,000)
   stakeType    StakeType // STARS or POINTS
+  status       StakeStatus  @default(PENDING) // PENDING, COMPLETED, FAILED
   outcome      StakeOutcome? // Will be set after fight completion
   pointsEarned BigInt?   // Calculated after fight completion
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  originalStakeAmount Int
+   initialStakeAmount Int
   @@index([fightId], name: "fight_stakes_index")
 
 }
@@ -277,6 +278,12 @@ enum FightStatus {
 enum StakeType {
   STARS
   POINTS
+}
+
+enum StakeStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 enum StakeOutcome {

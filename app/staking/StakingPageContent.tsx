@@ -146,7 +146,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
     
     setStakeType(type);
   };
-  
+
   const createTapEffect = (x: number, y: number) => {
     if (!fighterRef.current) return;
     
@@ -263,12 +263,12 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
       handleTapEnd();
     }
   };
-  
-  const submitStake = async () => {
+
+  const handleStakeWithStars = async () => {
     if (!canParticipate || stakeAmount <= 0 || isFighter) return;
-  
+
     try {
-      const response = await fetch('/api/stakes/place', {
+      const response = await fetch('/api/stakes/stars', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -277,38 +277,73 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
           fightId: fight?.id,
           fighterId: fighter?.id,
           stakeAmount,
-          stakeType,
           telegramId,
         }),
       });
-  
-      if (!response.ok) {
-        throw new Error('Failed to place stake');
+
+      const data = await response.json();
+
+      if (data.invoiceLink) {
+        // Redirect the user to the Telegram Stars payment page
+        window.location.href = data.invoiceLink;
+      } else {
+        throw new Error("Failed to create payment link");
       }
-  
-      setBarHeight(0);
-      setStakeAmount(0);
-      setBarLocked(false);
-      setMessage('Stake placed successfully!');
-  
-      if (telegramId) {
-        const userResponse = await fetch(`/api/user/${telegramId}`);
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          setLocalUserPoints(userData.points);
-        }
-      }
-      
-      fetchTotalSupport();
     } catch (error) {
-      let errorMessage = 'An unexpected error occurred';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      setMessage(`Error: ${errorMessage}`);
+      console.error("Staking with Stars failed:", error);
+      setMessage("Failed to place stake. Please try again.");
     }
   };
-  
+
+  const submitStake = async () => {
+    if (!canParticipate || stakeAmount <= 0 || isFighter) return;
+
+    if (stakeType === 'STARS') {
+      await handleStakeWithStars();
+    } else {
+      try {
+        const response = await fetch('/api/stakes/place', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fightId: fight?.id,
+            fighterId: fighter?.id,
+            stakeAmount,
+            stakeType,
+            telegramId,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to place stake');
+        }
+
+        setBarHeight(0);
+        setStakeAmount(0);
+        setBarLocked(false);
+        setMessage('Stake placed successfully!');
+
+        if (telegramId) {
+          const userResponse = await fetch(`/api/user/${telegramId}`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            setLocalUserPoints(userData.points);
+          }
+        }
+
+        fetchTotalSupport();
+      } catch (error) {
+        let errorMessage = 'An unexpected error occurred';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+        setMessage(`Error: ${errorMessage}`);
+      }
+    }
+  };
+
   useEffect(() => {
     setLocalUserPoints(userPoints);
   }, [userPoints]);
@@ -469,7 +504,7 @@ export default function StakingPageContent() {
       setIsRouterReady(true);
     }
   }, []);
-  
+
   useEffect(() => {
     if (typeof window !== 'undefined' && isRouterReady) {
       try {
@@ -557,6 +592,5 @@ export default function StakingPageContent() {
         ))
       )}
     </div>
-    
   );
 }

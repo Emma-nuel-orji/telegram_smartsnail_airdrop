@@ -158,54 +158,65 @@ export default function Home() {
   
   const lastClickTime = useRef(0);
 
-const handleClick = async (e: React.MouseEvent) => {
-  if (!user?.telegramId || energy <= 0) return;
-  const syncManager = new UserSyncManager(user.telegramId);
+  const handleClick = async (e: React.MouseEvent) => {
+    if (!user?.telegramId || energy <= 0) return;
+    const syncManager = new UserSyncManager(user.telegramId);
+  
+    setIsClicking(true);
+    setSpeed((prev) => Math.min(prev + 0.1, 5));
+  
+     // Get the dimensions of the clickable area
+  const rect = e.currentTarget.getBoundingClientRect();
+  
+  // Calculate the animation text size (approximately)
+  const textWidth = 56;  // ~28px * 2 based on your left offset
+  const textHeight = 84; // ~42px * 2 based on your top offset
+    
+    // Constrain x and y to keep the animation fully within the viewport
+    const x = Math.min(Math.max(e.clientX, rect.left + textWidth/2), rect.right - textWidth/2);
+    const y = Math.min(Math.max(e.clientY, rect.top + textHeight/2), rect.bottom - textHeight/2);
 
-  setIsClicking(true);
-  setSpeed((prev) => Math.min(prev + 0.1, 5));
-
-  const newClick = {
-    id: Date.now(),
-    x: e.clientX,
-    y: e.clientY,
-    tappingRate: user.tappingRate || 1,
+    const newClick = {
+      id: Date.now(),
+      x, // Use the constrained coordinates
+      y,
+      tappingRate: user.tappingRate || 1,
+    };
+  
+    setClicks((prev) => [...prev, newClick]);
+  
+    const tappingRate = Number(user.tappingRate) || 1;
+  
+    // ✅ Optimistically update points
+    setUser((prevUser) => ({
+      ...prevUser!,
+      points: (prevUser?.points || 0) + tappingRate,
+    }));
+  
+    // ✅ Ensure energy reduces only once per click
+    const now = Date.now();
+    if (now - lastClickTime.current > 50) { // Prevent multiple reductions per click
+      setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
+      lastClickTime.current = now;
+    }
+  
+    // ✅ Sync points but prevent energy from reducing multiple times
+    await syncManager.addPoints(tappingRate);
+    await syncManager.syncWithServer();
+  
+    if (inactivityTimeout.current) {
+      clearTimeout(inactivityTimeout.current);
+    }
+  
+    inactivityTimeout.current = setTimeout(() => {
+      setIsClicking(false);
+      setSpeed((prev) => Math.max(1, prev - 0.2));
+    }, 1000);
+  
+    setTimeout(() => {
+      setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
+    }, 1000);
   };
-
-  setClicks((prev) => [...prev, newClick]);
-
-  const tappingRate = Number(user.tappingRate) || 1;
-
-  // ✅ Optimistically update points
-  setUser((prevUser) => ({
-    ...prevUser!,
-    points: (prevUser?.points || 0) + tappingRate,
-  }));
-
-  // ✅ Ensure energy reduces only once per click
-  const now = Date.now();
-  if (now - lastClickTime.current > 50) { // Prevent multiple reductions per click
-    setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
-    lastClickTime.current = now;
-  }
-
-  // ✅ Sync points but prevent energy from reducing multiple times
-  await syncManager.addPoints(tappingRate);
-  await syncManager.syncWithServer();
-
-  if (inactivityTimeout.current) {
-    clearTimeout(inactivityTimeout.current);
-  }
-
-  inactivityTimeout.current = setTimeout(() => {
-    setIsClicking(false);
-    setSpeed((prev) => Math.max(1, prev - 0.2));
-  }, 1000);
-
-  setTimeout(() => {
-    setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
-  }, 1000);
-};
 
 
   useEffect(() => {
@@ -770,11 +781,13 @@ useEffect(() => {
     {clicks.map((click) => (
       <div
         key={click.id}
-        className="absolute text-5xl font-bold text-white opacity-0"
+        className="absolute text-5xl font-bold text-white opacity-0 pointer-events-none"
         style={{
           top: `${click.y - 42}px`,
           left: `${click.x - 28}px`,
           animation: 'float 1s ease-out',
+          willChange: 'transform, opacity',
+          zIndex: 10,
         }}
         onAnimationEnd={() => handleAnimationEnd(click.id)}
       >
