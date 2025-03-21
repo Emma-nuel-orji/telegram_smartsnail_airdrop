@@ -1,11 +1,11 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { fighterId } = req.query;
+export async function GET(req: NextRequest, { params }: { params: { fighterId: string } }) {
+  const { fighterId } = params;
 
-  if (!fighterId || typeof fighterId !== 'string') {
-    return res.status(400).json({ error: 'Fighter ID is required' });
+  if (!fighterId) {
+    return NextResponse.json({ error: 'Fighter ID is required' }, { status: 400 });
   }
 
   try {
@@ -27,12 +27,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       _sum: { stakeAmount: true }, // Aggregate stakeAmount for points
     });
 
-    res.status(200).json({
+    return NextResponse.json({
       stars: totalStars._sum.stakeAmount || 0, // Use stakeAmount for stars
       points: totalPoints._sum.stakeAmount || 0, // Use stakeAmount for points
     });
   } catch (error) {
     console.error('Error fetching total support:', error);
-    res.status(500).json({ error: 'Failed to fetch total support' });
+    return NextResponse.json({ error: 'Failed to fetch total support' }, { status: 500 });
   }
 }
