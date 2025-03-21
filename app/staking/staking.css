@@ -14,7 +14,7 @@
 
 .fight-header {
   padding: 16px;
-  background-color: #edd8f2;
+  background-color: #f3ecf4;
   color: white;
   text-align: center;
 }
@@ -183,6 +183,13 @@
   }
 }
 
+/* .tapping-bar-container {
+  width: 100%;
+  padding: 16px 0;
+  cursor: pointer;
+  position: relative; */
+
+
 .tapping-bar-container {
   width: 20px;
   height: 200px;
@@ -192,26 +199,62 @@
   margin-bottom: 20px;
 }
 
+.tapping-bar-container.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tapping-bar-container.locked .tapping-bar-fill {
+  background: linear-gradient(90deg, #28a745, #5cb85c);
+}
+
 .tapping-bar-track {
+  height: 24px;
+  background-color: #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* .tapping-bar-track {
   width: 100%;
   height: 100%;
   background-color: #f0f0f0;
   border-radius: 10px;
-  overflow: hidden;
-}
+  overflow: hidden; */
 
-.tapping-bar-fill {
+
+/* .tapping-bar-fill {
   width: 100%;
   background-color: #800080; /* Purple color */
-  transition: height 0.1s;
+  /* transition: height 0.1s; */
+
+
+.tapping-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0088cc, #00c3ff);
+  border-radius: 12px;
+  transition: width 0.1s ease-out;
+  position: relative;
 }
 
-.tapping-bar-pulse {
+/* .tapping-bar-pulse {
   width: 100%;
   height: 100%;
   background-color: rgba(128, 0, 128, 0.5); /* Semi-transparent purple */
-  animation: pulse 1s infinite;
-}
+  /* animation: pulse 1s infinite; */
+ 
+  .tapping-bar-pulse {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.6);
+    animation: pulse 1s infinite;
+  }
+
+
 @keyframes pulse {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
