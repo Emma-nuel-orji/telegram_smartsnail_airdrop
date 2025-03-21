@@ -122,7 +122,7 @@ export async function POST(req: Request) {
         fighterId,
         stakeAmount,
         stakeType,
-        originalStakeAmount: stakeAmount,
+        initialStakeAmount: stakeAmount,
       }
     });
     
