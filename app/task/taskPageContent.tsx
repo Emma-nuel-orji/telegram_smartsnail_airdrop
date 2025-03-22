@@ -35,43 +35,47 @@ declare global {
 const TaskPageContent: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
     { id: 1, description: "Main Task 1", completed: false, reward: 5000, section: "main", type: "permanent", image: "/images/tasks/smartsnail telegram.png", link: "https://t.me/smartsnails", completedTime: null },
-    { id: 2, description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/daily/join discord.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 3, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 4, description: 'Main Task 4', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 5, description: 'Main Task 5', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 2, description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/daily/join discord.png', link: 'https://discord.gg/AswRvzwv', completedTime: null },
+    { id: 3, description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail instagram.png', link: 'https://www.instagram.com/smartsnail_nft?igsh=MWp2bGI5MXI3Zm5ibA==', completedTime: null },
+    { id: 4, description: 'Main Task 4', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
+    { id: 5, description: 'Main Task 5', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail tiktok.png', link: '', completedTime: null },
     { id: 6, description: 'Main Task 6', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail twitter.png', link: 'https://x.com/SmartSnail_NFT?t=YXkXoCWpGUBKQ9u_zqfC4g&s=09', completedTime: null },
-    { id: 7, description: 'Main Task 7', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 8, description: 'Main Task 8', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 9, description: 'Main Task 9', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 10, description: 'Main Task 10', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 11, description: 'Main Task 11', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fuckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 12, description: 'Main Task 12', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino facebook.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 13, description: 'Main Task 13', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 14, description: 'Main Task 14', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 15, description: 'Main Task 15', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 7, description: 'Main Task 7', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail youtube.png', link: 'https://youtube.com/@smartsnailnft?si=UN2ntabALnAdpUpX', completedTime: null },
+    { id: 8, description: 'Main Task 8', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail medium.png', link: 'https://medium.com/@web3chinonsolutions/smart-snail-nft-stands-out-from-most-other-nft-projects-due-to-its-unique-approach-to-value-3292b7557db2', completedTime: null },
+    { id: 9, description: 'Main Task 9', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: 'https://socialmedia.com/profile1', completedTime: null, active: false, },
+    { id: 10, description: 'Main Task 10', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_humanRelations', completedTime: null },
+    { id: 11, description: 'Main Task 11', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fuckedupbags.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_fxckedupbags', completedTime: null },
+    { id: 12, description: 'Main Task 12', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino facebook.png', link: 'https://www.facebook.com/Web3chinonsolutions', completedTime: null },
+    { id: 13, description: 'Main Task 13', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino instagram.png', link: 'https://www.instagram.com/web3chinonsolutions?igsh=MWoxOGhoaXozdnBuYQ==', completedTime: null },
+    { id: 14, description: 'Main Task 14', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
+    { id: 15, description: 'Main Task 15', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: '', completedTime: null, active: false },
     { id: 16, description: 'Main Task 16', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3?t=sS-KKVwkz3C_stZqs8syzA&s=09', completedTime: null },
-    { id: 17, description: 'Main Task 17', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 17, description: 'Main Task 17', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://youtube.com/@web3chinonsolutions?si=ccYS7AtNh_FWQOG1', completedTime: null },
     { id: 18, description: 'Main Task 18', completed: false, reward: 10000, section: 'main', type: 'flexible', image: '/images/tasks/connect wallet.png', link: '', completedTime: null },
-    { id: 19, description: 'Main Task 19', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 'https://socialmedia.com/profile1', completedTime: null },
+    { id: 19, description: 'Main Task 19', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 't.me/Alexanderthesage', completedTime: null },
     { id: 20, description: 'Main Task 20', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex twitter.png', link: 'https://x.com/CaptainSage_?t=EZ0s5eeh1igkYDym_M_U-Q&s=09', completedTime: null },
-    { id: 21, description: 'Main Task 21', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 22, description: 'Daily Task 1', completed: false, section: 'daily', type: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://socialmedia.com/profile1', batchId: 'batch_2024_001', completedTime: null },
-    { id: 23, description: 'Daily Task 2', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCR thread.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 24, description: 'Daily Task 3', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 25, description: 'Daily Task 4', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 26, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS Tiktok.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 27, description: 'Daily Task 6', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 28, description: 'Daily Task 7', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 29, description: 'Daily Task 8', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 30, description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: 'https://socialmedia.com/profile1',  mediaUrl: '/videos/speedsnail.mp4', // Replace with your video URL
+    { id: 21, description: 'Main Task 21', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://youtube.com/@alexanderthesage?si=vIrNUBE3D_P0Pxey', completedTime: null },
+    { id: 22, description: 'Daily Task 1', completed: false, section: 'daily', type: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://x.com/SmartSnail_NFT?s=09', batchId: 'Batch 10', completedTime: null },
+    { id: 23, description: 'Daily Task 2', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCR thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
+    { id: 24, description: 'Daily Task 3', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://www.facebook.com/profile.php?id=100072420460086&mibextid=ZbWKwL', completedTime: null },
+    { id: 25, description: 'Daily Task 4', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://www.instagram.com/smartsnail_nft?igsh=MWp2bGI5MXI3Zm5ibA==', completedTime: null },
+    { id: 26, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS Tiktok.png', link: 'https://www.tiktok.com/@alexanderthesage?_t=ZM-8utNeDw4yFK&_r=1', completedTime: null },
+    { id: 27, description: 'Daily Task 6', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://x.com/SmartSnail_NFT?t=CTPYUerxGFvBnP8jwkrQtw&s=09', completedTime: null },
+    { id: 28, description: 'Daily Task 7', completed: false, reward: , section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: '', completedTime: null, popupMessage: "Make a content of you reading the book Fxckedupbags. Make sure you use the hashtags: #Fxckedupbags, #SmartSnailNFT. If you haven't gotten a hardcopy, go to Main Task 11 and order a copy. Good luck!", },
+    { id: 29, description: 'Daily Task 8', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://medium.com/@web3chinonsolutions/smart-snail-nft-stands-out-from-most-other-nft-projects-due-to-its-unique-approach-to-value-3292b7557db2', completedTime: null },
+
+    { id: 30, description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: '',  mediaUrl: '/videos/speedsnail.mp4', 
       mediaType: 'video' , isStoryTask: true, completedTime: null },
-    { id: 31, description: 'Daily Task 10', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://socialmedia.com/profile1', completedTime: null },
-    { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://socialmedia.com/profile1', completedTime: null},
+
+    { id: 31, description: 'Daily Task 10', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://youtu.be/PQyosdfnCYg?si=ynqL07ns7e-WmT7-', completedTime: null },
+    { id: 32, description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: '', completedTime: null},
   
     
 
 
   ]);
+
+  const [showConfetti, setShowConfetti] = useState(false);
   const [  selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [validationAttempt, setValidationAttempt] = useState(0);
   const [totalPoints, setTotalPoints] = useState(() => {
@@ -350,7 +354,11 @@ useEffect(() => {
   }, []); 
 
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = (task) => {
+    if (task.active === false) {
+      return; // Do nothing for inactive tasks
+    }
+  
     if (!task.completed) {
       setSelectedTask(task);
       setValidationAttempt(0);
@@ -371,28 +379,12 @@ useEffect(() => {
   
     setSharing(true);
     try {
-      // Debugging: Check if showStory is available
-      if (window.Telegram?.WebApp?.showStory) {
-        console.log("showStory method is available.");
-  
-        // Test with a simple example
-        await window.Telegram.WebApp.showStory({
-          media: "https://example.com/path/to/video.mp4", // Replace with a valid URL
-          mediaType: "video",
-          sticker: {
-            url: "https://example.com/path/to/sticker.png", // Replace with a valid URL
-            width: 100,
-            height: 100,
-            position: { x: 0.5, y: 0.9 },
-          },
-        });
-  
-        console.log("✅ Story Shared Successfully");
-  
-        // Proceed with your existing logic
+      if (window.Telegram?.WebApp?.showStory) {  // ✅ Ensure showStory exists
         const trackingId = `${telegramId}-${Date.now()}`;
         const appUrl = process.env.NEXT_PUBLIC_APP_URL;
         const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
+  
+        console.log("📤 Sharing Story...");
   
         await window.Telegram.WebApp.showStory({
           media: selectedTask.mediaUrl,
@@ -404,6 +396,8 @@ useEffect(() => {
             position: { x: 0.5, y: 0.9 },
           },
         });
+  
+        console.log("✅ Story Shared Successfully");
   
         let storyResponse = await fetch("/api/share-telegram-story", {
           method: "POST",
@@ -438,7 +432,6 @@ useEffect(() => {
           throw new Error("Failed to complete task");
         }
       } else {
-        console.log("showStory method is NOT available.");
         WebApp.showAlert("Please update your Telegram app to use this feature.");
       }
     } catch (error) {
@@ -467,13 +460,17 @@ useEffect(() => {
       return;
     }
   
-    // Warn on first two attempts
-    if (validationAttempt < 4) {
-      alert("Please complete the task before validating.");
+    // Warn on first three attempts
+    if (validationAttempt < 3) {
+      if (validationAttempt === 1) {
+        alert("Please perform the task before validating.");
+      } else if (validationAttempt === 2) {
+        alert("Bruhh, you haven't performed the task yet!");
+      } else if (validationAttempt === 3) {
+        alert("Go back and check again!");
+      }
       return;
     }
-
-    
   
     // Get Telegram user ID from WebApp
     const telegramId = WebApp.initDataUnsafe?.user?.id;
@@ -545,15 +542,14 @@ useEffect(() => {
       localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
   
       // Trigger confetti
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000); // Show confetti for 5 seconds
+      triggerConfetti();
   
       // Reset UI state
       setTaskCompleted(true);
       setSelectedTask(null);
       setValidationAttempt(0);
   
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error completing task:", error);
   
       const errorMessage =
@@ -575,32 +571,34 @@ useEffect(() => {
       return;
     }
   
+    if (!selectedTask?.batchId) {
+      setMessage("No task selected or batch ID missing.");
+      return;
+    }
+  
     setLoading(true);
     try {
-      if (typeof window !== 'undefined') {
-        const response = await fetch("/api/redeemCodeTask", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            code: inputCode,
-            telegramId,
-            batchId: selectedTask?.batchId,
-          }),
-        });
+      const response = await fetch("/api/redeemCodeTask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: inputCode,
+          telegramId,
+          batchId: selectedTask.batchId, // Ensure batchId is correctly passed
+        }),
+      });
   
-        const data = await response.json();
-        
-        triggerConfetti();
-
-        if (response.ok) {
-          setReward(data.reward);
-          setUserPoints((prevPoints) => prevPoints + data.reward);
-          setMessage(data.message || `You received ${data.reward} coins!`);
-        } else {
-          setMessage(data.error || "Redemption failed. Please try again.");
-        }
+      const data = await response.json();
+  
+      if (response.ok) {
+        setReward(data.reward);
+        setUserPoints((prevPoints) => prevPoints + data.reward);
+        setMessage(data.message || `You received ${data.reward} Shells!`);
+        triggerConfetti(); // Trigger confetti only on success
+      } else {
+        setMessage(data.error || "Redemption failed. Please try again.");
       }
     } catch (error) {
       console.error("Error redeeming code:", error);
@@ -651,8 +649,8 @@ useEffect(() => {
         {filteredTasks.map((task) => (
          <div
          key={task.id}
-         className={`task-card ${task.completed && task.type !== 'flexible' ? 'completed' : ''}`}
-         onClick={() => (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
+         className={`task-card ${task.completed ? 'completed' : ''} ${task.active === false ? 'inactive' : ''}`}
+         onClick={() => task.active !== false && handleTaskClick(task)} // Disable click for inactive tasks
        >
        
             <div>
@@ -681,7 +679,7 @@ useEffect(() => {
               ×
             </button>
             
-            <p className="popup-description">{selectedTask.description}</p>
+            <p className="popup-description">{selectedTask.popupMessage || selectedTask.description}</p>
 
             {selectedTask.id === 22 ? (
               <>
@@ -759,6 +757,6 @@ useEffect(() => {
 
 export default TaskPageContent;
 
-function setShowConfetti(arg0: boolean) {
-  throw new Error("Function not implemented.");
-}
+// function setShowConfetti(arg0: boolean) {
+//   throw new Error("Function not implemented.");
+// }
