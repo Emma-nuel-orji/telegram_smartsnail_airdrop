@@ -6,6 +6,7 @@
     type: "daily" | "permanent" | "flexible"; 
     image: string;
     link: string;
+    active?: boolean; 
     completedTime?: string | null;
     batchId?: string;
     mediaUrl?: string;

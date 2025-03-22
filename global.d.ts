@@ -26,8 +26,10 @@ interface TelegramWebApp {
       button_color?: string;
       button_text_color?: string;
     };
+    shareToStory?: (params: { media: string; mediaType: "photo" | "video" }) => void;
   }
 
+  
   
 interface TelegramWebAppInitData {
   user?: TelegramUser;

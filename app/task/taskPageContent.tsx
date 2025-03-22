@@ -61,7 +61,7 @@ const TaskPageContent: React.FC = () => {
     { id: 25, description: 'Daily Task 4', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://www.instagram.com/smartsnail_nft?igsh=MWp2bGI5MXI3Zm5ibA==', completedTime: null },
     { id: 26, description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS Tiktok.png', link: 'https://www.tiktok.com/@alexanderthesage?_t=ZM-8utNeDw4yFK&_r=1', completedTime: null },
     { id: 27, description: 'Daily Task 6', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://x.com/SmartSnail_NFT?t=CTPYUerxGFvBnP8jwkrQtw&s=09', completedTime: null },
-    { id: 28, description: 'Daily Task 7', completed: false, reward: , section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: '', completedTime: null, popupMessage: "Make a content of you reading the book Fxckedupbags. Make sure you use the hashtags: #Fxckedupbags, #SmartSnailNFT. If you haven't gotten a hardcopy, go to Main Task 11 and order a copy. Good luck!", },
+    { id: 28, description: 'Daily Task 7', completed: false,  section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: '', completedTime: null,  },
     { id: 29, description: 'Daily Task 8', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://medium.com/@web3chinonsolutions/smart-snail-nft-stands-out-from-most-other-nft-projects-due-to-its-unique-approach-to-value-3292b7557db2', completedTime: null },
 
     { id: 30, description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: '',  mediaUrl: '/videos/speedsnail.mp4', 
@@ -354,7 +354,7 @@ useEffect(() => {
   }, []); 
 
 
-  const handleTaskClick = (task) => {
+  const handleTaskClick = (task: Task) => {
     if (task.active === false) {
       return; // Do nothing for inactive tasks
     }
@@ -379,22 +379,17 @@ useEffect(() => {
   
     setSharing(true);
     try {
-      if (window.Telegram?.WebApp?.showStory) {  // ✅ Ensure showStory exists
+      if (window.Telegram?.WebApp?.shareToStory) {  // ✅ Correct method name
         const trackingId = `${telegramId}-${Date.now()}`;
         const appUrl = process.env.NEXT_PUBLIC_APP_URL;
         const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
   
         console.log("📤 Sharing Story...");
   
-        await window.Telegram.WebApp.showStory({
+        await window.Telegram.WebApp.shareToStory({
           media: selectedTask.mediaUrl,
-          mediaType: "video",
-          sticker: {
-            url: referralLink,
-            width: 100,
-            height: 100,
-            position: { x: 0.5, y: 0.9 },
-          },
+          mediaType: selectedTask.mediaUrl.endsWith(".mp4") ? "video" : "photo", // ✅ Dynamically determine type
+          
         });
   
         console.log("✅ Story Shared Successfully");
@@ -441,6 +436,7 @@ useEffect(() => {
       setSharing(false);
     }
   };
+  
   
 
   // Existing validation handler
@@ -649,8 +645,12 @@ useEffect(() => {
         {filteredTasks.map((task) => (
          <div
          key={task.id}
-         className={`task-card ${task.completed ? 'completed' : ''} ${task.active === false ? 'inactive' : ''}`}
-         onClick={() => task.active !== false && handleTaskClick(task)} // Disable click for inactive tasks
+         className={`task-card ${task.completed && task.type !== 'flexible' ? 'completed' : ''} ${task.active === false ? 'inactive' : ''}`}
+         onClick={() => {
+           if (task.active !== false && (task.type === 'flexible' || !task.completed)) {
+             handleTaskClick(task);
+           }
+         }}
        >
        
             <div>
@@ -679,7 +679,13 @@ useEffect(() => {
               ×
             </button>
             
-            <p className="popup-description">{selectedTask.popupMessage || selectedTask.description}</p>
+            <p className="popup-description">{selectedTask.description}
+        {selectedTask.id === 28 && (
+          <div className="popup-message">
+            Make a content of you reading the book Fxckedupbags. <br></br>Make sure you use the hashtags: #Fxckedupbags, #SmartSnailNFT. <br></br>If you haven't gotten a hardcopy, go to Main Task 11 and order a copy. Good luck!
+          </div>
+        )}
+      </p>
 
             {selectedTask.id === 22 ? (
               <>
