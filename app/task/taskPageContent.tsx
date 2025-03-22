@@ -738,7 +738,7 @@ useEffect(() => {
               >
                 {sharing ? "Sharing..." : "Share to Story"}
               </button>
-            ) : (
+            ) : selectedTask.id !== 28 && (
               <>
                 <button 
                   className="popup-button"

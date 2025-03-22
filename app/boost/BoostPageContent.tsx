@@ -528,21 +528,30 @@ const handlePaymentSuccess = async () => {
 
   // Code Redemption Handler
   const handleCodeRedemption = async () => {
-    if (!uniqueCode || !redemptionEmail  || !referralLink) {
+    if (!uniqueCode || !redemptionEmail || !referralLink) {
       alert("Please fill in all fields: Unique Code, Email, and Referral Link");
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
-      const response = await axios.post("/api/redeemCode", {
+      console.log("📤 Sending redemption request...", {
         userId: telegramId,
-        email: redemptionEmail,  
+        email: redemptionEmail,
         uniqueCode,
         referrerId: referralLink,
       });
-
+  
+      const response = await axios.post("/api/redeemCode", {
+        userId: telegramId,
+        email: redemptionEmail,
+        uniqueCode,
+        referrerId: referralLink,
+      });
+  
+      console.log("📥 Redemption response:", response.data);
+  
       if (response.status === 200) {
         setMessage("Code redeemed successfully! You've earned 100,000 Shells!");
       } else {
@@ -683,6 +692,11 @@ const handlePaymentSuccess = async () => {
           {isProcessing ? <span className="spinner-gear"></span> : "Pay with Stars"}
         </button>
       </div>
+
+       {/* Divider with "OR" */}
+        <div className="or-divider">
+          <span>OR</span>
+        </div>
 
       {/* Code Redemption Section */}
       <div className="code-section">

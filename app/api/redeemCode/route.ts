@@ -127,20 +127,20 @@ export async function POST(request: NextRequest) {
 async function getReferrerId(userId: string, referrerTelegramId?: string): Promise<string | null> {
   try {
     if (referrerTelegramId) {
-      referrerTelegramId = referrerTelegramId.trim(); // ✅ Trim spaces
+      referrerTelegramId = referrerTelegramId.trim();
 
       if (referrerTelegramId === "SMARTSNAIL") {
-        return "SMARTSNAIL"; // ✅ Special case
+        return "SMARTSNAIL"; // Special case
       }
 
-      if (!/^\d+$/.test(referrerTelegramId)) { // ✅ Ensure it's a valid number
+      if (!/^\d+$/.test(referrerTelegramId)) {
         console.error("❌ Invalid referrer Telegram ID:", referrerTelegramId);
         return null;
       }
 
       // Convert to BigInt and validate in the database
-      const referrer = await prisma.user.findUnique({ 
-        where: { telegramId: BigInt(referrerTelegramId) } 
+      const referrer = await prisma.user.findUnique({
+        where: { telegramId: BigInt(referrerTelegramId) },
       });
 
       return referrer ? referrerTelegramId : null;
@@ -148,12 +148,11 @@ async function getReferrerId(userId: string, referrerTelegramId?: string): Promi
 
     // Fetch referrer from the referral table (if not provided)
     const referral = await prisma.referral.findFirst({
-      where: { referredId: BigInt(userId) }, 
+      where: { referredId: BigInt(userId) },
       select: { referrerId: true },
     });
 
     return referral?.referrerId ? referral.referrerId.toString() : null;
-
   } catch (error) {
     console.error("Error validating or fetching referrer ID:", error);
     return null;
