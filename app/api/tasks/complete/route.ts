@@ -6,6 +6,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { taskId, reward, telegramId } = body;
 
+    console.log('Request Body:', body);
+
     if (!taskId || !telegramId) {
       return NextResponse.json(
         { error: 'Task ID and Telegram ID are required' },
@@ -20,6 +22,8 @@ export async function POST(request: Request) {
       },
     });
 
+    console.log('User:', user);
+
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -33,6 +37,8 @@ export async function POST(request: Request) {
         id: String(taskId),
       },
     });
+
+    console.log('Task:', task);
 
     if (!task) {
       return NextResponse.json(
@@ -49,6 +55,8 @@ export async function POST(request: Request) {
         completedAt: new Date(),
       },
     });
+
+    console.log('Completed Task:', completedTask);
 
     // Update the task status and update user points
     const [updatedTask, updatedUser] = await prisma.$transaction([
@@ -72,6 +80,9 @@ export async function POST(request: Request) {
         },
       }),
     ]);
+
+    console.log('Updated Task:', updatedTask);
+    console.log('Updated User:', updatedUser);
 
     return NextResponse.json({
       success: true,
