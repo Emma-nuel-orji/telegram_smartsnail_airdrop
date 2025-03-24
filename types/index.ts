@@ -1,5 +1,5 @@
  export interface Task {
-    id: number;
+  id: string; 
     description: string;
     completed: boolean;
     section: "main" | "daily" | "partners";
