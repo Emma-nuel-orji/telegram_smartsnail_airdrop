@@ -19,6 +19,7 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.47.0",
     "@telegram-apps/sdk": "^2.9.1",
+    "@telegram-apps/sdk-react": "^3.1.5",
     "@ton/core": "^0.59.1",
     "@tonconnect/sdk": "^3.0.6",
     "@tonconnect/ui": "^2.0.11",
