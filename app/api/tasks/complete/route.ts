@@ -32,10 +32,10 @@ export async function POST(request: Request) {
     }
 
     // Find the task
-    const task = await prisma.task.findFirst({
-      where: {
-        id: String(taskId),
-      },
+    const task = await prisma.task.findUnique({
+      where: { 
+        id: String(taskId) 
+      }
     });
 
     console.log('Task:', task);
