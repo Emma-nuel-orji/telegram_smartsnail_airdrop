@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { taskId, reward, telegramId } = body;
 
-    console.log('Request Body:', body);
+    console.log('Received Request Body:', body);
 
     if (!taskId || !telegramId) {
       return NextResponse.json(
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log('User:', user);
+    console.log('Found User:', user);
 
     if (!user) {
       return NextResponse.json(
@@ -31,34 +31,40 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find task by ID directly as a string (for numeric IDs)
-    const task = await prisma.task.findUnique({
+    // Debug: Log all tasks to verify
+    const allTasks = await prisma.task.findMany({
       where: {
+        // If tasks are supposed to be numeric, ensure conversion
         id: taskId
       }
     });
 
-    console.log('Task:', task);
+    console.log('All Matching Tasks:', allTasks);
 
-    if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check for existing completed task
-    const existingCompletedTask = await prisma.completedTask.findFirst({
+    // Find task with multiple matching strategies
+    const task = await prisma.task.findFirst({
       where: {
-        taskId: task.id,
-        userId: user.id
+        OR: [
+          { id: taskId },  // Direct string match
+          { id: taskId.toString() },  // Ensure string
+          // Add any other potential matching strategies
+        ]
       }
     });
 
-    if (existingCompletedTask) {
+    console.log('Found Task:', task);
+
+    if (!task) {
+      // Log more context if task not found
       return NextResponse.json(
-        { error: 'Task already completed' },
-        { status: 400 }
+        { 
+          error: 'Task not found', 
+          details: {
+            searchedId: taskId,
+            allTaskIds: allTasks.map(t => t.id)
+          }
+        },
+        { status: 404 }
       );
     }
 
