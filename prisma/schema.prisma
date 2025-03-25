@@ -52,6 +52,7 @@ model CompletedTask {
 model Task {
   id            String     @id @map("_id") 
   mongoId       String?
+  
   description   String
   completed     Boolean @default(false)
   section       String  // Will be constrained in TypeScript to "main" | "daily" | "partners"

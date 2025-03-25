@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
   try {
@@ -31,10 +32,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find the task
-    const task = await prisma.task.findUnique({
-      where: { 
-        id: String(taskId) 
+    // Try finding the task with multiple approaches
+    const task = await prisma.task.findFirst({
+      where: {
+        OR: [
+          { id: taskId },
+          { id: new ObjectId(taskId).toString() }
+        ]
       }
     });
 
@@ -71,8 +75,6 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log('Completed Task:', completedTask);
-
     // Update the task status and update user points
     const [updatedTask, updatedUser] = await prisma.$transaction([
       prisma.task.update({
@@ -96,9 +98,6 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    console.log('Updated Task:', updatedTask);
-    console.log('Updated User:', updatedUser);
-
     return NextResponse.json({
       success: true,
       task: updatedTask,
@@ -107,7 +106,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Detailed Error completing task:', error instanceof Error ? error.message : error);
+    console.error('Detailed Error completing task:', error);
     return NextResponse.json(
       { 
         error: 'Failed to complete task', 
