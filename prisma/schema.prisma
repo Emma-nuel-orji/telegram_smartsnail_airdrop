@@ -50,9 +50,8 @@ model CompletedTask {
 
 // Task model
 model Task {
-  id            String     @id @map("_id") 
-  mongoId       String?
-  
+   id        String @unique // Keep this as String for "1", "2", ...
+  mongoId   String @id @map("_id") // Store MongoDB _id separately
   description   String
   completed     Boolean @default(false)
   section       String  // Will be constrained in TypeScript to "main" | "daily" | "partners"

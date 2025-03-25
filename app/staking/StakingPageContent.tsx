@@ -570,34 +570,149 @@ export default function StakingPageContent() {
   if (error) return <div className="error-container">Error: {error}</div>;
 
   return (
-    <div className="staking-container">
-      <Link href="/">
-        <img
-          src="/images/info/left-arrow.png" 
-          width={40}
-          height={40}
-          alt="back"
-          className="back-button"
-        />
+    <div className="support-container">
+      {/* Back Button */}
+      <Link href="/" className="back-button">
+        <svg 
+          width="40" 
+          height="40" 
+          viewBox="0 0 24 24"
+          className="back-icon"
+        >
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
       </Link>
-      <h1 className="staking-title">Support Your Fighter</h1>
-      <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
-      
-      {fights.length === 0 ? (
-        <FightCard 
-          userPoints={userPoints}
-          telegramId={telegramId}
-        />
-      ) : (
-        fights.map(fight => (
-          <FightCard 
-            key={fight.id} 
-            fight={fight} 
-            userPoints={userPoints}
-            telegramId={telegramId}
-          />
-        ))
-      )}
+
+      {/* Engraved Title */}
+      <div className="title-wrapper">
+        <h1 className="engraved-title">
+          <span className="engraved-text">SUPPORT YOUR FIGHTER</span>
+          <span className="engraved-shadow" aria-hidden>SUPPORT YOUR FIGHTER</span>
+        </h1>
+      </div>
+
+      {/* Points Display */}
+      <div className="points-display">
+        <span className="points-label">SHELLS BALANCE:</span>
+        <span className="points-value">{userPoints.toLocaleString()}</span>
+      </div>
+
+      {/* Fight Cards */}
+      <div className="fights-grid">
+        {fights.length === 0 ? (
+          <FightCard userPoints={userPoints} telegramId={telegramId} />
+        ) : (
+          fights.map(fight => (
+            <FightCard 
+              key={fight.id} 
+              fight={fight} 
+              userPoints={userPoints}
+              telegramId={telegramId}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Component-scoped styles */}
+      <style jsx>{`
+        .support-container {
+          position: relative;
+          padding: 2rem;
+          min-height: 100vh;
+          background: 
+            linear-gradient(135deg, rgba(58, 12, 163, 0.2) 0%, rgba(114, 9, 183, 0.4) 100%),
+            url('/images/textures/stone-wall.jpg') center/cover;
+        }
+        
+        .back-button {
+          position: absolute;
+          left: 1rem;
+          top: 1rem;
+          z-index: 10;
+        }
+        
+        .back-icon {
+          fill: white;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+          transition: transform 0.3s ease;
+        }
+        
+        .back-button:hover .back-icon {
+          transform: translateX(-4px);
+        }
+        
+        .title-wrapper {
+          position: relative;
+          text-align: center;
+          margin: 3rem 0 2rem;
+        }
+        
+        .engraved-title {
+          position: relative;
+          font-family: 'Cinzel', serif;
+          font-size: 2.5rem;
+          letter-spacing: 2px;
+          color: transparent;
+          margin: 0 auto;
+          width: fit-content;
+        }
+        
+        .engraved-text {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          color: #f8f9fa;
+          text-shadow: 
+            1px 1px 0 #000,
+            -1px -1px 0 rgba(255,255,255,0.1);
+          clip-path: polygon(0 0, 100% 0, 100% 60%, 0 60%);
+        }
+        
+        .engraved-shadow {
+          display: block;
+          color: rgba(0,0,0,0.3);
+          text-shadow: 
+            2px 2px 3px rgba(0,0,0,0.5),
+            -1px -1px 1px rgba(255,255,255,0.1);
+        }
+        
+        .points-display {
+          text-align: center;
+          margin: 2rem 0;
+          font-family: 'Rajdhani', sans-serif;
+        }
+        
+        .points-label {
+          color: var(--purple-light);
+          margin-right: 0.5rem;
+          font-size: 1.2rem;
+        }
+        
+        .points-value {
+          color: var(--green-glowing);
+          font-size: 1.5rem;
+          font-weight: 600;
+          text-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+        }
+        
+        .fights-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+          margin-top: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+          .engraved-title {
+            font-size: 1.8rem;
+          }
+          
+          .fights-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }
