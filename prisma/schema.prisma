@@ -51,6 +51,7 @@ model CompletedTask {
 // Task model
 model Task {
   id            String     @id @map("_id") 
+  mongoId       String?
   description   String
   completed     Boolean @default(false)
   section       String  // Will be constrained in TypeScript to "main" | "daily" | "partners"
@@ -248,23 +249,25 @@ model Fighter {
 
 // Stake model
 model Stake {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  user         User      @relation(fields: [userId], references: [id])
-  userId       String    @db.ObjectId
-  fight        Fight     @relation(fields: [fightId], references: [id])
-  fightId      String    @db.ObjectId
-  fighter      Fighter   @relation(fields: [fighterId], references: [id])
-  fighterId    String    @db.ObjectId
-  stakeAmount  Int       // Amount in stars (max 100,000)
-  stakeType    StakeType // STARS or POINTS
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  user         User         @relation(fields: [userId], references: [id])
+  userId       String       @db.ObjectId
+  fight        Fight        @relation(fields: [fightId], references: [id])
+  fightId      String       @db.ObjectId
+  fighter      Fighter      @relation(fields: [fighterId], references: [id])
+  fighterId    String       @db.ObjectId
+  stakeAmount  Int          // Amount in stars (max 100,000)
+  stakeType    StakeType    // STARS or POINTS
   status       StakeStatus  @default(PENDING) // PENDING, COMPLETED, FAILED
   outcome      StakeOutcome? // Will be set after fight completion
-  pointsEarned BigInt?   // Calculated after fight completion
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-   initialStakeAmount Int
-  @@index([fightId], name: "fight_stakes_index")
+  pointsEarned BigInt?      // Calculated after fight completion
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  initialStakeAmount Int    // Initial stake amount
 
+  @@index([fightId], name: "fight_stakes_index")
+  @@index([userId], name: "user_stakes_index")
+  @@index([fighterId], name: "fighter_stakes_index")
 }
 
 // Enums

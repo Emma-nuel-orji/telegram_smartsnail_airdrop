@@ -47,11 +47,26 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check for existing completed task
+    const existingCompletedTask = await prisma.completedTask.findFirst({
+      where: {
+        taskId: task.id,
+        userId: user.id
+      }
+    });
+
+    if (existingCompletedTask) {
+      return NextResponse.json(
+        { error: 'Task already completed' },
+        { status: 400 }
+      );
+    }
+
     // Create a completed task record
     const completedTask = await prisma.completedTask.create({
       data: {
         taskId: task.id,
-        userId: user.id,  // Using the user's ObjectId
+        userId: user.id,
         completedAt: new Date(),
       },
     });
@@ -75,7 +90,7 @@ export async function POST(request: Request) {
         },
         data: {
           points: {
-            increment: reward || 0,
+            increment: reward ?? task.reward ?? 0,
           },
         },
       }),
@@ -92,9 +107,12 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error completing task:', error);
+    console.error('Detailed Error completing task:', error instanceof Error ? error.message : error);
     return NextResponse.json(
-      { error: 'Failed to complete task' },
+      { 
+        error: 'Failed to complete task', 
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
