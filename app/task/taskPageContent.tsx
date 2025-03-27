@@ -346,20 +346,11 @@ useEffect(() => {
   };
 
   const handleShareToStory = async () => {
-    // Detailed logging for debugging
-    console.log("Debug: Selected Task", {
-      id: selectedTask?.id,
-      type: typeof selectedTask?.id,
-      exists: !!selectedTask,
-      mediaUrl: selectedTask?.mediaUrl,
-      reward: selectedTask?.reward
-    });
-  
-    console.log("Debug: Telegram ID", {
-      telegramId: telegramId,
-      type: typeof telegramId,
-      exists: !!telegramId
-    });
+    if (typeof window === "undefined" || !window.Telegram?.WebApp) {
+      console.warn("Telegram WebApp is not available.");
+      WebApp.showAlert("Telegram WebApp is not supported on this device.");
+      return;
+    }
   
     if (!selectedTask || !telegramId) {
       console.error("Validation Failed", {
@@ -370,57 +361,80 @@ useEffect(() => {
       return;
     }
   
-   try {
-  const trackingId = `${telegramId}-${Date.now()}`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
-
-  console.log("Pre-Share Validation", {
-    taskId: selectedTask.id,
-    telegramId: telegramId,
-    reward: selectedTask.reward,
-    trackingId: trackingId
-  });
-
-  let storyResponse = await fetch("/api/share-telegram-story", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      taskId: selectedTask.id,
-      telegramId: telegramId,
-      reward: selectedTask.reward,
-      trackingId: trackingId,
-    })
-  });
-
-  // Log full response details
-  const responseBody = await storyResponse.text();
-  console.log("API Response", {
-    status: storyResponse.status,
-    ok: storyResponse.ok,
-    body: responseBody
-  });
-
-  if (storyResponse.ok) {
-    // Existing success logic
-  } else {
-    throw new Error(`API Error: ${storyResponse.status} - ${responseBody}`);
-  }
-} catch (error: unknown) {
-  // Type-safe error handling
-  const errorMessage = error instanceof Error 
-    ? error.message 
-    : typeof error === 'string' 
-    ? error 
-    : 'An unexpected error occurred';
+    try {
+      const trackingId = `${telegramId}-${Date.now()}`;
+      console.log("Pre-Share Validation", {
+        taskId: selectedTask.id,
+        telegramId: telegramId,
+        reward: selectedTask.reward,
+        trackingId: trackingId
+      });
   
-  console.error("❌ Detailed Error:", {
-    message: errorMessage,
-    fullError: error
-  });
+      // ✅ Check if showStory is available
+      if (window.Telegram.WebApp.showStory) {
+        console.log("📢 Calling Telegram showStory...");
+        await window.Telegram.WebApp.showStory({
+          media: selectedTask.mediaUrl || "",
+
+          mediaType: selectedTask.mediaType as "video" | "photo",
+
+          sticker: {
+            url: "/stickers/snail.png",
+            width: 150,
+            height: 150,
+            position: { x: 50, y: 50 },
+          }
+        });
   
-  WebApp.showAlert("Failed to share story. Please try again.");
-} }
+        // Wait a few seconds to allow the user to share
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      } else {
+        console.warn("Telegram Story API not available.");
+        WebApp.showAlert("Telegram Story sharing is not supported.");
+        return;
+      }
+  
+      // ✅ Now, verify if the story was shared
+      let storyResponse = await fetch("/api/share-telegram-story", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId: selectedTask.id,
+          telegramId: telegramId,
+          reward: selectedTask.reward,
+          trackingId: trackingId,
+        }),
+      });
+  
+      const responseBody = await storyResponse.text();
+      console.log("API Response", {
+        status: storyResponse.status,
+        ok: storyResponse.ok,
+        body: responseBody
+      });
+  
+      if (storyResponse.ok) {
+        WebApp.showAlert("Story shared successfully! ✅");
+      } else {
+        throw new Error(`API Error: ${storyResponse.status} - ${responseBody}`);
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+        ? error 
+        : 'An unexpected error occurred';
+  
+      console.error("❌ Detailed Error:", {
+        message: errorMessage,
+        fullError: error
+      });
+  
+      WebApp.showAlert("Failed to share story. Please try again.");
+    }
+  };
+  
+  
   
 
   // Existing validation handler
