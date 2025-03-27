@@ -19,14 +19,20 @@ async function verifyStoryShare(telegramId: string, trackingId: string, taskId: 
       Date.now() - update.story.date * 1000 < 2 * 60 * 1000
     );
 
+    
     if (storyShare) {
+      // Ensure all required fields are populated
       await prisma.storyShare.create({
         data: {
           userId: telegramId,
           trackingId: trackingId,
           taskId: taskId,
+          clicks: 0,  // Explicitly set initial clicks
+          createdAt: new Date(),  // Explicitly set createdAt
+          completedAt: new Date()  // Set completedAt if verification is successful
         },
       });
+
       console.log("Story share verified");
 
       await prisma.storyShare.update({
