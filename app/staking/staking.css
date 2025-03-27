@@ -326,6 +326,7 @@
   -webkit-text-fill-color: transparent;
 }
 
+
 .staking-title::before {
   content: '';
   position: absolute;

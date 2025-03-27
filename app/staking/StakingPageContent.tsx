@@ -583,6 +583,7 @@ export default function StakingPageContent() {
       <h1 className="staking-title">Support Your Fighter</h1>
       <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
       
+      
       {fights.length === 0 ? (
         <FightCard 
           userPoints={userPoints}
