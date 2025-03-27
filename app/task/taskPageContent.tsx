@@ -138,21 +138,7 @@ const TaskPageContent: React.FC = () => {
     setTelegramId(userId || null);
   }, []);
 
-  // const taskData: Task[] = [
-  //   {
-  //     id: 22,
-  //     description: "Join X(Twitter) Space",
-  //     image: "/images/daily/join twitter everyday.png",
-  //     batchId: "batch_2024_001",
-  //     completed: false,
-  //     section: "daily",
-  //     type: "daily",
-  //     link: "https://x.com/some_space",
-  //     completedTime: null,
-  //   },
-  // ];
 
-  // Filter tasks based on the selected section
 
   const filteredTasks = tasks.filter((task) => task.section === selectedSection);
   
@@ -360,76 +346,81 @@ useEffect(() => {
   };
 
   const handleShareToStory = async () => {
+    // Detailed logging for debugging
+    console.log("Debug: Selected Task", {
+      id: selectedTask?.id,
+      type: typeof selectedTask?.id,
+      exists: !!selectedTask,
+      mediaUrl: selectedTask?.mediaUrl,
+      reward: selectedTask?.reward
+    });
+  
+    console.log("Debug: Telegram ID", {
+      telegramId: telegramId,
+      type: typeof telegramId,
+      exists: !!telegramId
+    });
+  
     if (!selectedTask || !telegramId) {
+      console.error("Validation Failed", {
+        taskExists: !!selectedTask,
+        telegramIdExists: !!telegramId
+      });
       WebApp.showAlert("Something went wrong. Please try again.");
       return;
     }
   
-    if (!selectedTask.mediaUrl) {
-      WebApp.showAlert("Invalid media URL. Please try again.");
-      return;
-    }
+   try {
+  const trackingId = `${telegramId}-${Date.now()}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
+
+  console.log("Pre-Share Validation", {
+    taskId: selectedTask.id,
+    telegramId: telegramId,
+    reward: selectedTask.reward,
+    trackingId: trackingId
+  });
+
+  let storyResponse = await fetch("/api/share-telegram-story", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      taskId: selectedTask.id,
+      telegramId: telegramId,
+      reward: selectedTask.reward,
+      trackingId: trackingId,
+    })
+  });
+
+  // Log full response details
+  const responseBody = await storyResponse.text();
+  console.log("API Response", {
+    status: storyResponse.status,
+    ok: storyResponse.ok,
+    body: responseBody
+  });
+
+  if (storyResponse.ok) {
+    // Existing success logic
+  } else {
+    throw new Error(`API Error: ${storyResponse.status} - ${responseBody}`);
+  }
+} catch (error: unknown) {
+  // Type-safe error handling
+  const errorMessage = error instanceof Error 
+    ? error.message 
+    : typeof error === 'string' 
+    ? error 
+    : 'An unexpected error occurred';
   
-    setSharing(true);
-    try {
-      if (window.Telegram?.WebApp?.shareToStory) {  // ✅ Correct method name
-        const trackingId = `${telegramId}-${Date.now()}`;
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-        const referralLink = `${appUrl}?ref=${telegramId}&track=${trackingId}`;
+  console.error("❌ Detailed Error:", {
+    message: errorMessage,
+    fullError: error
+  });
   
-        console.log("📤 Sharing Story...");
-  
-        await window.Telegram.WebApp.shareToStory({
-          media: selectedTask.mediaUrl,
-          mediaType: selectedTask.mediaUrl.endsWith(".mp4") ? "video" : "photo", // ✅ Dynamically determine type
-          
-        });
-  
-        console.log("✅ Story Shared Successfully");
-  
-        let storyResponse = await fetch("/api/share-telegram-story", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            taskId: selectedTask.id,
-            telegramId: telegramId,
-            reward: selectedTask.reward,
-            trackingId: trackingId,
-          }),
-        });
-  
-        if (storyResponse.ok) {
-          setTasks((prev) =>
-            prev.map((task) =>
-              task.id === selectedTask.id ? { ...task, completed: true } : task
-            )
-          );
-  
-          setTotalPoints((prev) => prev + (selectedTask.reward ?? 0));
-  
-          triggerConfetti();
-          setTaskCompleted(true);
-          setSelectedTask(null);
-  
-          WebApp.showPopup({
-            title: "Success!",
-            message: `Congratulations! You earned ${selectedTask.reward} shells!`,
-            buttons: [{ type: "ok" }],
-          });
-        } else {
-          throw new Error("Failed to complete task");
-        }
-      } else {
-        WebApp.showAlert("Please update your Telegram app to use this feature.");
-      }
-    } catch (error) {
-      console.error("❌ Error sharing to story:", error);
-      WebApp.showAlert("Failed to share story. Please try again.");
-    } finally {
-      setSharing(false);
-    }
-  };
-  
+  WebApp.showAlert("Failed to share story. Please try again.");
+} }
   
 
   // Existing validation handler

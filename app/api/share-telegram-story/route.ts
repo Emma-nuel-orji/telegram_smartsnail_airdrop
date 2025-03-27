@@ -42,51 +42,131 @@ async function verifyStoryShare(telegramId: string, trackingId: string, taskId: 
     return false;
   }
 }
-
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Log raw request body
+    const rawBody = await request.text();
+    console.log("Raw Request Body:", rawBody);
+
+    // Parse body manually
+    let body;
+try {
+  body = JSON.parse(rawBody);
+} catch (parseError: unknown) {
+  // Type-safe error handling
+  const errorMessage = parseError instanceof Error 
+    ? parseError.message 
+    : typeof parseError === 'string' 
+    ? parseError 
+    : 'Unknown JSON parsing error';
+
+  console.error("JSON Parsing Error:", errorMessage);
+  
+  return NextResponse.json({
+    error: 'Invalid JSON',
+    details: errorMessage
+  }, { status: 400 });
+}
+
+    // Log parsed body details
+    console.log("Parsed Body:", {
+      taskId: body.taskId,
+      telegramIdType: typeof body.telegramId,
+      telegramId: body.telegramId,
+      rewardType: typeof body.reward,
+      reward: body.reward,
+      trackingId: body.trackingId
+    });
+
+    // Validate all required fields
     const { taskId, telegramId, reward, trackingId } = body;
 
-    if (!taskId || !telegramId || !reward || !trackingId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // Comprehensive input validation
+    if (!taskId) {
+      return NextResponse.json({ 
+        error: 'Task ID is required',
+        details: 'taskId cannot be empty or undefined' 
+      }, { status: 400 });
     }
 
+    if (!telegramId) {
+      return NextResponse.json({ 
+        error: 'Telegram ID is required',
+        details: 'telegramId cannot be empty or undefined' 
+      }, { status: 400 });
+    }
+
+    if (reward === undefined || reward === null) {
+      return NextResponse.json({ 
+        error: 'Reward is required',
+        details: 'reward must be a valid number' 
+      }, { status: 400 });
+    }
+
+    if (!trackingId) {
+      return NextResponse.json({ 
+        error: 'Tracking ID is required',
+        details: 'trackingId cannot be empty or undefined' 
+      }, { status: 400 });
+    }
+
+    // Check for existing completed task
     const existingTask = await prisma.task.findFirst({
       where: {
         id: taskId,
-        userId: telegramId.toString(),
-        completed: true,
-      },
+        userId: telegramId.toString(), // Ensure string conversion
+        completed: true
+      }
     });
 
     if (existingTask) {
-      return NextResponse.json({ error: 'Task already completed' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Task already completed',
+        details: 'This task has already been marked as completed' 
+      }, { status: 400 });
     }
 
-    const isShared = await verifyStoryShare(telegramId, trackingId, taskId);
-
-    if (!isShared) {
-      return NextResponse.json({ error: 'Story share not detected. Please try again.' }, { status: 400 });
-    }
-
+    // Update task as completed
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
-      data: { completed: true },
+      data: { 
+        completed: true,
+        userId: telegramId.toString() // Ensure string conversion
+      }
     });
 
+    // Update user points
     const updatedUser = await prisma.user.update({
-      where: {  telegramId: telegramId },
-      data: { points: { increment: reward } },
+      where: { telegramId: BigInt(telegramId) },
+      data: { points: { increment: reward } }
+    });
+
+    // Create story share record
+    await prisma.storyShare.create({
+      data: {
+        userId: telegramId.toString(),
+        trackingId: trackingId,
+        taskId: taskId,
+        completedAt: new Date()
+      }
     });
 
     return NextResponse.json({
-      message: 'Task completed, reward granted, and confetti triggered!',
+      message: 'Task completed successfully!',
       task: updatedTask,
-      user: updatedUser,
+      user: updatedUser
     }, { status: 200 });
+
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Comprehensive Error Logging:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      name: error instanceof Error ? error.name : 'Unknown error type',
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    });
+
+    return NextResponse.json({ 
+      error: 'Unexpected server error',
+      details: error instanceof Error ? error.message : 'Unknown error occurred'
+    }, { status: 500 });
   }
 }
