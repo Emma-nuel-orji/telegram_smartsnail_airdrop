@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const existingTask = await prisma.task.findFirst({
       where: {
         id: taskId,
-        userId: telegramId,
+        userId: telegramId.toString(),
         completed: true,
       },
     });
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     });
 
     const updatedUser = await prisma.user.update({
-      where: { telegramId },
+      where: {  telegramId: telegramId },
       data: { points: { increment: reward } },
     });
 

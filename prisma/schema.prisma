@@ -64,7 +64,7 @@ model Task {
   isStoryTask   Boolean? @default(false)
   mediaType     String?
   reward        Int?
-  userId        String  @db.ObjectId
+  userId        String  
 
   // Relations
   user          User            @relation(fields: [userId], references: [id], name: "UserTasks")
