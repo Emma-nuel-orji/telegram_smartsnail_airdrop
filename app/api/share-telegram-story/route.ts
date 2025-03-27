@@ -6,47 +6,55 @@ const TELEGRAM_API_URL = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT
 
 async function verifyStoryShare(telegramId: string, trackingId: string, taskId: string): Promise<boolean> {
   try {
+    console.log("🔍 Verifying Story Share for:", { telegramId, trackingId, taskId });
+
     const response = await axios.get(`${TELEGRAM_API_URL}/getUpdates`, {
       params: {
         offset: -10,
-        allowed_updates: ['story'],
+        allowed_updates: ['story'], // ✅ Ensure this is supported
       },
     });
 
-    const updates = response.data.result;
-    const storyShare = updates.find((update: { story: { from: { id: number }; date: number } }) => 
-      BigInt(update.story?.from?.id) === BigInt(telegramId) &&
-      Date.now() - update.story.date * 1000 < 2 * 60 * 1000
+    console.log("📩 Telegram API Response:", response.data);
+
+    const updates = response.data.result || [];
+
+    const storyShare = updates.find((update: { story?: { from: { id: number }; date: number } }) => 
+      update.story &&
+      BigInt(update.story.from.id) === BigInt(telegramId) &&
+      Date.now() - update.story.date * 1000 < 2 * 60 * 1000 // Within last 2 minutes
     );
 
-    if (storyShare) {
-      await prisma.storyShare.create({
-        data: {
-          telegramId: BigInt(telegramId),
-          trackingId: trackingId ?? null,
-          taskId,
-          clicks: 0,
-          createdAt: new Date(),
-          completedAt: null,
-        },
-      });
-
-      console.log("Story share verified");
-
-      await prisma.storyShare.update({
-        where: { trackingId },
-        data: { completedAt: new Date() },
-      });
-
-      return true;
+    if (!storyShare) {
+      console.warn("🚨 No recent story share detected for", telegramId);
+      return false;
     }
 
-    return false;
+    console.log("✅ Story Share Found:", storyShare);
+
+    await prisma.storyShare.create({
+      data: {
+        telegramId: BigInt(telegramId),
+        trackingId: trackingId ?? null,
+        taskId,
+        clicks: 0,
+        createdAt: new Date(),
+        completedAt: null,
+      },
+    });
+
+    await prisma.storyShare.update({
+      where: { trackingId },
+      data: { completedAt: new Date() },
+    });
+
+    return true;
   } catch (error) {
-    console.error('Error verifying story share:', error);
+    console.error("❌ Error verifying story share:", error);
     return false;
   }
 }
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,6 +91,20 @@ export async function POST(request: NextRequest) {
         details: 'Ensure taskId, telegramId, reward, and trackingId are provided' 
       }, { status: 400 });
     }
+
+
+    // ✅ Verify if the user shared the story before continuing
+    console.log("🔍 Checking Story Share...");
+    const isShared = await verifyStoryShare(telegramId, trackingId, taskId);
+
+    if (!isShared) {
+      return NextResponse.json({ 
+        error: 'Story share not verified', 
+        details: 'No recent story share detected' 
+      }, { status: 400 });
+    }
+
+    console.log("✅ Story Share Verified!");
 
     const existingTask = await prisma.task.findFirst({
       where: {
@@ -134,7 +156,7 @@ export async function POST(request: NextRequest) {
       user: safeUser
     }, { status: 200 });
 
-    
+
   } catch (error) {
     console.error('Comprehensive Error Logging:', {
       message: error instanceof Error ? error.message : 'Unknown error',
