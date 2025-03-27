@@ -29,6 +29,8 @@ model User {
   completedTasks CompletedTask[] // A User can have many completed tasks
    consecutiveWins Int     @default(0)
   stakes          Stake[]
+  storyShares     StoryShare[] // ✅ Define the opposite relation
+
 
   // Indexes
   @@index([points], name: "points_asc_index")
@@ -189,14 +191,18 @@ model PendingTransaction {
 }
 
 model StoryShare {
-  id          String   @id @default(cuid()) @map("_id") // Add @map("_id")
-  trackingId  String?   @unique
-  userId      String
+  id          String   @id @default(cuid()) @map("_id") 
+  trackingId  String?  @unique
+  telegramId  BigInt
   taskId      String
   clicks      Int      @default(0)
   createdAt   DateTime @default(now())
   completedAt DateTime?
+
+  // Relations
+  user        User     @relation(fields: [telegramId], references: [telegramId])
 }
+
 
 model Nonce {
   id      String    @id @default(cuid()) @map("_id") @db.ObjectId
