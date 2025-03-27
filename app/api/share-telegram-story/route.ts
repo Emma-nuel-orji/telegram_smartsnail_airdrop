@@ -121,12 +121,20 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // ✅ Convert BigInt values before sending JSON response
+    const safeUser = {
+      ...updatedUser,
+      telegramId: updatedUser.telegramId.toString(), 
+      points: updatedUser.points.toString(), 
+    };
+
     return NextResponse.json({
       message: 'Task completed successfully!',
       task: updatedTask,
-      user: updatedUser
+      user: safeUser
     }, { status: 200 });
 
+    
   } catch (error) {
     console.error('Comprehensive Error Logging:', {
       message: error instanceof Error ? error.message : 'Unknown error',
