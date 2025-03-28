@@ -351,7 +351,7 @@ useEffect(() => {
       WebApp.showAlert("Telegram WebApp is not supported on this device.");
       return;
     }
-  
+
     if (!selectedTask || !telegramId) {
       console.error("Validation Failed", {
         taskExists: !!selectedTask,
@@ -360,7 +360,7 @@ useEffect(() => {
       WebApp.showAlert("Something went wrong. Please try again.");
       return;
     }
-  
+
     try {
       const trackingId = `${telegramId}-${Date.now()}`;
       console.log("Pre-Share Validation", {
@@ -369,15 +369,17 @@ useEffect(() => {
         reward: selectedTask.reward,
         trackingId: trackingId
       });
-  
+
+      // ✅ ADD DEBUG LOGS HERE
+      console.log("Debug: Telegram WebApp Object", window.Telegram?.WebApp);
+      console.log("Debug: showStory Available?", !!window.Telegram?.WebApp?.showStory);
+
       // ✅ Check if showStory is available
       if (window.Telegram.WebApp.showStory) {
         console.log("📢 Calling Telegram showStory...");
         await window.Telegram.WebApp.showStory({
           media: selectedTask.mediaUrl || "",
-
           mediaType: selectedTask.mediaType as "video" | "photo",
-
           sticker: {
             url: "/stickers/snail.png",
             width: 150,
@@ -385,15 +387,15 @@ useEffect(() => {
             position: { x: 50, y: 50 },
           }
         });
-  
+
         // Wait a few seconds to allow the user to share
         await new Promise((resolve) => setTimeout(resolve, 5000));
       } else {
-        console.warn("Telegram Story API not available.");
+        console.warn("🚨 Telegram Story API not available.");
         WebApp.showAlert("Telegram Story sharing is not supported.");
         return;
       }
-  
+
       // ✅ Now, verify if the story was shared
       let storyResponse = await fetch("/api/share-telegram-story", {
         method: "POST",
@@ -405,14 +407,14 @@ useEffect(() => {
           trackingId: trackingId,
         }),
       });
-  
+
       const responseBody = await storyResponse.text();
       console.log("API Response", {
         status: storyResponse.status,
         ok: storyResponse.ok,
         body: responseBody
       });
-  
+
       if (storyResponse.ok) {
         WebApp.showAlert("Story shared successfully! ✅");
       } else {
@@ -424,15 +426,16 @@ useEffect(() => {
         : typeof error === 'string' 
         ? error 
         : 'An unexpected error occurred';
-  
+
       console.error("❌ Detailed Error:", {
         message: errorMessage,
         fullError: error
       });
-  
+
       WebApp.showAlert("Failed to share story. Please try again.");
     }
-  };
+};
+
   
   
   
