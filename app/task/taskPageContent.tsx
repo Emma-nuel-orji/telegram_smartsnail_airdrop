@@ -414,7 +414,7 @@ useEffect(() => {
         console.log("📢 Calling Telegram shareToStory...");
         await window.Telegram.WebApp.shareToStory({
           media: selectedTask.mediaUrl || "",
-          mediaType: selectedTask.mediaType, // Ensure it's either "video" or "photo"
+          mediaType: selectedTask.mediaType === "video" ? "video" : "photo",
         });
         WebApp.showAlert("Story shared successfully! ✅");
       } else {
