@@ -378,33 +378,93 @@ useEffect(() => {
     }
   
     try {
+      const trackingId = `${telegramId}-${Date.now()}`;
+      console.log("Pre-Share Validation", {
+        taskId: selectedTask.id,
+        telegramId: telegramId,
+        reward: selectedTask.reward,
+        trackingId: trackingId
+      });
+  
+      // ✅ Check Telegram WebApp version
       const version = window.Telegram?.WebApp?.version || "unknown";
       console.log("📢 Telegram WebApp Version:", version);
   
+      // Display the Telegram version on the page (for debugging)
+      const tgVersionElement = document.getElementById("tg-version");
+
+      if (tgVersionElement) {
+        tgVersionElement.innerText = `Telegram Version: ${version}`;
+      } else {
+        console.warn("⚠️ Element #tg-version not found");
+      }
+
       if (version === "unknown" || parseFloat(version) < 7.8) {
         console.warn("🚨 Telegram version is too old. Update required.");
         WebApp.showAlert("Please update Telegram to the latest version (7.8+).");
         return;
       }
+
   
-      if (window.Telegram.WebApp.showStory) {
-        console.log("📢 Calling Telegram showStory...");
-        await window.Telegram.WebApp.showStory({
-          media: selectedTask.mediaUrl || "",
-          mediaType: selectedTask.mediaType as "video" | "photo",
+      // ✅ Check if showStory is available
+      console.log("Debug: Telegram WebApp Object", window.Telegram?.WebApp);
+      console.log("Debug: showStory Available?", !!window.Telegram?.WebApp?.showStory);
+  
+      if (window.Telegram.WebApp.shareToStory) {
+        console.log("📢 Calling Telegram shareToStory...");
+        await window.Telegram.WebApp.shareToStory(selectedTask.mediaUrl || "", { 
+          text: "Check this out! 🚀", 
+          mediaType: selectedTask.mediaType 
         });
+      
   
-        WebApp.showAlert("Story shared successfully! ✅");
+        // Wait a few seconds to allow the user to share
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       } else {
         console.warn("🚨 Telegram Story API not available.");
         WebApp.showAlert("Telegram Story sharing is not supported.");
+        return;
       }
-    } catch (error) {
-      console.error("❌ Error sharing story:", error);
+  
+      // ✅ Now, verify if the story was shared
+      let storyResponse = await fetch("/api/share-telegram-story", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId: selectedTask.id,
+          telegramId: telegramId,
+          reward: selectedTask.reward,
+          trackingId: trackingId,
+        }),
+      });
+  
+      const responseBody = await storyResponse.text();
+      console.log("API Response", {
+        status: storyResponse.status,
+        ok: storyResponse.ok,
+        body: responseBody
+      });
+  
+      if (storyResponse.ok) {
+        WebApp.showAlert("Story shared successfully! ✅");
+      } else {
+        throw new Error(`API Error: ${storyResponse.status} - ${responseBody}`);
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+        ? error 
+        : 'An unexpected error occurred';
+  
+      console.error("❌ Detailed Error:", {
+        message: errorMessage,
+        fullError: error
+      });
+  
       WebApp.showAlert("Failed to share story. Please try again.");
     }
   };
-  
   
 
   
