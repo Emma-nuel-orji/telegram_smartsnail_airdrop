@@ -383,11 +383,11 @@ useEffect(() => {
 
       // ✅ Ensure mediaUrl is a valid string
       const mediaUrl = selectedTask.mediaUrl
-        ? String(new URL(selectedTask.mediaUrl, window.location.origin).href) // Ensure it's a string
+        ? new URL(selectedTask.mediaUrl, window.location.origin).href // Ensure it's absolute
         : "";
 
-      if (!mediaUrl) {
-        console.error("🚨 Media URL is missing or invalid.");
+      if (!mediaUrl || typeof mediaUrl !== "string") {
+        console.error("🚨 Invalid media URL:", mediaUrl);
         WebApp.showAlert("Invalid media URL. Please try again.");
         return;
       }
@@ -396,7 +396,7 @@ useEffect(() => {
 
       console.log("📢 Calling Telegram shareToStory...");
       await window.Telegram.WebApp.shareToStory({
-        media: mediaUrl,  // Ensure this is a string
+        media: `${mediaUrl}`,  // ✅ Ensure it's a proper string
         mediaType: selectedTask.mediaType === "video" ? "video" : "photo",
       });
 
