@@ -374,40 +374,36 @@ useEffect(() => {
       return;
     }
   
+    console.log("🟢 Telegram API Loaded:", window.Telegram?.WebApp);
+    console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
+    console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
+    console.log("🛠️ Debug: Selected Task Data", selectedTask);
+  
+    if (!window.Telegram.WebApp.shareToStory) {
+      console.warn("🚨 Telegram Story API not available.");
+      WebApp.showAlert("Telegram Story sharing is not supported.");
+      return;
+    }
+  
+    // Validate media URL
+    let mediaUrl = selectedTask.mediaUrl;
+    if (!mediaUrl || typeof mediaUrl !== "string" || !mediaUrl.startsWith("http")) {
+      console.error("🚨 Invalid media URL", mediaUrl);
+      WebApp.showAlert("Invalid media URL. Please try again.");
+      return;
+    }
+  
+    console.log("📢 Final Media URL to be shared:", mediaUrl);
+  
+    const mediaType = selectedTask.mediaType === "video" ? "video" : "photo";
+    console.log("📢 Sharing Story with Data:", { media: mediaUrl, mediaType });
+  
+    // Optional: Wait 3s before calling shareToStory (to reduce API call issues)
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  
     try {
-      console.log("🟢 Telegram API Loaded:", window.Telegram?.WebApp);
-      console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
-      console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
-  
-      if (!window.Telegram.WebApp.shareToStory) {
-        console.warn("🚨 Telegram Story API not available.");
-        WebApp.showAlert("Telegram Story sharing is not supported.");
-        return;
-      }
-  
-      // Validate media URL
-      const mediaUrl = typeof selectedTask.mediaUrl === "string" && selectedTask.mediaUrl.startsWith("http")
-        ? selectedTask.mediaUrl
-        : "";
-  
-      console.log("📢 Final Media URL to be shared:", mediaUrl);
-  
-      if (!mediaUrl) {
-        WebApp.showAlert("Invalid media URL. Please try again.");
-        return;
-      }
-  
-      const mediaType = selectedTask.mediaType === "video" ? "video" : "photo";
-      console.log("📢 Sharing Story with Data:", { media: mediaUrl, mediaType });
-  
-      // Wait 3 seconds before calling shareToStory (optional delay)
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-  
       console.log("📢 Calling Telegram shareToStory...");
-      await window.Telegram.WebApp.shareToStory({
-        media: mediaUrl,
-        mediaType: mediaType,
-      });
+      await window.Telegram.WebApp.shareToStory({ media: mediaUrl, mediaType });
   
       WebApp.showAlert("Story shared successfully! ✅");
     } catch (error) {
@@ -415,6 +411,7 @@ useEffect(() => {
       WebApp.showAlert("Failed to share story. Please try again.");
     }
   };
+  
   
  
   
