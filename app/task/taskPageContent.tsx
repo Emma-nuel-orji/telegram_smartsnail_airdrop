@@ -384,17 +384,22 @@ useEffect(() => {
         // Ensure mediaUrl is a valid string
         let mediaUrl = selectedTask.mediaUrl;
 
+        console.log("🟢 mediaUrl Type:", typeof mediaUrl);
+        console.log("🟢 mediaUrl Value:", mediaUrl);
+
         if (!mediaUrl || typeof mediaUrl !== "string") {
             console.error("🚨 Invalid media URL:", mediaUrl);
             WebApp.showAlert("Invalid media URL. Please try again.");
             return;
         }
 
-        console.log("📢 Final Media URL:", mediaUrl);
+        // Force mediaUrl to be a string
+        const mediaUrlString = String(mediaUrl);
+        console.log("📢 Processed Media URL:", mediaUrlString);
 
         console.log("📢 Calling Telegram shareToStory...");
         await window.Telegram.WebApp.shareToStory({
-            media: String(mediaUrl),  // ✅ Ensure it's always a string
+            media: mediaUrlString, // ✅ Force it to be a string
             mediaType: selectedTask.mediaType === "video" ? "video" : "photo",
         });
 
