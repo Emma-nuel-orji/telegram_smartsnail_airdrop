@@ -7,7 +7,8 @@ import dynamic from 'next/dynamic';
 import type { Task } from '@/types';
 import confetti from 'canvas-confetti';
 import { useWallet } from '../context/walletContext';
-import { useSignal, initData } from "@telegram-apps/sdk-react";
+import { useSignal, useInitData } from "@telegram-apps/sdk-react";
+
 
 interface ShowStoryOptions {
   media: string;
@@ -93,7 +94,8 @@ const TaskPageContent: React.FC = () => {
   const [telegramId, setTelegramId] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
   const [hasBeenRewarded, setHasBeenRewarded] = useState(false);
-  const initDataState = useSignal(initData.state);
+  const initDataState = useSignal(useInitData());
+
   const telegramVersion = typeof window !== "undefined" ? window.Telegram?.WebApp?.version || "unknown" : "unknown";
 
   
