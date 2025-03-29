@@ -344,14 +344,14 @@ useEffect(() => {
       setMessage("");
     }
   };
-
+  
   const handleShareToStory = async () => {
     if (typeof window === "undefined" || !window.Telegram?.WebApp) {
       console.warn("Telegram WebApp is not available.");
       WebApp.showAlert("Telegram WebApp is not supported on this device.");
       return;
     }
-
+  
     if (!selectedTask || !telegramId) {
       console.error("Validation Failed", {
         taskExists: !!selectedTask,
@@ -360,7 +360,7 @@ useEffect(() => {
       WebApp.showAlert("Something went wrong. Please try again.");
       return;
     }
-
+  
     try {
       const trackingId = `${telegramId}-${Date.now()}`;
       console.log("Pre-Share Validation", {
@@ -369,12 +369,24 @@ useEffect(() => {
         reward: selectedTask.reward,
         trackingId: trackingId
       });
-
-      // ✅ ADD DEBUG LOGS HERE
+  
+      // ✅ Check Telegram WebApp version
+      const version = window.Telegram.WebApp.platformVersion || "unknown";
+      console.log("📢 Telegram WebApp Version:", version);
+  
+      // Display the Telegram version on the page (for debugging)
+      document.getElementById("tg-version").innerText = `Telegram Version: ${version}`;
+  
+      if (version === "unknown" || parseFloat(version) < 7.8) {
+        console.warn("🚨 Telegram version is too old. Update required.");
+        WebApp.showAlert("Please update Telegram to the latest version (7.8+).");
+        return;
+      }
+  
+      // ✅ Check if showStory is available
       console.log("Debug: Telegram WebApp Object", window.Telegram?.WebApp);
       console.log("Debug: showStory Available?", !!window.Telegram?.WebApp?.showStory);
-
-      // ✅ Check if showStory is available
+  
       if (window.Telegram.WebApp.showStory) {
         console.log("📢 Calling Telegram showStory...");
         await window.Telegram.WebApp.showStory({
@@ -387,7 +399,7 @@ useEffect(() => {
             position: { x: 50, y: 50 },
           }
         });
-
+  
         // Wait a few seconds to allow the user to share
         await new Promise((resolve) => setTimeout(resolve, 5000));
       } else {
@@ -395,7 +407,7 @@ useEffect(() => {
         WebApp.showAlert("Telegram Story sharing is not supported.");
         return;
       }
-
+  
       // ✅ Now, verify if the story was shared
       let storyResponse = await fetch("/api/share-telegram-story", {
         method: "POST",
@@ -407,14 +419,14 @@ useEffect(() => {
           trackingId: trackingId,
         }),
       });
-
+  
       const responseBody = await storyResponse.text();
       console.log("API Response", {
         status: storyResponse.status,
         ok: storyResponse.ok,
         body: responseBody
       });
-
+  
       if (storyResponse.ok) {
         WebApp.showAlert("Story shared successfully! ✅");
       } else {
@@ -426,15 +438,16 @@ useEffect(() => {
         : typeof error === 'string' 
         ? error 
         : 'An unexpected error occurred';
-
+  
       console.error("❌ Detailed Error:", {
         message: errorMessage,
         fullError: error
       });
-
+  
       WebApp.showAlert("Failed to share story. Please try again.");
     }
-};
+  };
+  
 
   
   
@@ -609,6 +622,11 @@ useEffect(() => {
 
   return (
     <div className="task-container">
+
+    {/* ✅ Telegram Version Debugging */}
+    <p id="tg-version" style={{ fontSize: "14px", color: "gray", textAlign: "center" }}>
+      Checking Telegram Version...
+    </p>
       <div className="task-header">
         <Link href="/">
           <img
