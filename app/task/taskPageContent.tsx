@@ -412,12 +412,16 @@ useEffect(() => {
   
       if (window.Telegram.WebApp.shareToStory) {
         console.log("📢 Calling Telegram shareToStory...");
-        await window.Telegram.WebApp.shareToStory(selectedTask.mediaUrl || "");
+        await window.Telegram.WebApp.shareToStory({
+          media: selectedTask.mediaUrl || "",
+          mediaType: selectedTask.mediaType, // Ensure it's either "video" or "photo"
+        });
         WebApp.showAlert("Story shared successfully! ✅");
       } else {
         console.warn("🚨 Telegram Story API not available.");
         WebApp.showAlert("Telegram Story sharing is not supported.");
       }
+      
       
   
       // ✅ Now, verify if the story was shared
