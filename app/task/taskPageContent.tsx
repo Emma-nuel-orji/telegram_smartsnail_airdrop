@@ -412,10 +412,17 @@ useEffect(() => {
   
       if (window.Telegram.WebApp.shareToStory) {
         console.log("📢 Calling Telegram shareToStory...");
-        await window.Telegram.WebApp.shareToStory(selectedTask.mediaUrl || "", { 
-          text: "Check this out! 🚀", 
-          mediaType: selectedTask.mediaType as "video" | "photo",
+        await window.Telegram.WebApp.shareToStory(selectedTask.mediaUrl || "", {
+          text: "Check this out! 🚀",
+          mediaType: selectedTask.mediaType,
+          sticker: {
+            url: "/stickers/snail.png",
+            width: 150,
+            height: 150,
+            position: { x: 50, y: 50 },
+          }
         });
+      
   
         // Wait a few seconds to allow the user to share
         await new Promise((resolve) => setTimeout(resolve, 5000));
