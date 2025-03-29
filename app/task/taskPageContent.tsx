@@ -366,43 +366,48 @@ useEffect(() => {
         WebApp.showAlert("Telegram WebApp is not supported on this device.");
         return;
     }
-
+    
     if (!selectedTask || !telegramId) {
         WebApp.showAlert("Something went wrong. Please try again.");
         return;
     }
-
+    
     try {
         console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
         console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
-
+        
         if (!window.Telegram.WebApp.shareToStory) {
             WebApp.showAlert("Telegram Story sharing is not supported.");
             return;
         }
-
+        
         // Ensure mediaUrl is a valid string
         let mediaUrl = selectedTask.mediaUrl;
-
+        
         console.log("🟢 mediaUrl Type:", typeof mediaUrl);
         console.log("🟢 mediaUrl Value:", mediaUrl);
-
+        
         if (!mediaUrl || typeof mediaUrl !== "string") {
             console.error("🚨 Invalid media URL:", mediaUrl);
             WebApp.showAlert("Invalid media URL. Please try again.");
             return;
         }
-
-        // Force mediaUrl to be a string
-        const mediaUrlString = String(mediaUrl);
-        console.log("📢 Processed Media URL:", mediaUrlString);
-
+        
+        // Construct the full URL
+        const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
+        
+        // Make sure mediaUrl starts with a slash and remove any leading slash for clean concatenation
+        const cleanPath = mediaUrl.startsWith('/') ? mediaUrl.substring(1) : mediaUrl;
+        const fullMediaUrl = `${baseUrl}/${cleanPath}`;
+        
+        console.log("📢 Final Media URL:", fullMediaUrl);
+        
         console.log("📢 Calling Telegram shareToStory...");
         await window.Telegram.WebApp.shareToStory({
-            media: mediaUrlString, // ✅ Force it to be a string
+            media: fullMediaUrl,
             mediaType: selectedTask.mediaType === "video" ? "video" : "photo",
         });
-
+        
         WebApp.showAlert("Story shared successfully! ✅");
     } catch (error) {
         console.error("❌ Story sharing failed:", error);
