@@ -412,25 +412,13 @@ useEffect(() => {
   
       if (window.Telegram.WebApp.shareToStory) {
         console.log("📢 Calling Telegram shareToStory...");
-        await window.Telegram.WebApp.shareToStory(selectedTask.mediaUrl || "", {
-          text: "Check this out! 🚀",
-          mediaType: selectedTask.mediaType,
-          sticker: {
-            url: "/stickers/snail.png",
-            width: 150,
-            height: 150,
-            position: { x: 50, y: 50 },
-          }
-        });
-      
-  
-        // Wait a few seconds to allow the user to share
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await window.Telegram.WebApp.shareToStory(selectedTask.mediaUrl || "");
+        WebApp.showAlert("Story shared successfully! ✅");
       } else {
         console.warn("🚨 Telegram Story API not available.");
         WebApp.showAlert("Telegram Story sharing is not supported.");
-        return;
       }
+      
   
       // ✅ Now, verify if the story was shared
       let storyResponse = await fetch("/api/share-telegram-story", {
