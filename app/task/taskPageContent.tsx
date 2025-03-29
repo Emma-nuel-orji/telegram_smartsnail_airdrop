@@ -385,15 +385,27 @@ useEffect(() => {
         return;
       }
   
-      const mediaType = selectedTask.mediaType === "video" ? "video" : "photo";
-      console.log("📢 Sharing Story with Data:", { media: selectedTask.mediaUrl, mediaType });
+      // Validate media URL
+      const mediaUrl = typeof selectedTask.mediaUrl === "string" && selectedTask.mediaUrl.startsWith("http")
+        ? selectedTask.mediaUrl
+        : "";
   
-      // Wait 3 seconds before calling shareToStory
+      console.log("📢 Final Media URL to be shared:", mediaUrl);
+  
+      if (!mediaUrl) {
+        WebApp.showAlert("Invalid media URL. Please try again.");
+        return;
+      }
+  
+      const mediaType = selectedTask.mediaType === "video" ? "video" : "photo";
+      console.log("📢 Sharing Story with Data:", { media: mediaUrl, mediaType });
+  
+      // Wait 3 seconds before calling shareToStory (optional delay)
       await new Promise((resolve) => setTimeout(resolve, 3000));
   
       console.log("📢 Calling Telegram shareToStory...");
       await window.Telegram.WebApp.shareToStory({
-        media: selectedTask.mediaUrl || "",
+        media: mediaUrl,
         mediaType: mediaType,
       });
   
@@ -404,10 +416,7 @@ useEffect(() => {
     }
   };
   
-  
-
-  
-  
+ 
   
 
   // Existing validation handler
