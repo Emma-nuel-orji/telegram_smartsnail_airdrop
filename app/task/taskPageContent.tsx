@@ -363,54 +363,59 @@ useEffect(() => {
   
   const handleShareToStory = async () => {
     if (typeof window === "undefined" || !window.Telegram?.WebApp) {
-      console.warn("Telegram WebApp is not available.");
       WebApp.showAlert("Telegram WebApp is not supported on this device.");
       return;
     }
   
     if (!selectedTask || !telegramId) {
-      console.error("Validation Failed", { taskExists: !!selectedTask, telegramIdExists: !!telegramId });
       WebApp.showAlert("Something went wrong. Please try again.");
       return;
     }
-  
-    console.log("🟢 Telegram API Loaded:", window.Telegram?.WebApp);
-    console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
-    console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
-    console.log("🛠️ Debug: Selected Task Data", selectedTask);
-  
-    if (!window.Telegram.WebApp.shareToStory) {
-      console.warn("🚨 Telegram Story API not available.");
-      WebApp.showAlert("Telegram Story sharing is not supported.");
-      return;
-    }
-  
-    // Validate media URL
-    let mediaUrl = selectedTask.mediaUrl;
-    if (!mediaUrl || typeof mediaUrl !== "string" || !mediaUrl.startsWith("http")) {
-      console.error("🚨 Invalid media URL", mediaUrl);
-      WebApp.showAlert("Invalid media URL. Please try again.");
-      return;
-    }
-  
-    console.log("📢 Final Media URL to be shared:", mediaUrl);
-  
-    const mediaType = selectedTask.mediaType === "video" ? "video" : "photo";
-    console.log("📢 Sharing Story with Data:", { media: mediaUrl, mediaType });
-  
-    // Optional: Wait 3s before calling shareToStory (to reduce API call issues)
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-  
+
     try {
-      console.log("📢 Calling Telegram shareToStory...");
-      await window.Telegram.WebApp.shareToStory({ media: mediaUrl, mediaType });
+      console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
+      console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
   
+      if (!window.Telegram.WebApp.shareToStory) {
+        WebApp.showAlert("Telegram Story sharing is not supported.");
+        return;
+      }
+
+      // ✅ Ensure mediaUrl is not undefined
+      const mediaUrl = selectedTask.mediaUrl 
+        ? new URL(selectedTask.mediaUrl, window.location.origin).href 
+        : "";
+
+      if (!mediaUrl) {
+        console.error("🚨 Media URL is missing or invalid.");
+        WebApp.showAlert("Invalid media URL. Please try again.");
+        return;
+      }
+
+      console.log("📢 Final Media URL:", mediaUrl);
+
+      // Check if mediaUrl is valid
+      const response = await fetch(mediaUrl, { method: "HEAD" });
+      if (!response.ok) {
+        console.error("🚨 Invalid media URL", mediaUrl);
+        WebApp.showAlert("Invalid media URL. Please try again.");
+        return;
+      }
+
+      console.log("📢 Calling Telegram shareToStory...");
+      await window.Telegram.WebApp.shareToStory({
+        media: mediaUrl,
+        mediaType: selectedTask.mediaType === "video" ? "video" : "photo",
+      });
+
       WebApp.showAlert("Story shared successfully! ✅");
     } catch (error) {
       console.error("❌ Story sharing failed:", error);
       WebApp.showAlert("Failed to share story. Please try again.");
     }
-  };
+};
+
+
   
   
  
