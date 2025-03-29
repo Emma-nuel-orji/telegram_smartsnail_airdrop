@@ -381,9 +381,9 @@ useEffect(() => {
         return;
       }
 
-      // ✅ Ensure mediaUrl is not undefined
-      const mediaUrl = selectedTask.mediaUrl 
-        ? new URL(selectedTask.mediaUrl, window.location.origin).href 
+      // ✅ Ensure mediaUrl is a valid string
+      const mediaUrl = selectedTask.mediaUrl
+        ? String(new URL(selectedTask.mediaUrl, window.location.origin).href) // Ensure it's a string
         : "";
 
       if (!mediaUrl) {
@@ -394,17 +394,9 @@ useEffect(() => {
 
       console.log("📢 Final Media URL:", mediaUrl);
 
-      // Check if mediaUrl is valid
-      const response = await fetch(mediaUrl, { method: "HEAD" });
-      if (!response.ok) {
-        console.error("🚨 Invalid media URL", mediaUrl);
-        WebApp.showAlert("Invalid media URL. Please try again.");
-        return;
-      }
-
       console.log("📢 Calling Telegram shareToStory...");
       await window.Telegram.WebApp.shareToStory({
-        media: mediaUrl,
+        media: mediaUrl,  // Ensure this is a string
         mediaType: selectedTask.mediaType === "video" ? "video" : "photo",
       });
 
@@ -414,6 +406,7 @@ useEffect(() => {
       WebApp.showAlert("Failed to share story. Please try again.");
     }
 };
+
 
 
   
