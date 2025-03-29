@@ -391,13 +391,20 @@ useEffect(() => {
       console.log("📢 Telegram WebApp Version:", version);
   
       // Display the Telegram version on the page (for debugging)
-      document.getElementById("tg-version").innerText = `Telegram Version: ${version}`;
-  
+      const tgVersionElement = document.getElementById("tg-version");
+
+      if (tgVersionElement) {
+        tgVersionElement.innerText = `Telegram Version: ${version}`;
+      } else {
+        console.warn("⚠️ Element #tg-version not found");
+      }
+
       if (version === "unknown" || parseFloat(version) < 7.8) {
         console.warn("🚨 Telegram version is too old. Update required.");
         WebApp.showAlert("Please update Telegram to the latest version (7.8+).");
         return;
       }
+
   
       // ✅ Check if showStory is available
       console.log("Debug: Telegram WebApp Object", window.Telegram?.WebApp);
