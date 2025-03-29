@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import type { Task } from '@/types';
 import confetti from 'canvas-confetti';
 import { useWallet } from '../context/walletContext';
+import { useSignal, initData } from "@telegram-apps/sdk-react";
 
 interface ShowStoryOptions {
   media: string;
@@ -92,7 +93,8 @@ const TaskPageContent: React.FC = () => {
   const [telegramId, setTelegramId] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
   const [hasBeenRewarded, setHasBeenRewarded] = useState(false);
-
+  const initDataState = useSignal(initData.state);
+  const telegramVersion = typeof window !== "undefined" ? window.Telegram?.WebApp?.version || "unknown" : "unknown";
 
   
 
@@ -129,7 +131,18 @@ const TaskPageContent: React.FC = () => {
     }, 250); // Fire confetti every 250ms for the duration
   };
   
- 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+      const version = window.Telegram.WebApp.version || "unknown";
+      console.log("📢 Telegram WebApp Version:", version);
+      
+      // ✅ Update the <p> element dynamically
+      const versionElement = document.getElementById("tg-version");
+      if (versionElement) {
+        versionElement.textContent = `📢 Telegram WebApp Version: ${version}`;
+      }
+    }
+  }, []);
 
 
   useEffect(() => {
@@ -371,7 +384,7 @@ useEffect(() => {
       });
   
       // ✅ Check Telegram WebApp version
-      const version = window.Telegram.WebApp.platformVersion || "unknown";
+      const version = window.Telegram?.WebApp?.version || "unknown";
       console.log("📢 Telegram WebApp Version:", version);
   
       // Display the Telegram version on the page (for debugging)
