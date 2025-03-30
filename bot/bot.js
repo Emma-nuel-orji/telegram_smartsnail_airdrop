@@ -10,10 +10,47 @@ const botToken = process.env.TELEGRAM_BOT_TOKEN;
 if (!botToken) {
     throw new Error('TELEGRAM_BOT_TOKEN is not defined in the environment variables.');
 }
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://telegram-smartsnail-airdrop.vercel.app";
 const bot = new Telegraf(botToken);
 const prisma = new PrismaClient();
 bot.use(session());
+
+
+bot.start(async (ctx) => {
+    const userId = ctx.from?.id;
+    const startPayload = ctx.message?.text.split(' ')[1]; // Referral ID (referrer)
+  
+    console.log(`New user started: ${userId}, Referral: ${startPayload}`);
+  
+    // 🟢 First request: Create or update user
+    await fetch(`${API_BASE_URL}/api/user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        telegramId: userId,
+        firstName: ctx.from?.first_name || '',
+        lastName: ctx.from?.last_name || '',
+        username: ctx.from?.username || '',
+      }),
+    });
+  
+    // 🟢 Second request: Save referral (only if referral exists)
+    if (startPayload) {
+      await fetch(`${API_BASE_URL}/api/referrals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userTelegramId: userId, // New user
+          referrerTelegramId: startPayload, // Referrer
+        }),
+      });
+  
+      ctx.reply(`You joined with a referral: ${startPayload}! 🎉 Your referrer will be rewarded.`);
+    }
+  
+    ctx.reply(`Welcome, ${ctx.from.first_name}! 🎉`);
+  });
+  
 
 // Middleware to log updates
 bot.use((ctx, next) => {

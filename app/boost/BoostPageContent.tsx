@@ -543,6 +543,11 @@ const handlePaymentSuccess = async () => {
         referrerId: referralLink,
       });
   
+      // Validate inputs before making the request
+      if (!telegramId) {
+        throw new Error("🚨 Telegram ID is missing!");
+      }
+  
       const response = await axios.post("/api/redeemCode", {
         userId: telegramId,
         email: redemptionEmail,
@@ -553,17 +558,25 @@ const handlePaymentSuccess = async () => {
       console.log("📥 Redemption response:", response.data);
   
       if (response.status === 200) {
-        setMessage("Code redeemed successfully! You've earned 100,000 Shells!");
+        setMessage("✅ Code redeemed successfully! You've earned 100,000 Shells!");
       } else {
-        setMessage(response.data.error || "Code redemption failed.");
+        console.error("⚠️ Unexpected response status:", response.status);
+        setMessage(response.data.error || "❌ Code redemption failed.");
       }
     } catch (error) {
-      console.error("Redemption error:", error);
-      setMessage("An error occurred during redemption.");
+      console.error("❌ Redemption error:", error);
+  
+      if (axios.isAxiosError(error)) {
+        console.error("🔍 Axios error response:", error.response?.data);
+        setMessage(error.response?.data?.error || "⚠️ Code redemption failed.");
+      } else {
+        setMessage("❌ Unexpected error. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
+  
 
   // Render Loading State
   if (!isClient) {

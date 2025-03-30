@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 
-
-
-// Type definition for referral
 type Referral = {
   referredId: string;
   referrer: {
@@ -19,7 +16,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userTelegramId or referrerTelegramId' }, { status: 400 });
     }
 
-    // Convert to BigInt
     const userId = BigInt(userTelegramId);
     const referrerId = BigInt(referrerTelegramId);
 
@@ -28,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User cannot refer themselves' }, { status: 400 });
     }
 
-    // Check if the user has already been referred
+    // Check if the user already has a referrer
     const existingReferral = await prisma.referral.findFirst({
       where: { referredId: userId },
     });
@@ -37,19 +33,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User has already been referred' }, { status: 400 });
     }
 
-    // Verify referrer exists
-    const referrerExists = await prisma.user.findUnique({
-      where: { telegramId: referrerId },
-    });
+    // Verify that both the referrer and referred user exist in the user table
+    const [referrerExists, userExists] = await Promise.all([
+      prisma.user.findUnique({ where: { telegramId: referrerId } }),
+      prisma.user.findUnique({ where: { telegramId: userId } }),
+    ]);
 
     if (!referrerExists) {
       return NextResponse.json({ error: 'Invalid referrer ID' }, { status: 400 });
     }
 
+    if (!userExists) {
+      return NextResponse.json({ error: 'User must exist before being referred' }, { status: 400 });
+    }
+
     // Create referral
     const referral = await prisma.referral.create({
       data: {
-        referrerId,
+        referrerId: referrerId,  // Ensure field names match your DB schema
         referredId: userId,
       },
     });
@@ -60,8 +61,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Error saving referral' }, { status: 500 });
   }
 }
-
-
 
 export async function GET(request: NextRequest) {
   try {
@@ -86,14 +85,11 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      referrals: referrals.map(r => r.referredId.toString()), // Convert BigInt to string for JSON
-      referrer: referrer?.referrerId?.toString() ?? null, // Convert BigInt to string for JSON
+      referrals: referrals.map(r => r.referredId.toString()), // Convert BigInt to string
+      referrer: referrer?.referrerId?.toString() ?? null, // Convert BigInt to string
     });
   } catch (error) {
     console.error('Error fetching referral data:', error);
     return NextResponse.json({ error: 'Error fetching referral data' }, { status: 500 });
   }
 }
-
-
-
