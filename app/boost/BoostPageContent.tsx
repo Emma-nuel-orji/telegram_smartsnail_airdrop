@@ -563,30 +563,37 @@ const handlePaymentSuccess = async () => {
   
       console.log("📥 Redemption response:", response.data);
   
-      if (response.status === 200){
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000); 
-        
-        WebApp.showAlert("✅ Code redeemed successfully! You've earned 100,000 Shells!");
+      if (response.status === 200) {
+        // Trigger confetti with a delay to ensure rendering
+        setTimeout(() => setShowConfetti(true), 100);
+        setTimeout(() => setShowConfetti(false), 5000);
+  
+        // Show Telegram pop-up instead of an alert
+        window.Telegram?.WebApp.showPopup({
+          title: "✅ Success",
+          message: "Code redeemed successfully! You've earned 100,000 Shells!",
+          buttons: [{ text: "OK", type: "default" }],
+        });
       } else {
-          console.error("⚠️ Unexpected response status:", response.status);
-      
-          // ✅ Show temporary error popup
-          WebApp.showAlert(response.data.error || "❌ Code redemption failed.");
+        console.error("⚠️ Unexpected response status:", response.status);
+        
+        // Show Telegram alert for errors
+        window.Telegram?.WebApp.showAlert(response.data.error || "❌ Code redemption failed.");
       }
     } catch (error) {
       console.error("❌ Redemption error:", error);
   
       if (axios.isAxiosError(error)) {
         console.error("🔍 Axios error response:", error.response?.data);
-        setMessage(error.response?.data?.error || "⚠️ Code redemption failed.");
+        window.Telegram?.WebApp.showAlert(error.response?.data?.error || "⚠️ Code redemption failed.");
       } else {
-        setMessage("❌ Unexpected error. Please try again.");
+        window.Telegram?.WebApp.showAlert("❌ Unexpected error. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   };
+  
   
 
   // Render Loading State

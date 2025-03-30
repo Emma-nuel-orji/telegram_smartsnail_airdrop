@@ -416,11 +416,17 @@ const shareToStoryContent = (mediaUrl: string, options: ShareOptions = {}): bool
   }
 
   try {
-    const params: ShareToStoryParams = {
-      media: mediaUrl, // ✅ Fixed from 'media' to 'media_url'
-      media_type: mediaUrl.endsWith(".mp4") ? "video" : "photo",
-      ...options,
+    const validOptions = {
+      text: options.text || "",
+      sticker: options.sticker || undefined,
     };
+    
+    const params: ShareToStoryParams = {
+      media: mediaUrl,
+      media_type: mediaUrl.endsWith(".mp4") ? "video" : "photo",
+      ...validOptions,
+    };
+    
 
     telegramWebApp.shareToStory(params);
     return true;
@@ -670,9 +676,9 @@ const handleShareToStory = async () => {
     <div className="task-container">
 
     {/* ✅ Telegram Version Debugging */}
-    <p id="tg-version" style={{ fontSize: "14px", color: "gray", textAlign: "center" }}>
+    {/* <p id="tg-version" style={{ fontSize: "14px", color: "gray", textAlign: "center" }}>
       Checking Telegram Version...
-    </p>
+    </p> */}
       <div className="task-header">
         <Link href="/">
           <img
