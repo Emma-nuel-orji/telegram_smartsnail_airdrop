@@ -154,8 +154,8 @@
   gap: 20px;
   position: relative;
   background-color: rgba(0, 0, 0, 0.2);
-  padding: 10px;
-  border-radius: 12px;
+  padding: 4px;
+  border-radius: 7px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   
   width: calc(100% + 40px); /* Expand beyond parent width */
@@ -195,6 +195,7 @@
   position: relative;
   padding: 3px 3px;
   font-weight: bold;
+  font-size: medium;
   text-transform: uppercase;
   letter-spacing: 1px;
   border: none;
