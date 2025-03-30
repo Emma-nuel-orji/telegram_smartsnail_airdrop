@@ -396,17 +396,30 @@ useEffect(() => {
         // Construct the full URL
         const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
         
-        // Make sure mediaUrl starts with a slash and remove any leading slash for clean concatenation
+        // Make sure mediaUrl starts with a slash and remove any leading slash
         const cleanPath = mediaUrl.startsWith('/') ? mediaUrl.substring(1) : mediaUrl;
         const fullMediaUrl = `${baseUrl}/${cleanPath}`;
         
         console.log("📢 Final Media URL:", fullMediaUrl);
         
+        // Determine the exact media type using type assertion
+        // This ensures we're using the exact literal string types required
+        const mediaType = selectedTask.mediaType === "video" ? "video" as const : "photo" as const;
+        
+        console.log("📢 Media Type:", mediaType);
         console.log("📢 Calling Telegram shareToStory...");
-        await window.Telegram.WebApp.shareToStory({
+        
+        // Use the exact interface required by the TypeScript definition
+        const params = {
             media: fullMediaUrl,
-            mediaType: selectedTask.mediaType === "video" ? "video" : "photo",
-        });
+            mediaType: mediaType
+        };
+        
+        // Log the exact parameters we're sending
+        console.log("📢 shareToStory params:", JSON.stringify(params));
+        
+        // Call with the correct interface
+        window.Telegram.WebApp.shareToStory(params);
         
         WebApp.showAlert("Story shared successfully! ✅");
     } catch (error) {
