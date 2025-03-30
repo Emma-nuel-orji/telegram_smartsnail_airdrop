@@ -441,9 +441,8 @@ const handleShareToStory = async () => {
   }
 
   try {
-    const trackingId = `${telegramId}-${Date.now()}`;
-    console.log("🟢 Share attempt:", { trackingId, telegramId });
-    
+    console.log("🟢 Share attempt:", { telegramId });
+
     // Ensure mediaUrl is valid
     let mediaUrl = selectedTask.mediaUrl;
     if (!mediaUrl || typeof mediaUrl !== "string") {
@@ -451,29 +450,13 @@ const handleShareToStory = async () => {
       WebApp.showAlert("Invalid media URL. Please try again.");
       return;
     }
-    
+
     // Construct full URL
     const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
-    const cleanPath = mediaUrl.startsWith('/') ? mediaUrl.substring(1) : mediaUrl;
+    const cleanPath = mediaUrl.startsWith("/") ? mediaUrl.substring(1) : mediaUrl;
     const fullMediaUrl = `${baseUrl}/${cleanPath}`;
-    
-    // Register the share attempt
-    const registerResponse = await fetch("/api/register-share", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        taskId: selectedTask.id,
-        telegramId: telegramId,
-        trackingId: trackingId,
-        verificationText: "Join SmartSnail Airdrop!"
-      })
-    });
-    
-    if (!registerResponse.ok) {
-      throw new Error("Failed to register share attempt");
-    }
-    
-    // Use the simplified shareToStoryContent function
+
+    // Share the story
     shareToStoryContent(fullMediaUrl, {
       text: "Join SmartSnail Airdrop!\nEarn Shells",
       sticker: {
@@ -483,58 +466,24 @@ const handleShareToStory = async () => {
         position: { x: 0.5, y: 0.5 }
       }
     });
-    
-    // Start verification process
-    let verificationAttempts = 0;
-    const maxAttempts = 5;
-    
-    const verifyShare = async () => {
-      if (verificationAttempts >= maxAttempts) {
-        WebApp.showAlert("Verification timeout. Please try again.");
-        return;
+
+    // Show verification prompt
+    WebApp.showAlert("✅ Shared successfully! It may take up to 24 hours to verify your task.");
+
+    // Reward after 15 minutes (900000 ms)
+    setTimeout(() => {
+      WebApp.showAlert(`🎉 You earned ${selectedTask.reward} Shells for sharing!`);
+      if (typeof onShareSuccess === "function") {
+        onShareSuccess(selectedTask.reward);
       }
-      
-      verificationAttempts++;
-      
-      try {
-        const verifyResponse = await fetch("/api/verify-share-text", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            telegramId,
-            trackingId,
-            verificationText: "Join SmartSnail Airdrop!"
-          })
-        });
-        
-        if (verifyResponse.ok) {
-          const result = await verifyResponse.json();
-          if (result.verified) {
-            WebApp.showAlert(`Story verified! You earned ${selectedTask.reward} Shells!`);
-            // Fix the onShareSuccess reference
-            if (typeof onShareSuccess === 'function') {
-              onShareSuccess(selectedTask.reward);
-            }
-            return;
-          }
-        }
-        
-        // Try again after delay
-        setTimeout(verifyShare, 3000);
-      } catch (error) {
-        console.error("Verification failed:", error);
-        setTimeout(verifyShare, 3000);
-      }
-    };
-    
-    // Start verification after delay
-    setTimeout(verifyShare, 3000);
-    
+    }, 900000); // 15 minutes
+
   } catch (error) {
     console.error("❌ Share failed:", error);
     WebApp.showAlert("Failed to share story. Please try again.");
   }
 };
+
 
 
 
