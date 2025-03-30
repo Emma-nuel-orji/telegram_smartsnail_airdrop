@@ -466,13 +466,13 @@ const handleShareToStory = async () => {
         position: { x: 0.5, y: 0.5 }
       }
     });
-
+    const url = new String(fullMediaUrl).toString();
     // Show verification prompt
     WebApp.showAlert("✅ Shared successfully! It may take up to 24 hours to verify your task.");
 
     // Reward after 15 minutes (900000 ms)
     setTimeout(() => {
-      WebApp.showAlert(`🎉 You earned ${selectedTask.reward} Shells for sharing!`);
+      // WebApp.showAlert(`🎉 You earned ${selectedTask.reward} Shells for sharing!`);
       if (typeof onShareSuccess === "function") {
         onShareSuccess(selectedTask.reward);
       }

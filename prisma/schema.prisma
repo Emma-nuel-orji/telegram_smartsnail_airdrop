@@ -96,8 +96,8 @@ model GeneratedCode {
   batchId    String
   isRedeemed Boolean   @default(false)
   redeemedAt DateTime?
-  redeemedBy String?   @db.ObjectId
-  assignedTo String?   @db.ObjectId
+  redeemedBy String?   
+  assignedTo String?   
   bookId     String    
   isUsed     Boolean?   @default(false)
   purchaseId String?   @db.ObjectId
