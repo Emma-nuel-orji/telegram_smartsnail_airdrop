@@ -105,13 +105,13 @@ h3 {
   padding: 10px 15px;
   border: none;
   border-radius: 5px;
-  background-color: #e24ada;
-  color: white;
+  background-color: #4b324a;
+  color: #c7bcc8;
   cursor: pointer;
 }
 
 .payment-buttons button:hover {
-  background-color: #357ABD;
+  background-color: #d45ed8;
 }
 
 .code-section {
@@ -126,9 +126,13 @@ button:disabled {
   opacity: 0.7; /* Reduce opacity */
 }
 
+
+
 .or-divider {
   position: relative;
   text-align: center;
+  margin-top: 50px;
+  color: #e5dde4;
 }
 
 .or-divider:before, .or-divider:after {
@@ -136,7 +140,7 @@ button:disabled {
   position: absolute;
   top: 50%;
   width: 40%;
-  border-top: 1px solid #000;
+  border-top: 1px solid #9d9898;
 }
 
 .or-divider:before {

@@ -147,6 +147,12 @@ useEffect(() => {
   const [showFuckedUpInfo, setShowFuckedUpInfo] = useState(false);
   const [showHumanRelationsInfo, setShowHumanRelationsInfo] = useState(false);
 
+  useEffect(() => {
+    console.log("Purchase Email:", purchaseEmail);
+    console.log("Redemption Email:", redemptionEmail);
+    console.log("Referral Link:", referralLink);
+  }, [purchaseEmail, redemptionEmail, referralLink]);
+
   // Calculations
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
   const tappingRate = fxckedUpBagsQty * 4 + humanRelationsQty * 7;

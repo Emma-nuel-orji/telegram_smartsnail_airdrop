@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       });
 
       await prisma.user.update({
-        where: { id: userId },
+        where: { telegramId: BigInt(userId) }, // ✅ Fix: Use telegramId instead of id
         data: { points: { increment: 100000 } },
       });
 
@@ -65,19 +65,23 @@ export async function POST(request: NextRequest) {
     // ✅ Mark code as redeemed
     await prisma.generatedCode.update({
       where: { code: uniqueCode },
-      data: { isRedeemed: true, redeemedAt: new Date(), redeemedBy: userId },
+      data: { isRedeemed: true, redeemedAt: new Date(), redeemedBy: userId.toString() }, // ✅ Convert to string
     });
+    
+    
 
     // ✅ Reward user and referrer
     await prisma.user.update({
-      where: { id: userId },
+      where: { telegramId: BigInt(userId) }, // ✅ Fix: Use telegramId instead of id
       data: { points: { increment: 100000 } },
     });
+    
 
     await prisma.user.update({
-      where: { id: validatedReferrerId },
+      where: { telegramId: BigInt(validatedReferrerId) }, // ✅ Fix: Use telegramId for referrer
       data: { points: { increment: 30000 } },
     });
+    
 
     await sendRedemptionEmail(email);
 

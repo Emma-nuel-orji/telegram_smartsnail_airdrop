@@ -24,6 +24,42 @@ interface ShowStoryOptions {
   };
 }
 
+interface ShareOptions {
+  text?: string;
+  widget_link?: {
+    url: string;
+    name: string;
+  };
+  sticker?: {
+    url: string;
+    width: number;
+    height: number;
+    position: {
+      x: number;
+      y: number;
+    };
+  };
+}
+
+interface ShareToStoryParams {
+  media: string;
+  mediaType: 'photo' | 'video';
+  text?: string;
+  widget_link?: {
+    url: string;
+    name: string;
+  };
+  sticker?: {
+    url: string;
+    width: number;
+    height: number;
+    position: {
+      x: number;
+      y: number;
+    };
+  };
+}
+
 // Update the WebApp type definition
 declare global {
   interface TelegramWebApp extends Omit<typeof WebApp, 'showStory'> {
@@ -361,63 +397,144 @@ useEffect(() => {
     }
   };
   
-  const handleShareToStory = async () => {
-    if (typeof window === "undefined" || !window.Telegram?.WebApp) {
-        WebApp.showAlert("Telegram WebApp is not supported on this device.");
-        return;
-    }
+ // Define the shareToStoryContent wrapper function
+// Properly typed shareToStoryContent function with null checking
+const shareToStoryContent = (mediaUrl: string, options: ShareOptions = {}): boolean => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  
+  // Check if Telegram and WebApp exist
+  const telegramWebApp = window.Telegram?.WebApp;
+  if (!telegramWebApp) {
+    console.error("Telegram WebApp is not available");
+    return false;
+  }
+  
+  // Check if shareToStory method exists
+  if (!telegramWebApp.shareToStory) {
+    console.error("shareToStory method is not available");
+    return false;
+  }
+  
+  try {
+    const params: ShareToStoryParams = {
+      media: mediaUrl,
+      mediaType: mediaUrl.endsWith('.mp4') ? 'video' : 'photo',
+      ...options
+    };
     
-    if (!selectedTask || !telegramId) {
-        WebApp.showAlert("Something went wrong. Please try again.");
-        return;
-    }
-    
-    try {
-        console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
-        console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
-        
-        if (!window.Telegram.WebApp.shareToStory) {
-            WebApp.showAlert("Telegram Story sharing is not supported.");
-            return;
-        }
-        
-        // Ensure mediaUrl is a valid string
-        let mediaUrl = selectedTask.mediaUrl;
-        
-        console.log("🟢 mediaUrl Type:", typeof mediaUrl);
-        console.log("🟢 mediaUrl Value:", mediaUrl);
-        
-        if (!mediaUrl || typeof mediaUrl !== "string") {
-            console.error("🚨 Invalid media URL:", mediaUrl);
-            WebApp.showAlert("Invalid media URL. Please try again.");
-            return;
-        }
-        
-        // Construct the full URL
-        const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
-        
-        // Make sure mediaUrl starts with a slash and remove any leading slash
-        const cleanPath = mediaUrl.startsWith('/') ? mediaUrl.substring(1) : mediaUrl;
-        const fullMediaUrl = `${baseUrl}/${cleanPath}`;
-        
-        console.log("📢 Final Media URL:", fullMediaUrl);
-        
-        console.log("📢 Calling Telegram shareToStory...");
-        
-        // Create a string URL object to ensure we're passing a string
-        const url = new String(fullMediaUrl).toString();
-        
-        // Try with a TypeScript hack to get around the interface constraints
-        // @ts-ignore - Bypassing TypeScript interface
-        window.Telegram.WebApp.shareToStory(url);
-        
-        WebApp.showAlert("Story shared successfully! ✅");
-    } catch (error) {
-        console.error("❌ Story sharing failed:", error);
-        WebApp.showAlert("Failed to share story. Please try again.");
-    }
+    // Now safely call the method
+    telegramWebApp.shareToStory(params);
+    return true;
+  } catch (error) {
+    console.error("Share to story failed:", error);
+    return false;
+  }
 };
 
+// Simplified handleShareToStory function
+const handleShareToStory = async () => {
+  if (!selectedTask || !telegramId) {
+    WebApp.showAlert("Something went wrong. Please try again.");
+    return;
+  }
+
+  try {
+    const trackingId = `${telegramId}-${Date.now()}`;
+    console.log("🟢 Share attempt:", { trackingId, telegramId });
+    
+    // Ensure mediaUrl is valid
+    let mediaUrl = selectedTask.mediaUrl;
+    if (!mediaUrl || typeof mediaUrl !== "string") {
+      console.error("🚨 Invalid media URL:", mediaUrl);
+      WebApp.showAlert("Invalid media URL. Please try again.");
+      return;
+    }
+    
+    // Construct full URL
+    const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
+    const cleanPath = mediaUrl.startsWith('/') ? mediaUrl.substring(1) : mediaUrl;
+    const fullMediaUrl = `${baseUrl}/${cleanPath}`;
+    
+    // Register the share attempt
+    const registerResponse = await fetch("/api/register-share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        taskId: selectedTask.id,
+        telegramId: telegramId,
+        trackingId: trackingId,
+        verificationText: "Join SmartSnail Airdrop!"
+      })
+    });
+    
+    if (!registerResponse.ok) {
+      throw new Error("Failed to register share attempt");
+    }
+    
+    // Use the simplified shareToStoryContent function
+    shareToStoryContent(fullMediaUrl, {
+      text: "Join SmartSnail Airdrop!\nEarn Shells",
+      sticker: {
+        url: `${baseUrl}/stickers/snail.png`,
+        width: 150,
+        height: 150,
+        position: { x: 0.5, y: 0.5 }
+      }
+    });
+    
+    // Start verification process
+    let verificationAttempts = 0;
+    const maxAttempts = 5;
+    
+    const verifyShare = async () => {
+      if (verificationAttempts >= maxAttempts) {
+        WebApp.showAlert("Verification timeout. Please try again.");
+        return;
+      }
+      
+      verificationAttempts++;
+      
+      try {
+        const verifyResponse = await fetch("/api/verify-share-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            telegramId,
+            trackingId,
+            verificationText: "Join SmartSnail Airdrop!"
+          })
+        });
+        
+        if (verifyResponse.ok) {
+          const result = await verifyResponse.json();
+          if (result.verified) {
+            WebApp.showAlert(`Story verified! You earned ${selectedTask.reward} Shells!`);
+            // Fix the onShareSuccess reference
+            if (typeof onShareSuccess === 'function') {
+              onShareSuccess(selectedTask.reward);
+            }
+            return;
+          }
+        }
+        
+        // Try again after delay
+        setTimeout(verifyShare, 3000);
+      } catch (error) {
+        console.error("Verification failed:", error);
+        setTimeout(verifyShare, 3000);
+      }
+    };
+    
+    // Start verification after delay
+    setTimeout(verifyShare, 3000);
+    
+  } catch (error) {
+    console.error("❌ Share failed:", error);
+    WebApp.showAlert("Failed to share story. Please try again.");
+  }
+};
 
 
 
@@ -755,6 +872,8 @@ useEffect(() => {
 
 export default TaskPageContent;
 
+function onShareSuccess(reward: number | undefined) {
+  throw new Error("Function not implemented.");}
 // function setShowConfetti(arg0: boolean) {
 //   throw new Error("Function not implemented.");
 // }
