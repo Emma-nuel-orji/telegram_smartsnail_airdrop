@@ -563,11 +563,16 @@ const handlePaymentSuccess = async () => {
   
       console.log("📥 Redemption response:", response.data);
   
-      if (response.status === 200) {
-        setMessage("✅ Code redeemed successfully! You've earned 100,000 Shells!");
+      if (response.status === 200){
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000); 
+        
+        WebApp.showAlert("✅ Code redeemed successfully! You've earned 100,000 Shells!");
       } else {
-        console.error("⚠️ Unexpected response status:", response.status);
-        setMessage(response.data.error || "❌ Code redemption failed.");
+          console.error("⚠️ Unexpected response status:", response.status);
+      
+          // ✅ Show temporary error popup
+          WebApp.showAlert(response.data.error || "❌ Code redemption failed.");
       }
     } catch (error) {
       console.error("❌ Redemption error:", error);
