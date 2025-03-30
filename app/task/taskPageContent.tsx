@@ -445,6 +445,8 @@ const handleShareToStory = async () => {
 
     // Ensure mediaUrl is valid
     let mediaUrl = selectedTask.mediaUrl;
+    console.log("🟢 mediaUrl Type:", typeof mediaUrl);
+        console.log("🟢 mediaUrl Value:", mediaUrl);
     if (!mediaUrl || typeof mediaUrl !== "string") {
       console.error("🚨 Invalid media URL:", mediaUrl);
       WebApp.showAlert("Invalid media URL. Please try again.");
@@ -456,6 +458,9 @@ const handleShareToStory = async () => {
     const cleanPath = mediaUrl.startsWith("/") ? mediaUrl.substring(1) : mediaUrl;
     const fullMediaUrl = `${baseUrl}/${cleanPath}`;
 
+    console.log("📢 Final Media URL:", fullMediaUrl);
+        
+   console.log("📢 Calling Telegram shareToStory...");
     // Share the story
     shareToStoryContent(fullMediaUrl, {
       text: "Join SmartSnail Airdrop!\nEarn Shells",
@@ -467,12 +472,15 @@ const handleShareToStory = async () => {
       }
     });
     const url = new String(fullMediaUrl).toString();
+    // Try with a TypeScript hack to get around the interface constraints
+    // @ts-ignore - Bypassing TypeScript interface
+    window.Telegram.WebApp.shareToStory(url);
     // Show verification prompt
     WebApp.showAlert("✅ Shared successfully! It may take up to 24 hours to verify your task.");
 
     // Reward after 15 minutes (900000 ms)
     setTimeout(() => {
-      // WebApp.showAlert(`🎉 You earned ${selectedTask.reward} Shells for sharing!`);
+      WebApp.showAlert(`🎉 You earned ${selectedTask.reward} Shells for sharing!`);
       if (typeof onShareSuccess === "function") {
         onShareSuccess(selectedTask.reward);
       }
