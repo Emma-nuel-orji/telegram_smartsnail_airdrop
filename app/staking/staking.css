@@ -157,9 +157,14 @@
   padding: 10px;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 100%; /* Ensure the selector takes full width */
-  max-width: 400px; /* Adjust for responsiveness */
+  
+  width: calc(100% + 40px); /* Expand beyond parent width */
+  max-width: 500px; /* Adjust as needed */
+  margin-left: -20px; /* Move it outside the parent */
+  margin-right: -20px;
+  text-align: center;
 }
+
 
 .stake-type-selector::before {
   content: '';
@@ -187,10 +192,8 @@
 } */
 
 .stake-type-button {
-  flex: 1; /* Allow buttons to expand */
-  min-width: 140px; /* Prevent buttons from shrinking too much */
-  max-width: 200px; /* Keep reasonable width */
-  padding: 12px 20px; /* Increased padding for better size */
+  position: relative;
+  padding: 3px 3px;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -202,8 +205,11 @@
   z-index: 1;
   overflow: hidden;
   background-color: rgba(138, 79, 255, 0.2);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
 }
+
 .stake-type-button::before {
   content: '';
   position: absolute;
