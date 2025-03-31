@@ -564,9 +564,7 @@ const handlePaymentSuccess = async () => {
       console.log("📥 Redemption response:", response.data);
   
       if (response.status === 200) {
-        // Trigger confetti with a delay to ensure rendering
-        setTimeout(() => setShowConfetti(true), 100);
-        setTimeout(() => setShowConfetti(false), 5000);
+        triggerConfetti()
   
         // Show Telegram pop-up instead of an alert
         window.Telegram?.WebApp.showPopup({

@@ -13,6 +13,7 @@ import { useWallet } from '../context/walletContext';
 interface ShowStoryOptions {
   media: string;
   mediaType: 'photo' | 'video';
+  text?: string;
   sticker?: {
     url: string;
     width: number;
@@ -69,7 +70,10 @@ declare global {
   }
 }
 
-
+// const WebApp = window.Telegram?.WebApp || {
+//   showAlert: (message: string) => { console.log("Alert:", message); },
+//   openLink: (url: string) => { console.log("Opening link:", url); }
+// };
 
 // Main TaskPageContent Component
 const TaskPageContent: React.FC = () => {
@@ -416,18 +420,30 @@ const shareToStoryContent = (mediaUrl: string, options: ShareOptions = {}): bool
   }
 
   try {
-    const validOptions = {
-      text: options.text || "",
-      sticker: options.sticker || undefined,
-    };
-    
+    // Ensure mediaUrl is a valid string
+    if (typeof mediaUrl !== 'string' || !mediaUrl) {
+      console.error("🚨 Invalid mediaUrl:", mediaUrl);
+      return false;
+    }
+
+    // Determine media type based on file extension
+    const isVideo = mediaUrl.toLowerCase().endsWith('.mp4');
+    const mediaType = isVideo ? "video" : "photo";
+
+    // Create parameters object
     const params: ShareToStoryParams = {
       media: mediaUrl,
-      media_type: mediaUrl.endsWith(".mp4") ? "video" : "photo",
-      ...validOptions,
+      media_type: mediaType
     };
-    
 
+    // Add optional parameters if provided
+    if (options.text) params.text = options.text;
+    if (options.sticker) params.sticker = options.sticker;
+
+    // Log the exact parameters being passed
+    console.log("📝 Sharing with params:", JSON.stringify(params, null, 2));
+
+    // Call the Telegram shareToStory method
     telegramWebApp.shareToStory(params);
     return true;
   } catch (error) {
@@ -436,7 +452,7 @@ const shareToStoryContent = (mediaUrl: string, options: ShareOptions = {}): bool
   }
 };
 
-// Simplified handleShareToStory function
+// Main function to handle sharing to story
 const handleShareToStory = async () => {
   if (!selectedTask || !telegramId) {
     WebApp.showAlert("⚠️ Something went wrong. Please try again.");
@@ -446,8 +462,10 @@ const handleShareToStory = async () => {
   try {
     console.log("🟢 Share attempt:", { telegramId });
 
-    // Validate mediaUrl
+    // Get media URL from the selected task
     let mediaUrl = selectedTask.mediaUrl;
+    
+    // Validate mediaUrl
     console.log("🟢 mediaUrl Type:", typeof mediaUrl);
     console.log("🟢 mediaUrl Value:", mediaUrl);
 
@@ -457,36 +475,50 @@ const handleShareToStory = async () => {
       return;
     }
 
-    // Construct full URL
+    // Construct full URL properly
     const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
-    const cleanPath = mediaUrl.startsWith("/") ? mediaUrl.substring(1) : mediaUrl;
-    const fullMediaUrl = `${baseUrl}/${cleanPath}`;
+    
+    // Handle relative or absolute URLs
+    let fullMediaUrl;
+    if (mediaUrl.startsWith("http")) {
+      fullMediaUrl = mediaUrl;
+    } else {
+      // Clean the path by removing leading slash if present
+      const cleanPath = mediaUrl.startsWith("/") ? mediaUrl.substring(1) : mediaUrl;
+      fullMediaUrl = `${baseUrl}/${cleanPath}`;
+    }
 
     console.log("📢 Final Media URL:", fullMediaUrl);
-
     console.log("📢 Calling Telegram shareToStory...");
 
-    // ✅ Only call `shareToStoryContent`
+    // Create sticker object
+    const stickerOptions = {
+      url: `${baseUrl}/stickers/snail.png`,
+      width: 150,
+      height: 150,
+      position: { x: 0.5, y: 0.5 }
+    };
+
+    // Call shareToStoryContent with proper parameters
     const shared = shareToStoryContent(fullMediaUrl, {
       text: "Join SmartSnail Airdrop!\nEarn Shells",
-      sticker: {
-        url: `${baseUrl}/stickers/snail.png`,
-        width: 150,
-        height: 150,
-        position: { x: 0.5, y: 0.5 },
-      },
+      sticker: stickerOptions
     });
 
     if (shared) {
       WebApp.showAlert("✅ Shared successfully! It may take up to 24 hours to verify your task.");
 
-      // ✅ Reward after 15 minutes
+      // Success callback after delay (15 minutes)
+      const reward = selectedTask.reward || 0;
       setTimeout(() => {
-        WebApp.showAlert(`🎉 You earned ${selectedTask.reward} Shells for sharing!`);
+        WebApp.showAlert(`🎉 You earned ${reward} Shells for sharing!`);
         if (typeof onShareSuccess === "function") {
-          onShareSuccess(selectedTask.reward);
+          onShareSuccess(reward);
         }
-      }, 900000); // 15 minutes
+      }, 900000); // 15 minutes (900000ms)
+      
+      // Optional: You could also add a tracking mechanism here in the future
+      // trackShareAttempt(telegramId, fullMediaUrl);
     } else {
       WebApp.showAlert("❌ Failed to share. Please try again.");
     }
@@ -495,7 +527,6 @@ const handleShareToStory = async () => {
     WebApp.showAlert("Failed to share story. Please try again.");
   }
 };
-
 
 
 

@@ -11,8 +11,8 @@ interface StockLimit {
 
 interface UserState {
   telegramId: string | null;
-  email: string;
-  purchaseEmail: string;
+  // email: string;
+  // purchaseEmail: string;
   fxckedUpBagsQty: number;
   humanRelationsQty: number;
 }
@@ -37,8 +37,8 @@ const initialStockLimit: StockLimit = {
 
 const initialUser: UserState = {
   telegramId: null,
-  email: '',
-  purchaseEmail: '',
+  // email: '',
+  // purchaseEmail: '',
   fxckedUpBagsQty: 0,
   humanRelationsQty: 0,
 };
