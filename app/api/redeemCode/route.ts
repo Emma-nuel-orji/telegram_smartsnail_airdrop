@@ -100,7 +100,8 @@ async function getReferrerId(userId: string, referrerId?: string): Promise<strin
     if (referrerId) {
       referrerId = referrerId.trim();
       
-      if (referrerId.toUpperCase() === "SMARTSNAIL") return "SMARTSNAIL";
+      if (referrerId === "SMARTSNAIL") return "SMARTSNAIL";
+
       if (!/^\d+$/.test(referrerId)) {
         console.error("❌ Invalid referrer Telegram ID:", referrerId);
         return null;

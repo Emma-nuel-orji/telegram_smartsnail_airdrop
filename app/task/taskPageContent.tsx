@@ -25,6 +25,13 @@ interface ShowStoryOptions {
   };
 }
 
+interface TelegramWebAppUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+}
+
 interface ShareOptions {
   text?: string;
   widget_link?: {
@@ -43,24 +50,21 @@ interface ShareOptions {
 }
 
 interface ShareToStoryParams {
-  media: string;
-  media_type: 'photo' | 'video';
+  media: string;   // Changed from media to media_url
+  media_type: "photo" | "video";
   text?: string;
-  widget_link?: {
-    url: string;
-    name: string;
-    
-  };
-  
   sticker?: {
     url: string;
     width: number;
     height: number;
-    position: {
-      x: number;
-      y: number;
-    };
+    position: { x: number; y: number };
   };
+}
+
+interface TelegramWebAppBasic {
+  showAlert: (message: string) => void;
+  openLink: (url: string) => void;
+  shareToStory?: (params: ShareToStoryParams) => void;
 }
 
 // Update the WebApp type definition
@@ -69,6 +73,19 @@ declare global {
     showStory(options: ShowStoryOptions): Promise<void>;
   }
 }
+
+const getTelegramApp = (): TelegramWebAppBasic => {
+  if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+    return window.Telegram.WebApp;
+  }
+  
+  // Fallback implementation
+  return {
+    showAlert: (message: string) => { console.log("Alert:", message); },
+    openLink: (url: string) => { console.log("Opening link:", url); }
+  };
+};
+
 
 // const WebApp = window.Telegram?.WebApp || {
 //   showAlert: (message: string) => { console.log("Alert:", message); },
@@ -141,7 +158,10 @@ const TaskPageContent: React.FC = () => {
 
   const telegramVersion = typeof window !== "undefined" ? window.Telegram?.WebApp?.version || "unknown" : "unknown";
 
-  
+  // const params = {
+  //   media_url: mediaUrl,  // Change 'media' to 'media_url'
+  //   media_type: mediaType
+  // };
 
   const triggerConfetti = () => {
     const duration = 2 * 1000; // 2 seconds
@@ -408,12 +428,7 @@ useEffect(() => {
 const shareToStoryContent = (mediaUrl: string, options: ShareOptions = {}): boolean => {
   if (typeof window === "undefined") return false;
 
-  const telegramWebApp = window.Telegram?.WebApp;
-  if (!telegramWebApp) {
-    console.error("🚨 Telegram WebApp is not available");
-    return false;
-  }
-
+  const telegramWebApp = getTelegramApp();
   if (!telegramWebApp.shareToStory) {
     console.error("🚨 shareToStory method is not available");
     return false;
@@ -430,9 +445,9 @@ const shareToStoryContent = (mediaUrl: string, options: ShareOptions = {}): bool
     const isVideo = mediaUrl.toLowerCase().endsWith('.mp4');
     const mediaType = isVideo ? "video" : "photo";
 
-    // Create parameters object
+    // Create parameters object with correct parameter names
     const params: ShareToStoryParams = {
-      media: mediaUrl,
+      media: mediaUrl,  // Using media_url instead of media
       media_type: mediaType
     };
 
@@ -451,6 +466,8 @@ const shareToStoryContent = (mediaUrl: string, options: ShareOptions = {}): bool
     return false;
   }
 };
+
+
 
 // Main function to handle sharing to story
 const handleShareToStory = async () => {
