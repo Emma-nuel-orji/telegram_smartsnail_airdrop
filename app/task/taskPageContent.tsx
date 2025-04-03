@@ -161,6 +161,7 @@ const TaskPageContent: React.FC = () => {
   const [sharing, setSharing] = useState(false);
   const [hasBeenRewarded, setHasBeenRewarded] = useState(false);
   const initDataState = window.Telegram?.WebApp?.initData || {};
+  const userReferralLink = `https://t.me/smartsnailbot?start=${telegramId}`;
 
 
   const telegramVersion = typeof window !== "undefined" ? window.Telegram?.WebApp?.version || "unknown" : "unknown";
@@ -655,7 +656,7 @@ const handleShareToStory = async () => {
       // Continue execution - we don't want to block the success message due to tracking failure
     }
 
-    WebApp.showAlert("✅ Shared successfully! It may take up to 24 hours to verify your task.");
+    // WebApp.showAlert("✅ Shared successfully! It may take up to 24 hours to verify your task.");
 
     // Success callback after delay (for demo/testing, set to 5 seconds; in production use longer time)
     const reward = selectedTask.reward || 0;
@@ -914,93 +915,120 @@ const handleShareToStory = async () => {
       </div>
 
       {selectedTask && (
-        <div className="popup-overlay">
-          <div className="task-popup">
-            <button 
-              className="popup-close" 
-              onClick={() => setSelectedTask(null)}
-            >
-              ×
-            </button>
-            
-            <p className="popup-description">{selectedTask.description}
+  <div className="popup-overlay">
+    <div className="task-popup">
+      <button 
+        className="popup-close" 
+        onClick={() => setSelectedTask(null)}
+      >
+        ×
+      </button>
+
+      <p className="popup-description">{selectedTask.description}
         {selectedTask.id === "28" && (
           <div className="popup-message">
-            Make a content of you reading the book Fxckedupbags. <br></br>Make sure you use the hashtags: #Fxckedupbags, #SmartSnailNFT. <br></br>If you haven't gotten a hardcopy, go to Main Task 11 and order a copy. Good luck!
+            Make a content of you reading the book Fxckedupbags. <br></br>
+            Make sure you use the hashtags: <strong>#Fxckedupbags, #SmartSnailNFT</strong>. <br></br>
+            If you haven't gotten a hardcopy, go to <strong>Main Task 11</strong> and order a copy. Good luck!
           </div>
         )}
       </p>
 
-            {selectedTask.id === "22" ? (
-              <>
-                <input
-                  className="popup-input"
-                  type="text"
-                  value={inputCode}
-                  onChange={(e) => setInputCode(e.target.value)}
-                  placeholder="Insert unique code"
-                  disabled={loading}
-                />
-                <button 
-                  className="popup-button"
-                  onClick={handleRedeemCode} 
-                  disabled={loading || (selectedTask.completed && selectedTask.id !== "22")}
-                >
-                  {loading ? "Redeeming..." : "Redeem Code"}
-                </button>
-                {message && (
-                  <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
-                    {message}
-                  </p>
-                )}
-                {reward > 0 && (
-                  <p className="popup-message reward">
-                    🎉 You earned: {reward} shells!
-                  </p>
-                )}
-              </>
-            ) : selectedTask.id === "18" ? (
-              <>
-                <button 
-                  className="popup-button"
-                  onClick={handleWalletAction}
-                  disabled={loading || (selectedTask.completed && selectedTask.id !== "18")}
-                >
-                  {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
-                </button>
-                {message && (
-                  <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
-                    {message}
-                  </p>
-                )}
-              </>
-            ) : selectedTask.isStoryTask ? (
-              <button 
-                className="popup-button"
-                onClick={handleShareToStory}
-                disabled={sharing}
-              >
-                {sharing ? "Sharing..." : "Share to Story"}
-              </button>
-            ) : selectedTask.id !== "28" && (
-              <>
-                <button 
-                  className="popup-button"
-                  onClick={() => window.open(selectedTask.link, "_blank")}
-                >
-                  Perform Task
-                </button>
-                <button 
-                  className="popup-button"
-                  onClick={handleValidateClick}
-                >
-                  Validate and Reward
-                </button>
-              </>
-            )}
+      {selectedTask.id === "22" ? (
+        <>
+          <input
+            className="popup-input"
+            type="text"
+            value={inputCode}
+            onChange={(e) => setInputCode(e.target.value)}
+            placeholder="Insert unique code"
+            disabled={loading}
+          />
+          <button 
+            className="popup-button"
+            onClick={handleRedeemCode} 
+            disabled={loading || (selectedTask.completed && selectedTask.id !== "22")}
+          >
+            {loading ? "Redeeming..." : "Redeem Code"}
+          </button>
+          {message && (
+            <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
+              {message}
+            </p>
+          )}
+          {reward > 0 && (
+            <p className="popup-message reward">
+              🎉 You earned: {reward} shells!
+            </p>
+          )}
+        </>
+      ) : selectedTask.id === "18" ? (
+        <>
+          <button 
+            className="popup-button"
+            onClick={handleWalletAction}
+            disabled={loading || (selectedTask.completed && selectedTask.id !== "18")}
+          >
+            {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
+          </button>
+          {message && (
+            <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
+              {message}
+            </p>
+          )}
+        </>
+      ) : selectedTask.isStoryTask ? (
+        <>
+          <p className="popup-message">
+            📢 <strong>Copy and paste the following text into your caption.</strong><br />
+            This helps us **track and verify your share**.<br />
+            ⏳ **Verification may take up to 24 hours.**
+          </p>
+
+          <div className="popup-text-box">
+            <p>
+              <strong>Join the SmartSnail farm, pick shells, and earn SmartSnailNFT!</strong> <br />
+              {userReferralLink} {/* Referral link dynamically inserted */}
+            </p>
+            <button 
+              className="copy-button"
+              onClick={() => {
+                navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
+                alert("✅ Caption copied to clipboard!");
+              }}
+            >
+              📋 Copy Text
+            </button>
           </div>
-        </div>
+
+          <button 
+            className="popup-button"
+            onClick={handleShareToStory}
+            disabled={sharing}
+          >
+            {sharing ? "📤 Sharing..." : "📤 Share to Story"}
+          </button>
+        </>
+      ) : selectedTask.id !== "28" && (
+        <>
+          <button 
+            className="popup-button"
+            onClick={() => window.open(selectedTask.link, "_blank")}
+          >
+            🎯 Perform Task
+          </button>
+          <button 
+            className="popup-button"
+            onClick={handleValidateClick}
+          >
+            ✅ Validate and Reward
+          </button>
+        </>
       )}
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
