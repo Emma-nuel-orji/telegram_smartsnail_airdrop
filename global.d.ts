@@ -26,7 +26,19 @@ interface TelegramWebApp {
       button_color?: string;
       button_text_color?: string;
     };
-    shareToStory?: (params: { media: string; media_type: "photo" | "video" }) => void;
+    shareToStory: (
+      media: string,
+      mediaType: "photo" | "video",
+      text?: string,
+      sticker?: {
+        url: string;
+        width?: number;
+        height?: number;
+        position?: { x: number; y: number };
+      }
+    ) => void;
+    version: string;
+    showAlert: (message: string) => void;
   }
 
   

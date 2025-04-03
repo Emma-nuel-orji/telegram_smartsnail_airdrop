@@ -151,10 +151,10 @@ button:disabled {
   right: 0;
 }
 
-.code-section h3 {
+/* .code-section h3 {
   font-size: 16px;
   color: #333;
-}
+} */
 
 .code-section input {
   width: 100%;
