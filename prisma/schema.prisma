@@ -69,7 +69,7 @@ model Task {
   userId        String?  
 
   // Relations
-  user          User            @relation(fields: [userId], references: [id], name: "UserTasks")
+  user          User?            @relation(fields: [userId], references: [id], name: "UserTasks")
   CompletedTask CompletedTask[]
 }
 
