@@ -62,7 +62,7 @@
 .fighters-container {
   display: flex;
   /* justify-content: space-between; */
-  width: 90%;
+  /* width: 90%; */
   margin-top: 20px;
   gap: 5px;
   align-items: center;

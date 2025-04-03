@@ -34,28 +34,22 @@ export async function POST(request: Request) {
     // Debug: Log all tasks to verify
     const allTasks = await prisma.task.findMany({
       where: {
-        // If tasks are supposed to be numeric, ensure conversion
-        id: taskId
+        id: taskId,
       }
     });
 
     console.log('All Matching Tasks:', allTasks);
 
-    // Find task with multiple matching strategies
-    const task = await prisma.task.findFirst({
+    // Find task and ensure userId is always set
+    let task = await prisma.task.findFirst({
       where: {
-        OR: [
-          { id: taskId },  // Direct string match
-          { id: taskId.toString() },  // Ensure string
-          // Add any other potential matching strategies
-        ]
+        id: taskId,
       }
     });
 
     console.log('Found Task:', task);
 
     if (!task) {
-      // Log more context if task not found
       return NextResponse.json(
         { 
           error: 'Task not found', 
@@ -66,6 +60,15 @@ export async function POST(request: Request) {
         },
         { status: 404 }
       );
+    }
+
+    // Ensure the task has a userId assigned
+    if (!task.userId) {
+      task = await prisma.task.update({
+        where: { id: task.id },
+        data: { userId: user.id },
+      });
+      console.log('Updated Task with User ID:', task);
     }
 
     // Create a completed task record

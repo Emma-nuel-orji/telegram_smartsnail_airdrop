@@ -665,7 +665,7 @@ const handleShareToStory = async () => {
       if (typeof onShareSuccess === "function") {
         onShareSuccess(reward);
       }
-    }, 5000); // 5 seconds for testing - use 900000 (15 minutes) or longer in production
+    }, 900000); // 5 seconds for testing - use 900000 (15 minutes) or longer in production
     
   } catch (error) {
     console.error("❌ Share failed:", error);
