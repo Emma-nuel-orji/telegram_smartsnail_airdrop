@@ -987,7 +987,8 @@ const handleShareToStory = async () => {
 
           <div className="popup-text-box">
             <p>
-              <strong>Join the SmartSnail farm, pick shells, and earn SmartSnailNFT!</strong> <br />
+              <strong>Join the SmartSnail farm, pick $Shells, and earn SmartSnailNFT!
+                #smartsnail #smartsnailnft #shells</strong> <br />
               {userReferralLink} {/* Referral link dynamically inserted */}
             </p>
             <button 
