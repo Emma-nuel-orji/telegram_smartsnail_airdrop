@@ -504,6 +504,8 @@ interface FightSliderProps {
 const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramId }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [startX, setStartX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   const goToSlide = (index: number) => {
     if (sliderRef.current) {
@@ -515,9 +517,85 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const endX = e.changedTouches[0].clientX;
+    const diff = startX - endX;
+    
+    if (diff > 50 && currentIndex < fights.length - 1) {
+      // Swipe left
+      goToSlide(currentIndex + 1);
+    } else if (diff < -50 && currentIndex > 0) {
+      // Swipe right
+      goToSlide(currentIndex - 1);
+    }
+    setIsDragging(false);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setStartX(e.clientX);
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const endX = e.clientX;
+    const diff = startX - endX;
+    
+    if (diff > 50 && currentIndex < fights.length - 1) {
+      goToSlide(currentIndex + 1);
+    } else if (diff < -50 && currentIndex > 0) {
+      goToSlide(currentIndex - 1);
+    }
+    setIsDragging(false);
+  };
+
+  const handleScroll = () => {
+    if (sliderRef.current) {
+      const slideWidth = sliderRef.current.offsetWidth;
+      const newIndex = Math.round(sliderRef.current.scrollLeft / slideWidth);
+      if (newIndex !== currentIndex) {
+        setCurrentIndex(newIndex);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const slider = sliderRef.current;
+    if (slider) {
+      slider.addEventListener('scroll', handleScroll);
+      return () => slider.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+
   return (
     <div className="fight-slider-container">
-      <div className="fight-slider" ref={sliderRef}>
+      <div 
+        className="fight-slider" 
+        ref={sliderRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={() => setIsDragging(false)}
+      >
         {fights.length === 0 ? (
           <div className="slide">
             <FightCard 
