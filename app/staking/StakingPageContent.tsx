@@ -68,7 +68,6 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         </div>
       </div>
       
-      
       <div className="fighters-container">
         <FighterStaking 
           fighter={fight?.fighter1}
@@ -285,7 +284,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
       const data = await response.json();
 
       if (data.invoiceLink) {
-        // Redirect the user to the Telegram Stars payment page
         window.location.href = data.invoiceLink;
       } else {
         throw new Error("Failed to create payment link");
@@ -497,6 +495,64 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
   );
 }
 
+interface FightSliderProps {
+  fights: Fight[];
+  userPoints: number;
+  telegramId: string | null;
+}
+
+const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramId }) => {
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const goToSlide = (index: number) => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollTo({
+        left: sliderRef.current.offsetWidth * index,
+        behavior: 'smooth'
+      });
+      setCurrentIndex(index);
+    }
+  };
+
+  return (
+    <div className="fight-slider-container">
+      <div className="fight-slider" ref={sliderRef}>
+        {fights.length === 0 ? (
+          <div className="slide">
+            <FightCard 
+              userPoints={userPoints}
+              telegramId={telegramId}
+            />
+          </div>
+        ) : (
+          fights.map((fight, index) => (
+            <div key={fight.id} className="slide">
+              <FightCard 
+                fight={fight} 
+                userPoints={userPoints}
+                telegramId={telegramId}
+              />
+            </div>
+          ))
+        )}
+      </div>
+      
+      {fights.length > 1 && (
+        <div className="slider-dots">
+          {fights.map((_, index) => (
+            <button
+              key={index}
+              className={`dot ${index === currentIndex ? 'active' : ''}`}
+              onClick={() => goToSlide(index)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function StakingPageContent() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const router = useRouter();
@@ -583,22 +639,11 @@ export default function StakingPageContent() {
       <h1 className="staking-title">Support Your Fighter</h1>
       <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
       
-      
-      {fights.length === 0 ? (
-        <FightCard 
-          userPoints={userPoints}
-          telegramId={telegramId}
-        />
-      ) : (
-        fights.map(fight => (
-          <FightCard 
-            key={fight.id} 
-            fight={fight} 
-            userPoints={userPoints}
-            telegramId={telegramId}
-          />
-        ))
-      )}
+      <FightSlider 
+        fights={fights} 
+        userPoints={userPoints}
+        telegramId={telegramId}
+      />
     </div>
   );
 }

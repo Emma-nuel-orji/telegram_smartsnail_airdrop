@@ -535,3 +535,55 @@
     transform: translateY(-5px);
   }
 }
+
+
+/* new for slide */
+
+/* Slider styles */
+.fight-slider-container {
+  width: 100%;
+  position: relative;
+  margin: 20px 0;
+}
+
+.fight-slider {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  gap: 20px;
+  padding-bottom: 20px;
+}
+
+.fight-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  min-width: 100%;
+}
+
+.slider-dots {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ccc;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.dot.active {
+  background-color: #555;
+}
