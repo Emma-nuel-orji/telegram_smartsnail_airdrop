@@ -542,29 +542,6 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
     setIsDragging(false);
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setStartX(e.clientX);
-    setIsDragging(true);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    e.preventDefault();
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const endX = e.clientX;
-    const diff = startX - endX;
-    
-    if (diff > 50 && currentIndex < fights.length - 1) {
-      goToSlide(currentIndex + 1);
-    } else if (diff < -50 && currentIndex > 0) {
-      goToSlide(currentIndex - 1);
-    }
-    setIsDragging(false);
-  };
-
   const handleScroll = () => {
     if (sliderRef.current) {
       const slideWidth = sliderRef.current.offsetWidth;
@@ -591,10 +568,6 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={() => setIsDragging(false)}
       >
         {fights.length === 0 ? (
           <div className="slide">

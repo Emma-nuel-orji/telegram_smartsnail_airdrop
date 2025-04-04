@@ -52,8 +52,8 @@ model CompletedTask {
 
 // Task model
 model Task {
-   id        String @unique // Keep this as String for "1", "2", ...
-  mongoId   String @id @map("_id") // Store MongoDB _id separately
+   mongoId      String @id @map("_id") // ✅ MongoDB requires this as the primary key
+  id           String @unique // ✅ Add @unique so Prisma can query by id
   description   String
   completed     Boolean @default(false)
   section       String  // Will be constrained in TypeScript to "main" | "daily" | "partners"

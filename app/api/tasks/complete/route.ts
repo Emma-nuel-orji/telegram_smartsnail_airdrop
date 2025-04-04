@@ -31,10 +31,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find task by ID
+    // Find task using `id`
     let task = await prisma.task.findUnique({
       where: {
-        id: taskId,
+        id: taskId, // ✅ Now works because `id` is unique
       }
     });
 
@@ -47,12 +47,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Store the mongoId before any operations
+    // Store mongoId before operations
     const taskMongoId = task.mongoId;
 
-    // Ensure the task has a userId assigned
+    // Assign userId if it's missing
     if (!task.userId) {
-      // Use mongoId for the update operation since it's the @id field
       task = await prisma.task.update({
         where: { mongoId: taskMongoId },
         data: { userId: user.id },
@@ -60,22 +59,7 @@ export async function POST(request: Request) {
       console.log('Updated Task with User ID:', task);
     }
 
-    // Verify task still exists after update
-    if (!task) {
-      // Try to retrieve it again if the update didn't return it
-      task = await prisma.task.findUnique({
-        where: { mongoId: taskMongoId },
-      });
-      
-      if (!task) {
-        return NextResponse.json(
-          { error: 'Task disappeared after update' },
-          { status: 500 }
-        );
-      }
-    }
-
-    // Create a completed task record
+    // Create completed task record
     const completedTask = await prisma.completedTask.create({
       data: {
         taskId: task.id,
@@ -84,21 +68,17 @@ export async function POST(request: Request) {
       },
     });
 
-    // Update the task status and update user points
+    // Update task status & user points in a transaction
     const [updatedTask, updatedUser] = await prisma.$transaction([
       prisma.task.update({
-        where: {
-          mongoId: taskMongoId, // Use mongoId for updates
-        },
+        where: { mongoId: taskMongoId }, // ✅ Always update using mongoId
         data: {
           completed: true,
           completedTime: new Date(),
         },
       }),
       prisma.user.update({
-        where: {
-          id: user.id,
-        },
+        where: { id: user.id },
         data: {
           points: {
             increment: reward ?? task.reward ?? 0,

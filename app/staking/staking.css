@@ -540,6 +540,7 @@
 /* new for slide */
 
 /* Slider styles */
+/* Slider styles */
 .fight-slider-container {
   width: 100%;
   position: relative;
@@ -553,8 +554,13 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   width: 100%;
-  gap: 20px;
+  gap: 0;
   padding-bottom: 20px;
+  cursor: grab;
+}
+
+.fight-slider:active {
+  cursor: grabbing;
 }
 
 .fight-slider::-webkit-scrollbar {
@@ -565,6 +571,8 @@
   flex: 0 0 100%;
   scroll-snap-align: start;
   min-width: 100%;
+  padding: 0 10px;
+  box-sizing: border-box;
 }
 
 .slider-dots {
