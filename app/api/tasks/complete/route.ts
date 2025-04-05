@@ -61,8 +61,8 @@ export async function POST(request: Request) {
     if (!task.userId) {
       try {
         task = await prisma.task.update({
-          where: { mongoId: String(taskMongoId) },
-          data: { userId: user.id },
+          where: { id: taskId }, // Use the string ID ("1")
+          data: { userId: userId, completed: true, completedTime: new Date() }
         });
         console.log('Updated Task with User ID:', task);
       } catch (updateError) {
