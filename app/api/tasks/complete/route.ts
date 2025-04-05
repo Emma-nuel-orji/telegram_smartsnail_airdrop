@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     // Find task using `id`
     let task = await prisma.task.findUnique({
       where: {
-        id: taskId, // ✅ Now works because `id` is unique
+        id: String(taskId), // Ensure it's a string
       }
     });
 
@@ -49,14 +49,31 @@ export async function POST(request: Request) {
 
     // Store mongoId before operations
     const taskMongoId = task.mongoId;
+    
+    console.log('Task IDs to be used:', {
+      id: task.id,
+      mongoId: task.mongoId,
+      taskId: String(taskId),
+      taskMongoId: String(taskMongoId)
+    });
 
     // Assign userId if it's missing
     if (!task.userId) {
-      task = await prisma.task.update({
-        where: { mongoId: taskMongoId },
-        data: { userId: user.id },
-      });
-      console.log('Updated Task with User ID:', task);
+      try {
+        task = await prisma.task.update({
+          where: { mongoId: String(taskMongoId) },
+          data: { userId: user.id },
+        });
+        console.log('Updated Task with User ID:', task);
+      } catch (updateError) {
+        console.error('Error updating task with userId:', updateError);
+        // Try alternative approach
+        task = await prisma.task.update({
+          where: { id: String(taskId) },
+          data: { userId: user.id },
+        });
+        console.log('Alternative update successful with id:', task);
+      }
     }
 
     // Create completed task record
@@ -67,25 +84,103 @@ export async function POST(request: Request) {
         completedAt: new Date(),
       },
     });
+    console.log('Created completedTask record:', completedTask);
 
-    // Update task status & user points in a transaction
-    const [updatedTask, updatedUser] = await prisma.$transaction([
-      prisma.task.update({
-        where: { mongoId: taskMongoId },  
-        data: {
-          completed: true,
-          completedTime: new Date(),
-        },
-      }),
-      prisma.user.update({
+    // Verify task still exists right before update
+    const taskStillExists = await prisma.task.findUnique({
+      where: { id: String(taskId) },
+    });
+    console.log('Task still exists before update?', !!taskStillExists, taskStillExists);
+
+    // Try using updateMany first (doesn't throw if not found)
+    console.log('Attempting updateMany on task...');
+    const updateManyResult = await prisma.task.updateMany({
+      where: { id: String(taskId) },
+      data: {
+        completed: true,
+        completedTime: new Date(),
+      },
+    });
+    console.log('updateMany result:', updateManyResult);
+
+    let updatedTask, updatedUser;
+
+    // If updateMany worked, update the user
+    if (updateManyResult.count > 0) {
+      console.log('updateMany succeeded, now updating user');
+      updatedUser = await prisma.user.update({
         where: { id: user.id },
         data: {
           points: {
             increment: reward ?? task.reward ?? 0,
           },
         },
-      }),
-    ]);
+      });
+      
+      // Fetch the updated task
+      updatedTask = await prisma.task.findUnique({
+        where: { id: String(taskId) },
+      });
+    } else {
+      console.log('updateMany failed, trying alternative approaches');
+      
+      // Try different approaches
+      try {
+        console.log('Attempting to update with mongoId...');
+        updatedTask = await prisma.task.update({
+          where: { mongoId: String(taskMongoId) },
+          data: {
+            completed: true,
+            completedTime: new Date(),
+          },
+        });
+        console.log('Update with mongoId successful');
+      } catch (err1) {
+        console.error('Update with mongoId failed:', err1);
+        
+        try {
+          console.log('Attempting to update with id...');
+          updatedTask = await prisma.task.update({
+            where: { id: String(taskId) },
+            data: {
+              completed: true,
+              completedTime: new Date(),
+            },
+          });
+          console.log('Update with id successful');
+        } catch (err2) {
+          console.error('Update with id failed:', err2);
+          
+          // Last resort: re-fetch and try once more
+          console.log('Last resort: re-fetching task and trying again');
+          const freshTask = await prisma.task.findUnique({
+            where: { id: String(taskId) },
+          });
+          
+          if (freshTask) {
+            updatedTask = await prisma.task.update({
+              where: { mongoId: String(freshTask.mongoId) },
+              data: {
+                completed: true,
+                completedTime: new Date(),
+              },
+            });
+          } else {
+            throw new Error('Task could not be found after multiple attempts');
+          }
+        }
+      }
+      
+      // Update user points
+      updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          points: {
+            increment: reward ?? task.reward ?? 0,
+          },
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
