@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     // Update task status & user points in a transaction
     const [updatedTask, updatedUser] = await prisma.$transaction([
       prisma.task.update({
-        where: {  id: task.id }, // ✅ Always update using mongoId
+        where: { id: taskId }, 
         data: {
           completed: true,
           completedTime: new Date(),
