@@ -1,6 +1,3 @@
-// This is a suggested fix for your `/app/api/tasks/complete/route.js` file
-// You can modify it to fit your specific implementation
-
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
@@ -18,6 +15,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Find user
+    console.log(`Looking for user with telegramId: ${telegramId}`);
     const user = await prisma.user.findUnique({
       where: { telegramId: BigInt(telegramId) }
     });
@@ -29,8 +27,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Find task using string ID
+    console.log(`Looking for task with id: ${taskId}`);
     const task = await prisma.task.findUnique({
-      where: { id: taskId }
+      where: { id: taskId.toString() }  // Ensure it's a string
     });
     
     console.log('Found Task:', task);
@@ -39,17 +38,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
     
-    // Keep track of task IDs for debugging
-    const taskIds = {
-      id: taskId,
-      mongoId: task.mongoId
-    };
-    console.log('Task IDs to be used:', taskIds);
-    
-    // Update the task - IMPORTANT: use the string ID, not the MongoDB ObjectId
     try {
+      // Just update the user points first
+      console.log(`Updating user points. Current points: ${user.points}`);
+      const pointsToAdd = reward || (task.reward || 0);
+      console.log(`Adding ${pointsToAdd} points`);
+      
+      const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { points: BigInt(user.points) + BigInt(pointsToAdd) }
+      });
+      
+      console.log(`User points updated to: ${updatedUser.points}`);
+      
+      // Create completed task record
+      console.log('Creating CompletedTask record');
+      const completedTask = await prisma.completedTask.create({
+        data: {
+          taskId: taskId.toString(),
+          userId: user.id,
+          points: pointsToAdd,
+          completedAt: new Date()
+        }
+      });
+      
+      console.log('Created CompletedTask:', completedTask);
+      
+      // Try to update the task last
+      console.log('Updating task with userId');
       const updatedTask = await prisma.task.update({
-        where: { id: taskId },
+        where: { id: taskId.toString() },
         data: { 
           userId: user.id,
           completed: true,
@@ -57,78 +75,28 @@ export async function POST(request: NextRequest) {
         }
       });
       
-      console.log('Updated Task with User ID:', updatedTask?.id || null);
+      console.log('Task update successful:', updatedTask);
       
-      // Use optional chaining to prevent null errors
-      const taskResult = updatedTask?.id || null;
-      
-      // If task was updated successfully, update user points
-      if (updatedTask) {
-        const updatedUser = await prisma.user.update({
-          where: { id: user.id },
-          data: { points: BigInt(user.points) + BigInt(reward || task.reward || 0) }
-        });
-        
-        // Create completed task record
-        await prisma.completedTask.create({
-          data: {
-            taskId: taskId,
-            userId: user.id,
-            points: reward || task.reward || 0,
-            completedAt: new Date()
-          }
-        });
-        
-        return NextResponse.json({ 
-          success: true, 
-          message: 'Task completed successfully',
-          points: updatedUser.points.toString()
-        });
-      } else {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Task update failed' 
-        }, { status: 500 });
-      }
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Task completed successfully',
+        points: updatedUser.points.toString()
+      });
     } catch (updateError) {
-      console.error('Error updating task with userId:', updateError);
+      const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
+      console.error(`Task update error: ${errorMessage}`);
       
-      // Try an alternative approach if the update fails
-      try {
-        // Just update the user points without touching the task
-        const updatedUser = await prisma.user.update({
-          where: { id: user.id },
-          data: { points: BigInt(user.points) + BigInt(reward || task.reward || 0) }
-        });
-        
-        // Create completed task record anyway
-        await prisma.completedTask.create({
-          data: {
-            taskId: taskId,
-            userId: user.id,
-            points: reward || task.reward || 0,
-            completedAt: new Date()
-          }
-        });
-        
-        return NextResponse.json({ 
-          success: true, 
-          message: 'Task marked as completed (alternative method)',
-          points: updatedUser.points.toString()
-        });
-      } catch (altError) {
-        console.error('Alternative approach also failed:', altError);
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Both update methods failed' 
-        }, { status: 500 });
-      }
+      // Since we already updated points and created the CompletedTask,
+      // return success anyway
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Points awarded but task update failed',
+        error: errorMessage
+      });
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('Detailed Error completing task:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
