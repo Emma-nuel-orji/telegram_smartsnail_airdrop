@@ -43,6 +43,7 @@ model CompletedTask {
   taskId      String          
   userId      String   @db.ObjectId
   completedAt DateTime @default(now())
+  points         BigInt          @default(0)
 
   // Define relations
   task Task @relation(fields: [taskId], references: [id])
@@ -66,10 +67,10 @@ model Task {
   isStoryTask   Boolean? @default(false)
   mediaType     String?
   reward        Int?
-  userId        String?  
+   userId        String? @db.ObjectId 
 
   // Relations
-  user          User?            @relation(fields: [userId], references: [id], name: "UserTasks")
+   user          User?  @relation(fields: [userId], references: [id], name: "UserTasks")
   CompletedTask CompletedTask[]
 }
 

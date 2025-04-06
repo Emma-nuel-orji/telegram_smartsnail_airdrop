@@ -81,6 +81,7 @@ export async function POST(request: Request) {
       data: {
         taskId: task.id,
         userId: user.id,
+        points: reward || task.reward || 0,
         completedAt: new Date(),
       },
     });
@@ -128,11 +129,12 @@ export async function POST(request: Request) {
       try {
         console.log('Attempting to update with mongoId...');
         updatedTask = await prisma.task.update({
-          where: { mongoId: String(taskMongoId) },
-          data: {
+          where: { id: taskId },  // Use string ID
+          data: { 
+            userId: user.id,      // This should be the user's ObjectId as string
             completed: true,
-            completedTime: new Date(),
-          },
+            completedTime: new Date()
+          }
         });
         console.log('Update with mongoId successful');
       } catch (err1) {
