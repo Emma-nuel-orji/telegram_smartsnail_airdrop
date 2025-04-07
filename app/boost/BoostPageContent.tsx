@@ -671,13 +671,15 @@ const handlePaymentSuccess = async () => {
           <p>+5 Tapping Rate</p>
           <p>+100,000 Shells per Copy</p>
           <input
-            type="number"
-            value={fxckedUpBagsQty}
-            onChange={(e) => setFxckedUpBagsQty(Number(e.target.value))}
-            placeholder="${totalBooksRemaining} more sales until launch"
-            max={stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed}
-            min={0}
-          />
+              type="number"
+              value={fxckedUpBagsQty || ''} // Show placeholder when 0
+              onChange={(e) => setFxckedUpBagsQty(Number(e.target.value) || 0)}
+              placeholder={`${(
+                stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed +
+                stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed
+              )} more sales until launch`}
+              max={stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed}
+            />
           <span className="counter-text">{`${stockLimit.fxckedUpBagsUsed}/${stockLimit.fxckedUpBagsLimit} sold`}</span>
         </div>
 
@@ -703,11 +705,13 @@ const handlePaymentSuccess = async () => {
           <p>+30,000 Shells per Copy</p>
           <input
             type="number"
-            value={humanRelationsQty}
-            onChange={(e) => setHumanRelationsQty(Number(e.target.value))}
-            placeholder="${totalBooksRemaining} more sales until launch"
+            value={humanRelationsQty || ''} // Show placeholder when 0
+            onChange={(e) => setHumanRelationsQty(Number(e.target.value) || 0)}
+            placeholder={`${(
+              stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed +
+              stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed
+            )} more sales until launch`}
             max={stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed}
-            min={0}
           />
           <span className="counter-text">{`${stockLimit.humanRelationsUsed}/${stockLimit.humanRelationsLimit} sold`}</span>
         </div>

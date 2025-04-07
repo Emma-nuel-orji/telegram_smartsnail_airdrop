@@ -30,7 +30,7 @@ interface BoostProviderProps {
 
 const initialStockLimit: StockLimit = {
   fxckedUpBagsLimit: 10000,
-  humanRelationsLimit: 15000,
+  humanRelationsLimit: 10000,
   fxckedUpBagsUsed: 0,
   humanRelationsUsed: 0,
 };
