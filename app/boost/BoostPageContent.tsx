@@ -57,14 +57,14 @@ interface PurchasePayload {
 }
 
 // Initial Stock Limit
-const INITIAL_STOCK_LIMIT = {
-  fxckedUpBagsLimit: 10000,
-  humanRelationsLimit: 10000,
-  fxckedUpBagsUsed: 0,
-  fxckedUpBags: 0,
-  humanRelationsUsed: 0,
-  humanRelations: 0,
-};
+// const INITIAL_STOCK_LIMIT = {
+//   fxckedUpBagsLimit: 10000,
+//   humanRelationsLimit: 10000,
+//   fxckedUpBagsUsed: 0,
+//   fxckedUpBags: 0,
+//   humanRelationsUsed: 0,
+//   humanRelations: 0,
+// };
 
 // WebSocket server URL
 // const SOCKET_SERVER_URL = "http://localhost:3000"; 
@@ -674,7 +674,7 @@ const handlePaymentSuccess = async () => {
             type="number"
             value={fxckedUpBagsQty}
             onChange={(e) => setFxckedUpBagsQty(Number(e.target.value))}
-            placeholder={`${totalBooksRemaining} more sales until launch`}
+            placeholder="${totalBooksRemaining} more sales until launch"
             max={stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed}
             min={0}
           />
@@ -705,7 +705,7 @@ const handlePaymentSuccess = async () => {
             type="number"
             value={humanRelationsQty}
             onChange={(e) => setHumanRelationsQty(Number(e.target.value))}
-            placeholder={`${totalBooksRemaining} more sales until launch`}
+            placeholder="${totalBooksRemaining} more sales until launch"
             max={stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed}
             min={0}
           />

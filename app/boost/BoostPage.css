@@ -213,10 +213,10 @@ input[type='number']:not(:placeholder-shown)::placeholder {
   animation: spin 1s linear infinite;
 }
 
-::placeholder {
+/* ::placeholder {
   color: red !important;
   opacity: 1 !important;
-}
+} */
 
 @keyframes spin {
   from {
