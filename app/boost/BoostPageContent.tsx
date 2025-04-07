@@ -282,32 +282,32 @@ return () => {
           return;
         }
   
-         // Validate priceTon
-  if (!priceTon || priceTon <= 0) {
-    alert("Invalid payment amount. Please try again.");
-    return;
-  }
-
-  // Validate receiver address
-  // const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS; 
-  const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
-if (!receiverAddress) {
-  console.error("Receiver address is not configured in environment variables.");
-  alert("Receiver address is not configured. Please contact support.");
-  return;
-}
-
-console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
-
-const transaction = {
-  validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
-  messages: [
-    {
-      address: receiverAddress, // Use the validated receiver address
-      amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
-    },
-  ],
-};
+        // Validate priceTon
+        if (!priceTon || priceTon <= 0) {
+          alert("Invalid payment amount. Please try again.");
+          return;
+        }
+  
+        // Validate receiver address
+        // const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS; 
+        const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
+        if (!receiverAddress) {
+          console.error("Receiver address is not configured in environment variables.");
+          alert("Receiver address is not configured. Please contact support.");
+          return;
+        }
+  
+        console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
+  
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
+          messages: [
+            {
+              address: receiverAddress, // Use the validated receiver address
+              amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
+            },
+          ],
+        };
   
         try {
           console.log("4. Sending TON transaction...");
@@ -319,9 +319,9 @@ const transaction = {
           }
   
           console.log("6. Verifying TON transaction with backend...");
-
+  
           const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
-
+  
           const verifyResponse = await axios.post("/api/verify-payment", {
             transactionHash: tonResult.boc,
             paymentMethod: "TON",
@@ -387,11 +387,23 @@ const transaction = {
   
       const orderId = orderResponse.data.orderId;
   
+      // IMPORTANT: Update the stock limits after successful purchase
+      setStockLimit({
+        ...stockLimit,
+        fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
+        humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
+      });
+  
       console.log("11. Purchase successful!");
       handlePaymentSuccess();
-     
+      
+      // Reset quantities after successful purchase
+      setFxckedUpBagsQty(0);
+      setHumanRelationsQty(0);
+      
+      const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
       console.log("Redirecting with userId:", userId);
-
+  
       if (userId) {
         setTimeout(() => {
           router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
@@ -399,7 +411,6 @@ const transaction = {
       } else {
         console.error("User ID is missing. Payment result page might not load correctly.");
       }
-
   
     } catch (error) {
       console.error("Purchase error:", error);
@@ -464,14 +475,24 @@ const transaction = {
         if (initData) {
           headers["x-telegram-init-data"] = initData;
         }
-      } // This closing brace was missing
+      }
   
       const response = await axios.post("/api/paymentByStars", payload, { headers });
   
       if (response.data.invoiceLink) {
+        // IMPORTANT: Update the stock limits after successful purchase with Stars
+        setStockLimit({
+          ...stockLimit,
+          fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
+          humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
+        });
+        
+        // Reset quantities after successful purchase
+        setFxckedUpBagsQty(0);
+        setHumanRelationsQty(0);
+        
         // localStorage.setItem("starsPaymentSuccess", "true");
         window.location.href = response.data.invoiceLink; 
-       
       } else {
         throw new Error("Failed to create payment link");
       }
@@ -655,6 +676,7 @@ const handlePaymentSuccess = async () => {
             onChange={(e) => setFxckedUpBagsQty(Number(e.target.value))}
             placeholder={`${totalBooksRemaining} more sales until launch`}
             max={stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed}
+            min={0}
           />
           <span className="counter-text">{`${stockLimit.fxckedUpBagsUsed}/${stockLimit.fxckedUpBagsLimit} sold`}</span>
         </div>
@@ -685,6 +707,7 @@ const handlePaymentSuccess = async () => {
             onChange={(e) => setHumanRelationsQty(Number(e.target.value))}
             placeholder={`${totalBooksRemaining} more sales until launch`}
             max={stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed}
+            min={0}
           />
           <span className="counter-text">{`${stockLimit.humanRelationsUsed}/${stockLimit.humanRelationsLimit} sold`}</span>
         </div>
