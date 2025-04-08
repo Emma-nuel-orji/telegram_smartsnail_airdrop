@@ -20,7 +20,7 @@ interface UserState {
 interface BoostContextProps {
   stockLimit: StockLimit;
   user: UserState;
-  setStockLimit: (limit: StockLimit) => void;
+  setStockLimit: (limit: StockLimit | ((prev: StockLimit) => StockLimit)) => void;
   setUser: (userData: Partial<UserState>) => void;
 }
 
@@ -65,8 +65,12 @@ export const BoostProvider: React.FC<BoostProviderProps> = ({ children }) => {
     user: initialUser,
   });
 
-  const setStockLimit = (limit: StockLimit) => {
-    dispatch({ type: 'SET_STOCK_LIMIT', payload: limit });
+  const setStockLimit = (update: StockLimit | ((prev: StockLimit) => StockLimit)) => {
+    if (typeof update === 'function') {
+      dispatch({ type: 'SET_STOCK_LIMIT', payload: update(state.stockLimit) });
+    } else {
+      dispatch({ type: 'SET_STOCK_LIMIT', payload: update });
+    }
   };
 
   const setUser = (userData: Partial<UserState>) => {

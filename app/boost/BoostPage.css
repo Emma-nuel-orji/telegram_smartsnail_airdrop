@@ -193,13 +193,14 @@ button:disabled {
 }
 
 input[type='number']::placeholder {
-  color: #ccc; /* Set the color of the placeholder text */
+  color: #ccc;
   opacity: 1; /* Fully visible */
   transition: opacity 0.3s ease-in-out; /* Fade-out effect */
 }
 
 input[type='number']:not(:placeholder-shown)::placeholder {
   opacity: 0; /* Fades out once typing begins */
+  font-size: small;
 }
 
 /* BoostPage.css */
