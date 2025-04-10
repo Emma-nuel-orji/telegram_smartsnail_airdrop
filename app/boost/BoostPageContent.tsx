@@ -11,6 +11,7 @@ import "./BoostPage.css";
 import { useRouter } from "next/navigation";
 import { useWallet } from '../context/walletContext';
 import Confetti from "react-confetti";
+import { useWindowSize } from 'react-use';
 
 // import { generateHMACSignature } from "@/src/utils/paymentUtils"
 
@@ -79,7 +80,9 @@ export default function BoostPageContent() {
   } = useBoostContext();
 
   // State Management
+
   const [showConfetti, setShowConfetti] = useState(false);
+  const { width, height } = useWindowSize();
 const [windowSize, setWindowSize] = useState({
   width: 0,
   height: 0
@@ -406,13 +409,13 @@ return () => {
       const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
       console.log("Redirecting with userId:", userId);
   
-      if (userId) {
-        setTimeout(() => {
-          router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
-        }, 4000);
-      } else {
-        console.error("User ID is missing. Payment result page might not load correctly.");
-      }
+      // if (userId) {
+      //   setTimeout(() => {
+      //     router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
+      //   }, 4000);
+      // } else {
+      //   console.error("User ID is missing. Payment result page might not load correctly.");
+      // }
   
     } catch (error) {
       console.error("Purchase error:", error);
@@ -628,13 +631,20 @@ const handlePaymentSuccess = async () => {
   return (
     <>
     {showConfetti && (
-      <Confetti
-        width={windowSize.width}
-        height={windowSize.height}
-        recycle={false}
-        numberOfPieces={500}
-      />
-    )}
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            pointerEvents: 'none',
+            zIndex: 9999,
+          }}
+        >
+          <Confetti width={width} height={height} />
+        </div>
+      )}
     <div className="boost-page">
       {/* {loading && <Loader />} */}
 

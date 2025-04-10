@@ -196,11 +196,12 @@ input[type='number']::placeholder {
   color: #ccc;
   opacity: 1; /* Fully visible */
   transition: opacity 0.3s ease-in-out; /* Fade-out effect */
+  font-size: 13px;
 }
 
 input[type='number']:not(:placeholder-shown)::placeholder {
   opacity: 0; /* Fades out once typing begins */
-  font-size: x-small;
+  
 }
 
 /* BoostPage.css */
