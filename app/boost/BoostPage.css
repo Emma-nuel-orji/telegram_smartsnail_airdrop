@@ -200,7 +200,7 @@ input[type='number']::placeholder {
 
 input[type='number']:not(:placeholder-shown)::placeholder {
   opacity: 0; /* Fades out once typing begins */
-  font-size: small;
+  font-size: x-small;
 }
 
 /* BoostPage.css */

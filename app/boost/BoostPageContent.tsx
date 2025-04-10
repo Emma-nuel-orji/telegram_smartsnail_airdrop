@@ -271,92 +271,161 @@ return () => {
         return;
       }
   
-      // Store quantities before resetting
-      const purchasedFxckedUp = fxckedUpBagsQty;
-      const purchasedHuman = humanRelationsQty;
-  
-      // TON payment handling (keep your existing logic)
       if (paymentMethod === "TON") {
+        console.log("2. TON payment selected, checking wallet connection");
+        console.log("isConnected:", isConnected);
+        console.log("tonConnectUI:", !!tonConnectUI);
+        console.log("walletAddress:", walletAddress);
+  
         if (!isConnected || !tonConnectUI || !walletAddress) {
           alert("Wallet not connected, go to task 18 to connect wallet.");
           return;
         }
   
-        const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
-        if (!receiverAddress) {
-          alert("Receiver address not configured. Contact support.");
+        // Validate priceTon
+        if (!priceTon || priceTon <= 0) {
+          alert("Invalid payment amount. Please try again.");
           return;
         }
   
+        // Validate receiver address
+        // const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS; 
+        const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
+        if (!receiverAddress) {
+          console.error("Receiver address is not configured in environment variables.");
+          alert("Receiver address is not configured. Please contact support.");
+          return;
+        }
+  
+        console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
+  
         const transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 360,
+          validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
           messages: [
             {
-              address: receiverAddress,
-              amount: String(Math.floor(priceTon * 1e9)),
+              address: receiverAddress, // Use the validated receiver address
+              amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
             },
           ],
         };
   
-        const tonResult = await tonConnectUI.sendTransaction(transaction);
-        if (!tonResult?.boc) throw new Error("Transaction failed");
+        try {
+          console.log("4. Sending TON transaction...");
+          const tonResult = await tonConnectUI.sendTransaction(transaction);
+          console.log("5. TON transaction result:", tonResult);
   
-        await axios.post("/api/verify-payment", {
-          transactionHash: tonResult.boc,
-          paymentMethod: "TON",
-          totalAmount: priceTon,
-          userId: telegramId,
-          fxckedUpBagsQty,
-          humanRelationsQty
-        });
+          if (!tonResult || !tonResult.boc) {
+            throw new Error("Transaction failed or missing data.");
+          }
+  
+          console.log("6. Verifying TON transaction with backend...");
+  
+          const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
+  
+          const verifyResponse = await axios.post("/api/verify-payment", {
+            transactionHash: tonResult.boc,
+            paymentMethod: "TON",
+            totalAmount: priceTon,
+            userId: userId,
+            fxckedUpBagsQty: fxckedUpBagsQty,
+            humanRelationsQty: humanRelationsQty
+          });
+  
+          console.log("7. Verification response:", verifyResponse.data);
+          if (!verifyResponse.data || !verifyResponse.data.success) {
+            throw new Error("Payment verification failed.");
+          }
+  
+          console.log("8. TON payment verified! Now creating order...");
+  
+        } catch (txError) {
+          console.error("TON transaction error:", txError);
+          alert("Transaction failed. Please try again.");
+          return;
+        }
       }
   
       setIsProcessing(true);
   
-      // Update stock IMMEDIATELY
-      setStockLimit({
-        ...stockLimit,
-        fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
-        humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
-      });
-  
-      // Create order
-      const orderResponse = await axios.post("/api/purchase", {
+      const orderPayload = {
         email: purchaseEmail,
-        paymentMethod,
+        paymentMethod: paymentMethod.toUpperCase(),
         bookCount: totalBooks,
-        tappingRate,
-        coinsReward: points,
-        priceTon,
-        priceStars,
-        fxckedUpBagsQty: purchasedFxckedUp,
-        humanRelationsQty: purchasedHuman,
-        telegramId,
-        referrerId,
+        tappingRate: tappingRate,
+        coinsReward: Number(points),
+        priceTon: priceTon,
+        priceStars: priceStars,
+        fxckedUpBagsQty,
+        humanRelationsQty,
+        telegramId: telegramId ? String(telegramId) : '',
+        referrerId: referrerId ? String(referrerId) : '',
         bookIds: [
-          ...(purchasedFxckedUp > 0 ? [fxckedUpBagsId] : []),
-          ...(purchasedHuman > 0 ? [humanRelationsId] : []),
+          ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
+          ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
         ],
+      };
+  
+      console.log("9. Creating order with payload:", orderPayload);
+  
+      const headers = {
+        "Content-Type": "application/json",
+        ...(process.env.NODE_ENV === "production" &&
+        window.Telegram?.WebApp?.initData
+          ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
+          : {}),
+      };
+  
+      const orderResponse = await axios.post("/api/purchase", orderPayload, {
+        headers,
       });
   
-      // Reset quantities
+      console.log("10. Order response:", orderResponse.data);
+  
+      if (!orderResponse.data || !orderResponse.data.orderId) {
+        throw new Error("Invalid response from purchase API");
+      }
+  
+      const orderId = orderResponse.data.orderId;
+      const purchasedFxckedUp = fxckedUpBagsQty;
+      const purchasedHuman = humanRelationsQty;
+  
+      // IMPORTANT: Update the stock limits after successful purchase
+      setStockLimit((prev) => ({
+        ...prev,
+        fxckedUpBagsUsed: prev.fxckedUpBagsUsed + purchasedFxckedUp, // Now using stored value
+        humanRelationsUsed: prev.humanRelationsUsed + purchasedHuman  // Now using stored value
+      }));
+  
+      console.log("11. Purchase successful!");
+      handlePaymentSuccess();
+      
+      // Reset quantities after successful purchase
       setFxckedUpBagsQty(0);
       setHumanRelationsQty(0);
+      
+      const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
+      console.log("Redirecting with userId:", userId);
   
-      handlePaymentSuccess();
-      if (telegramId) {
-        router.push(`/payment-result?orderId=${orderResponse.data.orderId}&userId=${telegramId}`);
+      if (userId) {
+        setTimeout(() => {
+          router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
+        }, 4000);
+      } else {
+        console.error("User ID is missing. Payment result page might not load correctly.");
       }
   
     } catch (error) {
       console.error("Purchase error:", error);
-      alert(axios.isAxiosError(error) 
-        ? `Error: ${error.response?.data?.error || error.message}`
-        : "Purchase failed. Please try again.");
+      if (axios.isAxiosError(error)) {
+        alert(`Purchase failed: ${error.response?.data?.error || error.message}`);
+      } else {
+        alert("Purchase failed. Please try again.");
+      }
     } finally {
       setIsProcessing(false);
     }
   };
+  
   
   
 

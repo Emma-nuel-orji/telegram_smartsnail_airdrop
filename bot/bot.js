@@ -579,11 +579,54 @@ bot.on('callback_query', async (ctx) => {
     }
 });
 
-// Error handling
-bot.catch((err, ctx) => {
-    console.error(`Bot error for ${ctx.updateType}`, err);
-    ctx.reply('An error occurred while processing your request.');
+// // Error handling
+// bot.catch((err, ctx) => {
+//     console.error(`Bot error for ${ctx.updateType}`, err);
+//     ctx.reply('An error occurred while processing your request.');
+// });
+
+
+// Wrap your handlers in try-catch blocks
+bot.command('ping', async (ctx) => {
+    try {
+        console.log('Ping command received');
+        await ctx.reply('Pong! Bot is alive.');
+    } catch (error) {
+        console.error('Error in ping command:', error);
+        // Try to notify about the error but don't throw
+        try {
+            await ctx.reply('Sorry, there was an error processing your command.');
+        } catch (replyError) {
+            console.error('Could not send error message:', replyError);
+        }
+    }
 });
+
+// Add a global error handler
+bot.catch((err, ctx) => {
+    console.error(`Error in bot update ${ctx.updateType}:`, err);
+    // Log detailed information
+    console.error('Update object:', JSON.stringify(ctx.update, null, 2));
+    
+    // Try to notify the user
+    try {
+        ctx.reply('Sorry, an error occurred while processing your request. The error has been logged.');
+    } catch (replyError) {
+        console.error('Failed to send error message:', replyError);
+    }
+});
+
+// Add process-level error handlers
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    // Don't exit the process
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit the process
+});
+
 
 // Start the bot
 bot.launch().then(() => {
