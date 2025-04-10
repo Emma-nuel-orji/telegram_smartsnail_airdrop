@@ -7,6 +7,8 @@ interface StockLimit {
   humanRelationsLimit: number;
   fxckedUpBagsUsed: number;
   humanRelationsUsed: number;
+  fxckedUpBags: number;   
+  humanRelations: number;  
 }
 
 interface UserState {
@@ -33,6 +35,8 @@ const initialStockLimit: StockLimit = {
   humanRelationsLimit: 10000,
   fxckedUpBagsUsed: 0,
   humanRelationsUsed: 0,
+  fxckedUpBags: 0,     
+  humanRelations: 0  
 };
 
 const initialUser: UserState = {

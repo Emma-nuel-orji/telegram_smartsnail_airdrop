@@ -1,68 +1,101 @@
-import { NextRequest, NextResponse } from 'next/server';  // Corrected import from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
-import { books, calculateStock } from '@/src/utils/bookinfo'; // Adjust path as needed
+import { books } from '@/src/utils/bookinfo'; // Removed calculateStock import
 
-// Define a type for the book object
+// Type definitions
 interface Book {
   id: string;
   title: string;
   stockLimit: number;
 }
 
+interface BooksCollection {
+  fxckedUpBags: Book;
+  humanRelations: Book;
+}
+
+// Helper function with enhanced logging
+async function getBookStockData(bookId: keyof BooksCollection) {
+  const book = books[bookId];
+  if (!book) {
+    throw new Error(`Invalid bookId: ${bookId}`);
+  }
+
+  const [assigned, redeemed] = await Promise.all([
+    prisma.generatedCode.count({ where: { bookId: book.id } }),
+    prisma.generatedCode.findMany({ 
+      where: { bookId: book.id },
+      select: { id: true, code: true, isUsed: true } // Only select needed fields
+    })
+  ]);
+  
+  const used = redeemed.filter(code => code.isUsed).length;
+  
+  // Debug log for redeemed codes
+  console.log(`Redeemed codes for ${book.title}:`, {
+    total: redeemed.length,
+    used,
+    sampleCodes: redeemed.slice(0, 3).map(c => c.code) // Show first 3 codes as sample
+  });
+
+  return {
+    id: book.id,
+    title: book.title,
+    stockLimit: book.stockLimit,
+    assigned,
+    used,
+    remaining: book.stockLimit - used
+  };
+}
+
 // GET handler
 export async function GET(req: NextRequest) {
   try {
-    const bookStocks = await Promise.all(
-      Object.values(books).map(async (book: Book) => {
-        const totalAssigned = await prisma.generatedCode.count({
-          where: { bookId: book.id },
-        });
+    const headers = {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    };
 
-        const redeemedCodes = await prisma.generatedCode.findMany({
-          where: { bookId: book.id },
-        });
+    const [fxckedUpData, humanData] = await Promise.all([
+      getBookStockData('fxckedUpBags'),
+      getBookStockData('humanRelations')
+    ]);
 
-        const stockInfo = calculateStock(book, redeemedCodes);
-        console.log(`Stock Calculation for ${book.title}:`, stockInfo); // Debugging
-
-        const usedStock = Number(stockInfo.split('/')[0]); // Ensure correct parsing
-
-        return {
-          id: book.id,
-          title: book.title,
-          stockLimit: book.stockLimit || 10000, // Default limit
-          assigned: totalAssigned,
-          used: usedStock,
-          remaining: book.stockLimit - usedStock,
-        };
-      })
-    );
-
-    // Reduce to aggregate fxckedUpBags & humanRelations
-    const stockData = bookStocks.reduce((acc, book) => {
-      if (book.id === 'fxckedUpBags') {
-        acc.fxckedUpBagsLimit = book.stockLimit;
-        acc.fxckedUpBagsUsed = book.used;
-        acc.fxckedUpBags = book.assigned;
-      } else if (book.id === 'humanRelations') {
-        acc.humanRelationsLimit = book.stockLimit;
-        acc.humanRelationsUsed = book.used;
-        acc.humanRelations = book.assigned;
+    // Consolidated debug log
+    console.log('Stock Summary:', {
+      timestamp: new Date().toISOString(),
+      fxckedUpBags: {
+        used: fxckedUpData.used,
+        limit: fxckedUpData.stockLimit,
+        remaining: fxckedUpData.remaining
+      },
+      humanRelations: {
+        used: humanData.used,
+        limit: humanData.stockLimit,
+        remaining: humanData.remaining
       }
-      return acc;
-    }, {
-      fxckedUpBagsLimit: 10000,
-      humanRelationsLimit: 10000,
-      fxckedUpBagsUsed: 0,
-      humanRelationsUsed: 0,
-      fxckedUpBags: 0,
-      humanRelations: 0,
     });
 
-    return NextResponse.json(stockData);
+    const stockData = {
+      fxckedUpBagsLimit: fxckedUpData.stockLimit,
+      fxckedUpBagsUsed: fxckedUpData.used,
+      fxckedUpBags: fxckedUpData.assigned,
+      humanRelationsLimit: humanData.stockLimit,
+      humanRelationsUsed: humanData.used,
+      humanRelations: humanData.assigned
+    };
+
+    return NextResponse.json(stockData, { headers });
   } catch (error) {
-    console.error('Error fetching stock data:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Stock API Error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    return NextResponse.json(
+      { error: 'Internal Server Error' }, 
+      { status: 500 }
+    );
   }
 }
-

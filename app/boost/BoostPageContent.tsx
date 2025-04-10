@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useEffect, useCallback, useContext, useRef  } from "react";
 import { io } from "socket.io-client";
 import Link from "next/link";
 import axios from "axios";
@@ -149,12 +149,40 @@ useEffect(() => {
   const [message, setMessage] = useState("");
   const [showFuckedUpInfo, setShowFuckedUpInfo] = useState(false);
   const [showHumanRelationsInfo, setShowHumanRelationsInfo] = useState(false);
+  const prevStockRef = useRef(stockLimit);
 
   useEffect(() => {
     console.log("Purchase Email:", purchaseEmail);
     console.log("Redemption Email:", redemptionEmail);
     console.log("Referral Link:", referralLink);
   }, [purchaseEmail, redemptionEmail, referralLink]);
+
+ 
+  useEffect(() => {
+    // Basic snapshot
+    console.log('Current Stock:', {
+      fxckedUp: `${stockLimit.fxckedUpBagsUsed}/${stockLimit.fxckedUpBagsLimit}`,
+      human: `${stockLimit.humanRelationsUsed}/${stockLimit.humanRelationsLimit}`,
+      timestamp: new Date().toISOString()
+    });
+  
+    // Change analysis
+    const prevStock = prevStockRef.current;
+    const changes = {
+      fxckedUp: stockLimit.fxckedUpBagsUsed - prevStock.fxckedUpBagsUsed,
+      human: stockLimit.humanRelationsUsed - prevStock.humanRelationsUsed
+    };
+  
+    if (changes.fxckedUp !== 0 || changes.human !== 0) {
+      console.log('Stock Changes Detected:', {
+        previous: prevStock,
+        changes,
+        timestamp: new Date().toISOString()
+      });
+    }
+  
+    prevStockRef.current = stockLimit;
+  }, [stockLimit]);
 
   // Calculations
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
@@ -205,57 +233,61 @@ const triggerConfetti = () => {
   // Fetch Stock Data
   const fetchStockData = useCallback(async () => {
     try {
-      const stockResponse = await axios.get("/api/stock");
-      console.log("Fetched stock data:", stockResponse.data); // Debugging log
-      setStockLimit(stockResponse.data);
+      const response = await axios.get("/api/stock");
+      console.log("Stock API Response:", response.data);
+      
+      setStockLimit({
+        fxckedUpBagsLimit: response.data.fxckedUpBagsLimit ?? 10000,
+        humanRelationsLimit: response.data.humanRelationsLimit ?? 10000,
+        fxckedUpBagsUsed: response.data.fxckedUpBagsUsed ?? 0,
+        humanRelationsUsed: response.data.humanRelationsUsed ?? 0,
+        fxckedUpBags: response.data.fxckedUpBags ?? 0,
+        humanRelations: response.data.humanRelations ?? 0
+      });
     } catch (error) {
-      console.error("Error fetching stock data:", error);
+      console.error("Error fetching stock:", error);
+      // No retry here - let the interval handle it
     }
   }, [setStockLimit]);
-
+  
   useEffect(() => {
+    // Initialize client data
     const initializeClient = async () => {
       if (typeof window !== 'undefined') {
-        if (WebApp && WebApp.initDataUnsafe) {
-          const telegramUser = WebApp.initDataUnsafe.user;
-          if (telegramUser?.id) {
-            setTelegramId(telegramUser.id.toString());
-          }
+        if (WebApp?.initDataUnsafe?.user?.id) {
+          setTelegramId(WebApp.initDataUnsafe.user.id.toString());
         }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const ref = urlParams.get("ref");
-        if (ref) {
-          setReferrerId(ref);
-        }
-
+  
+        const ref = new URLSearchParams(window.location.search).get("ref");
+        if (ref) setReferrerId(ref);
+  
         setIsClient(true);
-        await fetchStockData();
       }
     };
-
+  
     initializeClient();
-
-    let pollingInterval: NodeJS.Timeout | null = null;
-
+  
+    // Combined polling logic
+    let pollingInterval: NodeJS.Timeout;
+    let retryTimeout: NodeJS.Timeout | undefined; 
+  
     const startPolling = () => {
-      pollingInterval = setInterval(async () => {
-        try {
-          await fetchStockData();
-        } catch (error) {
-          console.error("Polling error:", error);
-        }
-      }, 10000); // Poll every 10 seconds
+      // Immediate first fetch
+      fetchStockData();
+      
+      // Regular polling every 15 seconds
+      pollingInterval = setInterval(fetchStockData, 15000);
     };
-
   
-    
-return () => {
-  if (pollingInterval) clearInterval(pollingInterval);
+    startPolling();
   
-};
-  }, [fetchStockData, telegramId, setStockLimit]);
-  
+    return () => {
+      clearInterval(pollingInterval);
+      if (retryTimeout) { // Only clear if it exists
+        clearTimeout(retryTimeout);
+      }
+    };
+  }, [fetchStockData]);
 
   // Purchase Handler
   const fxckedUpBagsId = "6796dbfa223a935d969d56e6"; 
@@ -408,6 +440,7 @@ return () => {
       
       const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
       console.log("Redirecting with userId:", userId);
+      await fetchStockData();
   
       // if (userId) {
       //   setTimeout(() => {
@@ -499,6 +532,8 @@ return () => {
         // Reset quantities
         setFxckedUpBagsQty(0);
         setHumanRelationsQty(0);
+
+        await fetchStockData();
         
         window.location.href = response.data.invoiceLink; 
       } else {
