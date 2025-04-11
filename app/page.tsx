@@ -136,22 +136,6 @@ export default function Home() {
   };
 
 
-  // const handleClaim = (e: React.MouseEvent) => {
-  //   // Get the position of the click relative to the button
-  //   const rect = e.currentTarget.getBoundingClientRect();
-  //   const x = e.clientX - rect.left;
-  //   const y = e.clientY - rect.top;
-
-  //   setRipplePosition({ x, y });
-  //   setIsClicked(true);
-
-  //   setTimeout(() => setIsClicked(false), 400); // Remove ripple effect after animation
-  //   handleClaim(); // Call your original claim function
-  // };
-
-
-  // const [pendingEnergyReduction, setPendingEnergyReduction] = useState(0);
-  // const energyUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
   
   const lastEnergyReduction = useRef<number>(0); // Track last reduction time
   const ENERGY_REDUCTION_DELAY = 300; // Minimum time between energy reductions (ms)
@@ -174,7 +158,7 @@ export default function Home() {
     
     // Constrain x and y to keep the animation fully within the viewport
     const x = Math.min(Math.max(e.clientX, rect.left + textWidth/2), rect.right - textWidth/2);
-    const y = Math.min(Math.max(e.clientY, rect.top + textHeight/2), rect.bottom - textHeight/2);
+     const y = Math.min(Math.max(e.clientY, rect.top + textHeight/2), rect.bottom - textHeight/2);
 
     const newClick = {
       id: Date.now(),
@@ -300,8 +284,8 @@ const handleClaim = async () => {
       hasClaimedWelcome: true,
     };
 
+    localStorage.setItem(`tg_user_${user.telegramId}`, JSON.stringify(updatedUser));
     setUser(updatedUser);
-    localStorage.setItem("user", JSON.stringify(updatedUser));
     setShowWelcomePopup(false);
     triggerConfetti();
 
@@ -364,123 +348,174 @@ useEffect(() => {
 }, [isClicking, energy, maxEnergy]);
 
   // Initialize Telegram
+  // useEffect(() => {
+  //   const initializeTelegram = async () => {
+  //     setLoading(true);
+  //     const startTime = Date.now();
+  
+  //     try {
+  //       console.log("🚀 Initializing Telegram Mini App...");
+  
+  //       if (!window.Telegram?.WebApp) {
+  //         throw new Error("Telegram WebApp not available");
+  //       }
+  
+  //       const tg = window.Telegram.WebApp;
+  //       tg.ready();
+  
+  //       const userData = tg?.initDataUnsafe?.user;
+  //       if (!userData?.id) {
+  //         throw new Error("Unable to get user information from Telegram");
+  //       }
+  
+  //       console.log(`📲 Telegram User Detected: ${JSON.stringify(userData)}`);
+  
+  //       // Create a unique key for each Telegram account
+  //       const storageKey = `user_${userData.id}`;
+  
+  //       // Check cached data
+  //       const cachedUser = localStorage.getItem(storageKey)
+  //         ? JSON.parse(localStorage.getItem(storageKey) || "{}")
+  //         : null;
+  
+  //       const lastSyncKey = `lastSync_${userData.id}`;
+  //       const lastSync = localStorage.getItem(lastSyncKey);
+  //       const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  
+  //       if (cachedUser && lastSync && Date.now() - parseInt(lastSync, 10) < SYNC_INTERVAL) {
+  //         console.log("✅ Using cached user data:", cachedUser);
+  //         setUser(cachedUser);
+  //         setLoading(false);
+  //       } else {
+  //         console.warn("⚠️ Cached data is missing or outdated. Fetching new data...");
+  //       }
+  
+  //       // Fetch user from server
+  //       console.log(`🔍 Fetching user from server: /api/user/${userData.id}`);
+  //       const response = await fetch(`/api/user/${userData.id}`);
+  
+  //       if (response.ok) {
+  //         const serverUser = await response.json();
+  //         console.log("✅ User fetched from server:", serverUser);
+  
+  //         localStorage.setItem(storageKey, JSON.stringify(serverUser));
+  //         localStorage.setItem(lastSyncKey, Date.now().toString());
+  //         setUser(serverUser);
+  //         if (!serverUser.hasClaimedWelcome) setShowWelcomePopup(true);
+  //       } else {
+  //         console.warn(`⚠️ User not found on server. Response: ${await response.text()}`);
+  
+  //         if (!cachedUser) {
+  //           console.log(`📢 Creating new user with Telegram ID: ${userData.id}`);
+  
+  //           const requestData = {
+  //             telegramId: userData.id.toString(),
+  //             username: userData.username || "",
+  //             first_name: userData.first_name || "",
+  //             last_name: userData.last_name || "",
+  //             points: 0,
+  //             tappingRate: 1,
+  //             hasClaimedWelcome: false,
+  //             nft: false,
+  //           };
+  
+  //           const createResponse = await fetch("/api/user", {
+  //             method: "POST",
+  //             headers: { "Content-Type": "application/json" },
+  //             body: JSON.stringify(requestData),
+  //           });
+  
+  //           if (!createResponse.ok) {
+  //             const errorMessage = await createResponse.text();
+  //             console.error(`❌ Failed to create user:`, errorMessage);
+  //             throw new Error(`HTTP error! status: ${createResponse.status}`);
+  //           }
+  
+  //           const newUser = await createResponse.json();
+  //           console.log("✅ User successfully created:", newUser);
+  
+  //           localStorage.setItem(storageKey, JSON.stringify(newUser));
+  //           localStorage.setItem(lastSyncKey, Date.now().toString());
+  //           setUser(newUser);
+  //           if (!newUser.hasClaimedWelcome) setShowWelcomePopup(true);
+  //         }
+  //       }
+  //     } catch (err) {
+  //       const error = err as Error;
+  //       console.error("❌ Initialization error:", error);
+  //       setError(error.message || "Failed to initialize app");
+  
+  //       const storageKey = `user_${tg?.initDataUnsafe?.user?.id || "unknown"}`;
+  //       const cachedUser = localStorage.getItem(storageKey)
+  //         ? JSON.parse(localStorage.getItem(storageKey) || "{}")
+  //         : null;
+  
+  //       if (cachedUser) {
+  //         console.log("✅ Using fallback cached user data:", cachedUser);
+  //         setUser(cachedUser);
+  //         setError(null);
+  //       }
+  //     } finally {
+  //       const elapsedTime = Date.now() - startTime;
+  //       const remainingTime = Math.max(6000 - elapsedTime, 0);
+  //       setTimeout(() => setLoading(false), remainingTime);
+  //     }
+  //   };
+  
+  //   initializeTelegram();
+  // }, []);
+  
   useEffect(() => {
     const initializeTelegram = async () => {
       setLoading(true);
-      const startTime = Date.now();
+      
+      if (!window.Telegram?.WebApp) {
+        setLoading(false);
+        return;
+      }
+  
+      const tg = window.Telegram.WebApp;
+      const tgUser = tg.initDataUnsafe?.user;
+      
+      if (!tgUser?.id) {
+        setLoading(false);
+        return;
+      }
+  
+      // Create account-specific storage keys
+      const storageKey = `tg_user_${tgUser.id}`;
+      const lastSyncKey = `tg_lastSync_${tgUser.id}`;
+      setTelegramId(tgUser.id.toString());
   
       try {
-        console.log("🚀 Initializing Telegram Mini App...");
-  
-        if (!window.Telegram?.WebApp) {
-          throw new Error("Telegram WebApp not available");
-        }
-  
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-  
-        const userData = tg?.initDataUnsafe?.user;
-        if (!userData?.id) {
-          throw new Error("Unable to get user information from Telegram");
-        }
-  
-        console.log(`📲 Telegram User Detected: ${JSON.stringify(userData)}`);
-  
-        // Create a unique key for each Telegram account
-        const storageKey = `user_${userData.id}`;
-  
-        // Check cached data
-        const cachedUser = localStorage.getItem(storageKey)
-          ? JSON.parse(localStorage.getItem(storageKey) || "{}")
-          : null;
-  
-        const lastSyncKey = `lastSync_${userData.id}`;
+        // Check cached data first
+        const cachedData = localStorage.getItem(storageKey);
         const lastSync = localStorage.getItem(lastSyncKey);
-        const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
-  
-        if (cachedUser && lastSync && Date.now() - parseInt(lastSync, 10) < SYNC_INTERVAL) {
-          console.log("✅ Using cached user data:", cachedUser);
-          setUser(cachedUser);
+        
+        if (cachedData && lastSync && Date.now() - parseInt(lastSync) < 300000) {
+          setUser(JSON.parse(cachedData));
           setLoading(false);
-        } else {
-          console.warn("⚠️ Cached data is missing or outdated. Fetching new data...");
+          return;
         }
   
-        // Fetch user from server
-        console.log(`🔍 Fetching user from server: /api/user/${userData.id}`);
-        const response = await fetch(`/api/user/${userData.id}`);
-  
-        if (response.ok) {
-          const serverUser = await response.json();
-          console.log("✅ User fetched from server:", serverUser);
-  
-          localStorage.setItem(storageKey, JSON.stringify(serverUser));
-          localStorage.setItem(lastSyncKey, Date.now().toString());
-          setUser(serverUser);
-          if (!serverUser.hasClaimedWelcome) setShowWelcomePopup(true);
-        } else {
-          console.warn(`⚠️ User not found on server. Response: ${await response.text()}`);
-  
-          if (!cachedUser) {
-            console.log(`📢 Creating new user with Telegram ID: ${userData.id}`);
-  
-            const requestData = {
-              telegramId: userData.id.toString(),
-              username: userData.username || "",
-              first_name: userData.first_name || "",
-              last_name: userData.last_name || "",
-              points: 0,
-              tappingRate: 1,
-              hasClaimedWelcome: false,
-              nft: false,
-            };
-  
-            const createResponse = await fetch("/api/user", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(requestData),
-            });
-  
-            if (!createResponse.ok) {
-              const errorMessage = await createResponse.text();
-              console.error(`❌ Failed to create user:`, errorMessage);
-              throw new Error(`HTTP error! status: ${createResponse.status}`);
-            }
-  
-            const newUser = await createResponse.json();
-            console.log("✅ User successfully created:", newUser);
-  
-            localStorage.setItem(storageKey, JSON.stringify(newUser));
-            localStorage.setItem(lastSyncKey, Date.now().toString());
-            setUser(newUser);
-            if (!newUser.hasClaimedWelcome) setShowWelcomePopup(true);
-          }
-        }
-      } catch (err) {
-        const error = err as Error;
-        console.error("❌ Initialization error:", error);
-        setError(error.message || "Failed to initialize app");
-  
-        const storageKey = `user_${tg?.initDataUnsafe?.user?.id || "unknown"}`;
-        const cachedUser = localStorage.getItem(storageKey)
-          ? JSON.parse(localStorage.getItem(storageKey) || "{}")
-          : null;
-  
-        if (cachedUser) {
-          console.log("✅ Using fallback cached user data:", cachedUser);
-          setUser(cachedUser);
-          setError(null);
-        }
+        // Fetch fresh data from server
+        const response = await axios.get(`/api/user/${tgUser.id}`);
+        const userData = response.data;
+        
+        // Update storage with account-specific keys
+        localStorage.setItem(storageKey, JSON.stringify(userData));
+        localStorage.setItem(lastSyncKey, Date.now().toString());
+        setUser(userData);
+        
+      } catch (error) {
+        console.error("Error initializing user:", error);
       } finally {
-        const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(6000 - elapsedTime, 0);
-        setTimeout(() => setLoading(false), remainingTime);
+        setLoading(false);
       }
     };
   
     initializeTelegram();
   }, []);
-  
 
   // Load stored data effect
   useEffect(() => {
@@ -781,13 +816,13 @@ useEffect(() => {
     {clicks.map((click) => (
       <div
         key={click.id}
-        className="absolute text-5xl font-bold text-white opacity-0 pointer-events-none"
+        className="absolute text-5xl font-bold text-white opacity-0 pointer-events-none z-50"
         style={{
           top: `${click.y - 42}px`,
           left: `${click.x - 28}px`,
           animation: 'float 1s ease-out',
           willChange: 'transform, opacity',
-          zIndex: 10,
+          // zIndex: 10,
         }}
         onAnimationEnd={() => handleAnimationEnd(click.id)}
       >
