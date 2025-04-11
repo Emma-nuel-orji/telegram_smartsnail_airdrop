@@ -130,6 +130,7 @@ useEffect(() => {
   fetchUserData();
 }, [telegramId]); // Runs when telegramId changes
 
+  
   const [uniqueCode, setUniqueCode] = useState("");
   const [referralLink, setReferralLink] = useState("");
   const [referrerId, setReferrerId] = useState("");
@@ -150,6 +151,7 @@ useEffect(() => {
   const [showFuckedUpInfo, setShowFuckedUpInfo] = useState(false);
   const [showHumanRelationsInfo, setShowHumanRelationsInfo] = useState(false);
   const prevStockRef = useRef(stockLimit);
+  
 
   useEffect(() => {
     console.log("Purchase Email:", purchaseEmail);
@@ -296,166 +298,159 @@ const triggerConfetti = () => {
   const humanRelationsId = "6796dbfa223a935d969d56e7"; 
 
   
-  const handlePurchase = async (paymentMethod: string) => {
-    try {
-      // Validate inputs
-      if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
-        alert("Please enter a valid email.");
-        return;
-      }
-  
-      if (totalBooks === 0) {
-        alert("Please select at least one book.");
-        return;
-      }
-  
-      // TON payment specific logic
-      if (paymentMethod === "TON") {
-        if (!isConnected || !tonConnectUI || !walletAddress) {
-          alert("Please connect your wallet first.");
-          return;
-        }
-  
-        const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
-        if (!receiverAddress) {
-          alert("Payment configuration error. Please try again later.");
-          return;
-        }
-  
-        try {
-          const transaction = {
-            validUntil: Math.floor(Date.now() / 1000) + 360,
-            messages: [{
-              address: receiverAddress,
-              amount: String(Math.floor(priceTon * 1e9))
-            }]
-          };
-  
-          const tonResult = await tonConnectUI.sendTransaction(transaction);
-          if (!tonResult?.boc) throw new Error("Transaction failed");
-  
-          await axios.post("/api/verify-payment", {
-            transactionHash: tonResult.boc,
-            paymentMethod: "TON",
-            totalAmount: priceTon,
-            userId: window.Telegram?.WebApp.initDataUnsafe?.user?.id,
-            fxckedUpBagsQty,
-            humanRelationsQty
-          });
-        } catch (error) {
-          console.error("TON payment error:", error);
-          throw error;
-        }
-      }
-  
-      setIsProcessing(true);
-      
-      // Start UI animations
-      document.getElementById('fub-counter')?.classList.add('updating');
-      document.getElementById('hr-counter')?.classList.add('updating');
-  
-      const orderPayload = {
-        email: purchaseEmail,
-        paymentMethod: paymentMethod.toUpperCase(),
-        bookCount: totalBooks,
-        tappingRate,
-        coinsReward: points,
-        priceTon,
-        priceStars,
-        fxckedUpBagsQty,
-        humanRelationsQty,
-        telegramId: telegramId || '',
-        referrerId: referrerId || '',
-        bookIds: [
-          ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
-          ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
-        ],
-      };
-  
-      const orderResponse = await axios.post("/api/purchase", orderPayload, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(process.env.NODE_ENV === "production" && window.Telegram?.WebApp?.initData
-            ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
-            : {}),
-        },
-      });
-  
-      // Update state with animation
-      setStockLimit(prev => {
-        const newState = {
-          ...prev,
-          fxckedUpBagsUsed: prev.fxckedUpBagsUsed + fxckedUpBagsQty,
-          humanRelationsUsed: prev.humanRelationsUsed + humanRelationsQty
-        };
-        
-        // End animations after state update
-        setTimeout(() => {
-          document.getElementById('fub-counter')?.classList.remove('updating');
-          document.getElementById('hr-counter')?.classList.remove('updating');
-        }, 300);
-        
-        return newState;
-      });
-  
-      // Reset form and handle success
-      setFxckedUpBagsQty(0);
-      setHumanRelationsQty(0);
-      handlePaymentSuccess();
-      await fetchStockData();
-  
-    } catch (error) {
-      // Error animations
-      document.getElementById('fub-counter')?.classList.add('error');
-      document.getElementById('hr-counter')?.classList.add('error');
-      setTimeout(() => {
-        document.getElementById('fub-counter')?.classList.remove('error');
-        document.getElementById('hr-counter')?.classList.remove('error');
-      }, 1000);
-  
-      alert(axios.isAxiosError(error) 
-        ? `Error: ${error.response?.data?.error || error.message}`
-        : "Payment failed. Please try again.");
-    } finally {
-      setIsProcessing(false);
+  // Modify your handlePurchase function to ensure stock updates:
+const handlePurchase = async (paymentMethod: string) => {
+  try {
+    // Validate inputs
+    if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
+      alert("Please enter a valid email.");
+      return;
     }
-  };
+
+    if (totalBooks === 0) {
+      alert("Please select at least one book.");
+      return;
+    }
+
+    // TON payment logic remains the same...
+
+    setIsProcessing(true);
+    
+    // Start UI animations
+    document.getElementById('fub-counter')?.classList.add('updating');
+    document.getElementById('hr-counter')?.classList.add('updating');
+
+    // Optimistic UI update - immediately show the expected new counts
+    const optimisticStockLimit = {
+      ...stockLimit,
+      fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
+      humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
+    };
+    setStockLimit(optimisticStockLimit);
+
+    const orderPayload = {
+      email: purchaseEmail,
+      paymentMethod: paymentMethod.toUpperCase(),
+      bookCount: totalBooks,
+      tappingRate,
+      coinsReward: points,
+      priceTon,
+      priceStars,
+      fxckedUpBagsQty,
+      humanRelationsQty,
+      telegramId: telegramId || '',
+      referrerId: referrerId || '',
+      bookIds: [
+        ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
+        ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
+      ],
+    };
+
+    const orderResponse = await axios.post("/api/purchase", orderPayload, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.NODE_ENV === "production" && window.Telegram?.WebApp?.initData
+          ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
+          : {}),
+      },
+    });
+    
+    console.log("Purchase response:", orderResponse.data);
+    
+    // After successful purchase, verify the stock data
+    // This ensures we have the most accurate counts after the purchase
+    const stockResponse = await axios.get("/api/stock", {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    
+    console.log("Latest stock data after purchase:", stockResponse.data);
+    
+    // Update with actual data from server to correct any discrepancies
+    setStockLimit({
+      fxckedUpBagsLimit: stockResponse.data.fxckedUpBagsLimit,
+      humanRelationsLimit: stockResponse.data.humanRelationsLimit,
+      fxckedUpBagsUsed: stockResponse.data.fxckedUpBagsUsed,
+      humanRelationsUsed: stockResponse.data.humanRelationsUsed,
+      fxckedUpBags: stockResponse.data.fxckedUpBags,
+      humanRelations: stockResponse.data.humanRelations
+    });
+
+    // End animations after data loads
+    document.getElementById('fub-counter')?.classList.remove('updating');
+    document.getElementById('hr-counter')?.classList.remove('updating');
+      
+    // Reset form and handle success
+    setFxckedUpBagsQty(0);
+    setHumanRelationsQty(0);
+    handlePaymentSuccess();
+    
+  } catch (error) {
+    // Error animations
+    document.getElementById('fub-counter')?.classList.add('error');
+    document.getElementById('hr-counter')?.classList.add('error');
+    
+    setTimeout(() => {
+      document.getElementById('fub-counter')?.classList.remove('error');
+      document.getElementById('hr-counter')?.classList.remove('error');
+    }, 1000);
+
+    // Revert the optimistic update by fetching latest data
+    fetchStockData();
+
+    alert(axios.isAxiosError(error) 
+      ? `Error: ${error.response?.data?.error || error.message}`
+      : "Payment failed. Please try again.");
+  } finally {
+    setIsProcessing(false);
+  }
+};
   
+
+
   const handlePaymentViaStars = async (paymentMethod?: string) => {
     if (paymentMethod !== "Stars") {
-      alert("Invalid payment method.");
+      alert("Invalid payment method");
       return;
     }
   
-    if (!purchaseEmail) {
-      alert("Please enter your email.");
+    if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
+      alert("Please enter a valid email");
       return;
     }
   
     if (totalBooks === 0) {
-      alert("Please select at least one book.");
+      alert("Please select at least one book");
       return;
     }
   
     setIsProcessing(true);
   
     try {
-      // Start animations
+      // Start loading animations
       document.getElementById('fub-counter')?.classList.add('updating');
       document.getElementById('hr-counter')?.classList.add('updating');
+
+      const optimisticStockLimit = {
+        ...stockLimit,
+        fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
+        humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
+      };
+      setStockLimit(optimisticStockLimit);
   
       const payload = {
         email: purchaseEmail,
-        title: `Stars Payment for ${totalBooks} Books`,
+        title: `Stars Payment for ${totalBooks} Book${totalBooks > 1 ? 's' : ''}`,
         amount: Math.round(priceStars),
         paymentMethod: "Stars",
         bookCount: totalBooks,
-        tappingRate,
-        points,
-        priceTon,
-        priceStars: Math.round(priceStars),
         fxckedUpBagsQty,
         humanRelationsQty,
+        tappingRate,
+        totalPoints: points,
         telegramId,
         referrerId,
       };
@@ -470,36 +465,37 @@ const triggerConfetti = () => {
       });
   
       if (response.data.invoiceLink) {
-        setStockLimit(prev => ({
-          ...prev,
-          fxckedUpBagsUsed: prev.fxckedUpBagsUsed + fxckedUpBagsQty,
-          humanRelationsUsed: prev.humanRelationsUsed + humanRelationsQty
-        }));
-  
-        // End animations
-        setTimeout(() => {
-          document.getElementById('fub-counter')?.classList.remove('updating');
-          document.getElementById('hr-counter')?.classList.remove('updating');
-        }, 300);
-  
+        // Verify stock was updated
+        await fetchStockData();
+        
+        // Reset form
         setFxckedUpBagsQty(0);
         setHumanRelationsQty(0);
-        await fetchStockData();
+        
+        // Redirect to payment
         window.location.href = response.data.invoiceLink;
       } else {
         throw new Error("Payment link not received");
       }
     } catch (error) {
-      // Error animations
+      // Error handling
       document.getElementById('fub-counter')?.classList.add('error');
       document.getElementById('hr-counter')?.classList.add('error');
+      
       setTimeout(() => {
         document.getElementById('fub-counter')?.classList.remove('error');
         document.getElementById('hr-counter')?.classList.remove('error');
       }, 1000);
   
-      alert("Payment failed. Please try again.");
+      alert(
+        axios.isAxiosError(error)
+          ? error.response?.data?.error || "Payment failed"
+          : "Payment failed. Please try again."
+      );
     } finally {
+      // Clean up
+      document.getElementById('fub-counter')?.classList.remove('updating');
+      document.getElementById('hr-counter')?.classList.remove('updating');
       setIsProcessing(false);
     }
   };

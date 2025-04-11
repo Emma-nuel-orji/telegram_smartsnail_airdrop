@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
-import { books } from '@/src/utils/bookinfo'; // Removed calculateStock import
+import { books } from '@/src/utils/bookinfo';
 
-// Type definitions
 interface Book {
   id: string;
   title: string;
@@ -14,68 +13,70 @@ interface BooksCollection {
   humanRelations: Book;
 }
 
-// Helper function with enhanced logging
+interface PurchaseAggregateResult {
+  _sum: {
+    fxckedUpBagsQty: number | null;
+    humanRelationsQty: number | null;
+  };
+}
+
 async function getBookStockData(bookId: keyof BooksCollection) {
   const book = books[bookId];
   if (!book) {
     throw new Error(`Invalid bookId: ${bookId}`);
   }
 
-  const [assigned, redeemed] = await Promise.all([
+  // Type-safe aggregation query
+  const purchases = await prisma.purchase.aggregate({
+    where: {
+      OR: [
+        { fxckedUpBagsQty: { gt: 0 } },
+        { humanRelationsQty: { gt: 0 } }
+      ]
+    },
+    _sum: {
+      fxckedUpBagsQty: true,
+      humanRelationsQty: true
+    }
+  }) as PurchaseAggregateResult;
+
+  // Get code counts
+  const [totalCodes, usedCodes] = await Promise.all([
     prisma.generatedCode.count({ where: { bookId: book.id } }),
-    prisma.generatedCode.findMany({ 
-      where: { bookId: book.id },
-      select: { id: true, code: true, isUsed: true } // Only select needed fields
-    })
+    prisma.generatedCode.count({ where: { bookId: book.id, isUsed: true } })
   ]);
-  
-  const used = redeemed.filter(code => code.isUsed).length;
-  
-  // Debug log for redeemed codes
-  console.log(`Redeemed codes for ${book.title}:`, {
-    total: redeemed.length,
-    used,
-    sampleCodes: redeemed.slice(0, 3).map(c => c.code) // Show first 3 codes as sample
+
+  // Type-safe quantity calculation
+  const totalPurchased = bookId === 'fxckedUpBags' 
+    ? purchases._sum.fxckedUpBagsQty ?? 0 
+    : purchases._sum.humanRelationsQty ?? 0;
+
+  const actualUsed = Math.max(totalPurchased, usedCodes);
+
+  console.log(`Stock data for ${book.title}:`, {
+    totalCodes,
+    usedCodes,
+    totalPurchased,
+    actualUsed,
+    remaining: book.stockLimit - actualUsed
   });
 
   return {
     id: book.id,
     title: book.title,
     stockLimit: book.stockLimit,
-    assigned,
-    used,
-    remaining: book.stockLimit - used
+    assigned: totalCodes,
+    used: actualUsed,
+    remaining: book.stockLimit - actualUsed
   };
 }
 
-// GET handler
 export async function GET(req: NextRequest) {
   try {
-    const headers = {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    };
-
     const [fxckedUpData, humanData] = await Promise.all([
       getBookStockData('fxckedUpBags'),
       getBookStockData('humanRelations')
     ]);
-
-    // Consolidated debug log
-    console.log('Stock Summary:', {
-      timestamp: new Date().toISOString(),
-      fxckedUpBags: {
-        used: fxckedUpData.used,
-        limit: fxckedUpData.stockLimit,
-        remaining: fxckedUpData.remaining
-      },
-      humanRelations: {
-        used: humanData.used,
-        limit: humanData.stockLimit,
-        remaining: humanData.remaining
-      }
-    });
 
     const stockData = {
       fxckedUpBagsLimit: fxckedUpData.stockLimit,
@@ -83,18 +84,26 @@ export async function GET(req: NextRequest) {
       fxckedUpBags: fxckedUpData.assigned,
       humanRelationsLimit: humanData.stockLimit,
       humanRelationsUsed: humanData.used,
-      humanRelations: humanData.assigned
+      humanRelations: humanData.assigned,
+      timestamp: new Date().toISOString()
     };
 
-    return NextResponse.json(stockData, { headers });
+    return NextResponse.json(stockData, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     console.error('Stock API Error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
     });
+    
     return NextResponse.json(
-      { error: 'Internal Server Error' }, 
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

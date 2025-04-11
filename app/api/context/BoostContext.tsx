@@ -1,20 +1,17 @@
 'use client';
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 
-// Define the shape of the stock limit and user state
 interface StockLimit {
   fxckedUpBagsLimit: number;
   humanRelationsLimit: number;
   fxckedUpBagsUsed: number;
   humanRelationsUsed: number;
-  fxckedUpBags: number;   
-  humanRelations: number;  
+  fxckedUpBags: number;
+  humanRelations: number;
 }
 
 interface UserState {
   telegramId: string | null;
-  // email: string;
-  // purchaseEmail: string;
   fxckedUpBagsQty: number;
   humanRelationsQty: number;
 }
@@ -24,6 +21,7 @@ interface BoostContextProps {
   user: UserState;
   setStockLimit: (limit: StockLimit | ((prev: StockLimit) => StockLimit)) => void;
   setUser: (userData: Partial<UserState>) => void;
+  syncStock: () => Promise<void>;
 }
 
 interface BoostProviderProps {
@@ -35,22 +33,18 @@ const initialStockLimit: StockLimit = {
   humanRelationsLimit: 10000,
   fxckedUpBagsUsed: 0,
   humanRelationsUsed: 0,
-  fxckedUpBags: 0,     
-  humanRelations: 0  
+  fxckedUpBags: 0,
+  humanRelations: 0
 };
 
 const initialUser: UserState = {
   telegramId: null,
-  // email: '',
-  // purchaseEmail: '',
   fxckedUpBagsQty: 0,
   humanRelationsQty: 0,
 };
 
-// Create Context
 const BoostContext = createContext<BoostContextProps | undefined>(undefined);
 
-// Reducer for state management
 const reducer = (state: any, action: any) => {
   switch (action.type) {
     case 'SET_STOCK_LIMIT':
@@ -62,7 +56,6 @@ const reducer = (state: any, action: any) => {
   }
 };
 
-// Context Provider Component
 export const BoostProvider: React.FC<BoostProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, {
     stockLimit: initialStockLimit,
@@ -81,14 +74,32 @@ export const BoostProvider: React.FC<BoostProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_USER', payload: userData });
   };
 
+  const syncStock = async () => {
+    try {
+      const response = await fetch('/api/stock');
+      const data = await response.json();
+      setStockLimit(data);
+    } catch (error) {
+      console.error('Failed to sync stock:', error);
+      throw error;
+    }
+  };
+
   return (
-    <BoostContext.Provider value={{ stockLimit: state.stockLimit, user: state.user, setStockLimit, setUser }}>
+    <BoostContext.Provider
+      value={{
+        stockLimit: state.stockLimit,
+        user: state.user,
+        setStockLimit,
+        setUser,
+        syncStock
+      }}
+    >
       {children}
     </BoostContext.Provider>
   );
 };
 
-// Custom hook for accessing BoostContext
 export const useBoostContext = () => {
   const context = useContext(BoostContext);
   if (!context) {
