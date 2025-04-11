@@ -708,12 +708,21 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
   ) {
     const MAX_RETRIES = 3;
 
+    
+
     const purchasedBooks: { bookId: string; quantity: number }[] = [];
   for (const { id, qty } of booksToPurchase) {
     if (!id) continue;
     const book = await tx.book.findFirst({ where: { id } });
     if (!book) throw new Error(`Book with ID "${id}" not found.`);
     purchasedBooks.push({ bookId: book.id, quantity: qty });
+  }
+  
+  for (const { id, qty } of booksToPurchase) {
+    await tx.book.update({
+      where: { id },
+      data: { usedStock: { increment: qty } }  // Atomic increment
+    });
   }
 
       // Fetch or create user
