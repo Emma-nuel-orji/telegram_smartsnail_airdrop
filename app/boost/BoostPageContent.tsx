@@ -166,6 +166,8 @@ useEffect(() => {
       timestamp: new Date().toISOString()
     });
   
+    
+
     // Change analysis
     const prevStock = prevStockRef.current;
     const changes = {
@@ -296,252 +298,207 @@ const triggerConfetti = () => {
   
   const handlePurchase = async (paymentMethod: string) => {
     try {
+      // Validate inputs
       if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
-        alert("Please enter a valid email to proceed with the purchase.");
+        alert("Please enter a valid email.");
         return;
       }
   
       if (totalBooks === 0) {
-        alert("Please select at least one book to purchase.");
+        alert("Please select at least one book.");
         return;
       }
   
+      // TON payment specific logic
       if (paymentMethod === "TON") {
-        console.log("2. TON payment selected, checking wallet connection");
-        console.log("isConnected:", isConnected);
-        console.log("tonConnectUI:", !!tonConnectUI);
-        console.log("walletAddress:", walletAddress);
-  
         if (!isConnected || !tonConnectUI || !walletAddress) {
-          alert("Wallet not connected, go to task 18 to connect wallet.");
+          alert("Please connect your wallet first.");
           return;
         }
   
-        // Validate priceTon
-        if (!priceTon || priceTon <= 0) {
-          alert("Invalid payment amount. Please try again.");
-          return;
-        }
-  
-        // Validate receiver address
-        // const receiverAddress = process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS; 
         const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
         if (!receiverAddress) {
-          console.error("Receiver address is not configured in environment variables.");
-          alert("Receiver address is not configured. Please contact support.");
+          alert("Payment configuration error. Please try again later.");
           return;
         }
   
-        console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
-  
-        const transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
-          messages: [
-            {
-              address: receiverAddress, // Use the validated receiver address
-              amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
-            },
-          ],
-        };
-  
         try {
-          console.log("4. Sending TON transaction...");
+          const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 360,
+            messages: [{
+              address: receiverAddress,
+              amount: String(Math.floor(priceTon * 1e9))
+            }]
+          };
+  
           const tonResult = await tonConnectUI.sendTransaction(transaction);
-          console.log("5. TON transaction result:", tonResult);
+          if (!tonResult?.boc) throw new Error("Transaction failed");
   
-          if (!tonResult || !tonResult.boc) {
-            throw new Error("Transaction failed or missing data.");
-          }
-  
-          console.log("6. Verifying TON transaction with backend...");
-  
-          const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
-  
-          const verifyResponse = await axios.post("/api/verify-payment", {
+          await axios.post("/api/verify-payment", {
             transactionHash: tonResult.boc,
             paymentMethod: "TON",
             totalAmount: priceTon,
-            userId: userId,
-            fxckedUpBagsQty: fxckedUpBagsQty,
-            humanRelationsQty: humanRelationsQty
+            userId: window.Telegram?.WebApp.initDataUnsafe?.user?.id,
+            fxckedUpBagsQty,
+            humanRelationsQty
           });
-  
-          console.log("7. Verification response:", verifyResponse.data);
-          if (!verifyResponse.data || !verifyResponse.data.success) {
-            throw new Error("Payment verification failed.");
-          }
-  
-          console.log("8. TON payment verified! Now creating order...");
-  
-        } catch (txError) {
-          console.error("TON transaction error:", txError);
-          alert("Transaction failed. Please try again.");
-          return;
+        } catch (error) {
+          console.error("TON payment error:", error);
+          throw error;
         }
       }
   
       setIsProcessing(true);
+      
+      // Start UI animations
+      document.getElementById('fub-counter')?.classList.add('updating');
+      document.getElementById('hr-counter')?.classList.add('updating');
   
       const orderPayload = {
         email: purchaseEmail,
         paymentMethod: paymentMethod.toUpperCase(),
         bookCount: totalBooks,
-        tappingRate: tappingRate,
-        coinsReward: Number(points),
-        priceTon: priceTon,
-        priceStars: priceStars,
+        tappingRate,
+        coinsReward: points,
+        priceTon,
+        priceStars,
         fxckedUpBagsQty,
         humanRelationsQty,
-        telegramId: telegramId ? String(telegramId) : '',
-        referrerId: referrerId ? String(referrerId) : '',
+        telegramId: telegramId || '',
+        referrerId: referrerId || '',
         bookIds: [
           ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
           ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
         ],
       };
   
-      console.log("9. Creating order with payload:", orderPayload);
-  
-      const headers = {
-        "Content-Type": "application/json",
-        ...(process.env.NODE_ENV === "production" &&
-        window.Telegram?.WebApp?.initData
-          ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
-          : {}),
-      };
-  
       const orderResponse = await axios.post("/api/purchase", orderPayload, {
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.NODE_ENV === "production" && window.Telegram?.WebApp?.initData
+            ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
+            : {}),
+        },
       });
   
-      console.log("10. Order response:", orderResponse.data);
+      // Update state with animation
+      setStockLimit(prev => {
+        const newState = {
+          ...prev,
+          fxckedUpBagsUsed: prev.fxckedUpBagsUsed + fxckedUpBagsQty,
+          humanRelationsUsed: prev.humanRelationsUsed + humanRelationsQty
+        };
+        
+        // End animations after state update
+        setTimeout(() => {
+          document.getElementById('fub-counter')?.classList.remove('updating');
+          document.getElementById('hr-counter')?.classList.remove('updating');
+        }, 300);
+        
+        return newState;
+      });
   
-      if (!orderResponse.data || !orderResponse.data.orderId) {
-        throw new Error("Invalid response from purchase API");
-      }
-  
-      const orderId = orderResponse.data.orderId;
-      const purchasedFxckedUp = fxckedUpBagsQty;
-      const purchasedHuman = humanRelationsQty;
-  
-      // IMPORTANT: Update the stock limits after successful purchase
-      setStockLimit((prev) => ({
-        ...prev,
-        fxckedUpBagsUsed: prev.fxckedUpBagsUsed + purchasedFxckedUp, // Now using stored value
-        humanRelationsUsed: prev.humanRelationsUsed + purchasedHuman  // Now using stored value
-      }));
-  
-      console.log("11. Purchase successful!");
-      handlePaymentSuccess();
-      
-      // Reset quantities after successful purchase
+      // Reset form and handle success
       setFxckedUpBagsQty(0);
       setHumanRelationsQty(0);
-      
-      const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
-      console.log("Redirecting with userId:", userId);
+      handlePaymentSuccess();
       await fetchStockData();
   
-      // if (userId) {
-      //   setTimeout(() => {
-      //     router.push(`/payment-result?orderId=${orderId}&userId=${userId}`);
-      //   }, 4000);
-      // } else {
-      //   console.error("User ID is missing. Payment result page might not load correctly.");
-      // }
-  
     } catch (error) {
-      console.error("Purchase error:", error);
-      if (axios.isAxiosError(error)) {
-        alert(`Purchase failed: ${error.response?.data?.error || error.message}`);
-      } else {
-        alert("Purchase failed. Please try again.");
-      }
+      // Error animations
+      document.getElementById('fub-counter')?.classList.add('error');
+      document.getElementById('hr-counter')?.classList.add('error');
+      setTimeout(() => {
+        document.getElementById('fub-counter')?.classList.remove('error');
+        document.getElementById('hr-counter')?.classList.remove('error');
+      }, 1000);
+  
+      alert(axios.isAxiosError(error) 
+        ? `Error: ${error.response?.data?.error || error.message}`
+        : "Payment failed. Please try again.");
     } finally {
       setIsProcessing(false);
     }
   };
   
-  
-  
-
-
   const handlePaymentViaStars = async (paymentMethod?: string) => {
     if (paymentMethod !== "Stars") {
       alert("Invalid payment method.");
       return;
     }
   
-    // Validation checks
     if (!purchaseEmail) {
-      alert("Please enter your email to proceed with the payment.");
+      alert("Please enter your email.");
       return;
     }
   
     if (totalBooks === 0) {
-      alert("Please select at least one book to purchase.");
+      alert("Please select at least one book.");
       return;
     }
   
     setIsProcessing(true);
   
     try {
-      // Store quantities before resetting
-      const purchasedFxckedUp = fxckedUpBagsQty;
-      const purchasedHuman = humanRelationsQty;
+      // Start animations
+      document.getElementById('fub-counter')?.classList.add('updating');
+      document.getElementById('hr-counter')?.classList.add('updating');
   
-      const payload = JSON.stringify({  
+      const payload = {
         email: purchaseEmail,
         title: `Stars Payment for ${totalBooks} Books`,
-        description: `Stars payment includes ${purchasedFxckedUp} FxckedUpBags and ${purchasedHuman} Human Relations books.`,
-        amount: Math.round(priceStars),  
-        label: "SMARTSNAIL Stars Payment",
+        amount: Math.round(priceStars),
         paymentMethod: "Stars",
         bookCount: totalBooks,
         tappingRate,
         points,
         priceTon,
-        priceStars: Math.round(priceStars), 
-        fxckedUpBagsQty: purchasedFxckedUp,
-        humanRelationsQty: purchasedHuman,
+        priceStars: Math.round(priceStars),
+        fxckedUpBagsQty,
+        humanRelationsQty,
         telegramId,
         referrerId,
-      });
-  
-      const headers: { [key: string]: string } = {
-        "Content-Type": "application/json",  
       };
   
-      if (process.env.NODE_ENV === "production") {
-        const initData = window.Telegram?.WebApp?.initData;
-        if (initData) {
-          headers["x-telegram-init-data"] = initData;
+      const response = await axios.post("/api/paymentByStars", payload, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.NODE_ENV === "production" && window.Telegram?.WebApp?.initData
+            ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
+            : {}),
         }
-      }
-  
-      const response = await axios.post("/api/paymentByStars", payload, { headers });
+      });
   
       if (response.data.invoiceLink) {
-        // Update stock IMMEDIATELY
-        setStockLimit({
-          ...stockLimit,
-          fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
-          humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
-        });
-        
-        // Reset quantities
+        setStockLimit(prev => ({
+          ...prev,
+          fxckedUpBagsUsed: prev.fxckedUpBagsUsed + fxckedUpBagsQty,
+          humanRelationsUsed: prev.humanRelationsUsed + humanRelationsQty
+        }));
+  
+        // End animations
+        setTimeout(() => {
+          document.getElementById('fub-counter')?.classList.remove('updating');
+          document.getElementById('hr-counter')?.classList.remove('updating');
+        }, 300);
+  
         setFxckedUpBagsQty(0);
         setHumanRelationsQty(0);
-
         await fetchStockData();
-        
-        window.location.href = response.data.invoiceLink; 
+        window.location.href = response.data.invoiceLink;
       } else {
-        throw new Error("Failed to create payment link");
+        throw new Error("Payment link not received");
       }
     } catch (error) {
-      console.error("Payment failed:", error);
-      alert("An error occurred during payment. Please try again.");
+      // Error animations
+      document.getElementById('fub-counter')?.classList.add('error');
+      document.getElementById('hr-counter')?.classList.add('error');
+      setTimeout(() => {
+        document.getElementById('fub-counter')?.classList.remove('error');
+        document.getElementById('hr-counter')?.classList.remove('error');
+      }, 1000);
+  
+      alert("Payment failed. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -730,8 +687,9 @@ const handlePaymentSuccess = async () => {
               )} more sales until launch`}
               max={stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed}
             />
-            <span className="counter-text">
-              {stockLimit?.fxckedUpBagsUsed ?? '--'}/{stockLimit?.fxckedUpBagsLimit ?? '--'} sold
+            <span className="counter-text" key={`fub-counter-${stockLimit.fxckedUpBagsUsed}`}
+               id="fub-counter">
+              {stockLimit.fxckedUpBagsUsed}/{stockLimit.fxckedUpBagsLimit} sold
             </span>
         </div>
 
@@ -765,8 +723,12 @@ const handlePaymentSuccess = async () => {
             )} more sales until launch`}
             max={stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed}
           />
-            <span className="counter-text">
-              {stockLimit?.humanRelationsUsed ?? '--'}/{stockLimit?.humanRelationsLimit ?? '--'} sold
+            <span 
+              className="counter-text"
+              key={`hr-counter-${stockLimit.humanRelationsUsed}`}
+               id="hr-counter"
+            >
+              {stockLimit.humanRelationsUsed}/{stockLimit.humanRelationsLimit} sold
             </span>
         </div>
       </div>

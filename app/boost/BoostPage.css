@@ -135,6 +135,33 @@ button:disabled {
   color: #e5dde4;
 }
 
+.counter-text {
+  font-size: 14px;
+  color: #666;
+  white-space: nowrap;
+  display: inline-block;
+  min-width: 100px; /* Prevents layout shift */
+  font-feature-settings: "tnum"; /* Monospace numbers */
+  transition: all 0.2s ease;
+}
+
+/* Animation classes */
+.counter-text.updating {
+  color: #4CAF50; /* Highlight color */
+  transform: scale(1.05);
+}
+
+.counter-text.error {
+  color: #F44336;
+  animation: shake 0.5s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
 .or-divider:before, .or-divider:after {
   content: "";
   position: absolute;
