@@ -299,22 +299,13 @@ const handleClaim = async () => {
 };
 
 useEffect(() => {
-  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-
-  if (storedUser?.hasClaimedWelcome) {
-    setShowWelcomePopup(false); // ✅ Hide the popup on refresh
+  if (user && user.hasClaimedWelcome) {
+    setShowWelcomePopup(false); // Hide popup if already claimed
+  } else if (user && !user.hasClaimedWelcome) {
+    setShowWelcomePopup(true); // Show popup if not claimed
   }
-}, []);
+}, [user]); // 👈 this is important!
 
-useEffect(() => {
-  if (user && user.telegramId) {
-    if (user.hasClaimedWelcome) {
-      setShowWelcomePopup(false); // Hides popup if already claimed
-    } else {
-      setShowWelcomePopup(true); // Shows popup if not claimed
-    }
-  }
-}, [user]);
 
 
 useEffect(() => {
