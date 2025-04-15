@@ -8,6 +8,7 @@ interface StockLimit {
   humanRelationsUsed: number;
   fxckedUpBags: number;
   humanRelations: number;
+  timestamp?: string;  // Optional if your API returns this
 }
 
 interface UserState {
@@ -22,10 +23,6 @@ interface BoostContextProps {
   setStockLimit: (limit: StockLimit | ((prev: StockLimit) => StockLimit)) => void;
   setUser: (userData: Partial<UserState>) => void;
   syncStock: () => Promise<void>;
-}
-
-interface BoostProviderProps {
-  children: ReactNode;
 }
 
 const initialStockLimit: StockLimit = {
@@ -45,29 +42,29 @@ const initialUser: UserState = {
 
 const BoostContext = createContext<BoostContextProps | undefined>(undefined);
 
-const reducer = (state: any, action: any) => {
-  switch (action.type) {
-    case 'SET_STOCK_LIMIT':
-      return { ...state, stockLimit: action.payload };
-    case 'SET_USER':
-      return { ...state, user: { ...state.user, ...action.payload } };
-    default:
-      return state;
-  }
-};
-
-export const BoostProvider: React.FC<BoostProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(reducer, {
-    stockLimit: initialStockLimit,
-    user: initialUser,
-  });
+export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(
+    (state: { stockLimit: StockLimit; user: UserState }, action: any) => {
+      switch (action.type) {
+        case 'SET_STOCK_LIMIT':
+          return { ...state, stockLimit: action.payload };
+        case 'SET_USER':
+          return { ...state, user: { ...state.user, ...action.payload } };
+        default:
+          return state;
+      }
+    },
+    {
+      stockLimit: initialStockLimit,
+      user: initialUser
+    }
+  );
 
   const setStockLimit = (update: StockLimit | ((prev: StockLimit) => StockLimit)) => {
-    if (typeof update === 'function') {
-      dispatch({ type: 'SET_STOCK_LIMIT', payload: update(state.stockLimit) });
-    } else {
-      dispatch({ type: 'SET_STOCK_LIMIT', payload: update });
-    }
+    const newValue = typeof update === 'function' 
+      ? update(state.stockLimit) 
+      : update;
+    dispatch({ type: 'SET_STOCK_LIMIT', payload: newValue });
   };
 
   const setUser = (userData: Partial<UserState>) => {
@@ -78,7 +75,17 @@ export const BoostProvider: React.FC<BoostProviderProps> = ({ children }) => {
     try {
       const response = await fetch('/api/stock');
       const data = await response.json();
-      setStockLimit(data);
+      
+      // Ensure all required fields are present
+      setStockLimit({
+        fxckedUpBagsLimit: data.fxckedUpBagsLimit || initialStockLimit.fxckedUpBagsLimit,
+        fxckedUpBagsUsed: data.fxckedUpBagsUsed || 0,
+        fxckedUpBags: data.fxckedUpBags || 0,
+        humanRelationsLimit: data.humanRelationsLimit || initialStockLimit.humanRelationsLimit,
+        humanRelationsUsed: data.humanRelationsUsed || 0,
+        humanRelations: data.humanRelations || 0,
+        ...(data.timestamp && { timestamp: data.timestamp })
+      });
     } catch (error) {
       console.error('Failed to sync stock:', error);
       throw error;

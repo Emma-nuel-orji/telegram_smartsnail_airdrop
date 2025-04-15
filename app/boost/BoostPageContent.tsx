@@ -75,6 +75,7 @@ export default function BoostPageContent() {
   const {
     user,
     stockLimit,
+    syncStock,
     setStockLimit,
     setUser,
   } = useBoostContext();
@@ -235,24 +236,32 @@ const triggerConfetti = () => {
   
 
   // Fetch Stock Data
-  const fetchStockData = useCallback(async () => {
-    try {
-      const response = await axios.get("/api/stock");
-      console.log("Stock API Response:", response.data);
+  // const fetchStockData = async () => {
+  //   try {
+  //     const response = await fetch('/api/stock');
+  //     const data = await response.json();
       
-      setStockLimit({
-        fxckedUpBagsLimit: response.data.fxckedUpBagsLimit ?? 10000,
-        humanRelationsLimit: response.data.humanRelationsLimit ?? 10000,
-        fxckedUpBagsUsed: response.data.fxckedUpBagsUsed ?? 0,
-        humanRelationsUsed: response.data.humanRelationsUsed ?? 0,
-        fxckedUpBags: response.data.fxckedUpBags ?? 0,
-        humanRelations: response.data.humanRelations ?? 0
-      });
-    } catch (error) {
-      console.error("Error fetching stock:", error);
-      // No retry here - let the interval handle it
-    }
-  }, [setStockLimit]);
+  //     setStockLimit({
+  //       fxckedUpBagsLimit: data.fxckedUpBagsLimit,
+  //     fxckedUpBagsUsed: data.fxckedUpBagsUsed,
+  //     fxckedUpBags: data.fxckedUpBags, // Make sure API returns this
+  //     humanRelationsLimit: data.humanRelationsLimit,
+  //     humanRelationsUsed: data.humanRelationsUsed,
+  //     humanRelations: data.humanRelations
+      
+  //     });
+      
+  //   } catch (error) {
+  //     console.error("Failed to load stock:", error);
+  //   }
+  // }
+
+
+  useEffect(() => {
+    syncStock(); // Initial load
+    const interval = setInterval(syncStock, 30000); // Auto-refresh
+    return () => clearInterval(interval);
+  }, []);
   
   useEffect(() => {
     // Initialize client data
@@ -277,11 +286,11 @@ const triggerConfetti = () => {
   
     const startPolling = () => {
       // Immediate first fetch
-      fetchStockData();
-      
-      // Regular polling every 15 seconds
-      pollingInterval = setInterval(fetchStockData, 15000);
-    };
+      syncStock();
+    
+    // Regular polling every 15 seconds
+    pollingInterval = setInterval(syncStock, 15000);
+  };
   
     startPolling();
   
@@ -291,7 +300,7 @@ const triggerConfetti = () => {
         clearTimeout(retryTimeout);
       }
     };
-  }, [fetchStockData]);
+  }, [syncStock]);
 
   // Purchase Handler
   const fxckedUpBagsId = "6796dbfa223a935d969d56e6"; 
@@ -482,7 +491,7 @@ const handlePurchase = async (paymentMethod: string) => {
     }, 1000);
 
     // Revert the optimistic update by fetching latest data
-    fetchStockData();
+    await syncStock();
 
     alert(axios.isAxiosError(error) 
       ? `Error: ${error.response?.data?.error || error.message}`
@@ -583,6 +592,8 @@ const handlePurchase = async (paymentMethod: string) => {
         document.getElementById('fub-counter')?.classList.remove('error');
         document.getElementById('hr-counter')?.classList.remove('error');
       }, 1000);
+
+      await syncStock();
   
       alert(
         axios.isAxiosError(error)
@@ -639,7 +650,7 @@ const handlePaymentSuccess = async () => {
     setHumanRelationsQty(0);
 
     // Refresh stock data
-    await fetchStockData();
+    await syncStock();
   } catch (error) {
     console.error("Error handling payment success:", error);
   }
