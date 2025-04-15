@@ -312,7 +312,77 @@ const handlePurchase = async (paymentMethod: string) => {
       return;
     }
 
-    // TON payment logic remains the same...
+     // TON payment specific logic
+     if (paymentMethod === "TON") {
+      console.log("2. TON payment selected, checking wallet connection");
+      console.log("isConnected:", isConnected);
+      console.log("tonConnectUI:", !!tonConnectUI);
+      console.log("walletAddress:", walletAddress);
+
+      if (!isConnected || !tonConnectUI || !walletAddress) {
+        alert("Wallet not connected, go to task 18 to connect wallet.");
+        return;
+      }
+     
+      // Validate priceTon
+      if (!priceTon || priceTon <= 0) {
+        alert("Invalid payment amount. Please try again.");
+        return;
+      }
+
+      const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
+      if (!receiverAddress) {
+        console.error("Receiver address is not configured in environment variables.");
+        alert("Receiver address is not configured. Please contact support.");
+        return;
+      }
+
+      console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
+        messages: [
+          {
+            address: receiverAddress, // Use the validated receiver address
+            amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
+          },
+        ],
+      };
+
+      try {
+        console.log("4. Sending TON transaction...");
+        const tonResult = await tonConnectUI.sendTransaction(transaction);
+        console.log("5. TON transaction result:", tonResult);
+
+        if (!tonResult || !tonResult.boc) {
+          throw new Error("Transaction failed or missing data.");
+        }
+
+        console.log("6. Verifying TON transaction with backend...");
+
+        const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
+
+        const verifyResponse = await axios.post("/api/verify-payment", {
+          transactionHash: tonResult.boc,
+          paymentMethod: "TON",
+          totalAmount: priceTon,
+          userId: userId,
+          fxckedUpBagsQty: fxckedUpBagsQty,
+          humanRelationsQty: humanRelationsQty
+        });
+
+        console.log("7. Verification response:", verifyResponse.data);
+        if (!verifyResponse.data || !verifyResponse.data.success) {
+          throw new Error("Payment verification failed.");
+        }
+
+        console.log("8. TON payment verified! Now creating order...");
+
+      } catch (txError) {
+        console.error("TON transaction error:", txError);
+        alert("Transaction failed. Please try again.");
+        return;
+      }
+    }
 
     setIsProcessing(true);
     
@@ -332,30 +402,43 @@ const handlePurchase = async (paymentMethod: string) => {
       email: purchaseEmail,
       paymentMethod: paymentMethod.toUpperCase(),
       bookCount: totalBooks,
-      tappingRate,
-      coinsReward: points,
-      priceTon,
-      priceStars,
+      tappingRate: tappingRate,
+      coinsReward: Number(points),
+      priceTon: priceTon,
+      priceStars: priceStars,
       fxckedUpBagsQty,
       humanRelationsQty,
-      telegramId: telegramId || '',
-      referrerId: referrerId || '',
+      telegramId: telegramId ? String(telegramId) : '',
+      referrerId: referrerId ? String(referrerId) : '',
       bookIds: [
         ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
         ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
       ],
     };
 
+    console.log("9. Creating order with payload:", orderPayload);
+
+    const headers = {
+      "Content-Type": "application/json",
+      ...(process.env.NODE_ENV === "production" &&
+      window.Telegram?.WebApp?.initData
+        ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
+        : {}),
+    };
+
     const orderResponse = await axios.post("/api/purchase", orderPayload, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(process.env.NODE_ENV === "production" && window.Telegram?.WebApp?.initData
-          ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
-          : {}),
-      },
+      headers,
     });
-    
-    console.log("Purchase response:", orderResponse.data);
+
+    console.log("10. Order response:", orderResponse.data);
+
+    if (!orderResponse.data || !orderResponse.data.orderId) {
+      throw new Error("Invalid response from purchase API");
+    }
+
+    const orderId = orderResponse.data.orderId;
+    const purchasedFxckedUp = fxckedUpBagsQty;
+    const purchasedHuman = humanRelationsQty;
     
     // After successful purchase, verify the stock data
     // This ensures we have the most accurate counts after the purchase
@@ -431,6 +514,9 @@ const handlePurchase = async (paymentMethod: string) => {
   
     try {
       // Start loading animations
+      const purchasedFxckedUp = fxckedUpBagsQty;
+      const purchasedHuman = humanRelationsQty;
+
       document.getElementById('fub-counter')?.classList.add('updating');
       document.getElementById('hr-counter')?.classList.add('updating');
 
@@ -441,41 +527,52 @@ const handlePurchase = async (paymentMethod: string) => {
       };
       setStockLimit(optimisticStockLimit);
   
-      const payload = {
+      const payload = JSON.stringify({  
         email: purchaseEmail,
-        title: `Stars Payment for ${totalBooks} Book${totalBooks > 1 ? 's' : ''}`,
-        amount: Math.round(priceStars),
+        title: `Stars Payment for ${totalBooks} Books`,
+        description: `Stars payment includes ${purchasedFxckedUp} FxckedUpBags and ${purchasedHuman} Human Relations books.`,
+        amount: Math.round(priceStars),  
+        label: "SMARTSNAIL Stars Payment",
         paymentMethod: "Stars",
         bookCount: totalBooks,
-        fxckedUpBagsQty,
-        humanRelationsQty,
         tappingRate,
-        totalPoints: points,
+        points,
+        priceTon,
+        priceStars: Math.round(priceStars), 
+        fxckedUpBagsQty: purchasedFxckedUp,
+        humanRelationsQty: purchasedHuman,
         telegramId,
         referrerId,
-      };
-  
-      const response = await axios.post("/api/paymentByStars", payload, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(process.env.NODE_ENV === "production" && window.Telegram?.WebApp?.initData
-            ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
-            : {}),
-        }
       });
   
+      const headers: { [key: string]: string } = {
+        "Content-Type": "application/json",  
+      };
+  
+      if (process.env.NODE_ENV === "production") {
+        const initData = window.Telegram?.WebApp?.initData;
+        if (initData) {
+          headers["x-telegram-init-data"] = initData;
+        }
+      }
+  
+      const response = await axios.post("/api/paymentByStars", payload, { headers });
+  
       if (response.data.invoiceLink) {
-        // Verify stock was updated
-        await fetchStockData();
+        // Update stock IMMEDIATELY
+        setStockLimit({
+          ...stockLimit,
+          fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
+          humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
+        });
         
-        // Reset form
+        // Reset quantities
         setFxckedUpBagsQty(0);
         setHumanRelationsQty(0);
         
-        // Redirect to payment
-        window.location.href = response.data.invoiceLink;
+        window.location.href = response.data.invoiceLink; 
       } else {
-        throw new Error("Payment link not received");
+        throw new Error("Failed to create payment link");
       }
     } catch (error) {
       // Error handling

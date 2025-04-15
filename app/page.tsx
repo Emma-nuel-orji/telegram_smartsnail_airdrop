@@ -468,47 +468,74 @@ useEffect(() => {
   useEffect(() => {
     const initializeTelegram = async () => {
       setLoading(true);
-      
-      if (!window.Telegram?.WebApp) {
-        setLoading(false);
-        return;
-      }
-  
-      const tg = window.Telegram.WebApp;
-      const tgUser = tg.initDataUnsafe?.user;
-      
-      if (!tgUser?.id) {
-        setLoading(false);
-        return;
-      }
-  
-      // Create account-specific storage keys
-      const storageKey = `tg_user_${tgUser.id}`;
-      const lastSyncKey = `tg_lastSync_${tgUser.id}`;
-      setTelegramId(tgUser.id.toString());
   
       try {
-        // Check cached data first
-        const cachedData = localStorage.getItem(storageKey);
-        const lastSync = localStorage.getItem(lastSyncKey);
-        
-        if (cachedData && lastSync && Date.now() - parseInt(lastSync) < 300000) {
-          setUser(JSON.parse(cachedData));
-          setLoading(false);
-          return;
-        }
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
   
-        // Fetch fresh data from server
-        const response = await axios.get(`/api/user/${tgUser.id}`);
-        const userData = response.data;
-        
-        // Update storage with account-specific keys
-        localStorage.setItem(storageKey, JSON.stringify(userData));
-        localStorage.setItem(lastSyncKey, Date.now().toString());
-        setUser(userData);
-        
-      } catch (error) {
-        console.error("Error initializing user:", error);
+        const userData = tg?.initDataUnsafe?.user;
+  
+        if (!userData?.id) throw new Error("Telegram user data not found");
+  
+        const telegramId = userData.id.toString();
+        setTelegramId(telegramId);
+  
+        const storageKey = `user_${telegramId}`;
+        const lastSyncKey = `lastSync_${telegramId}`;
+  
+        const cachedUser = localStorage.getItem(storageKey) ? JSON.parse(localStorage.getItem(storageKey)!) : null;
+        const lastSync = localStorage.getItem(lastSyncKey);
+        const SYNC_INTERVAL = 5 * 60 * 1000;
+  
+        if (cachedUser && lastSync && Date.now() - parseInt(lastSync, 10) < SYNC_INTERVAL) {
+          setUser(cachedUser);
+          setLoading(false);
+        } else {
+          const res = await fetch(`/api/user/${telegramId}`);
+          if (res.ok) {
+            const freshUser = await res.json();
+            localStorage.setItem(storageKey, JSON.stringify(freshUser));
+            localStorage.setItem(lastSyncKey, Date.now().toString());
+            setUser(freshUser);
+          } else if (!cachedUser) {
+            // If not found, create user
+            const newUserPayload = {
+              telegramId,
+              username: userData.username || "",
+              first_name: userData.first_name || "",
+              last_name: userData.last_name || "",
+              points: 0,
+              tappingRate: 1,
+              hasClaimedWelcome: false,
+              nft: false,
+            };
+  
+            const createRes = await fetch("/api/user", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(newUserPayload),
+            });
+  
+            if (!createRes.ok) throw new Error("Failed to create user");
+  
+            const newUser = await createRes.json();
+            localStorage.setItem(storageKey, JSON.stringify(newUser));
+            localStorage.setItem(lastSyncKey, Date.now().toString());
+            setUser(newUser);
+          }
+        }
+      } catch (err: any) {
+        console.error("Initialization error:", err.message);
+        setError(err.message);
+  
+        // fallback only if telegramId is known
+        const fallbackId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        if (fallbackId) {
+          const fallbackUser = localStorage.getItem(`user_${fallbackId}`);
+          if (fallbackUser) {
+            setUser(JSON.parse(fallbackUser));
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -516,6 +543,7 @@ useEffect(() => {
   
     initializeTelegram();
   }, []);
+  
 
   // Load stored data effect
   useEffect(() => {
@@ -538,6 +566,13 @@ useEffect(() => {
       }
     }
   }, []);
+
+  const resetAppSession = () => {
+    localStorage.clear();
+    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
+    // OR: window.location.reload(); // if you prefer reloading the app
+  };
+  
 
   // Set first name effect
   // useEffect(() => {
@@ -715,6 +750,9 @@ useEffect(() => {
       <Link href="/level">Level  :</Link>
     </div>
   </button>
+  <button onClick={resetAppSession} className="mt-4 text-red-600">
+  Reset & Switch Account
+</button>
 
 
       {/* Display Camouflage Level */}
