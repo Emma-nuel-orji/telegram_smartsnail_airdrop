@@ -415,37 +415,39 @@ async function validateStockAndCalculateTotals(
   let points = 0;
   const codes: string[] = [];
   const updatedStocks: Array<{ title: string; used: number; available: number }> = [];
+  const totalQty = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
 
-  // 1. Validate stock and reserve codes
-  for (const purchaseInfo of booksToPurchase) {
-    const { qty, book, title } = purchaseInfo;
-    if (!book) {
-      throw new Error(`Book details not found for ${title}`);
-    }
+  // 1. Check TOTAL available codes (neutral pool)
+  const availableCodes = await tx.generatedCode.findMany({
+    where: { 
+      isUsed: false,
+      isReserved: false
+    },
+    take: totalQty,
+    orderBy: { createdAt: 'asc' } // FIFO
+  });
 
-    // Check available codes
-    const availableCodes = await tx.generatedCode.findMany({
-      where: { 
-        book: { title },
-        isUsed: false,
-        isReserved: false // Only count non-reserved codes
-      },
-      take: qty
-    });
+  if (availableCodes.length < totalQty) {
+    throw new Error(`Insufficient codes available (Requested: ${totalQty}, Available: ${availableCodes.length})`);
+  }
 
-    if (availableCodes.length < qty) {
-      throw new Error(`Insufficient codes available for ${title}`);
-    }
+  // 2. Reserve codes (neutral reservation)
+  await tx.generatedCode.updateMany({
+    where: { id: { in: availableCodes.map(c => c.id) } },
+    data: { isReserved: true }
+  });
 
-    // Temporarily reserve codes (will be marked as used in updateDatabaseTransaction)
-    await tx.generatedCode.updateMany({
-      where: { id: { in: availableCodes.map(c => c.id) } },
-      data: { isReserved: true }
-    });
-
-    codes.push(...availableCodes.map(c => c.code));
+  // 3. Assign to books and calculate
+  let codeIndex = 0;
+  for (const { qty, book, title } of booksToPurchase) {
+    if (!book) throw new Error(`Book details not found for ${title}`);
     
-    // Calculate projected stock levels
+    // Assign next batch of codes
+    const assignedCodes = availableCodes.slice(codeIndex, codeIndex + qty);
+    codes.push(...assignedCodes.map(c => c.code));
+    codeIndex += qty;
+
+    // Calculate stock (using your existing book-based tracking)
     const newUsedStock = book.usedStock + qty;
     updatedStocks.push({
       title,
@@ -453,7 +455,7 @@ async function validateStockAndCalculateTotals(
       available: book.stockLimit - newUsedStock
     });
 
-    // Calculate financials
+    // Financial calculations
     totalAmount += qty * (paymentMethod === "TON" ? book.priceTon : book.priceCard);
     tappingRate += qty * (book.tappingRate || 0);
     points += qty * Number(book.coinsReward || 0);
