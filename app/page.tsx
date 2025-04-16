@@ -27,10 +27,13 @@ import { PointsQueue } from '@/src/utils/userSync';
 // }
 
 type Click = {
+  opacity: number;
+  velocityY: number;
   id: number;
   x: number;
   y: number;
   tappingRate: number;
+  // velocity: number;
 };
 
 export default function Home() {
@@ -44,23 +47,66 @@ export default function Home() {
     hasClaimedWelcome?: boolean;
   }>(null);
   
-  useEffect(() => {
-    console.log("🔍 Checking telegramId before API call:", telegramId);
+
   
-    const fetchUserData = async () => {
-      if (!telegramId) return;
-      try {
-        const response = await axios.get(`/api/user/${telegramId}`);
-        console.log("✅ Fetched user data:", response.data);
+  // useEffect(() => {
+  //   console.log("🔍 Checking telegramId before API call:", telegramId);
+  
+  //   const fetchUserData = async () => {
+  //     if (!telegramId) return;
+  //     try {
+  //       const response = await axios.get(`/api/user/${telegramId}`);
+  //       console.log("✅ Fetched user data:", response.data);
         
-        setUser(response.data);
+  //       setUser(response.data);
+  //     } catch (error) {
+  //       console.error("🔥 Error fetching user data:", error);
+  //     }
+  //   };
+  
+  //   fetchUserData();
+  // }, [telegramId]);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      const tg = window.Telegram?.WebApp;
+      if (!tg?.initDataUnsafe?.user?.id) return;
+  
+      const telegramId = tg.initDataUnsafe.user.id.toString();
+      setTelegramId(telegramId); // Set this once here
+  
+      // 1. Check localStorage first
+      const storageKey = `user_${telegramId}`;
+      const cachedUser = localStorage.getItem(storageKey);
+      if (cachedUser) {
+        try {
+          const parsed = JSON.parse(cachedUser);
+          if (parsed.telegramId === telegramId) { // Validate cached data
+            setUser(parsed);
+          } else {
+            localStorage.removeItem(storageKey); // Clear invalid cache
+          }
+        } catch (e) {
+          localStorage.removeItem(storageKey); // Clear corrupt data
+        }
+      }
+  
+      // 2. Sync with server
+      try {
+        console.log("🔍 Fetching user data for:", telegramId);
+        const response = await axios.get(`/api/user/${telegramId}`);
+        if (response.data) {
+          console.log("✅ Received user data:", response.data);
+          localStorage.setItem(storageKey, JSON.stringify(response.data));
+          setUser(response.data);
+        }
       } catch (error) {
-        console.error("🔥 Error fetching user data:", error);
+        console.error("⚠️ Sync failed, using cached data if available", error);
       }
     };
   
-    fetchUserData();
-  }, [telegramId]);
+    loadUserData();
+  }, []); // Empty dependency array - runs once on mount
   
 
   const [firstName, setFirstName] = useState<string | null>(null);
@@ -144,64 +190,122 @@ export default function Home() {
 
   const handleClick = async (e: React.MouseEvent) => {
     if (!user?.telegramId || energy <= 0) return;
+
+     // Calculate new values first
+  const newPoints = (user.points || 0) + (user.tappingRate || 1);
+  const newEnergy = Math.max(0, energy - ENERGY_REDUCTION_RATE);
+
+  // Update state AND localStorage atomically
+  setUser(prev => {
+    const updatedUser = {
+      ...prev!,
+      points: newPoints
+    };
+    localStorage.setItem(`user_${user.telegramId}`, JSON.stringify(updatedUser));
+    return updatedUser;
+  });
+  
+  setEnergy(newEnergy);
+
     const syncManager = new UserSyncManager(user.telegramId);
   
     setIsClicking(true);
     setSpeed((prev) => Math.min(prev + 0.1, 5));
   
-     // Get the dimensions of the clickable area
-  const rect = e.currentTarget.getBoundingClientRect();
+    // Get dimensions of clickable area and viewport
+    const rect = e.currentTarget.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
   
-  // Calculate the animation text size (approximately)
-  const textWidth = 56;  // ~28px * 2 based on your left offset
-  const textHeight = 84; // ~42px * 2 based on your top offset
-    
-    // Constrain x and y to keep the animation fully within the viewport
-    const x = Math.min(Math.max(e.clientX, rect.left + textWidth/2), rect.right - textWidth/2);
-     const y = Math.min(Math.max(e.clientY, rect.top + textHeight/2), rect.bottom - textHeight/2);
-
+    // Calculate safe boundaries (with 20px margin)
+    const safeLeft = Math.max(rect.left, 20);
+    const safeRight = Math.min(rect.right, viewportWidth - 20);
+    const safeTop = Math.max(rect.top, 20);
+    const safeBottom = Math.min(rect.bottom, viewportHeight - 20);
+  
+    // Calculate initial position with bounce-back logic
+    const calculateSafePosition = (clickPos: number, min: number, max: number) => {
+      if (clickPos < min) {
+        return min + (min - clickPos) * 0.3; // Bounce back from left/top edge
+      }
+      if (clickPos > max) {
+        return max - (clickPos - max) * 0.3; // Bounce back from right/bottom edge
+      }
+      return clickPos;
+    };
+  
+    const x = calculateSafePosition(e.clientX, safeLeft, safeRight);
+    const y = calculateSafePosition(e.clientY, safeTop, safeBottom);
+  
     const newClick = {
       id: Date.now(),
-      x, // Use the constrained coordinates
+      x,
       y,
       tappingRate: user.tappingRate || 1,
+      velocityY: -2, // Initial upward velocity
+      opacity: 1,
     };
   
     setClicks((prev) => [...prev, newClick]);
   
-    const tappingRate = Number(user.tappingRate) || 1;
+    // Animation loop for floating effect
+    const animateClick = () => {
+      setClicks((prevClicks) =>
+        prevClicks.map((click) => {
+          if (click.id === newClick.id) {
+            const newY = click.y + click.velocityY;
+            const newVelocityY = click.velocityY - 0.05; // Gravity effect
+            const newOpacity = click.opacity - 0.02;
   
-    // ✅ Optimistically update points
+            // Remove if faded out or goes above viewport
+            if (newOpacity <= 0 || newY < -50) {
+              return { ...click, opacity: 0 };
+            }
+  
+            return {
+              ...click,
+              y: newY,
+              velocityY: newVelocityY,
+              opacity: newOpacity,
+            };
+          }
+          return click;
+        })
+      );
+    };
+  
+    // Start animation
+    const animationInterval = setInterval(animateClick, 16); // ~60fps
+  
+    // Update points and energy
+    const tappingRate = Number(user.tappingRate) || 1;
     setUser((prevUser) => ({
       ...prevUser!,
       points: (prevUser?.points || 0) + tappingRate,
     }));
   
-    // ✅ Ensure energy reduces only once per click
     const now = Date.now();
-    if (now - lastClickTime.current > 50) { // Prevent multiple reductions per click
+    if (now - lastClickTime.current > 50) {
       setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
       lastClickTime.current = now;
     }
   
-    // ✅ Sync points but prevent energy from reducing multiple times
+    // Cleanup
+    setTimeout(() => {
+      clearInterval(animationInterval);
+      setClicks((prev) => prev.filter((c) => c.id !== newClick.id));
+    }, 2000); // Longer duration for floating animation
+  
+    // Sync with server
     await syncManager.addPoints(tappingRate);
     await syncManager.syncWithServer();
   
-    if (inactivityTimeout.current) {
-      clearTimeout(inactivityTimeout.current);
-    }
-  
+    // Reset click state
     inactivityTimeout.current = setTimeout(() => {
       setIsClicking(false);
       setSpeed((prev) => Math.max(1, prev - 0.2));
     }, 1000);
-  
-    setTimeout(() => {
-      setClicks((prevClicks) => prevClicks.filter((click) => click.id !== newClick.id));
-    }, 1000);
   };
-
 
   useEffect(() => {
     let syncManager: UserSyncManager | null = null;
@@ -568,11 +672,11 @@ useEffect(() => {
     }
   }, []);
 
-  // const resetAppSession = () => {
-  //   localStorage.clear();
-  //   window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
-  //   // OR: window.location.reload(); // if you prefer reloading the app
-  // };
+  const resetAppSession = () => {
+    localStorage.clear();
+    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
+    // OR: window.location.reload(); // if you prefer reloading the app
+  };
   
 
   // Set first name effect
@@ -751,9 +855,9 @@ useEffect(() => {
       <Link href="/level">Level  :</Link>
     </div>
   </button>
-  {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
+  <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
-</button> */}
+</button>
 
 
       {/* Display Camouflage Level */}

@@ -103,7 +103,8 @@ model GeneratedCode {
   isUsed     Boolean?   @default(false)
   purchaseId String?   @db.ObjectId
   createdAt  DateTime  @default(now())
-
+   isReserved Boolean @default(false)
+  usedAt    DateTime?  @map("used_at")
   // Relations
   book     Book?     @relation(fields: [bookId], references: [id])
   purchase Purchase? @relation(fields: [purchaseId], references: [id])

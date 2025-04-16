@@ -18,7 +18,11 @@ interface StockCalculationResult {
   tappingRate: number;
   points: number;
   codes: string[];
-  updatedStocks: Array<{ title: string; stockStatus: string }>;
+  updatedStocks: Array<{
+    title: string;
+    used: number;
+    available: number;
+  }>;
 }
 
 interface BookPurchaseInfo {
@@ -120,6 +124,33 @@ const requestSchema = z.object({
 // const userIdString = String(userId);
 // const bookIdString = bookId ? String(bookId) : "";
 
+async function getCurrentStock(
+  tx: Prisma.TransactionClient,
+  booksToPurchase: BookPurchaseInfo[]
+) {
+  const bookTitles = [...new Set(booksToPurchase.map(b => b.title))];
+  
+  const stockData = await tx.book.findMany({
+    where: { title: { in: bookTitles } },
+    select: { title: true, usedStock: true, stockLimit: true }
+  });
+
+  const codeAvailability = await Promise.all(
+    bookTitles.map(title => 
+      tx.generatedCode.count({
+        where: { book: { title }, isUsed: false }
+      })
+    )
+  );
+
+  return stockData.map((book, index) => ({
+    title: book.title,
+    used: book.usedStock,
+    limit: book.stockLimit,
+    availableCodes: codeAvailability[index],
+    timestamp: new Date().toISOString()
+  }));
+}
 
 
 export async function GET(req: NextRequest) {
@@ -142,6 +173,8 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+
 
 async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: number) {
   console.log("Preparing purchase data with:", { fxckedUpBagsQty, humanRelationsQty });
@@ -324,7 +357,9 @@ export async function POST(req: NextRequest): Promise<Response> {
         validatedData.orderId,
         validatedData.referrerId
       );
- const safeUser = {
+
+      const freshStock = await getCurrentStock(tx, booksToPurchase);
+       const safeUser = {
         ...userResult,
         telegramId: userResult.telegramId.toString(),
         id: userResult.id.toString(),
@@ -336,7 +371,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         success: true,
         message: "Purchase completed successfully",
         orderId: paymentResult.orderId,
-        stockStatus: stockResults.updatedStocks,
+        stockStatus: freshStock,
         userUpdate: safeUser
       };
     }, {
@@ -368,7 +403,8 @@ export async function POST(req: NextRequest): Promise<Response> {
 }
 
 type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>;
-  async function validateStockAndCalculateTotals(
+
+async function validateStockAndCalculateTotals(
   tx: Prisma.TransactionClient,
   booksToPurchase: BookPurchaseInfo[],
   bookMap: { [k: string]: any },
@@ -378,36 +414,61 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
   let tappingRate = 0;
   let points = 0;
   const codes: string[] = [];
-  let totalQty = 0;
-  let updatedStocks: Array<{ title: string; stockStatus: string }> = [];
+  const updatedStocks: Array<{ title: string; used: number; available: number }> = [];
 
+  // 1. Validate stock and reserve codes
   for (const purchaseInfo of booksToPurchase) {
-    const { qty, book } = purchaseInfo;
+    const { qty, book, title } = purchaseInfo;
     if (!book) {
-      throw new Error(`Book details not found for ${purchaseInfo.title}`);
+      throw new Error(`Book details not found for ${title}`);
     }
-    totalQty += qty;
-    tappingRate += qty * (book.tappingRate || 0);
-    points += qty * Number(book.coinsReward || 0);
-    totalAmount += qty * (paymentMethod === "TON" ? 1 : 2.3);
-  }
 
-    // Fetch the unused codes based on the total quantity of books to purchase
-    const availableCodes = await prisma.generatedCode.findMany({
-      where: { isUsed: false },
-      take: totalQty, // Fetch as many codes as the user is purchasing
+    // Check available codes
+    const availableCodes = await tx.generatedCode.findMany({
+      where: { 
+        book: { title },
+        isUsed: false,
+        isReserved: false // Only count non-reserved codes
+      },
+      take: qty
     });
 
-    if (availableCodes.length < totalQty) {
-      throw new Error("Insufficient stock for the requested quantity of books");
+    if (availableCodes.length < qty) {
+      throw new Error(`Insufficient codes available for ${title}`);
     }
 
-    // Push the codes into the codes array
-    codes.push(...availableCodes.map(code => code.code));
+    // Temporarily reserve codes (will be marked as used in updateDatabaseTransaction)
+    await tx.generatedCode.updateMany({
+      where: { id: { in: availableCodes.map(c => c.id) } },
+      data: { isReserved: true }
+    });
 
-    return { totalAmount, tappingRate, points, codes, updatedStocks };
+    codes.push(...availableCodes.map(c => c.code));
+    
+    // Calculate projected stock levels
+    const newUsedStock = book.usedStock + qty;
+    updatedStocks.push({
+      title,
+      used: newUsedStock,
+      available: book.stockLimit - newUsedStock
+    });
 
+    // Calculate financials
+    totalAmount += qty * (paymentMethod === "TON" ? book.priceTon : book.priceCard);
+    tappingRate += qty * (book.tappingRate || 0);
+    points += qty * Number(book.coinsReward || 0);
   }
+
+  return { 
+    totalAmount, 
+    tappingRate, 
+    points, 
+    codes, 
+    updatedStocks 
+  };
+}
+
+
  export async function processPayment(
   tx: Prisma.TransactionClient, 
   paymentMethod: string,
@@ -719,9 +780,30 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
   }
   
   for (const { id, qty } of booksToPurchase) {
+    // 1. First find the codes to mark as used
+    const codesToUpdate = await tx.generatedCode.findMany({
+      where: { 
+        bookId: id,
+        isUsed: false 
+      },
+      take: qty,
+      select: { id: true }
+    });
+  
+    // 2. Then update them
+    await tx.generatedCode.updateMany({
+      where: { 
+        id: { in: codesToUpdate.map(c => c.id) } 
+      },
+      data: { isUsed: true }
+    });
+  
+    // 3. Update book stock
     await tx.book.update({
       where: { id },
-      data: { usedStock: { increment: qty } }  // Atomic increment
+      data: { 
+        usedStock: { increment: qty }
+      }
     });
   }
 
@@ -893,13 +975,24 @@ type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' |
         }
 
         // Mark codes as used
-        await tx.generatedCode.updateMany({
-          where: { code: { in: codes } },
-          data: {
-            isUsed: true,
-            purchaseId: purchase.id,
-          },
-        });
+        // Convert temporary reservations to permanent usage
+    await tx.generatedCode.updateMany({
+      where: { code: { in: codes } },
+      data: {
+        isUsed: true,
+        isReserved: false, // Clear reservation flag
+        purchaseId: purchase.id,
+        usedAt: new Date() // Optional: track when codes were used
+      }
+    });
+
+    // Update book stocks
+    for (const { id, qty } of booksToPurchase) {
+      await tx.book.update({
+        where: { id },
+        data: { usedStock: { increment: qty } }
+      });
+    }
 
         // Send email with retry logic
         let retryCount = 0;
