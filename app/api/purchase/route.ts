@@ -428,7 +428,7 @@ async function validateStockAndCalculateTotals(
   });
 
   if (availableCodes.length < totalQty) {
-    throw new Error(`Insufficient codes available (Requested: ${totalQty}, Available: ${availableCodes.length})`);
+    throw new Error("Insufficient stock for the requested quantity of books");
   }
 
   // 2. Reserve codes (neutral reservation)

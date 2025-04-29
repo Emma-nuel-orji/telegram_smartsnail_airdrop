@@ -92,22 +92,22 @@ model Referral {
 
 // GeneratedCode model
 model GeneratedCode {
-  id         String    @id @default(cuid()) @map("_id") @db.ObjectId
-  code       String    @unique
+  id         String     @id @default(cuid()) @map("_id") @db.ObjectId
+  code       String     @unique
   batchId    String
-  isRedeemed Boolean   @default(false)
+  isRedeemed Boolean    @default(false)
   redeemedAt DateTime?
   redeemedBy String?   
   assignedTo String?   
   bookId     String    
-  isUsed     Boolean?   @default(false)
-  purchaseId String?   @db.ObjectId
-  createdAt  DateTime  @default(now())
-   isReserved Boolean @default(false)
-  usedAt    DateTime?  @map("used_at")
+  isUsed     Boolean?    @default(false)
+  purchaseId String?     @db.ObjectId
+  createdAt  DateTime    @default(now())
+  isReserved Boolean     @default(false)
+  usedAt     DateTime?   @map("used_at")
   // Relations
-  book     Book?     @relation(fields: [bookId], references: [id])
-  purchase Purchase? @relation(fields: [purchaseId], references: [id])
+  book       Book?       @relation(fields: [bookId], references: [id])
+  purchase   Purchase?   @relation(fields: [purchaseId], references: [id])
 }
 
 // Book model

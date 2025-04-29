@@ -78,6 +78,7 @@ export default function BoostPageContent() {
     syncStock,
     setStockLimit,
     setUser,
+    updateStockAfterOrder,
   } = useBoostContext();
 
   // State Management
@@ -308,198 +309,179 @@ const triggerConfetti = () => {
 
   
   // Modify your handlePurchase function to ensure stock updates:
-const handlePurchase = async (paymentMethod: string) => {
-  try {
-    // Validate inputs
-    if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
-      alert("Please enter a valid email.");
-      return;
-    }
-
-    if (totalBooks === 0) {
-      alert("Please select at least one book.");
-      return;
-    }
-
-     // TON payment specific logic
-     if (paymentMethod === "TON") {
-      console.log("2. TON payment selected, checking wallet connection");
-      console.log("isConnected:", isConnected);
-      console.log("tonConnectUI:", !!tonConnectUI);
-      console.log("walletAddress:", walletAddress);
-
-      if (!isConnected || !tonConnectUI || !walletAddress) {
-        alert("Wallet not connected, go to task 18 to connect wallet.");
+  const handlePurchase = async (paymentMethod: string) => {
+    try {
+      // Validate inputs
+      if (!purchaseEmail || !/\S+@\S+\.\S+/.test(purchaseEmail)) {
+        alert("Please enter a valid email.");
         return;
       }
-     
-      // Validate priceTon
-      if (!priceTon || priceTon <= 0) {
-        alert("Invalid payment amount. Please try again.");
+  
+      if (totalBooks === 0) {
+        alert("Please select at least one book.");
         return;
       }
-
-      const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
-      if (!receiverAddress) {
-        console.error("Receiver address is not configured in environment variables.");
-        alert("Receiver address is not configured. Please contact support.");
-        return;
+  
+       // TON payment specific logic
+       if (paymentMethod === "TON") {
+        console.log("2. TON payment selected, checking wallet connection");
+        console.log("isConnected:", isConnected);
+        console.log("tonConnectUI:", !!tonConnectUI);
+        console.log("walletAddress:", walletAddress);
+  
+        if (!isConnected || !tonConnectUI || !walletAddress) {
+          alert("Wallet not connected, go to task 18 to connect wallet.");
+          return;
+        }
+       
+        // Validate priceTon
+        if (!priceTon || priceTon <= 0) {
+          alert("Invalid payment amount. Please try again.");
+          return;
+        }
+  
+        const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
+        if (!receiverAddress) {
+          console.error("Receiver address is not configured in environment variables.");
+          alert("Receiver address is not configured. Please contact support.");
+          return;
+        }
+  
+        console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
+          messages: [
+            {
+              address: receiverAddress, // Use the validated receiver address
+              amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
+            },
+          ],
+        };
+  
+        try {
+          console.log("4. Sending TON transaction...");
+          const tonResult = await tonConnectUI.sendTransaction(transaction);
+          console.log("5. TON transaction result:", tonResult);
+  
+          if (!tonResult || !tonResult.boc) {
+            throw new Error("Transaction failed or missing data.");
+          }
+  
+          console.log("6. Verifying TON transaction with backend...");
+  
+          const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
+  
+          const verifyResponse = await axios.post("/api/verify-payment", {
+            transactionHash: tonResult.boc,
+            paymentMethod: "TON",
+            totalAmount: priceTon,
+            userId: userId,
+            fxckedUpBagsQty: fxckedUpBagsQty,
+            humanRelationsQty: humanRelationsQty
+          });
+  
+          console.log("7. Verification response:", verifyResponse.data);
+          if (!verifyResponse.data || !verifyResponse.data.success) {
+            throw new Error("Payment verification failed.");
+          }
+  
+          console.log("8. TON payment verified! Now creating order...");
+  
+        } catch (txError) {
+          console.error("TON transaction error:", txError);
+          alert("Transaction failed. Please try again.");
+          return;
+        }
       }
-
-      console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
-        messages: [
-          {
-            address: receiverAddress, // Use the validated receiver address
-            amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
-          },
+  
+      setIsProcessing(true);
+      
+      // Start UI animations
+      document.getElementById('fub-counter')?.classList.add('updating');
+      document.getElementById('hr-counter')?.classList.add('updating');
+  
+      // REMOVE OPTIMISTIC UPDATE - this is causing double updates
+      // We'll use updateStockAfterOrder after confirming the order instead
+  
+      const orderPayload = {
+        email: purchaseEmail,
+        paymentMethod: paymentMethod.toUpperCase(),
+        bookCount: totalBooks,
+        tappingRate: tappingRate,
+        coinsReward: Number(points),
+        priceTon: priceTon,
+        priceStars: priceStars,
+        fxckedUpBagsQty,
+        humanRelationsQty,
+        telegramId: telegramId ? String(telegramId) : '',
+        referrerId: referrerId ? String(referrerId) : '',
+        bookIds: [
+          ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
+          ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
         ],
       };
-
-      try {
-        console.log("4. Sending TON transaction...");
-        const tonResult = await tonConnectUI.sendTransaction(transaction);
-        console.log("5. TON transaction result:", tonResult);
-
-        if (!tonResult || !tonResult.boc) {
-          throw new Error("Transaction failed or missing data.");
-        }
-
-        console.log("6. Verifying TON transaction with backend...");
-
-        const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
-
-        const verifyResponse = await axios.post("/api/verify-payment", {
-          transactionHash: tonResult.boc,
-          paymentMethod: "TON",
-          totalAmount: priceTon,
-          userId: userId,
-          fxckedUpBagsQty: fxckedUpBagsQty,
-          humanRelationsQty: humanRelationsQty
-        });
-
-        console.log("7. Verification response:", verifyResponse.data);
-        if (!verifyResponse.data || !verifyResponse.data.success) {
-          throw new Error("Payment verification failed.");
-        }
-
-        console.log("8. TON payment verified! Now creating order...");
-
-      } catch (txError) {
-        console.error("TON transaction error:", txError);
-        alert("Transaction failed. Please try again.");
-        return;
+  
+      console.log("9. Creating order with payload:", orderPayload);
+  
+      const headers = {
+        "Content-Type": "application/json",
+        ...(process.env.NODE_ENV === "production" &&
+        window.Telegram?.WebApp?.initData
+          ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
+          : {}),
+      };
+  
+      const orderResponse = await axios.post("/api/purchase", orderPayload, {
+        headers,
+      });
+  
+      console.log("10. Order response:", orderResponse.data);
+  
+      if (!orderResponse.data || !orderResponse.data.orderId) {
+        throw new Error("Invalid response from purchase API");
       }
-    }
-
-    setIsProcessing(true);
-    
-    // Start UI animations
-    document.getElementById('fub-counter')?.classList.add('updating');
-    document.getElementById('hr-counter')?.classList.add('updating');
-
-    // Optimistic UI update - immediately show the expected new counts
-    const optimisticStockLimit = {
-      ...stockLimit,
-      fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
-      humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
-    };
-    setStockLimit(optimisticStockLimit);
-
-    const orderPayload = {
-      email: purchaseEmail,
-      paymentMethod: paymentMethod.toUpperCase(),
-      bookCount: totalBooks,
-      tappingRate: tappingRate,
-      coinsReward: Number(points),
-      priceTon: priceTon,
-      priceStars: priceStars,
-      fxckedUpBagsQty,
-      humanRelationsQty,
-      telegramId: telegramId ? String(telegramId) : '',
-      referrerId: referrerId ? String(referrerId) : '',
-      bookIds: [
-        ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
-        ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
-      ],
-    };
-
-    console.log("9. Creating order with payload:", orderPayload);
-
-    const headers = {
-      "Content-Type": "application/json",
-      ...(process.env.NODE_ENV === "production" &&
-      window.Telegram?.WebApp?.initData
-        ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
-        : {}),
-    };
-
-    const orderResponse = await axios.post("/api/purchase", orderPayload, {
-      headers,
-    });
-
-    console.log("10. Order response:", orderResponse.data);
-
-    if (!orderResponse.data || !orderResponse.data.orderId) {
-      throw new Error("Invalid response from purchase API");
-    }
-
-    const orderId = orderResponse.data.orderId;
-    const purchasedFxckedUp = fxckedUpBagsQty;
-    const purchasedHuman = humanRelationsQty;
-    
-    // After successful purchase, verify the stock data
-    // This ensures we have the most accurate counts after the purchase
-    const stockResponse = await axios.get("/api/stock", {
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
-    
-    console.log("Latest stock data after purchase:", stockResponse.data);
-    
-    // Update with actual data from server to correct any discrepancies
-    setStockLimit({
-      fxckedUpBagsLimit: stockResponse.data.fxckedUpBagsLimit,
-      humanRelationsLimit: stockResponse.data.humanRelationsLimit,
-      fxckedUpBagsUsed: stockResponse.data.fxckedUpBagsUsed,
-      humanRelationsUsed: stockResponse.data.humanRelationsUsed,
-      fxckedUpBags: stockResponse.data.fxckedUpBags,
-      humanRelations: stockResponse.data.humanRelations
-    });
-
-    // End animations after data loads
-    document.getElementById('fub-counter')?.classList.remove('updating');
-    document.getElementById('hr-counter')?.classList.remove('updating');
+  
+      // IMPORTANT: Here's where we update the stock using our new method
+      // This ensures consistent stock updates
+      const { updateStockAfterOrder } = useBoostContext();
+      updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
       
-    // Reset form and handle success
-    setFxckedUpBagsQty(0);
-    setHumanRelationsQty(0);
-    handlePaymentSuccess();
-    
-  } catch (error) {
-    // Error animations
-    document.getElementById('fub-counter')?.classList.add('error');
-    document.getElementById('hr-counter')?.classList.add('error');
-    
-    setTimeout(() => {
-      document.getElementById('fub-counter')?.classList.remove('error');
-      document.getElementById('hr-counter')?.classList.remove('error');
-    }, 1000);
-
-    // Revert the optimistic update by fetching latest data
-    await syncStock();
-
-    alert(axios.isAxiosError(error) 
-      ? `Error: ${error.response?.data?.error || error.message}`
-      : "Payment failed. Please try again.");
-  } finally {
-    setIsProcessing(false);
-  }
-};
+      console.log("Stock updated after successful order");
+  
+      // After successful purchase, reset the form
+      const orderId = orderResponse.data.orderId;
+      const purchasedFxckedUp = fxckedUpBagsQty;
+      const purchasedHuman = humanRelationsQty;
+      
+      // End animations after data loads
+      document.getElementById('fub-counter')?.classList.remove('updating');
+      document.getElementById('hr-counter')?.classList.remove('updating');
+        
+      // Reset form and handle success
+      setFxckedUpBagsQty(0);
+      setHumanRelationsQty(0);
+      handlePaymentSuccess();
+      
+    } catch (error) {
+      // Error animations
+      document.getElementById('fub-counter')?.classList.add('error');
+      document.getElementById('hr-counter')?.classList.add('error');
+      
+      setTimeout(() => {
+        document.getElementById('fub-counter')?.classList.remove('error');
+        document.getElementById('hr-counter')?.classList.remove('error');
+      }, 1000);
+  
+      // Revert any optimistic updates by syncing with the server
+      await syncStock();
+  
+      alert(axios.isAxiosError(error) 
+        ? `Error: ${error.response?.data?.error || error.message}`
+        : "Payment failed. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
   
 
 
@@ -525,16 +507,12 @@ const handlePurchase = async (paymentMethod: string) => {
       // Start loading animations
       const purchasedFxckedUp = fxckedUpBagsQty;
       const purchasedHuman = humanRelationsQty;
-
+  
       document.getElementById('fub-counter')?.classList.add('updating');
       document.getElementById('hr-counter')?.classList.add('updating');
-
-      const optimisticStockLimit = {
-        ...stockLimit,
-        fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
-        humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
-      };
-      setStockLimit(optimisticStockLimit);
+  
+      // REMOVE OPTIMISTIC UPDATE - this is causing double updates
+      // We'll use updateStockAfterOrder after confirming the order instead
   
       const payload = JSON.stringify({  
         email: purchaseEmail,
@@ -568,12 +546,11 @@ const handlePurchase = async (paymentMethod: string) => {
       const response = await axios.post("/api/paymentByStars", payload, { headers });
   
       if (response.data.invoiceLink) {
-        // Update stock IMMEDIATELY
-        setStockLimit({
-          ...stockLimit,
-          fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
-          humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty
-        });
+        // Update stock using our new method
+        const { updateStockAfterOrder } = useBoostContext();
+        updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
+        
+        console.log("Stock updated after stars payment");
         
         // Reset quantities
         setFxckedUpBagsQty(0);
@@ -592,7 +569,8 @@ const handlePurchase = async (paymentMethod: string) => {
         document.getElementById('fub-counter')?.classList.remove('error');
         document.getElementById('hr-counter')?.classList.remove('error');
       }, 1000);
-
+  
+      // Revert by syncing with the server
       await syncStock();
   
       alert(
