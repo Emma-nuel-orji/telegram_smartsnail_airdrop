@@ -110,38 +110,59 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
       
       console.log("Syncing stock from API...");
-      const response = await fetch('/api/stock');
+      
+      // Try with a more complete URL if you're having path issues
+      const apiUrl = '/api/stock';
+      console.log("Fetching from:", apiUrl);
+      
+      const response = await fetch(apiUrl);
+      console.log("Response status:", response.status);
       
       if (!response.ok) {
         throw new Error(`Stock API returned ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
+      const text = await response.text();
+      console.log("Raw response:", text);
+      
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Invalid JSON response: ${e.message}`);
+      }
+      
+      console.log("Parsed stock data:", data);
       
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid stock data format');
       }
       
-      console.log("Stock data received:", data);
+      // Log available fields to help debug field mismatches
+      console.log("Available fields in response:", Object.keys(data));
       
-      // Ensure all required fields are present
-      setStockLimit({
+      // More defensive field extraction with clear logging
+      const stockUpdate = {
         fxckedUpBagsLimit: data.fxckedUpBagsLimit || initialStockLimit.fxckedUpBagsLimit,
         fxckedUpBagsUsed: data.fxckedUpBagsUsed || 0,
-        fxckedUpBags: data.fxckedUpBagsAvailable || 0, // Note: Changed from fxckedUpBags to fxckedUpBagsAvailable
+        fxckedUpBags: data.fxckedUpBagsAvailable || data.fxckedUpBags || 0, // Try both field names
         humanRelationsLimit: data.humanRelationsLimit || initialStockLimit.humanRelationsLimit,
         humanRelationsUsed: data.humanRelationsUsed || 0,
-        humanRelations: data.humanRelationsAvailable || 0, // Note: Changed from humanRelations to humanRelationsAvailable
+        humanRelations: data.humanRelationsAvailable || data.humanRelations || 0, // Try both field names
         timestamp: data.timestamp || new Date().toISOString()
-      });
+      };
       
-      console.log("Stock updated from API:", {
-        fxckedUp: `${data.fxckedUpBagsUsed}/${data.fxckedUpBagsLimit}`,
-        human: `${data.humanRelationsUsed}/${data.humanRelationsLimit}`
-      });
+      console.log("About to update stock with:", stockUpdate);
+      setStockLimit(stockUpdate);
+      
     } catch (error) {
       console.error('Failed to sync stock:', error);
-      // Instead of throwing the error, we'll retry once after a delay
+      // Log more details about the error
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      
       throttledSyncRef.current = setTimeout(() => {
         console.log("Retrying stock sync...");
         syncStock().catch(e => console.error("Retry failed:", e));
