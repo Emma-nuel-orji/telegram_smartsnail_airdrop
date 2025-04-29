@@ -110,62 +110,61 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
       
       console.log("Syncing stock from API...");
-      
-      // Try with a more complete URL if you're having path issues
-      const apiUrl = '/api/stock';
-      console.log("Fetching from:", apiUrl);
-      
-      const response = await fetch(apiUrl);
-      console.log("Response status:", response.status);
+      const response = await fetch('/api/stock');
       
       if (!response.ok) {
         throw new Error(`Stock API returned ${response.status}: ${response.statusText}`);
       }
       
       const text = await response.text();
-      console.log("Raw response:", text);
       
       let data;
       try {
         data = JSON.parse(text);
       } catch (e) {
-        throw new Error(`Invalid JSON response: ${e.message}`);
+        // Properly type the error to avoid TypeScript errors
+        const error = e as Error;
+        throw new Error(`Invalid JSON response: ${error.message}`);
       }
       
-      console.log("Parsed stock data:", data);
+      console.log("Stock data received:", data);
       
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid stock data format');
       }
       
-      // Log available fields to help debug field mismatches
-      console.log("Available fields in response:", Object.keys(data));
+      // Check if there's an error in the API response
+      if (data.error) {
+        throw new Error(`API error: ${data.error} - ${data.details || ''}`);
+      }
       
-      // More defensive field extraction with clear logging
-      const stockUpdate = {
+      // Ensure all required fields are present, matching your API response format
+      setStockLimit({
         fxckedUpBagsLimit: data.fxckedUpBagsLimit || initialStockLimit.fxckedUpBagsLimit,
         fxckedUpBagsUsed: data.fxckedUpBagsUsed || 0,
-        fxckedUpBags: data.fxckedUpBagsAvailable || data.fxckedUpBags || 0, // Try both field names
+        fxckedUpBags: data.fxckedUpBagsAvailable || 0,
         humanRelationsLimit: data.humanRelationsLimit || initialStockLimit.humanRelationsLimit,
         humanRelationsUsed: data.humanRelationsUsed || 0,
-        humanRelations: data.humanRelationsAvailable || data.humanRelations || 0, // Try both field names
+        humanRelations: data.humanRelationsAvailable || 0,
         timestamp: data.timestamp || new Date().toISOString()
-      };
-      
-      console.log("About to update stock with:", stockUpdate);
-      setStockLimit(stockUpdate);
-      
-    } catch (error) {
-      console.error('Failed to sync stock:', error);
-      // Log more details about the error
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack
       });
       
+      console.log("Stock updated from API:", {
+        fxckedUp: `${data.fxckedUpBagsUsed}/${data.fxckedUpBagsLimit}`,
+        human: `${data.humanRelationsUsed}/${data.humanRelationsLimit}`
+      });
+    } catch (error) {
+      // Properly type the error
+      const err = error as Error;
+      console.error('Failed to sync stock:', err.message);
+      
+      // Instead of throwing the error, we'll retry once after a delay
       throttledSyncRef.current = setTimeout(() => {
         console.log("Retrying stock sync...");
-        syncStock().catch(e => console.error("Retry failed:", e));
+        syncStock().catch(e => {
+          const retryErr = e as Error;
+          console.error("Retry failed:", retryErr.message);
+        });
       }, 2000);
     }
   }, [setStockLimit]);
