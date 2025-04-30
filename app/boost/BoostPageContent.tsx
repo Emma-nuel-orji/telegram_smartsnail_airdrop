@@ -322,8 +322,11 @@ const triggerConfetti = () => {
         return;
       }
   
-       // TON payment specific logic
-       if (paymentMethod === "TON") {
+      // Start processing UI state early
+      setIsProcessing(true);
+  
+      // TON payment specific logic
+      if (paymentMethod === "TON") {
         console.log("2. TON payment selected, checking wallet connection");
         console.log("isConnected:", isConnected);
         console.log("tonConnectUI:", !!tonConnectUI);
@@ -331,12 +334,14 @@ const triggerConfetti = () => {
   
         if (!isConnected || !tonConnectUI || !walletAddress) {
           alert("Wallet not connected, go to task 18 to connect wallet.");
+          setIsProcessing(false);
           return;
         }
        
         // Validate priceTon
         if (!priceTon || priceTon <= 0) {
           alert("Invalid payment amount. Please try again.");
+          setIsProcessing(false);
           return;
         }
   
@@ -344,15 +349,16 @@ const triggerConfetti = () => {
         if (!receiverAddress) {
           console.error("Receiver address is not configured in environment variables.");
           alert("Receiver address is not configured. Please contact support.");
+          setIsProcessing(false);
           return;
         }
   
-        console.log("Receiver Address:", receiverAddress); // Debugging: Verify the address
+        console.log("Receiver Address:", receiverAddress);
         const transaction = {
           validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes validity
           messages: [
             {
-              address: receiverAddress, // Use the validated receiver address
+              address: receiverAddress,
               amount: String(Math.floor(priceTon * 1e9)), // Convert TON to nanoTON
             },
           ],
@@ -390,18 +396,14 @@ const triggerConfetti = () => {
         } catch (txError) {
           console.error("TON transaction error:", txError);
           alert("Transaction failed. Please try again.");
+          setIsProcessing(false);
           return;
         }
       }
-  
-      setIsProcessing(true);
       
-      // Start UI animations
+      // Start UI animations - only if payment is successful or not TON payment
       document.getElementById('fub-counter')?.classList.add('updating');
       document.getElementById('hr-counter')?.classList.add('updating');
-  
-      // REMOVE OPTIMISTIC UPDATE - this is causing double updates
-      // We'll use updateStockAfterOrder after confirming the order instead
   
       const orderPayload = {
         email: purchaseEmail,
@@ -441,9 +443,18 @@ const triggerConfetti = () => {
         throw new Error("Invalid response from purchase API");
       }
   
-      // IMPORTANT: Here's where we update the stock using our new method
-      // This ensures consistent stock updates
-      const { updateStockAfterOrder } = useBoostContext();
+      // Get the context before using it
+      const { updateStockAfterOrder, setStockLimit, stockLimit } = useBoostContext();
+      
+      // Immediately update local state for instant UI feedback
+      setStockLimit({
+        ...stockLimit,
+        fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
+        humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Also trigger the normal update which will sync with server
       updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
       
       console.log("Stock updated after successful order");
@@ -483,8 +494,7 @@ const triggerConfetti = () => {
     }
   };
   
-
-
+  
   const handlePaymentViaStars = async (paymentMethod?: string) => {
     if (paymentMethod !== "Stars") {
       alert("Invalid payment method");
@@ -510,9 +520,6 @@ const triggerConfetti = () => {
   
       document.getElementById('fub-counter')?.classList.add('updating');
       document.getElementById('hr-counter')?.classList.add('updating');
-  
-      // REMOVE OPTIMISTIC UPDATE - this is causing double updates
-      // We'll use updateStockAfterOrder after confirming the order instead
   
       const payload = JSON.stringify({  
         email: purchaseEmail,
@@ -546,8 +553,18 @@ const triggerConfetti = () => {
       const response = await axios.post("/api/paymentByStars", payload, { headers });
   
       if (response.data.invoiceLink) {
-        // Update stock using our new method
-        const { updateStockAfterOrder } = useBoostContext();
+        // Get the context before using it
+        const { updateStockAfterOrder, setStockLimit, stockLimit } = useBoostContext();
+        
+        // Immediately update local state for instant UI feedback
+        setStockLimit({
+          ...stockLimit,
+          fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
+          humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Also trigger the normal update which will sync with server
         updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
         
         console.log("Stock updated after stars payment");
