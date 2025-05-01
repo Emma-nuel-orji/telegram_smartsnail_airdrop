@@ -116,6 +116,9 @@ useEffect(() => {
   const { isConnected, tonConnectUI, walletAddress } = useWallet();
   const [isClient, setIsClient] = useState(false);
   const [telegramId, setTelegramId] = useState<string | null>(null);
+  const [optimisticFUBUsed, setOptimisticFUBUsed] = useState<number | null>(null);
+  const [optimisticHRUsed, setOptimisticHRUsed] = useState<number | null>(null);
+
 
 // Fetch user ID when telegramId is available
 useEffect(() => {
@@ -310,7 +313,15 @@ const triggerConfetti = () => {
   const fxckedUpBagsId = "6796dbfa223a935d969d56e6"; 
   const humanRelationsId = "6796dbfa223a935d969d56e7"; 
 
-  
+ 
+
+// const performOptimisticUpdate = (addedFUB: number, addedHR: number) => {
+//   setOptimisticFUBUsed(prev => (prev !== null ? prev + addedFUB : stockLimit.fxckedUpBagsUsed + addedFUB));
+//   setOptimisticHRUsed(prev => (prev !== null ? prev + addedHR : stockLimit.humanRelationsUsed + addedHR));
+// };
+
+
+
   // Modify your handlePurchase function to ensure stock updates:
   const handlePurchase = async (paymentMethod: string) => {
     try {
