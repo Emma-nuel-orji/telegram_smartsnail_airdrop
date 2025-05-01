@@ -320,6 +320,16 @@ const triggerConfetti = () => {
 //   setOptimisticHRUsed(prev => (prev !== null ? prev + addedHR : stockLimit.humanRelationsUsed + addedHR));
 // };
 
+const syncStockFromAPI = async () => {
+  try {
+    console.log("Manually syncing stock...");
+    syncStock(); // just call the context function
+  } catch (err) {
+    console.error("Failed to sync stock:", err);
+  }
+};
+
+
 
 
   // Modify your handlePurchase function to ensure stock updates:
@@ -458,6 +468,12 @@ const triggerConfetti = () => {
       // This will trigger a sync with the server as well
       updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
         
+      // Schedule a delayed sync 20 minutes later (1,200,000 ms)
+      setTimeout(() => {
+        syncStockFromAPI();
+      }, 20 * 60 * 1000); // 20 minutes
+
+
       // Reset form and handle success
       setFxckedUpBagsQty(0);
       setHumanRelationsQty(0);
@@ -530,6 +546,11 @@ const triggerConfetti = () => {
       if (response.data.invoiceLink) {
         // Update the context with the finalized order
         updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
+
+        setTimeout(() => {
+          syncStockFromAPI();
+        }, 20 * 60 * 1000); // 20 minutes
+        
         
         // Reset quantities before redirecting
         setFxckedUpBagsQty(0);
