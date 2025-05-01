@@ -609,7 +609,7 @@ const handlePaymentSuccess = async () => {
     setHumanRelationsQty(0);
 
     // Refresh stock data
-    await syncStock();
+    // await syncStock();
   } catch (error) {
     console.error("Error handling payment success:", error);
   }
