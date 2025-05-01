@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useCallback, useEffect, useRef } from 'react';
 
 interface StockLimit {
   fxckedUpBagsLimit: number;
@@ -9,7 +9,7 @@ interface StockLimit {
   humanRelationsUsed: number;
   fxckedUpBags: number;
   humanRelations: number;
-  timestamp?: string;  // Optional if your API returns this
+  timestamp?: string;
 }
 
 interface UserState {
@@ -23,9 +23,11 @@ interface BoostContextProps {
   user: UserState;
   setStockLimit: (limit: StockLimit | ((prev: StockLimit) => StockLimit)) => void;
   setUser: (userData: Partial<UserState>) => void;
-  syncStock: () => Promise<void>;
-  // New method to properly handle stock updates
+  syncStock: () => Promise<boolean>;
   updateStockAfterOrder: (fxckedUpQty: number, humanQty: number) => void;
+  performOptimisticUpdate: (fxckedUpQty: number, humanQty: number) => void;
+  handlePurchaseError: (error: any) => Promise<void>;
+  updateStockDisplay: (newStockData: StockLimit, isOptimistic?: boolean) => void;
 }
 
 const initialStockLimit: StockLimit = {
@@ -79,9 +81,46 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   );
 
-  // Add a throttled sync function to prevent rapid API calls
-  const throttledSyncRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Add a throttled sync reference to prevent rapid API calls
+  const throttledSyncRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Previous stock values for tracking changes
+  const prevStockRef = useRef<StockLimit>(state.stockLimit);
+  
+  // Enhanced function to update stock with UI animations
+  const updateStockDisplay = useCallback((newStockData: StockLimit, isOptimistic = false) => {
+    // Validate stock data to prevent negative values
+    const validatedData = {
+      ...newStockData,
+      fxckedUpBagsUsed: Math.max(0, newStockData.fxckedUpBagsUsed),
+      humanRelationsUsed: Math.max(0, newStockData.humanRelationsUsed)
+    };
+    
+    // Update state with new stock data
+    dispatch({ type: 'SET_STOCK_LIMIT', payload: validatedData });
+    
+    // Handle UI animations based on whether this is an optimistic update
+    const fubCounter = document.getElementById('fub-counter');
+    const hrCounter = document.getElementById('hr-counter');
+    
+    if (isOptimistic) {
+      // Add updating class to show animation
+      fubCounter?.classList.add('updating');
+      hrCounter?.classList.add('updating');
+    } else {
+      // Remove updating class when we have real data
+      fubCounter?.classList.remove('updating');
+      hrCounter?.classList.remove('updating');
+    }
+    
+    console.log(`Stock updated (${isOptimistic ? 'optimistic' : 'verified'})`, {
+      fxckedUp: `${validatedData.fxckedUpBagsUsed}/${validatedData.fxckedUpBagsLimit}`,
+      human: `${validatedData.humanRelationsUsed}/${validatedData.humanRelationsLimit}`,
+      timestamp: validatedData.timestamp || new Date().toISOString()
+    });
+  }, []);
+
+  // Standard stock limit setter (without animations)
   const setStockLimit = useCallback((update: StockLimit | ((prev: StockLimit) => StockLimit)) => {
     const newValue = typeof update === 'function'
       ? update(state.stockLimit)
@@ -101,16 +140,36 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     dispatch({ type: 'SET_USER', payload: userData });
   }, []);
 
-  // Improve syncStock to handle errors and add retry
-  const syncStock = useCallback(async () => {
+  // Optimistic update helper for immediate UI feedback
+  const performOptimisticUpdate = useCallback((fxckedUpQty: number, humanQty: number) => {
+    const newStock = {
+      ...state.stockLimit,
+      fxckedUpBagsUsed: state.stockLimit.fxckedUpBagsUsed + fxckedUpQty,
+      humanRelationsUsed: state.stockLimit.humanRelationsUsed + humanQty,
+      timestamp: new Date().toISOString()
+    };
+    
+    updateStockDisplay(newStock, true);
+    return newStock;
+  }, [state.stockLimit, updateStockDisplay]);
+
+  // Enhanced syncStock with improved error handling
+  const syncStock = useCallback(async (): Promise<boolean> => {
     try {
       // Cancel any pending sync
       if (throttledSyncRef.current) {
         clearTimeout(throttledSyncRef.current);
+        throttledSyncRef.current = null;
       }
       
       console.log("Syncing stock from API...");
-      const response = await fetch('/api/stock');
+      const response = await fetch('/api/stock', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`Stock API returned ${response.status}: ${response.statusText}`);
@@ -122,7 +181,6 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       try {
         data = JSON.parse(text);
       } catch (e) {
-        // Properly type the error to avoid TypeScript errors
         const error = e as Error;
         throw new Error(`Invalid JSON response: ${error.message}`);
       }
@@ -138,8 +196,8 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         throw new Error(`API error: ${data.error} - ${data.details || ''}`);
       }
       
-      // Ensure all required fields are present, matching your API response format
-      setStockLimit({
+      // Create new stock data object with fallbacks
+      const newStockData = {
         fxckedUpBagsLimit: data.fxckedUpBagsLimit || initialStockLimit.fxckedUpBagsLimit,
         fxckedUpBagsUsed: data.fxckedUpBagsUsed || 0,
         fxckedUpBags: data.fxckedUpBagsAvailable || 0,
@@ -147,14 +205,13 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         humanRelationsUsed: data.humanRelationsUsed || 0,
         humanRelations: data.humanRelationsAvailable || 0,
         timestamp: data.timestamp || new Date().toISOString()
-      });
+      };
       
-      console.log("Stock updated from API:", {
-        fxckedUp: `${data.fxckedUpBagsUsed}/${data.fxckedUpBagsLimit}`,
-        human: `${data.humanRelationsUsed}/${data.humanRelationsLimit}`
-      });
+      // Use the enhanced update function with UI animations
+      updateStockDisplay(newStockData, false);
+      
+      return true; // Indicate successful sync
     } catch (error) {
-      // Properly type the error
       const err = error as Error;
       console.error('Failed to sync stock:', err.message);
       
@@ -166,35 +223,85 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           console.error("Retry failed:", retryErr.message);
         });
       }, 2000);
+      
+      return false; // Indicate failed sync
     }
-  }, [setStockLimit]);
+  }, [updateStockDisplay]);
 
-  // New method to handle stock updates after an order
-  const updateStockAfterOrder = useCallback((fxckedUpQty: number, humanQty: number) => {
-    // Log the current stock before updating
-    console.log("Stock before order:", {
-      fxckedUp: `${state.stockLimit.fxckedUpBagsUsed}/${state.stockLimit.fxckedUpBagsLimit}`,
-      human: `${state.stockLimit.humanRelationsUsed}/${state.stockLimit.humanRelationsLimit}`
-    });
+  // Enhanced error handling for purchase functions
+  const handlePurchaseError = useCallback(async (error: any) => {
+    const fubCounter = document.getElementById('fub-counter');
+    const hrCounter = document.getElementById('hr-counter');
     
-    // Update the stock in the context
-    dispatch({
-      type: 'UPDATE_STOCK',
-      payload: { fxckedUp: fxckedUpQty, human: humanQty }
-    });
+    // Show error animation
+    fubCounter?.classList.add('error');
+    hrCounter?.classList.add('error');
+    
+    // Remove error class after animation
+    setTimeout(() => {
+      fubCounter?.classList.remove('error');
+      hrCounter?.classList.remove('error');
+    }, 1000);
+    
+    // Fetch real stock data to correct any optimistic updates
+    await syncStock();
+    
+    // Determine the error message
+    let errorMessage = "Payment failed. Please try again.";
+    
+    if (error && typeof error === 'object') {
+      if ('isAxiosError' in error && error.isAxiosError) {
+        errorMessage = `Error: ${error.response?.data?.error || error.message}`;
+      } else if ('message' in error) {
+        errorMessage = `Error: ${error.message}`;
+      }
+    }
+    
+    // Show error message
+    alert(errorMessage);
+  }, [syncStock]);
+
+  // Improved method to handle stock updates after an order
+  const updateStockAfterOrder = useCallback((fxckedUpQty: number, humanQty: number) => {
+    // Apply an optimistic update first for immediate UI feedback
+    performOptimisticUpdate(fxckedUpQty, humanQty);
     
     // After updating locally, sync with the server after a short delay
     // This ensures our local state matches the server state
     throttledSyncRef.current = setTimeout(() => {
       syncStock().catch(e => console.error("Post-order sync failed:", e));
     }, 1000);
-    
-    // Log the updated stock
-    console.log("Stock after order (local update):", {
-      fxckedUp: `${state.stockLimit.fxckedUpBagsUsed + fxckedUpQty}/${state.stockLimit.fxckedUpBagsLimit}`,
-      human: `${state.stockLimit.humanRelationsUsed + humanQty}/${state.stockLimit.humanRelationsLimit}`
+  }, [performOptimisticUpdate, syncStock]);
+
+  // Log stock changes for debugging
+  useEffect(() => {
+    // Basic snapshot
+    console.log('Current Stock:', {
+      fxckedUp: `${state.stockLimit.fxckedUpBagsUsed}/${state.stockLimit.fxckedUpBagsLimit}`,
+      human: `${state.stockLimit.humanRelationsUsed}/${state.stockLimit.humanRelationsLimit}`,
+      timestamp: state.stockLimit.timestamp || new Date().toISOString()
     });
-  }, [state.stockLimit, syncStock]);
+  
+    // Change analysis
+    const prevStock = prevStockRef.current;
+    const changes = {
+      fxckedUp: state.stockLimit.fxckedUpBagsUsed - prevStock.fxckedUpBagsUsed,
+      human: state.stockLimit.humanRelationsUsed - prevStock.humanRelationsUsed
+    };
+  
+    if (changes.fxckedUp !== 0 || changes.human !== 0) {
+      console.log('Stock Changes Detected:', {
+        previous: {
+          fxckedUp: `${prevStock.fxckedUpBagsUsed}/${prevStock.fxckedUpBagsLimit}`,
+          human: `${prevStock.humanRelationsUsed}/${prevStock.humanRelationsLimit}`
+        },
+        changes,
+        timestamp: new Date().toISOString()
+      });
+    }
+  
+    prevStockRef.current = state.stockLimit;
+  }, [state.stockLimit]);
 
   // Sync stock on component mount
   useEffect(() => {
@@ -221,7 +328,10 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setStockLimit,
         setUser,
         syncStock,
-        updateStockAfterOrder
+        updateStockAfterOrder,
+        performOptimisticUpdate,
+        handlePurchaseError,
+        updateStockDisplay
       }}
     >
       {children}

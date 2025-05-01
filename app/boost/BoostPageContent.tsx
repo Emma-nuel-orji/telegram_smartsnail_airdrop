@@ -78,7 +78,10 @@ export default function BoostPageContent() {
     syncStock,
     setStockLimit,
     setUser,
+    performOptimisticUpdate,
+    handlePurchaseError,
     updateStockAfterOrder,
+    updateStockDisplay,
   } = useBoostContext();
 
   // State Management
@@ -322,9 +325,6 @@ const triggerConfetti = () => {
         return;
       }
   
-      // Start processing UI state early
-      setIsProcessing(true);
-  
       // TON payment specific logic
       if (paymentMethod === "TON") {
         console.log("2. TON payment selected, checking wallet connection");
@@ -334,14 +334,12 @@ const triggerConfetti = () => {
   
         if (!isConnected || !tonConnectUI || !walletAddress) {
           alert("Wallet not connected, go to task 18 to connect wallet.");
-          setIsProcessing(false);
           return;
         }
        
         // Validate priceTon
         if (!priceTon || priceTon <= 0) {
           alert("Invalid payment amount. Please try again.");
-          setIsProcessing(false);
           return;
         }
   
@@ -349,7 +347,6 @@ const triggerConfetti = () => {
         if (!receiverAddress) {
           console.error("Receiver address is not configured in environment variables.");
           alert("Receiver address is not configured. Please contact support.");
-          setIsProcessing(false);
           return;
         }
   
@@ -396,14 +393,15 @@ const triggerConfetti = () => {
         } catch (txError) {
           console.error("TON transaction error:", txError);
           alert("Transaction failed. Please try again.");
-          setIsProcessing(false);
           return;
         }
       }
+  
+      setIsProcessing(true);
       
-      // Start UI animations - only if payment is successful or not TON payment
-      document.getElementById('fub-counter')?.classList.add('updating');
-      document.getElementById('hr-counter')?.classList.add('updating');
+      // Apply optimistic UI update immediately
+      // Using context method for consistent UI updates
+      performOptimisticUpdate(fxckedUpBagsQty, humanRelationsQty);
   
       const orderPayload = {
         email: purchaseEmail,
@@ -443,30 +441,11 @@ const triggerConfetti = () => {
         throw new Error("Invalid response from purchase API");
       }
   
-      // Get the context before using it
-      const { updateStockAfterOrder, setStockLimit, stockLimit } = useBoostContext();
-      
-      // Immediately update local state for instant UI feedback
-      setStockLimit({
-        ...stockLimit,
-        fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
-        humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Also trigger the normal update which will sync with server
-      updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
-      
-      console.log("Stock updated after successful order");
-  
-      // After successful purchase, reset the form
       const orderId = orderResponse.data.orderId;
-      const purchasedFxckedUp = fxckedUpBagsQty;
-      const purchasedHuman = humanRelationsQty;
       
-      // End animations after data loads
-      document.getElementById('fub-counter')?.classList.remove('updating');
-      document.getElementById('hr-counter')?.classList.remove('updating');
+      // Update the context with the finalized order
+      // This will trigger a sync with the server as well
+      updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
         
       // Reset form and handle success
       setFxckedUpBagsQty(0);
@@ -474,26 +453,12 @@ const triggerConfetti = () => {
       handlePaymentSuccess();
       
     } catch (error) {
-      // Error animations
-      document.getElementById('fub-counter')?.classList.add('error');
-      document.getElementById('hr-counter')?.classList.add('error');
-      
-      setTimeout(() => {
-        document.getElementById('fub-counter')?.classList.remove('error');
-        document.getElementById('hr-counter')?.classList.remove('error');
-      }, 1000);
-  
-      // Revert any optimistic updates by syncing with the server
-      await syncStock();
-  
-      alert(axios.isAxiosError(error) 
-        ? `Error: ${error.response?.data?.error || error.message}`
-        : "Payment failed. Please try again.");
+      // Use context method for consistent error handling
+      handlePurchaseError(error);
     } finally {
       setIsProcessing(false);
     }
   };
-  
   
   const handlePaymentViaStars = async (paymentMethod?: string) => {
     if (paymentMethod !== "Stars") {
@@ -514,12 +479,11 @@ const triggerConfetti = () => {
     setIsProcessing(true);
   
     try {
-      // Start loading animations
+      // Apply optimistic UI update immediately
+      performOptimisticUpdate(fxckedUpBagsQty, humanRelationsQty);
+  
       const purchasedFxckedUp = fxckedUpBagsQty;
       const purchasedHuman = humanRelationsQty;
-  
-      document.getElementById('fub-counter')?.classList.add('updating');
-      document.getElementById('hr-counter')?.classList.add('updating');
   
       const payload = JSON.stringify({  
         email: purchaseEmail,
@@ -553,23 +517,10 @@ const triggerConfetti = () => {
       const response = await axios.post("/api/paymentByStars", payload, { headers });
   
       if (response.data.invoiceLink) {
-        // Get the context before using it
-        const { updateStockAfterOrder, setStockLimit, stockLimit } = useBoostContext();
-        
-        // Immediately update local state for instant UI feedback
-        setStockLimit({
-          ...stockLimit,
-          fxckedUpBagsUsed: stockLimit.fxckedUpBagsUsed + fxckedUpBagsQty,
-          humanRelationsUsed: stockLimit.humanRelationsUsed + humanRelationsQty,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Also trigger the normal update which will sync with server
+        // Update the context with the finalized order
         updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
         
-        console.log("Stock updated after stars payment");
-        
-        // Reset quantities
+        // Reset quantities before redirecting
         setFxckedUpBagsQty(0);
         setHumanRelationsQty(0);
         
@@ -578,27 +529,8 @@ const triggerConfetti = () => {
         throw new Error("Failed to create payment link");
       }
     } catch (error) {
-      // Error handling
-      document.getElementById('fub-counter')?.classList.add('error');
-      document.getElementById('hr-counter')?.classList.add('error');
-      
-      setTimeout(() => {
-        document.getElementById('fub-counter')?.classList.remove('error');
-        document.getElementById('hr-counter')?.classList.remove('error');
-      }, 1000);
-  
-      // Revert by syncing with the server
-      await syncStock();
-  
-      alert(
-        axios.isAxiosError(error)
-          ? error.response?.data?.error || "Payment failed"
-          : "Payment failed. Please try again."
-      );
+      handlePurchaseError(error);
     } finally {
-      // Clean up
-      document.getElementById('fub-counter')?.classList.remove('updating');
-      document.getElementById('hr-counter')?.classList.remove('updating');
       setIsProcessing(false);
     }
   };
