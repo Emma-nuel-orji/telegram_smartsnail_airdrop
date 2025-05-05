@@ -420,9 +420,7 @@ const syncStockFromAPI = async () => {
   
       setIsProcessing(true);
       
-      // Apply optimistic UI update immediately
-      // Using context method for consistent UI updates
-      performOptimisticUpdate(fxckedUpBagsQty, humanRelationsQty);
+      
   
       const orderPayload = {
         email: purchaseEmail,
@@ -467,6 +465,7 @@ const syncStockFromAPI = async () => {
       // Update the context with the finalized order
       // This will trigger a sync with the server as well
       updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
+      // performOptimisticUpdate(fxckedUpBagsQty, humanRelationsQty);
 
           await syncStockFromAPI(); // Immediate
           setTimeout(() => {
@@ -476,7 +475,7 @@ const syncStockFromAPI = async () => {
       // Reset form and handle success
       setFxckedUpBagsQty(0);
       setHumanRelationsQty(0);
-      handlePaymentSuccess();
+      handlePaymentSuccess(fxckedUpBagsQty, humanRelationsQty);
       
     } catch (error) {
       // Use context method for consistent error handling
@@ -506,7 +505,7 @@ const syncStockFromAPI = async () => {
   
     try {
       // Apply optimistic UI update immediately
-      performOptimisticUpdate(fxckedUpBagsQty, humanRelationsQty);
+      // performOptimisticUpdate(fxckedUpBagsQty, humanRelationsQty);
   
       const purchasedFxckedUp = fxckedUpBagsQty;
       const purchasedHuman = humanRelationsQty;
@@ -545,6 +544,8 @@ const syncStockFromAPI = async () => {
       if (response.data.invoiceLink) {
         // Update the context with the finalized order
         updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
+         performOptimisticUpdate(fxckedUpBagsQty, humanRelationsQty);
+
 
         await syncStockFromAPI(); // Immediate
         setTimeout(() => {
@@ -576,7 +577,7 @@ const syncStockFromAPI = async () => {
         });
   
         if (response.data.success) {
-          handlePaymentSuccess();
+          handlePaymentSuccess(fxckedUpBagsQty, humanRelationsQty);
         }
       } catch (error) {
         console.error("Payment verification failed:", error);
@@ -590,29 +591,28 @@ const syncStockFromAPI = async () => {
 
 
 // Function to handle successful payment callback
-const handlePaymentSuccess = async () => {
+const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
   try {
     console.log("Triggering confetti... 🎉");
 
-    // ✅ Ensure confetti state update applies
     setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 5000); // Stop confetti after 5s
+    setTimeout(() => setShowConfetti(false), 5000);
 
-    // ✅ Delay alerts slightly to allow confetti to be visible first
     setTimeout(() => {
       alert("Purchase successful! Check your email for details.");
     }, 500);
 
-    // Reset purchase quantities
+    // ✅ Now apply optimistic update using correct values
+    performOptimisticUpdate(bagsQty, humanQty);
+
+    // ❌ THEN reset
     setFxckedUpBagsQty(0);
     setHumanRelationsQty(0);
-
-    // Refresh stock data
-    // await syncStock();
   } catch (error) {
     console.error("Error handling payment success:", error);
   }
 };
+
 
 
   // Code Redemption Handler
