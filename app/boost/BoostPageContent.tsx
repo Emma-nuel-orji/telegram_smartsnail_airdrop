@@ -168,33 +168,33 @@ useEffect(() => {
   }, [purchaseEmail, redemptionEmail, referralLink]);
 
  
-  useEffect(() => {
-    // Basic snapshot
-    console.log('Current Stock:', {
-      fxckedUp: `${stockLimit.fxckedUpBagsUsed}/${stockLimit.fxckedUpBagsLimit}`,
-      human: `${stockLimit.humanRelationsUsed}/${stockLimit.humanRelationsLimit}`,
-      timestamp: new Date().toISOString()
-    });
+  // useEffect(() => {
+  //   // Basic snapshot
+  //   console.log('Current Stock:', {
+  //     fxckedUp: `${stockLimit.fxckedUpBagsUsed}/${stockLimit.fxckedUpBagsLimit}`,
+  //     human: `${stockLimit.humanRelationsUsed}/${stockLimit.humanRelationsLimit}`,
+  //     timestamp: new Date().toISOString()
+  //   });
   
     
 
-    // Change analysis
-    const prevStock = prevStockRef.current;
-    const changes = {
-      fxckedUp: stockLimit.fxckedUpBagsUsed - prevStock.fxckedUpBagsUsed,
-      human: stockLimit.humanRelationsUsed - prevStock.humanRelationsUsed
-    };
+  //   // Change analysis
+  //   const prevStock = prevStockRef.current;
+  //   const changes = {
+  //     fxckedUp: stockLimit.fxckedUpBagsUsed - prevStock.fxckedUpBagsUsed,
+  //     human: stockLimit.humanRelationsUsed - prevStock.humanRelationsUsed
+  //   };
   
-    if (changes.fxckedUp !== 0 || changes.human !== 0) {
-      console.log('Stock Changes Detected:', {
-        previous: prevStock,
-        changes,
-        timestamp: new Date().toISOString()
-      });
-    }
+  //   if (changes.fxckedUp !== 0 || changes.human !== 0) {
+  //     console.log('Stock Changes Detected:', {
+  //       previous: prevStock,
+  //       changes,
+  //       timestamp: new Date().toISOString()
+  //     });
+  //   }
   
-    prevStockRef.current = stockLimit;
-  }, [stockLimit]);
+  //   prevStockRef.current = stockLimit;
+  // }, [stockLimit]);
 
   // Calculations
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
@@ -467,12 +467,11 @@ const syncStockFromAPI = async () => {
       // Update the context with the finalized order
       // This will trigger a sync with the server as well
       updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
-        
-      // Schedule a delayed sync 20 minutes later (1,200,000 ms)
-      setTimeout(() => {
-        syncStockFromAPI();
-      }, 20 * 60 * 1000); // 20 minutes
 
+          await syncStockFromAPI(); // Immediate
+          setTimeout(() => {
+            syncStockFromAPI(); // Delayed backup sync
+          }, 20 * 60 * 1000);
 
       // Reset form and handle success
       setFxckedUpBagsQty(0);
@@ -547,10 +546,10 @@ const syncStockFromAPI = async () => {
         // Update the context with the finalized order
         updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
 
+        await syncStockFromAPI(); // Immediate
         setTimeout(() => {
-          syncStockFromAPI();
-        }, 20 * 60 * 1000); // 20 minutes
-        
+          syncStockFromAPI(); // Delayed backup sync
+        }, 20 * 60 * 1000);
         
         // Reset quantities before redirecting
         setFxckedUpBagsQty(0);

@@ -128,12 +128,12 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       ? update(state.stockLimit)
       : update;
     
-  const updateStockContextManually = (fxckedUp: number, human: number) => {
-        dispatch({
-          type: 'UPDATE_STOCK',
-          payload: { fxckedUp, human }
-        });
-      };
+  // const updateStockContextManually = (fxckedUp: number, human: number) => {
+  //       dispatch({
+  //         type: 'UPDATE_STOCK',
+  //         payload: { fxckedUp, human }
+  //       });
+  //     };
       
 
     // Add validation to prevent negative values
@@ -143,7 +143,8 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       humanRelationsUsed: Math.max(0, newValue.humanRelationsUsed)
     };
     
-    dispatch({ type: 'SET_STOCK_LIMIT', payload: validatedValue });
+    updateStockDisplay(validatedValue, false);
+
   }, [state.stockLimit]);
 
   const setUser = useCallback((userData: Partial<UserState>) => {
