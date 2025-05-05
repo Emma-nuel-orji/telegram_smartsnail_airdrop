@@ -453,18 +453,20 @@ const syncStockFromAPI = async () => {
       const orderResponse = await axios.post("/api/purchase", orderPayload, {
         headers,
       });
-  
+      
       console.log("10. Order response:", orderResponse.data);
-  
+      
       if (!orderResponse.data || !orderResponse.data.orderId) {
         throw new Error("Invalid response from purchase API");
       }
-  
+      
       const orderId = orderResponse.data.orderId;
+      const data = orderResponse.data; // No need for `.json()` with axios
       
       // Update the context with the finalized order
-      // This will trigger a sync with the server as well
-      updateStockAfterOrder(fxckedUpBagsQty, humanRelationsQty);
+      if (data.stockStatus) {
+        updateStockDisplay(data.stockStatus, true); // `true` = optimistic flag to show change immediately
+      }
       // performOptimisticUpdate(fxckedUpBagsQty, humanRelationsQty);
 
           await syncStockFromAPI(); // Immediate
