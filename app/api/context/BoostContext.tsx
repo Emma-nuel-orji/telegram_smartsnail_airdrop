@@ -89,6 +89,7 @@ export const BoostProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const optimisticRef = useRef<{ fxckedUp: number; human: number } | null>(null);
 
   
+  
   // Enhanced function to update stock with UI animations
   const updateStockDisplay = useCallback((newStockData: StockLimit, isOptimistic = false) => {
     // Validate stock data to prevent negative values
