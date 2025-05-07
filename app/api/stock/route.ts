@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
       ]);
 
       return {
-        used: book.usedStock,
+        used: usedCodes,
         assigned: totalCodes,
         availableCodes: totalCodes - usedCodes
       };
