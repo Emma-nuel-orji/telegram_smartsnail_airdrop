@@ -291,7 +291,7 @@ const updateStockAfterOrder = useCallback((fxckedUpQty: number, humanQty: number
   throttledSyncRef.current = setTimeout(async () => {
     try {
       // Send update to the backend to persist used stock
-      const res = await fetch('/api/stock/sync', {
+      const res = await fetch('/api/stock', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
