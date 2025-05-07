@@ -13,16 +13,20 @@ const prisma = new PrismaClient({
   },
 });
 
-// Static cache to reduce database calls (TTL: 5 minutes)
+// Static cache with request timestamp tracking
 const cache = {
   data: null as any,
   timestamp: 0,
-  ttl: 5 * 60 * 1000, // 5 minutes in milliseconds
+  ttl: 30 * 1000, // Reduced to 30 seconds to ensure fresher data
+  lastRequestTime: 0, // Track when the last request was made
 };
 
 export async function GET(req: NextRequest) {
   const start = Date.now();
   console.log(`[${start}] Stock API request started`);
+  
+  // Always update the last request time
+  cache.lastRequestTime = start;
   
   // Add cache control headers to prevent network caching
   const headers = new Headers({
@@ -38,8 +42,19 @@ export async function GET(req: NextRequest) {
   
   try {
     // Check if we can use cached data
+    // Add a time buffer to ensure we don't use cached data immediately after a purchase
     const now = Date.now();
-    if (useCache && cache.data && (now - cache.timestamp < cache.ttl)) {
+    const timeSinceLastPurchase = req.nextUrl.searchParams.get('lastPurchase') ? 
+      now - parseInt(req.nextUrl.searchParams.get('lastPurchase') || '0') : 
+      Number.MAX_SAFE_INTEGER;
+    
+    // Don't use cache if a purchase was made recently (within 5 seconds)
+    const shouldUseCache = useCache && 
+                          cache.data && 
+                          (now - cache.timestamp < cache.ttl) && 
+                          timeSinceLastPurchase > 5000;
+    
+    if (shouldUseCache) {
       console.log(`[${now}] Using cached data from ${new Date(cache.timestamp).toISOString()}`);
       
       // Add debug info if requested
@@ -51,6 +66,7 @@ export async function GET(req: NextRequest) {
             cachedAt: new Date(cache.timestamp).toISOString(),
             age: (now - cache.timestamp) / 1000,
             ttl: cache.ttl / 1000,
+            timeSinceLastPurchase: timeSinceLastPurchase / 1000,
           }
         }, { headers });
       }
@@ -68,30 +84,41 @@ export async function GET(req: NextRequest) {
     const getStockData = async (title: string) => {
       console.log(`[${Date.now()}] Fetching stock for: "${title}"`);
       
-      // Find the book first
+      // Find the book and use its usedStock field directly
       const book = await prisma.book.findFirst({
         where: { title },
-        select: { id: true, usedStock: true }
+        select: { id: true, usedStock: true, stockLimit: true }
       });
       
       if (!book) {
         throw new Error(`Book "${title}" not found`);
       }
       
-      // Use the book ID for better query performance
-      const [totalCodes, usedCodes] = await Promise.all([
+      // For debugging, still count the codes to see the discrepancy
+      const [totalCodes, usedCodesCount] = await Promise.all([
         prisma.generatedCode.count({
           where: { bookId: book.id }
         }),
         prisma.generatedCode.count({
-          where: { bookId: book.id, isUsed: true }
+          where: { 
+            bookId: book.id,
+            OR: [
+              { isUsed: true },
+              { purchaseId: { not: null } },
+              { usedAt: { not: null } }
+            ]
+          }
         })
       ]);
 
+      console.log(`[${Date.now()}] Book "${title}" - DB usedStock: ${book.usedStock}, Counted usedCodes: ${usedCodesCount}, Total codes: ${totalCodes}`);
+
+      // Use the usedStock field from the book document instead of counting codes
       return {
-        used: usedCodes,
+        used: book.usedStock,
         assigned: totalCodes,
-        availableCodes: totalCodes - usedCodes
+        stockLimit: book.stockLimit,
+        availableCodes: totalCodes - book.usedStock
       };
     };
 
@@ -109,10 +136,10 @@ export async function GET(req: NextRequest) {
     const responseData = {
       fxckedUpBagsLimit: books.fxckedUpBags.stockLimit,
       fxckedUpBagsUsed: fxckedUp.used,
-      fxckedUpBagsAvailable: fxckedUp.availableCodes,
+      fxckedUpBagsAvailable: fxckedUp.stockLimit - fxckedUp.used,  // Use stockLimit from book
       humanRelationsLimit: books.humanRelations.stockLimit,
       humanRelationsUsed: human.used,
-      humanRelationsAvailable: human.availableCodes,
+      humanRelationsAvailable: human.stockLimit - human.used,  // Use stockLimit from book
       timestamp: new Date().toISOString()
     };
 
@@ -130,6 +157,7 @@ export async function GET(req: NextRequest) {
           new URL(process.env.DATABASE_URL).hostname : 'unknown',
         source: 'database',
         cachedAt: new Date(cache.timestamp).toISOString(),
+        timeSinceLastPurchase: timeSinceLastPurchase / 1000,
       };
       
       return NextResponse.json(
