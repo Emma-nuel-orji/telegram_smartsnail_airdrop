@@ -367,6 +367,11 @@ export async function POST(req: NextRequest): Promise<Response> {
         tappingRate: Number(userResult.tappingRate)
       };
 
+      const allBooks = await tx.book.findMany({
+        select: { id: true, title: true, usedStock: true, stockLimit: true }
+      });
+      console.log("📊 Final book stock states:", allBooks);
+
       return {
         success: true,
         message: "Purchase completed successfully",
@@ -427,15 +432,22 @@ async function validateStockAndCalculateTotals(
     orderBy: { createdAt: 'asc' } // FIFO
   });
 
+  console.log("🔍 Available codes fetched:", availableCodes.length);
+  console.log("📦 Total quantity requested:", totalQty);
+
   if (availableCodes.length < totalQty) {
     throw new Error("Insufficient stock for the requested quantity of books");
   }
 
   // 2. Reserve codes (neutral reservation)
+  
+  const codesToReserve = availableCodes.map(c => c.id);
+  console.log("🔒 Reserving codes with IDs:", codesToReserve);
   await tx.generatedCode.updateMany({
-    where: { id: { in: availableCodes.map(c => c.id) } },
+    where: { id: { in: codesToReserve } },
     data: { isReserved: true }
   });
+
 
   // 3. Assign to books and calculate
   let codeIndex = 0;
@@ -777,6 +789,7 @@ async function validateStockAndCalculateTotals(
   for (const { id, qty } of booksToPurchase) {
     if (!id) continue;
     const book = await tx.book.findFirst({ where: { id } });
+    console.log(`📘 Book ${id} before stock update: usedStock = ${book?.usedStock}, qty = ${qty}`);
     if (!book) throw new Error(`Book with ID "${id}" not found.`);
     purchasedBooks.push({ bookId: book.id, quantity: qty });
   }
@@ -807,6 +820,7 @@ async function validateStockAndCalculateTotals(
         usedStock: { increment: qty }
       }
     });
+    console.log(`✅ Book ${id} stock incremented by ${qty}`);
   }
 
       // Fetch or create user
@@ -834,6 +848,11 @@ async function validateStockAndCalculateTotals(
       });
 
       if (generatedCodes.length !== codes.length) {
+        console.error("❌ Code mismatch: expected vs actual", {
+          expected: codes.length,
+          actual: generatedCodes.length,
+          missingCodes: codes.filter(code => !generatedCodes.some(g => g.code === code)),
+        });
         throw new Error("Some codes are invalid or missing a batchId.");
       }
 

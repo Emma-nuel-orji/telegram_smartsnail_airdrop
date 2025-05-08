@@ -13,20 +13,22 @@ const prisma = new PrismaClient({
   },
 });
 
-// Static cache with request timestamp tracking
+// Static cache with shorter TTL and request tracking
 const cache = {
   data: null as any,
   timestamp: 0,
-  ttl: 30 * 1000, // Reduced to 30 seconds to ensure fresher data
-  lastRequestTime: 0, // Track when the last request was made
+  ttl: 10 * 1000, // 10 seconds cache for normal requests
+  purchaseTtl: 1 * 1000, // 1 second cache after purchases
+  trackingData: {
+    lastPurchaseTime: 0,
+    purchasePending: false,
+    retryCount: 0,
+  }
 };
 
 export async function GET(req: NextRequest) {
   const start = Date.now();
   console.log(`[${start}] Stock API request started`);
-  
-  // Always update the last request time
-  cache.lastRequestTime = start;
   
   // Add cache control headers to prevent network caching
   const headers = new Headers({
@@ -40,38 +42,95 @@ export async function GET(req: NextRequest) {
   const debug = req.nextUrl.searchParams.get('debug') === 'true';
   const useCache = !forceRefresh && req.nextUrl.searchParams.get('nocache') !== 'true';
   
+  // Extract purchase info
+  const lastPurchaseParam = req.nextUrl.searchParams.get('lastPurchase');
+  const lastPurchaseTime = lastPurchaseParam ? parseInt(lastPurchaseParam) : 0;
+  const isPurchaseRelated = lastPurchaseTime > 0;
+  
+  // Update tracking data if this is a purchase-related request
+  if (isPurchaseRelated && lastPurchaseTime > cache.trackingData.lastPurchaseTime) {
+    cache.trackingData.lastPurchaseTime = lastPurchaseTime;
+    cache.trackingData.purchasePending = true;
+    cache.trackingData.retryCount = 0;
+  }
+  
   try {
-    // Check if we can use cached data
-    // Add a time buffer to ensure we don't use cached data immediately after a purchase
     const now = Date.now();
-    const timeSinceLastPurchase = req.nextUrl.searchParams.get('lastPurchase') ? 
-      now - parseInt(req.nextUrl.searchParams.get('lastPurchase') || '0') : 
-      Number.MAX_SAFE_INTEGER;
     
-    // Don't use cache if a purchase was made recently (within 5 seconds)
-    const shouldUseCache = useCache && 
-                          cache.data && 
-                          (now - cache.timestamp < cache.ttl) && 
-                          timeSinceLastPurchase > 5000;
-    
-    if (shouldUseCache) {
-      console.log(`[${now}] Using cached data from ${new Date(cache.timestamp).toISOString()}`);
+    // For purchase-related requests, apply special rules
+    if (isPurchaseRelated) {
+      // Force refresh if this is a purchase-related request and we're still in pending state
+      const timeSincePurchase = now - lastPurchaseTime;
+      const hasRecentPurchase = timeSincePurchase < 30000; // Within 30 seconds
       
-      // Add debug info if requested
-      if (debug) {
-        return NextResponse.json({
-          ...cache.data,
-          debug: {
-            source: 'cache',
-            cachedAt: new Date(cache.timestamp).toISOString(),
-            age: (now - cache.timestamp) / 1000,
-            ttl: cache.ttl / 1000,
-            timeSinceLastPurchase: timeSinceLastPurchase / 1000,
+      // If we're in a purchase-pending state, adjust retry behavior
+      if (hasRecentPurchase && cache.trackingData.purchasePending) {
+        // Increment retry count
+        cache.trackingData.retryCount++;
+        
+        // After several retries with the same result, consider the purchase complete
+        if (cache.trackingData.retryCount >= 3 && cache.data) {
+          // Mark purchase as no longer pending after several consistent reads
+          cache.trackingData.purchasePending = false;
+          console.log(`[${now}] Purchase considered complete after ${cache.trackingData.retryCount} consistent reads`);
+        }
+        
+        // For the first few retries, always get fresh data
+        if (cache.trackingData.retryCount <= 2) {
+          console.log(`[${now}] Forcing refresh for purchase-related request (retry #${cache.trackingData.retryCount})`);
+          // Force a fresh read from the database
+          // Don't use cache here
+        } else {
+          // After multiple retries, we can use cache with a very short TTL
+          if (useCache && cache.data && (now - cache.timestamp < cache.purchaseTtl)) {
+            console.log(`[${now}] Using short-lived cache for purchase retry #${cache.trackingData.retryCount}`);
+            if (debug) {
+              return NextResponse.json({
+                ...cache.data,
+                debug: {
+                  source: 'short-lived-cache',
+                  purchaseTime: new Date(lastPurchaseTime).toISOString(),
+                  retryCount: cache.trackingData.retryCount,
+                  timeSincePurchase: `${timeSincePurchase}ms`,
+                }
+              }, { headers });
+            }
+            return NextResponse.json(cache.data, { headers });
           }
-        }, { headers });
+        }
+      } else {
+        // If not in pending state but still purchase-related, use normal cache rules
+        if (useCache && cache.data && (now - cache.timestamp < cache.ttl)) {
+          console.log(`[${now}] Using standard cache for post-purchase request`);
+          if (debug) {
+            return NextResponse.json({
+              ...cache.data,
+              debug: {
+                source: 'standard-cache',
+                purchaseTime: new Date(lastPurchaseTime).toISOString(),
+                timeSincePurchase: `${timeSincePurchase}ms`,
+              }
+            }, { headers });
+          }
+          return NextResponse.json(cache.data, { headers });
+        }
       }
-      
-      return NextResponse.json(cache.data, { headers });
+    } else {
+      // Normal non-purchase request - use standard caching rules
+      if (useCache && cache.data && (now - cache.timestamp < cache.ttl)) {
+        console.log(`[${now}] Using standard cache for normal request`);
+        if (debug) {
+          return NextResponse.json({
+            ...cache.data,
+            debug: {
+              source: 'standard-cache',
+              cachedAt: new Date(cache.timestamp).toISOString(),
+              age: (now - cache.timestamp) / 1000,
+            }
+          }, { headers });
+        }
+        return NextResponse.json(cache.data, { headers });
+      }
     }
     
     console.log(`[${Date.now()}] Fetching fresh data from database`);
@@ -113,12 +172,13 @@ export async function GET(req: NextRequest) {
 
       console.log(`[${Date.now()}] Book "${title}" - DB usedStock: ${book.usedStock}, Counted usedCodes: ${usedCodesCount}, Total codes: ${totalCodes}`);
 
-      // Use the usedStock field from the book document instead of counting codes
+      // Use the usedStock field from the book document
       return {
         used: book.usedStock,
-        assigned: totalCodes,
+        totalCodes: totalCodes,
+        usedCodesCount: usedCodesCount,
         stockLimit: book.stockLimit,
-        availableCodes: totalCodes - book.usedStock
+        available: book.stockLimit - book.usedStock
       };
     };
 
@@ -133,13 +193,46 @@ export async function GET(req: NextRequest) {
     
     const [fxckedUp, human] = stockData;
 
+    // If this is a purchase-related request and we have a previous reading,
+    // check if we see the expected change in stock
+    if (isPurchaseRelated && cache.data && cache.trackingData.purchasePending) {
+      const previousUsed = cache.data.fxckedUpBagsUsed;
+      
+      // If stock hasn't changed, but we're in a post-purchase request,
+      // we might need to wait for database updates to propagate
+      if (previousUsed === fxckedUp.used && cache.trackingData.retryCount < 3) {
+        console.log(`[${Date.now()}] No stock change detected on retry #${cache.trackingData.retryCount}. Previous: ${previousUsed}, Current: ${fxckedUp.used}`);
+        
+        // Add a slight delay before responding to allow database to catch up
+        if (cache.trackingData.retryCount === 0) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Try one more immediate read
+          const refreshedBook = await prisma.book.findFirst({
+            where: { title: books.fxckedUpBags.title },
+            select: { usedStock: true }
+          });
+          
+          if (refreshedBook && refreshedBook.usedStock !== previousUsed) {
+            console.log(`[${Date.now()}] Retry read successful! Updated stock: ${refreshedBook.usedStock}`);
+            fxckedUp.used = refreshedBook.usedStock;
+            fxckedUp.available = fxckedUp.stockLimit - refreshedBook.usedStock;
+          }
+        }
+      } else if (previousUsed !== fxckedUp.used) {
+        // Stock has changed, mark purchase as processed
+        console.log(`[${Date.now()}] Stock change detected! Previous: ${previousUsed}, Current: ${fxckedUp.used}`);
+        cache.trackingData.purchasePending = false;
+      }
+    }
+
     const responseData = {
       fxckedUpBagsLimit: books.fxckedUpBags.stockLimit,
       fxckedUpBagsUsed: fxckedUp.used,
-      fxckedUpBagsAvailable: fxckedUp.stockLimit - fxckedUp.used,  // Use stockLimit from book
+      fxckedUpBagsAvailable: fxckedUp.available,
       humanRelationsLimit: books.humanRelations.stockLimit,
       humanRelationsUsed: human.used,
-      humanRelationsAvailable: human.stockLimit - human.used,  // Use stockLimit from book
+      humanRelationsAvailable: human.available,
       timestamp: new Date().toISOString()
     };
 
@@ -153,11 +246,26 @@ export async function GET(req: NextRequest) {
       const debugInfo = {
         executionTime: `${end - start}ms`,
         environment: process.env.NODE_ENV || 'unknown',
-        databaseHost: process.env.DATABASE_URL ? 
-          new URL(process.env.DATABASE_URL).hostname : 'unknown',
+        databaseResults: {
+          fxckedUpBags: {
+            usedStock: fxckedUp.used,
+            usedCodesCount: fxckedUp.usedCodesCount,
+            totalCodes: fxckedUp.totalCodes
+          },
+          humanRelations: {
+            usedStock: human.used,
+            usedCodesCount: human.usedCodesCount,
+            totalCodes: human.totalCodes
+          }
+        },
+        purchaseTracking: isPurchaseRelated ? {
+          lastPurchaseTime: new Date(cache.trackingData.lastPurchaseTime).toISOString(),
+          purchasePending: cache.trackingData.purchasePending,
+          retryCount: cache.trackingData.retryCount,
+          timeSincePurchase: lastPurchaseTime > 0 ? `${now - lastPurchaseTime}ms` : 'N/A'
+        } : undefined,
         source: 'database',
         cachedAt: new Date(cache.timestamp).toISOString(),
-        timeSinceLastPurchase: timeSinceLastPurchase / 1000,
       };
       
       return NextResponse.json(

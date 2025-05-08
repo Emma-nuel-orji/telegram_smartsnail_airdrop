@@ -179,22 +179,25 @@ useEffect(() => {
     
 
   //   // Change analysis
-  //   const prevStock = prevStockRef.current;
-  //   const changes = {
-  //     fxckedUp: stockLimit.fxckedUpBagsUsed - prevStock.fxckedUpBagsUsed,
-  //     human: stockLimit.humanRelationsUsed - prevStock.humanRelationsUsed
-  //   };
+  useEffect(() => {
+    const prevStock = prevStockRef.current;
+    const changes = {
+      fxckedUp: stockLimit.fxckedUpBagsUsed - prevStock.fxckedUpBagsUsed,
+      human: stockLimit.humanRelationsUsed - prevStock.humanRelationsUsed
+    };
   
-  //   if (changes.fxckedUp !== 0 || changes.human !== 0) {
-  //     console.log('Stock Changes Detected:', {
-  //       previous: prevStock,
-  //       changes,
-  //       timestamp: new Date().toISOString()
-  //     });
-  //   }
+    if (changes.fxckedUp !== 0 || changes.human !== 0) {
+      console.log('📊 Stock Changes Detected:', {
+        previous: prevStock,
+        current: stockLimit,
+        changes,
+        timestamp: new Date().toISOString()
+      });
+    }
   
-  //   prevStockRef.current = stockLimit;
-  // }, [stockLimit]);
+    prevStockRef.current = stockLimit;
+  }, [stockLimit]);
+  
 
   // Calculations
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
@@ -266,6 +269,7 @@ const triggerConfetti = () => {
 
   useEffect(() => {
     syncStock(); // Initial load
+    console.log("🟡 Initial syncStock called");
     const interval = setInterval(syncStock, 30000); // Auto-refresh
     return () => clearInterval(interval);
   }, []);
@@ -439,7 +443,7 @@ const syncStockFromAPI = async () => {
           ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
         ],
       };
-  
+      console.log("🛒 Attempting purchase with stock:", stockLimit);
       console.log("9. Creating order with payload:", orderPayload);
   
       const headers = {
