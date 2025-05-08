@@ -858,36 +858,36 @@ async function validateStockAndCalculateTotals(
 
       // Update stock counters
       // Get the books that need stock updates
-        const fxckedUpBook = booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"));
-        const humanRelationsBook = booksToPurchase.find((book) => book.title === "Human Relations");
+        // const fxckedUpBook = booksToPurchase.find((book) => book.title?.includes("FxckedUpBags"));
+        // const humanRelationsBook = booksToPurchase.find((book) => book.title === "Human Relations");
 
-        // Update FxckedUpBags book stock if purchased
-        if (fxckedUpBook && fxckedUpBook.qty > 0) {
-          await tx.book.update({
-            where: { 
-              id: fxckedUpBook.id // Use the book's ID from your purchase data
-            },
-            data: {
-              usedStock: { 
-                increment: fxckedUpBook.qty 
-              }
-            }
-          });
-        }
+        // // Update FxckedUpBags book stock if purchased
+        // if (fxckedUpBook && fxckedUpBook.qty > 0) {
+        //   await tx.book.update({
+        //     where: { 
+        //       id: fxckedUpBook.id // Use the book's ID from your purchase data
+        //     },
+        //     data: {
+        //       usedStock: { 
+        //         increment: fxckedUpBook.qty 
+        //       }
+        //     }
+        //   });
+        // }
 
-        // Update Human Relations book stock if purchased
-        if (humanRelationsBook && humanRelationsBook.qty > 0) {
-          await tx.book.update({
-            where: { 
-              id: humanRelationsBook.id // Use the book's ID from your purchase data
-            },
-            data: {
-              usedStock: { 
-                increment: humanRelationsBook.qty 
-              }
-            }
-          });
-        }
+        // // Update Human Relations book stock if purchased
+        // if (humanRelationsBook && humanRelationsBook.qty > 0) {
+        //   await tx.book.update({
+        //     where: { 
+        //       id: humanRelationsBook.id // Use the book's ID from your purchase data
+        //     },
+        //     data: {
+        //       usedStock: { 
+        //         increment: humanRelationsBook.qty 
+        //       }
+        //     }
+        //   });
+        // }
  
       let totalCoinsReward = 0;
 
