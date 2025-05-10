@@ -1008,12 +1008,12 @@ async function validateStockAndCalculateTotals(
     });
 
     // Update book stocks
-    for (const { id, qty } of booksToPurchase) {
-      await tx.book.update({
-        where: { id },
-        data: { usedStock: { increment: qty } }
-      });
-    }
+    // for (const { id, qty } of booksToPurchase) {
+    //   await tx.book.update({
+    //     where: { id },
+    //     data: { usedStock: { increment: qty } }
+    //   });
+    // }
 
         // Send email with retry logic
         let retryCount = 0;
