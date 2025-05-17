@@ -28,7 +28,7 @@ export function validateTelegramWebAppData(initData: string): TelegramInitData |
       .join('\n');
 
     // Get your bot token from environment variables
-    const botToken = process.env.BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
       throw new Error('BOT_TOKEN not configured');
     }
