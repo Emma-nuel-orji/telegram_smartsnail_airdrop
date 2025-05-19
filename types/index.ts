@@ -1,6 +1,7 @@
  export interface Task {
   id: string; 
     description: string;
+    
     completed: boolean;
     section: "main" | "daily" | "partners";
     type: "daily" | "permanent" | "flexible"; 
