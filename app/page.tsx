@@ -927,9 +927,9 @@ useEffect(() => {
  
 
   {/* Video with Click Handler */}
-  <div className="relative mt-4" onClick={handleClick}>
+  <div className="absolute top-4 right-4 z-20 flex flex-row space-x-2" onClick={handleClick}>
   {/* Fight Club Button - Prevent Click Effect */}
-  <div className="absolute top-4 right-4 z-20">
+  {/* <div className="absolute top-4 right-4 z-20"> */}
               <Link href="/staking" passHref>
                 <button
                   onClick={handleFightClubClick}
@@ -942,9 +942,9 @@ useEffect(() => {
         />
       </button>
     </Link>
-  </div>
+  {/* </div> */}
 
-  <div className="absolute top-4 right-4 z-20">
+  {/* <div className="absolute top-4 right-4 z-20"> */}
               <Link href="/staking" passHref>
                 <button
                   onClick={handleFightClubClick}
@@ -957,10 +957,10 @@ useEffect(() => {
         />
       </button>
     </Link>
-  </div>
+  {/* </div> */}
 
 
-  <div className="absolute top-4 right-4 z-20">
+  {/* <div className="absolute top-4 right-4 z-20"> */}
               <Link href="/staking" passHref>
                 <button
                   onClick={handleFightClubClick}
@@ -973,10 +973,10 @@ useEffect(() => {
         />
       </button>
     </Link>
-  </div>
+  {/* </div> */}
 
           
-  <div className="absolute top-4 right-4 z-20">
+  {/* <div className="absolute top-4 right-4 z-20"> */}
               <Link href="/staking" passHref>
                 <button
                   onClick={handleFightClubClick}
@@ -989,7 +989,7 @@ useEffect(() => {
         />
       </button>
     </Link>
-  </div>
+  {/* </div> */}
 
 
   {/* Video */}
