@@ -930,7 +930,7 @@ useEffect(() => {
   <div className="relative mt-4 flex flex-row space-x-2" onClick={handleClick}>
   {/* Fight Club Button - Prevent Click Effect */}
   {/* <div className="absolute top-4 right-4 z-20"> */}
-  <div className="absolute top-4 right-4 z-20 flex flex-row space-x-2" >
+  <div className="absolute top-4 right-4 z-20 pr-4 flex flex-row space-x-2" >
               <Link href="/staking" passHref>
                 <button
                   onClick={handleFightClubClick}
