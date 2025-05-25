@@ -303,3 +303,64 @@ enum StakeOutcome {
   DRAW
   CANCELLED
 }
+
+model Partner {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  type        String   // e.g., "GYM", "SALON", "RESTAURANT"
+  address     String?
+  contactInfo String?
+  telegramId  BigInt?  @unique
+  admins      Admin[]  @relation("PartnerAdmins")
+  services    Service[]
+  transactions ShellTransaction[]
+}
+
+model Admin {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  telegramId BigInt    @unique
+  role       AdminRole
+  partnerId  String?   @db.ObjectId
+  partner    Partner?  @relation("PartnerAdmins", fields: [partnerId], references: [id])
+}
+
+enum AdminRole {
+  SUPERADMIN
+  PARTNER
+}
+
+model PointTransaction {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @db.ObjectId
+  partner     Partner  @relation(fields: [partnerId], references: [id])
+  partnerId   String   @db.ObjectId
+  service     Service  @relation(fields: [serviceId], references: [id])
+  serviceId   String   @db.ObjectId
+  pointsUsed  BigInt
+  status      TransactionStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  approvedAt  DateTime?
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Service {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  type        ServiceType // SUBSCRIPTION, ONE_TIME
+  duration    String?     // e.g., "1 Month" (only for SUBSCRIPTION)
+  priceShells BigInt
+  partnerId   String   @db.ObjectId
+  partner     Partner  @relation(fields: [partnerId], references: [id])
+}
+
+enum ServiceType {
+  SUBSCRIPTION
+  ONE_TIME
+}
