@@ -81,7 +81,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({ children, onClick, disabled
   </button>
 )
 
-export default function RestaurantServices() {
+export default function cafe() {
   const [services, setServices] = useState<Service[]>([])
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
