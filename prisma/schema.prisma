@@ -313,7 +313,7 @@ model Partner {
   telegramId  BigInt?  @unique
   admins      Admin[]  @relation("PartnerAdmins")
   services    Service[]
-  transactions ShellTransaction[]
+  transactions PointTransaction[]
 }
 
 model Admin {
