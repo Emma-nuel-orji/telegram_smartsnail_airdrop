@@ -31,6 +31,7 @@ model User {
   stakes          Stake[]
   storyShares     StoryShare[] // ✅ Define the opposite relation
 
+  pointTransactions PointTransaction[]
 
   // Indexes
   @@index([points], name: "points_asc_index")
@@ -335,7 +336,7 @@ model PointTransaction {
   userId      String   @db.ObjectId
   partner     Partner  @relation(fields: [partnerId], references: [id])
   partnerId   String   @db.ObjectId
-  service     Service  @relation(fields: [serviceId], references: [id])
+  service    Service  @relation("ServiceToPointTransactions", fields: [serviceId], references: [id])
   serviceId   String   @db.ObjectId
   pointsUsed  BigInt
   status      TransactionStatus @default(PENDING)
@@ -358,6 +359,7 @@ model Service {
   priceShells BigInt
   partnerId   String   @db.ObjectId
   partner     Partner  @relation(fields: [partnerId], references: [id])
+  pointTransactions PointTransaction[] @relation("ServiceToPointTransactions")
 }
 
 enum ServiceType {
