@@ -360,6 +360,8 @@ model Service {
   partnerId   String   @db.ObjectId
   partner     Partner  @relation(fields: [partnerId], references: [id])
   pointTransactions PointTransaction[] @relation("ServiceToPointTransactions")
+  createdAt   DateTime @default(now()) 
+  updatedAt   DateTime @updatedAt      
 }
 
 enum ServiceType {
