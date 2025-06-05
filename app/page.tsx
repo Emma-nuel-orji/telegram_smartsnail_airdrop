@@ -128,9 +128,9 @@ export default function Home() {
   const { isConnected, walletAddress } = useWallet(); // Destructure walletAddress from useWallet
   
 
-  const handleFightClubClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+  // const handleFightClubClick = (e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  // };
   const formatWalletAddress = (address: string | null) => {
     if (!address) return '';
     return `${address.slice(0, 3)}...${address.slice(-3)}`;
@@ -933,13 +933,14 @@ useEffect(() => {
   <div className="absolute top-4 right-4 z-20 pr-4 flex flex-row space-x-2" >
               <Link href="/staking" passHref>
                 <button
-                  onClick={handleFightClubClick}
+                  // onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
                 >
         <img
           src="/images/boxing-gloves.png"
           alt="Fight Club"
           className="w-6 h-6" // Adjust size as needed
+          onClick={(e) => e.stopPropagation()}
         />
       </button>
     </Link>
@@ -948,13 +949,14 @@ useEffect(() => {
   {/* <div className="absolute top-4 right-4 z-20"> */}
               <Link href="/staking" passHref>
                 <button
-                  onClick={handleFightClubClick}
+                  // onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
                 >
         <img
           src="/images/gym.png"
           alt="Fight Club"
           className="w-6 h-6" // Adjust size as needed
+          onClick={(e) => e.stopPropagation()}
         />
       </button>
     </Link>
@@ -964,13 +966,14 @@ useEffect(() => {
   {/* <div className="absolute top-4 right-4 z-20"> */}
               <Link href="/staking" passHref>
                 <button
-                  onClick={handleFightClubClick}
+                  // onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
                 >
         <img
           src="/images/shop.png"
           alt="Fight Club"
           className="w-6 h-6" // Adjust size as needed
+          onClick={(e) => e.stopPropagation()}
         />
       </button>
     </Link>
@@ -978,15 +981,16 @@ useEffect(() => {
 
           
   {/* <div className="absolute top-4 right-4 z-20"> */}
-              <Link href="/staking" passHref>
+              <Link href="/cafe" passHref>
                 <button
-                  onClick={handleFightClubClick}
+                  // onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
                 >
         <img
           src="/images/dish.png"
           alt="Fight Club"
           className="w-6 h-6" // Adjust size as needed
+          onClick={(e) => e.stopPropagation()}
         />
       </button>
     </Link>
