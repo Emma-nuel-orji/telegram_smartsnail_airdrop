@@ -1,28 +1,36 @@
-// app/api/services/route.ts
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma' // adjust path if your prisma client is elsewhere
+import { prisma } from '@/lib/prisma'
+import { ServiceType } from '@prisma/client' // ✅ import the enum from Prisma
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url)
-    const type = url.searchParams.get('type')
+    const typeParam = url.searchParams.get('type')
+    const partnerId = url.searchParams.get('partnerId')
 
-    if (!type) {
-      return new NextResponse('Missing "type" parameter', { status: 400 })
+    // ✅ validate type is one of the enum values
+    if (!typeParam || !Object.values(ServiceType).includes(typeParam as ServiceType)) {
+      return new NextResponse('Invalid or missing "type" parameter', { status: 400 })
     }
+
+    const type = typeParam as ServiceType // ✅ safe cast
 
     const services = await prisma.service.findMany({
-      where: { type },
-      orderBy: { createdAt: 'desc' },
+      where: {
+        type,
+        ...(partnerId ? { partnerId } : {}),
+      },
+      include: {
+        partner: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
     })
-
-    if (!services.length) {
-      return new NextResponse('No services found for this type', { status: 404 })
-    }
 
     return NextResponse.json(services)
   } catch (error) {
-    console.error('Failed to fetch services:', error)
+    console.error('Error fetching services:', error)
     return new NextResponse('Internal Server Error', { status: 500 })
   }
 }
