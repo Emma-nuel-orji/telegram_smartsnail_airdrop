@@ -361,7 +361,8 @@ model Service {
   partner     Partner  @relation(fields: [partnerId], references: [id])
   pointTransactions PointTransaction[] @relation("ServiceToPointTransactions")
   createdAt   DateTime @default(now()) 
-  updatedAt   DateTime @updatedAt      
+  updatedAt   DateTime @updatedAt    
+  @@index([createdAt])  
 }
 
 enum ServiceType {

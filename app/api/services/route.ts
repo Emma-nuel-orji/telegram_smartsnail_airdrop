@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         partner: true,
       },
       orderBy: {
-        createdAt: 'desc',
+    id: 'desc',
       },
     })
 
