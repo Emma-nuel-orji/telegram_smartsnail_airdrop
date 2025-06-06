@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { ServiceType } from '@prisma/client' // ✅ import the enum from Prisma
 
 export async function GET(req: Request) {
+    console.log('Database URL:', process.env.DATABASE_URL ? 'Set' : 'Missing')
   try {
     const url = new URL(req.url)
     const typeParam = url.searchParams.get('type')
