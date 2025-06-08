@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Image from "next/image"
+import Link from "next/link";
 
 // TypeScript interfaces
 interface Service {
@@ -197,6 +198,16 @@ export default function Cafe() {
           {/* User Points Display */}
           {user && (
             <div className="mb-6 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl border border-yellow-400/30 p-4 max-w-sm mx-auto">
+              <Link href="/">
+                      
+                        <img
+                          src="/images/info/output-onlinepngtools (6).png"
+                          width={24}
+                          height={24}
+                          alt="back"
+                        />
+                      
+                    </Link>
               <div className="flex items-center justify-center gap-2">
                 <WalletIcon />
                 <span className="text-white text-lg font-semibold">Your Balance:</span>
