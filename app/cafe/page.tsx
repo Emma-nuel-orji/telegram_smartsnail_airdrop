@@ -194,11 +194,7 @@ export default function Cafe() {
       {/* Content */}
       <div className="relative z-20 p-6">
         {/* Header with User Points */}
-        <div className="text-center mb-8 pt-8">
-          {/* User Points Display */}
-          {user && (
-            <div className="mb-6 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl border border-yellow-400/30 p-4 max-w-sm mx-auto">
-              <Link href="/">
+        <Link href="/">
                       
                         <img
                           src="/images/info/output-onlinepngtools (6).png"
@@ -208,6 +204,11 @@ export default function Cafe() {
                         />
                       
                     </Link>
+        <div className="text-center mb-8 pt-8">
+          {/* User Points Display */}
+          {user && (
+            <div className="mb-6 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-2xl border border-yellow-400/30 p-4 max-w-sm mx-auto">
+              
               <div className="flex items-center justify-center gap-2">
                 <WalletIcon />
                 <span className="text-white text-lg font-semibold">Your Balance:</span>

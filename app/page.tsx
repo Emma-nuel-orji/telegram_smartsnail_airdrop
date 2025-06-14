@@ -947,7 +947,7 @@ useEffect(() => {
   {/* </div> */}
 
   {/* <div className="absolute top-4 right-4 z-20"> */}
-              <Link href="/staking" passHref>
+              <Link href="/gym" passHref>
                 <button
                   // onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
@@ -962,22 +962,6 @@ useEffect(() => {
     </Link>
   {/* </div> */}
 
-
-  {/* <div className="absolute top-4 right-4 z-20"> */}
-              <Link href="/staking" passHref>
-                <button
-                  // onClick={handleFightClubClick}
-                  className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
-                >
-        <img
-          src="/images/shop.png"
-          alt="Fight Club"
-          className="w-6 h-6" // Adjust size as needed
-          onClick={(e) => e.stopPropagation()}
-        />
-      </button>
-    </Link>
-  {/* </div> */}
 
           
   {/* <div className="absolute top-4 right-4 z-20"> */}
@@ -994,6 +978,23 @@ useEffect(() => {
         />
       </button>
     </Link>
+
+     {/* <div className="absolute top-4 right-4 z-20"> */}
+              <Link href="/staking" passHref>
+                <button
+                  // onClick={handleFightClubClick}
+                  className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
+                >
+        <img
+          src="/images/shop.png"
+          alt="Fight Club"
+          className="w-6 h-6" // Adjust size as needed
+          onClick={(e) => e.stopPropagation()}
+        />
+      </button>
+    </Link>
+  {/* </div> */}
+
   </div>
 
 

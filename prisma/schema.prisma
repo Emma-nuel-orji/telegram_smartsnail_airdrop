@@ -155,20 +155,21 @@ model Purchase {
   bookId            String?       @db.ObjectId  
   paymentType       String
   amountPaid        Float
-  booksBought       Int
+  booksBought       Int           @default(0)
   orderReference    String?        
   fxckedUpBagsQty   Int?         // Optional
   humanRelationsQty Int?         // Optional
   createdAt         DateTime     @default(now())
-  coinsReward       Int
-
+  coinsReward       Int          @default(0)
 
 
   // Relations
   user              User         @relation(fields: [userId], references: [id])
-  book              Book?        @relation(fields: [bookId], references: [id])  // Make optional
+  book              Book?        @relation(fields: [bookId], references: [id])  
+  serviceId         String?     @db.ObjectId
+  service          Service?      @relation("ServiceToPurchase", fields: [serviceId], references: [id])
   codes             GeneratedCode[]
-   order             Order?       @relation("OrderPurchases", fields: [orderReference], references: [orderId])
+   order            Order?       @relation("OrderPurchases", fields: [orderReference], references: [orderId])
 }
 
 
@@ -320,15 +321,17 @@ model Partner {
 model Admin {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   telegramId BigInt    @unique
-  role       AdminRole
+  permissions  AdminPermission[] 
   partnerId  String?   @db.ObjectId
   partner    Partner?  @relation("PartnerAdmins", fields: [partnerId], references: [id])
 }
 
-enum AdminRole {
-  SUPERADMIN
-  PARTNER
+enum AdminPermission {
+  SUPERADMIN     // full access
+  FIGHT_MANAGER  // can resolve fights
+  MENU_MANAGER   // can add/update services for restaurants/etc
 }
+
 
 model PointTransaction {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -354,6 +357,7 @@ model Service {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String?
+  serviceId   String?       @db.ObjectId 
   type        ServiceType // SUBSCRIPTION, ONE_TIME
   duration    String?     // e.g., "1 Month" (only for SUBSCRIPTION)
   priceShells BigInt
@@ -363,6 +367,7 @@ model Service {
   createdAt   DateTime @default(now()) 
   updatedAt   DateTime @updatedAt    
   @@index([createdAt])  
+  purchases  Purchase[]  @relation("ServiceToPurchase")
 }
 
 enum ServiceType {
