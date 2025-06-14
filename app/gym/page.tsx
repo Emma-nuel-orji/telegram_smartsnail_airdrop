@@ -16,7 +16,7 @@ function parseDuration(duration: string): number {
   return mapping[duration] || 0;
 }
 
-export default function GymSubscriptions({ telegramId }: { telegramId: string }) {
+export default function GymSubscriptions({ telegramId }: { telegramId:  BigInt }) {
   const [shells, setShells] = useState<number>(0);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [activeSub, setActiveSub] = useState<any | null>(null);
