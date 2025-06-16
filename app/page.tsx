@@ -13,7 +13,7 @@ import { WalletSection } from '../components/WalletSection';
 import { ConnectButton } from './ConnectButton';
 import { UserSyncManager } from '@/src/utils/userSync';
 import { PointsQueue } from '@/src/utils/userSync';
-
+import { ToastContainer } from 'react-toastify'
 
 
 
@@ -695,7 +695,8 @@ useEffect(() => {
   }
 
   return (
-    <div className="bg-gradient-main min-h-screen px-4 flex flex-col items-center text-white font-medium">
+    <div className="bg-gradient-main min-h-screen px-4 flex flex-col items-center text-white font-medium"> 
+      <ToastContainer position="top-right" autoClose={4000} />
       <div className="absolute inset-0 h-1/2 bg-gradient-overlay z-0"></div>
       <div className="absolute inset-0 flex items-center justify-center z-0">
         <div className="radial-gradient-overlay"></div>
