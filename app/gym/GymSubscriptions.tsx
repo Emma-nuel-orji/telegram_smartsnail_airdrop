@@ -34,7 +34,7 @@ export default function GymSubscriptions() {
     async function fetchUser() {
       const res = await fetch(`/api/user/${telegramId}`);
       const data = await res.json();
-      setShells(Number(data.points));
+      setShells(parseInt(data.points)); 
     }
 
     async function fetchGymSubscriptions() {
