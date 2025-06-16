@@ -1,6 +1,10 @@
+// app/api/services/route.ts
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ServiceType } from '@prisma/client'
+
+export const dynamic = "force-dynamic"; // <--- Important fix
 
 export async function GET(req: Request) {
   try {
@@ -23,7 +27,7 @@ export async function GET(req: Request) {
         partner: true,
       },
       orderBy: {
-        id: 'desc', // Use id instead of createdAt for MongoDB
+        id: 'desc',
       },
     })
 
