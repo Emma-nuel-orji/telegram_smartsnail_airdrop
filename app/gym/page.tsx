@@ -10,7 +10,7 @@ const GymSubscriptions = dynamic(() => import("./GymSubscriptions"), {
 export default function GymPage() {
   return (
     <div>
-      <h1 className="text-white text-3xl font-bold p-6">Gym Page</h1>
+      
       <Suspense fallback={<div className="text-white p-6">Loading...</div>}>
         <GymSubscriptions />
       </Suspense>

@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
+import toast, { Toaster } from "react-hot-toast";
 
-const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
+const GYM_BACKGROUND = "/images/bk.jpg";
+
+// const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
 
 function parseDuration(duration: string): number {
   const mapping: Record<string, number> = {
@@ -17,34 +21,70 @@ function parseDuration(duration: string): number {
   return mapping[duration] || 0;
 }
 
-// Mock data for demonstration
-const mockSubscriptions = [
-  { id: 1, name: "Starter Pack", duration: "1 Week", priceShells: 50, icon: Zap },
-  { id: 2, name: "Power Boost", duration: "2 Weeks", priceShells: 90, icon: Star },
-  { id: 3, name: "Monthly Grind", duration: "1 Month", priceShells: 180, icon: Dumbbell },
-  { id: 4, name: "Quarterly Beast", duration: "3 Months", priceShells: 500, icon: Trophy },
-  { id: 5, name: "Semi-Annual Pro", duration: "6 Months", priceShells: 900, icon: Crown },
-  { id: 6, name: "Annual Champion", duration: "1 Year", priceShells: 1600, icon: Crown },
-];
+// Icon mapping for different subscription types
+const getSubscriptionIcon = (name: string) => {
+  if (name.toLowerCase().includes("starter")) return Zap;
+  if (name.toLowerCase().includes("power") || name.toLowerCase().includes("boost")) return Star;
+  if (name.toLowerCase().includes("monthly") || name.toLowerCase().includes("grind")) return Dumbbell;
+  if (name.toLowerCase().includes("quarterly") || name.toLowerCase().includes("beast")) return Trophy;
+  if (name.toLowerCase().includes("annual") || name.toLowerCase().includes("pro") || name.toLowerCase().includes("champion")) return Crown;
+  return Dumbbell; // default
+};
 
 export default function GymSubscriptions() {
-  const [shells, setShells] = useState<number>(1250);
-  const [subscriptions, setSubscriptions] = useState<any[]>(mockSubscriptions);
+  const searchParams = useSearchParams();
+  const telegramId = searchParams.get("telegramId");
+  const [shells, setShells] = useState<number>(0);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [activeSub, setActiveSub] = useState<any | null>(null);
   const [expiredSubs, setExpiredSubs] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Mock active subscription for demo
+  // Fetch real user data and subscriptions
   useEffect(() => {
-    const mockActiveSub = {
-      id: 3,
-      name: "Monthly Grind",
-      duration: "1 Month",
-      approvedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) // 15 days ago
-    };
-    setActiveSub(mockActiveSub);
-  }, []);
+    if (!telegramId) return;
+
+    async function fetchUserData() {
+      try {
+        setLoading(true);
+        
+        // Fetch user points/shells
+        const userRes = await fetch(`/api/user/${telegramId}`);
+        const userData = await userRes.json();
+        setShells(parseInt(userData.points) || 0);
+
+        // Fetch available gym subscriptions
+        const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
+        const subsData = await subsRes.json();
+        setSubscriptions(subsData);
+
+        // Fetch active subscription
+        const activeSubRes = await fetch(`/api/subscription/${telegramId}`);
+        const activeSubData = await activeSubRes.json();
+
+        if (activeSubData?.approvedAt) {
+          const durationDays = parseDuration(activeSubData.duration);
+          const expiry = new Date(new Date(activeSubData.approvedAt).getTime() + durationDays * 86400000);
+          const now = new Date();
+          
+          if (expiry <= now) {
+            setExpiredSubs([activeSubData]);
+          } else {
+            setActiveSub(activeSubData);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load subscription data");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserData();
+  }, [telegramId]);
 
   useEffect(() => {
     if (!activeSub) return;
@@ -59,6 +99,7 @@ export default function GymSubscriptions() {
 
       if (remaining <= 0) {
         setTimeLeft("Expired");
+        toast("Your gym subscription has expired.");
         setExpiredSubs([...expiredSubs, activeSub]);
         setActiveSub(null);
         clearInterval(interval);
@@ -71,24 +112,46 @@ export default function GymSubscriptions() {
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [activeSub]);
+  }, [activeSub, expiredSubs]);
 
   const handlePurchase = async (sub: any) => {
-    if (shells < sub.priceShells) {
-      alert("Insufficient shells!");
+    if (!telegramId || shells < sub.priceShells || selectedPlan === sub.id) return;
+    
+    // Check if user already has an active subscription
+    if (activeSub) {
+      toast.error("You already have an active subscription!");
       return;
     }
     
     setSelectedPlan(sub.id);
-    setTimeout(() => {
-      setShells(shells - sub.priceShells);
-      alert("Subscription purchased successfully!");
+    
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegramId, serviceId: sub.id }),
+      });
+
+      if (res.ok) {
+        toast.success("Subscription request submitted for approval!");
+        // Refresh user data after successful purchase
+        const userRes = await fetch(`/api/user/${telegramId}`);
+        const userData = await userRes.json();
+        setShells(parseInt(userData.points) || 0);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.message || "Failed to subscribe");
+      }
+    } catch (error) {
+      console.error("Purchase error:", error);
+      toast.error("Failed to process subscription");
+    } finally {
       setSelectedPlan(null);
-    }, 1500);
+    }
   };
 
   const getPlanIcon = (sub: any) => {
-    const IconComponent = sub.icon;
+    const IconComponent = getSubscriptionIcon(sub.name);
     return <IconComponent className="w-8 h-8" />;
   };
 
@@ -115,8 +178,53 @@ export default function GymSubscriptions() {
     return duration === "1 Month" || duration === "3 Months";
   };
 
+  const isSubscriptionDisabled = (sub: any) => {
+    // Disable if user has insufficient shells
+    if (shells < sub.priceShells) return true;
+    
+    // Disable if user already has an active subscription
+    if (activeSub) return true;
+    
+    // Disable if currently processing this subscription
+    if (selectedPlan === sub.id) return true;
+    
+    return false;
+  };
+
+  const getButtonText = (sub: any) => {
+    if (selectedPlan === sub.id) return "Processing...";
+    if (activeSub) return "Already Subscribed";
+    if (shells < sub.priceShells) return "Insufficient Shells";
+    return "Subscribe Now";
+  };
+
+  const getButtonStyle = (sub: any) => {
+    if (isSubscriptionDisabled(sub)) {
+      return 'bg-gray-600 text-gray-400 cursor-not-allowed';
+    }
+    return `bg-gradient-to-r ${getPlanColor(sub.duration)} text-white hover:shadow-lg hover:shadow-blue-500/25 transform hover:-translate-y-1`;
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
+          style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
+        />
+        <div className="relative z-10 text-center">
+          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-xl">Loading your gym subscriptions...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden">
+      <Toaster position="top-right" />
+      
       {/* Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -239,16 +347,10 @@ export default function GymSubscriptions() {
                       {/* Purchase Button */}
                       <button
                         onClick={() => handlePurchase(sub)}
-                        disabled={shells < sub.priceShells || selectedPlan === sub.id}
-                        className={`w-full py-3 px-6 rounded-xl font-bold transition-all duration-300 ${
-                          shells < sub.priceShells
-                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                            : selectedPlan === sub.id
-                            ? 'bg-blue-600 text-white cursor-not-allowed'
-                            : `bg-gradient-to-r ${getPlanColor(sub.duration)} text-white hover:shadow-lg hover:shadow-blue-500/25 transform hover:-translate-y-1`
-                        }`}
+                        disabled={isSubscriptionDisabled(sub)}
+                        className={`w-full py-3 px-6 rounded-xl font-bold transition-all duration-300 ${getButtonStyle(sub)}`}
                       >
-                        {selectedPlan === sub.id ? 'Processing...' : shells < sub.priceShells ? 'Insufficient Shells' : 'Subscribe Now'}
+                        {getButtonText(sub)}
                       </button>
                     </div>
                   </div>
