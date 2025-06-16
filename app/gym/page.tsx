@@ -1,6 +1,9 @@
-"use client"
-import React, { useEffect, useState } from "react";
+"use client";
+
+import React, { useEffect, useState, useContext } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import toast, { Toaster } from "react-hot-toast";
 
 const GYM_BACKGROUND = "/images/gymfit.jpg";
 
@@ -16,13 +19,18 @@ function parseDuration(duration: string): number {
   return mapping[duration] || 0;
 }
 
-export default function GymSubscriptions({ telegramId }: { telegramId:  BigInt }) {
+export default function GymSubscriptions() {
+  const searchParams = useSearchParams();
+  const telegramId = searchParams.get("telegramId");
   const [shells, setShells] = useState<number>(0);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [activeSub, setActiveSub] = useState<any | null>(null);
+  const [expiredSubs, setExpiredSubs] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
+    if (!telegramId) return;
+
     async function fetchUser() {
       const res = await fetch(`/api/user/${telegramId}`);
       const data = await res.json();
@@ -38,8 +46,16 @@ export default function GymSubscriptions({ telegramId }: { telegramId:  BigInt }
     async function fetchActiveSubscription() {
       const res = await fetch(`/api/subscription/${telegramId}`);
       const data = await res.json();
-      if (data && data.approvedAt) {
-        setActiveSub(data);
+
+      if (data?.approvedAt) {
+        const durationDays = parseDuration(data.duration);
+        const expiry = new Date(new Date(data.approvedAt).getTime() + durationDays * 86400000);
+        const now = new Date();
+        if (expiry <= now) {
+          setExpiredSubs([data]);
+        } else {
+          setActiveSub(data);
+        }
       }
     }
 
@@ -61,6 +77,9 @@ export default function GymSubscriptions({ telegramId }: { telegramId:  BigInt }
 
       if (remaining <= 0) {
         setTimeLeft("Expired");
+        toast("Your gym subscription has expired.");
+        setExpiredSubs([...expiredSubs, activeSub]);
+        setActiveSub(null);
         clearInterval(interval);
       } else {
         const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
@@ -73,8 +92,24 @@ export default function GymSubscriptions({ telegramId }: { telegramId:  BigInt }
     return () => clearInterval(interval);
   }, [activeSub]);
 
+  const handlePurchase = async (sub: any) => {
+    if (!telegramId) return;
+    const res = await fetch("/api/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegramId, serviceId: sub.id }),
+    });
+
+    if (res.ok) {
+      toast.success("Subscription request submitted for approval.");
+    } else {
+      toast.error("Failed to subscribe.");
+    }
+  };
+
   return (
     <div className="relative min-h-screen text-white">
+      <Toaster position="top-right" />
       <Image src={GYM_BACKGROUND} alt="Gym Background" layout="fill" objectFit="cover" className="-z-10" />
       <div className="bg-black bg-opacity-60 min-h-screen p-6">
         <h1 className="text-3xl font-bold mb-4">Your Shells: {shells}</h1>
@@ -88,6 +123,15 @@ export default function GymSubscriptions({ telegramId }: { telegramId:  BigInt }
           <p className="mb-4">No active subscription</p>
         )}
 
+        {expiredSubs.length > 0 && (
+          <div className="mb-6 p-4 bg-red-700 rounded-xl">
+            <h2 className="text-lg font-semibold">Expired Subscriptions:</h2>
+            {expiredSubs.map((ex) => (
+              <p key={ex.id}>{ex.name} ({ex.duration})</p>
+            ))}
+          </div>
+        )}
+
         <h2 className="text-2xl font-semibold mb-2">Available Gym Subscriptions</h2>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {subscriptions.map((sub) => (
@@ -97,7 +141,7 @@ export default function GymSubscriptions({ telegramId }: { telegramId:  BigInt }
               <p>Shells: {sub.priceShells}</p>
               <button
                 className="mt-2 bg-blue-600 hover:bg-blue-800 px-4 py-2 rounded-lg"
-                onClick={() => alert(`Purchase flow for ${sub.name}`)}
+                onClick={() => handlePurchase(sub)}
               >
                 Subscribe
               </button>
