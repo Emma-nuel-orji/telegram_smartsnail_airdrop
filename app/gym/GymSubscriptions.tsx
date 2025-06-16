@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useContext } from "react";
-import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-import toast, { Toaster } from "react-hot-toast";
+import React, { useEffect, useState } from "react";
+import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
 
-const GYM_BACKGROUND = "/images/gymfit.jpg";
+const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
 
 function parseDuration(duration: string): number {
   const mapping: Record<string, number> = {
@@ -19,50 +17,34 @@ function parseDuration(duration: string): number {
   return mapping[duration] || 0;
 }
 
+// Mock data for demonstration
+const mockSubscriptions = [
+  { id: 1, name: "Starter Pack", duration: "1 Week", priceShells: 50, icon: Zap },
+  { id: 2, name: "Power Boost", duration: "2 Weeks", priceShells: 90, icon: Star },
+  { id: 3, name: "Monthly Grind", duration: "1 Month", priceShells: 180, icon: Dumbbell },
+  { id: 4, name: "Quarterly Beast", duration: "3 Months", priceShells: 500, icon: Trophy },
+  { id: 5, name: "Semi-Annual Pro", duration: "6 Months", priceShells: 900, icon: Crown },
+  { id: 6, name: "Annual Champion", duration: "1 Year", priceShells: 1600, icon: Crown },
+];
+
 export default function GymSubscriptions() {
-  const searchParams = useSearchParams();
-  const telegramId = searchParams.get("telegramId");
-  const [shells, setShells] = useState<number>(0);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [shells, setShells] = useState<number>(1250);
+  const [subscriptions, setSubscriptions] = useState<any[]>(mockSubscriptions);
   const [activeSub, setActiveSub] = useState<any | null>(null);
   const [expiredSubs, setExpiredSubs] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
 
+  // Mock active subscription for demo
   useEffect(() => {
-    if (!telegramId) return;
-
-    async function fetchUser() {
-      const res = await fetch(`/api/user/${telegramId}`);
-      const data = await res.json();
-      setShells(parseInt(data.points)); 
-    }
-
-    async function fetchGymSubscriptions() {
-      const res = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
-      const data = await res.json();
-      setSubscriptions(data);
-    }
-
-    async function fetchActiveSubscription() {
-      const res = await fetch(`/api/subscription/${telegramId}`);
-      const data = await res.json();
-
-      if (data?.approvedAt) {
-        const durationDays = parseDuration(data.duration);
-        const expiry = new Date(new Date(data.approvedAt).getTime() + durationDays * 86400000);
-        const now = new Date();
-        if (expiry <= now) {
-          setExpiredSubs([data]);
-        } else {
-          setActiveSub(data);
-        }
-      }
-    }
-
-    fetchUser();
-    fetchGymSubscriptions();
-    fetchActiveSubscription();
-  }, [telegramId]);
+    const mockActiveSub = {
+      id: 3,
+      name: "Monthly Grind",
+      duration: "1 Month",
+      approvedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) // 15 days ago
+    };
+    setActiveSub(mockActiveSub);
+  }, []);
 
   useEffect(() => {
     if (!activeSub) return;
@@ -77,7 +59,6 @@ export default function GymSubscriptions() {
 
       if (remaining <= 0) {
         setTimeLeft("Expired");
-        toast("Your gym subscription has expired.");
         setExpiredSubs([...expiredSubs, activeSub]);
         setActiveSub(null);
         clearInterval(interval);
@@ -93,61 +74,204 @@ export default function GymSubscriptions() {
   }, [activeSub]);
 
   const handlePurchase = async (sub: any) => {
-    if (!telegramId) return;
-    const res = await fetch("/api/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ telegramId, serviceId: sub.id }),
-    });
+    if (shells < sub.priceShells) {
+      alert("Insufficient shells!");
+      return;
+    }
+    
+    setSelectedPlan(sub.id);
+    setTimeout(() => {
+      setShells(shells - sub.priceShells);
+      alert("Subscription purchased successfully!");
+      setSelectedPlan(null);
+    }, 1500);
+  };
 
-    if (res.ok) {
-      toast.success("Subscription request submitted for approval.");
-    } else {
-      toast.error("Failed to subscribe.");
+  const getPlanIcon = (sub: any) => {
+    const IconComponent = sub.icon;
+    return <IconComponent className="w-8 h-8" />;
+  };
+
+  const getPlanColor = (duration: string) => {
+    switch (duration) {
+      case "1 Week":
+        return "from-blue-500 to-blue-700";
+      case "2 Weeks":
+        return "from-green-500 to-green-700";
+      case "1 Month":
+        return "from-purple-500 to-purple-700";
+      case "3 Months":
+        return "from-orange-500 to-orange-700";
+      case "6 Months":
+        return "from-red-500 to-red-700";
+      case "1 Year":
+        return "from-yellow-500 to-yellow-700";
+      default:
+        return "from-gray-500 to-gray-700";
     }
   };
 
-  return (
-    <div className="relative min-h-screen text-white">
-      <Toaster position="top-right" />
-      <Image src={GYM_BACKGROUND} alt="Gym Background" layout="fill" objectFit="cover" className="-z-10" />
-      <div className="bg-black bg-opacity-60 min-h-screen p-6">
-        <h1 className="text-3xl font-bold mb-4">Your Shells: {shells}</h1>
+  const isPopularPlan = (duration: string) => {
+    return duration === "1 Month" || duration === "3 Months";
+  };
 
-        {activeSub ? (
-          <div className="mb-6 p-4 bg-green-800 rounded-xl shadow-xl">
-            <h2 className="text-xl font-semibold">Active Subscription: {activeSub.name}</h2>
-            <p>Time Left: {timeLeft}</p>
+  return (
+    <div className="relative min-h-screen bg-black text-white overflow-hidden">
+      {/* Background */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-black/80" />
+      
+      {/* Animated background particles */}
+      <div className="absolute inset-0 overflow-hidden">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className={`absolute w-2 h-2 bg-white/10 rounded-full animate-pulse`}
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 3}s`
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="relative z-10 container mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-6">
+            <Dumbbell className="w-12 h-12 text-yellow-400 mr-4" />
+            <h1 className="text-5xl font-black bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 bg-clip-text text-transparent">
+              GYM MEMBERSHIPS
+            </h1>
           </div>
-        ) : (
-          <p className="mb-4">No active subscription</p>
+          
+          {/* Shells Display */}
+          <div className="inline-flex items-center bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 backdrop-blur-sm border border-yellow-400/30 rounded-2xl px-8 py-4 mb-8">
+            <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full mr-3 flex items-center justify-center">
+              <span className="text-black font-bold text-sm">🐚</span>
+            </div>
+            <span className="text-2xl font-bold text-yellow-400">{shells.toLocaleString()}</span>
+            <span className="text-yellow-300 ml-2">Shells</span>
+          </div>
+        </div>
+
+        {/* Active Subscription */}
+        {activeSub && (
+          <div className="mb-12">
+            <div className="bg-gradient-to-r from-green-600/20 to-emerald-500/20 backdrop-blur-sm border border-green-400/30 rounded-3xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/10 to-transparent rounded-full -translate-y-8 translate-x-8" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-green-400 mb-2">Active Subscription</h2>
+                    <p className="text-xl text-white font-semibold">{activeSub.name}</p>
+                    <div className="flex items-center mt-2">
+                      <Clock className="w-5 h-5 text-green-400 mr-2" />
+                      <span className="text-green-300">{timeLeft} remaining</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center">
+                      <Trophy className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
-        {expiredSubs.length > 0 && (
-          <div className="mb-6 p-4 bg-red-700 rounded-xl">
-            <h2 className="text-lg font-semibold">Expired Subscriptions:</h2>
-            {expiredSubs.map((ex) => (
-              <p key={ex.id}>{ex.name} ({ex.duration})</p>
+        {/* Subscription Plans */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            Choose Your Plan
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {subscriptions.map((sub) => (
+              <div
+                key={sub.id}
+                className={`relative group transition-all duration-300 transform hover:scale-105 ${
+                  selectedPlan === sub.id ? 'scale-105' : ''
+                }`}
+              >
+                {/* Popular Badge */}
+                {isPopularPlan(sub.duration) && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
+                    <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1 rounded-full text-sm font-bold">
+                      POPULAR
+                    </div>
+                  </div>
+                )}
+
+                <div className={`relative bg-gradient-to-br ${getPlanColor(sub.duration)} p-1 rounded-3xl shadow-2xl overflow-hidden`}>
+                  <div className="bg-black/90 backdrop-blur-sm rounded-3xl p-6 h-full">
+                    {/* Loading overlay */}
+                    {selectedPlan === sub.id && (
+                      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-3xl flex items-center justify-center z-10">
+                        <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                      </div>
+                    )}
+
+                    <div className="text-center">
+                      {/* Icon */}
+                      <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br ${getPlanColor(sub.duration)} rounded-2xl mb-4`}>
+                        {getPlanIcon(sub)}
+                      </div>
+
+                      {/* Plan Name */}
+                      <h3 className="text-xl font-bold text-white mb-2">{sub.name}</h3>
+                      
+                      {/* Duration */}
+                      <div className="text-lg text-gray-300 mb-4">{sub.duration}</div>
+
+                      {/* Price */}
+                      <div className="mb-6">
+                        <div className="text-3xl font-black text-white">{sub.priceShells}</div>
+                        <div className="text-yellow-400 text-sm">Shells</div>
+                      </div>
+
+                      {/* Purchase Button */}
+                      <button
+                        onClick={() => handlePurchase(sub)}
+                        disabled={shells < sub.priceShells || selectedPlan === sub.id}
+                        className={`w-full py-3 px-6 rounded-xl font-bold transition-all duration-300 ${
+                          shells < sub.priceShells
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                            : selectedPlan === sub.id
+                            ? 'bg-blue-600 text-white cursor-not-allowed'
+                            : `bg-gradient-to-r ${getPlanColor(sub.duration)} text-white hover:shadow-lg hover:shadow-blue-500/25 transform hover:-translate-y-1`
+                        }`}
+                      >
+                        {selectedPlan === sub.id ? 'Processing...' : shells < sub.priceShells ? 'Insufficient Shells' : 'Subscribe Now'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-        )}
-
-        <h2 className="text-2xl font-semibold mb-2">Available Gym Subscriptions</h2>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-          {subscriptions.map((sub) => (
-            <div key={sub.id} className="bg-gray-900 p-4 rounded-xl shadow-lg">
-              <h3 className="text-lg font-bold">{sub.name}</h3>
-              <p>Duration: {sub.duration}</p>
-              <p>Shells: {sub.priceShells}</p>
-              <button
-                className="mt-2 bg-blue-600 hover:bg-blue-800 px-4 py-2 rounded-lg"
-                onClick={() => handlePurchase(sub)}
-              >
-                Subscribe
-              </button>
-            </div>
-          ))}
         </div>
+
+        {/* Expired Subscriptions */}
+        {expiredSubs.length > 0 && (
+          <div className="bg-gradient-to-r from-red-600/20 to-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-3xl p-6">
+            <h2 className="text-2xl font-bold text-red-400 mb-4">Expired Subscriptions</h2>
+            <div className="space-y-2">
+              {expiredSubs.map((ex) => (
+                <div key={ex.id} className="flex items-center justify-between bg-red-900/20 rounded-xl p-3">
+                  <span className="text-white">{ex.name}</span>
+                  <span className="text-red-400 text-sm">({ex.duration})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
