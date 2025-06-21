@@ -57,7 +57,7 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
       id: service.id,
       name: service.name,
       duration: service.duration,
-      priceShells: service.price,
+      priceShells: service.priceShells,
       approvedAt: tx.approvedAt,
       status: tx.status,
       active: isActive,
