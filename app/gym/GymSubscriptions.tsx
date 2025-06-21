@@ -132,31 +132,32 @@ export default function GymSubscriptions() {
   }, [telegramId]);
 
   useEffect(() => {
-    if (!activeSub) return;
+  if (!activeSub || !activeSub.approvedAt) return;
 
-    const durationDays = parseDuration(activeSub.duration);
-    const approvedAt = new Date(activeSub.approvedAt);
-    const expiry = new Date(approvedAt.getTime() + durationDays * 86400000);
+  const durationDays = parseDuration(activeSub.duration);
+  const approvedAt = new Date(activeSub.approvedAt);
+  const expiry = new Date(approvedAt.getTime() + durationDays * 86400000);
 
-    const interval = setInterval(() => {
-      const now = new Date();
-      const remaining = expiry.getTime() - now.getTime();
+  const interval = setInterval(() => {
+    const now = new Date();
+    const remaining = expiry.getTime() - now.getTime();
 
-      if (remaining <= 0) {
-        setTimeLeft("Expired");
-        setExpiredSubs([...expiredSubs, activeSub]);
-        setActiveSub(null);
-        clearInterval(interval);
-      } else {
-        const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
-        const mins = Math.floor((remaining / (1000 * 60)) % 60);
-        setTimeLeft(`${days}d ${hours}h ${mins}m`);
-      }
-    }, 60000);
+    if (remaining <= 0) {
+      setTimeLeft("Expired");
+      setExpiredSubs((prev) => [...prev, activeSub]);
+      setActiveSub(null);
+      clearInterval(interval);
+    } else {
+      const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
+      const mins = Math.floor((remaining / (1000 * 60)) % 60);
+      setTimeLeft(`${days}d ${hours}h ${mins}m`);
+    }
+  }, 60000);
 
-    return () => clearInterval(interval);
-  }, [activeSub, expiredSubs]);
+  return () => clearInterval(interval);
+}, [activeSub]);
+
 
   const handlePurchase = async (sub: Subscription): Promise<void> => {
     if (!telegramId || shells < sub.priceShells || selectedPlan === sub.id) return;
