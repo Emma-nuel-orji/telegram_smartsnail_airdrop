@@ -2,11 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
+import toast, { Toaster } from "react-hot-toast";
 
-const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
+const GYM_BACKGROUND = "/images/bk.jpg";
 
-function parseDuration(duration) {
-  const mapping = {
+// const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
+
+function parseDuration(duration: string): number {
+  const mapping: Record<string, number> = {
     "1 Week": 7,
     "2 Weeks": 14,
     "1 Month": 30,
