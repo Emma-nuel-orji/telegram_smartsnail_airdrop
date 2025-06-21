@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+// import { useEffect, useState } from "react";
 import { WebApp } from "@twa-dev/sdk"; 
 
 import React, { useEffect, useState } from "react";
