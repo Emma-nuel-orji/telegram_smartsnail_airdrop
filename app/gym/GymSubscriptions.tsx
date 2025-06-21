@@ -68,63 +68,54 @@ const MOCK_SUBSCRIPTIONS: Subscription[] = [
 ];
 
 export default function GymSubscriptions() {
-  // Mock telegramId for demo - in real app this would come from URL params
-  const telegramId = "demo_user";
-  const [shells, setShells] = useState<number>(2500);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [activeSub, setActiveSub] = useState<Subscription | null>(null);
-  const [expiredSubs, setExpiredSubs] = useState<Subscription[]>([]);
+  const searchParams = useSearchParams();
+  const telegramId = searchParams.get("telegramId");
+  const [shells, setShells] = useState<number>(0);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [activeSub, setActiveSub] = useState<any | null>(null);
+  const [expiredSubs, setExpiredSubs] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
-  const addDebugInfo = (message: string): void => {
-    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-  };
-
-  // Simulate API calls with mock data
+  // Fetch real user data and subscriptions
   useEffect(() => {
-    if (!telegramId) {
-      addDebugInfo("No telegramId found");
-      setError("No telegram ID provided");
-      setLoading(false);
-      return;
-    }
+    if (!telegramId) return;
 
     async function fetchUserData() {
       try {
         setLoading(true);
-        addDebugInfo("Starting data fetch...");
         
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock user data fetch
-        addDebugInfo("Fetching user shells...");
-        setShells(2500);
-        addDebugInfo("User shells loaded: 2500");
+        // Fetch user points/shells
+        const userRes = await fetch(`/api/user/${telegramId}`);
+        const userData = await userRes.json();
+        setShells(parseInt(userData.points) || 0);
 
-        // Mock subscriptions fetch
-        addDebugInfo("Fetching available subscriptions...");
-        setSubscriptions(MOCK_SUBSCRIPTIONS);
-        addDebugInfo(`Loaded ${MOCK_SUBSCRIPTIONS.length} subscriptions`);
+        // Fetch available gym subscriptions
+        const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
+        const subsData = await subsRes.json();
+        setSubscriptions(subsData);
 
-        // Mock active subscription check
-        addDebugInfo("Checking for active subscription...");
-        // Uncomment the line below to test with an active subscription
-        // setActiveSub({ id: 999, name: "Current Plan", duration: "1 Month", approvedAt: new Date().toISOString() });
-        addDebugInfo("No active subscription found");
+        // Fetch active subscription
+        const activeSubRes = await fetch(`/api/subscription/${telegramId}`);
+        const activeSubData = await activeSubRes.json();
 
-        addDebugInfo("All data loaded successfully");
+        if (activeSubData?.approvedAt) {
+          const durationDays = parseDuration(activeSubData.duration);
+          const expiry = new Date(new Date(activeSubData.approvedAt).getTime() + durationDays * 86400000);
+          const now = new Date();
+          
+          if (expiry <= now) {
+            setExpiredSubs([activeSubData]);
+          } else {
+            setActiveSub(activeSubData);
+          }
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
-        addDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error("Failed to load subscription data");
       } finally {
         setLoading(false);
-        addDebugInfo("Loading complete");
       }
     }
 
@@ -132,57 +123,64 @@ export default function GymSubscriptions() {
   }, [telegramId]);
 
   useEffect(() => {
-  if (!activeSub || !activeSub.approvedAt) return;
+    if (!activeSub) return;
 
-  const durationDays = parseDuration(activeSub.duration);
-  const approvedAt = new Date(activeSub.approvedAt);
-  const expiry = new Date(approvedAt.getTime() + durationDays * 86400000);
+    const durationDays = parseDuration(activeSub.duration);
+    const approvedAt = new Date(activeSub.approvedAt);
+    const expiry = new Date(approvedAt.getTime() + durationDays * 86400000);
 
-  const interval = setInterval(() => {
-    const now = new Date();
-    const remaining = expiry.getTime() - now.getTime();
+    const interval = setInterval(() => {
+      const now = new Date();
+      const remaining = expiry.getTime() - now.getTime();
 
-    if (remaining <= 0) {
-      setTimeLeft("Expired");
-      setExpiredSubs((prev) => [...prev, activeSub]);
-      setActiveSub(null);
-      clearInterval(interval);
-    } else {
-      const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
-      const mins = Math.floor((remaining / (1000 * 60)) % 60);
-      setTimeLeft(`${days}d ${hours}h ${mins}m`);
-    }
-  }, 60000);
+      if (remaining <= 0) {
+        setTimeLeft("Expired");
+        toast("Your gym subscription has expired.");
+        setExpiredSubs([...expiredSubs, activeSub]);
+        setActiveSub(null);
+        clearInterval(interval);
+      } else {
+        const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
+        const mins = Math.floor((remaining / (1000 * 60)) % 60);
+        setTimeLeft(`${days}d ${hours}h ${mins}m`);
+      }
+    }, 60000);
 
-  return () => clearInterval(interval);
-}, [activeSub]);
+    return () => clearInterval(interval);
+  }, [activeSub, expiredSubs]);
 
-
-  const handlePurchase = async (sub: Subscription): Promise<void> => {
+  const handlePurchase = async (sub: any) => {
     if (!telegramId || shells < sub.priceShells || selectedPlan === sub.id) return;
     
     // Check if user already has an active subscription
     if (activeSub) {
-      alert("You already have an active subscription!");
+      toast.error("You already have an active subscription!");
       return;
     }
     
     setSelectedPlan(sub.id);
-    addDebugInfo(`Purchasing subscription: ${sub.name}`);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock successful purchase
-      setShells(prev => prev - sub.priceShells);
-      addDebugInfo(`Purchase successful! Deducted ${sub.priceShells} shells`);
-      alert("Subscription request submitted for approval!");
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegramId, serviceId: sub.id }),
+      });
+
+      if (res.ok) {
+        toast.success("Subscription request submitted for approval!");
+        // Refresh user data after successful purchase
+        const userRes = await fetch(`/api/user/${telegramId}`);
+        const userData = await userRes.json();
+        setShells(parseInt(userData.points) || 0);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.message || "Failed to subscribe");
+      }
     } catch (error) {
       console.error("Purchase error:", error);
-      addDebugInfo(`Purchase error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      alert("Failed to process subscription");
+      toast.error("Failed to process subscription");
     } finally {
       setSelectedPlan(null);
     }
@@ -299,6 +297,7 @@ export default function GymSubscriptions() {
 
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden">
+       <Toaster position="top-right" />
       {/* Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
