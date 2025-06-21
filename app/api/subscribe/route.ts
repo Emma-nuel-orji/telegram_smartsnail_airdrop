@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     }
 
     // Check if user has enough shells
-    if (user.points < service.price) {
+    if (user.points < service.priceShells) {
       return NextResponse.json({ error: 'Insufficient shells' }, { status: 400 });
     }
 
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       data: {
         userId: user.id,
         serviceId: service.id,
-        amount: service.price,
+        amount: service.priceShells,
         status: 'PENDING',
         type: 'SPEND',
       },
