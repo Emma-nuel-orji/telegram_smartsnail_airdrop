@@ -111,7 +111,7 @@ export default function GymSubscriptions() {
         // Mock user data fetch
         addDebugInfo("Fetching user shells...");
         const userRes = await fetch(`/api/user/${telegramId}`);
-const user = await userRes.json();
+        const user = await userRes.json();
         setShells(Number(user.points));
 
         // addDebugInfo("User shells loaded: 2500");
@@ -122,7 +122,7 @@ const user = await userRes.json();
         const data = await subsRes.json();
         setSubscriptions(data);
 
-        addDebugInfo(`Loaded ${SUBSCRIPTIONS.length} subscriptions`);
+        // addDebugInfo(`Loaded ${SUBSCRIPTIONS.length} subscriptions`);
 
         // Mock active subscription check
         addDebugInfo("Checking for active subscription...");
