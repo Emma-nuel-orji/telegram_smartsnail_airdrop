@@ -343,9 +343,15 @@ model PointTransaction {
   service    Service  @relation("ServiceToPointTransactions", fields: [serviceId], references: [id])
   serviceId   String   @db.ObjectId
   pointsUsed  BigInt
+  type        TransactionType 
   status      TransactionStatus @default(PENDING)
   createdAt   DateTime @default(now())
   approvedAt  DateTime?
+}
+
+enum TransactionType {
+  SPEND
+  EARN
 }
 
 enum TransactionStatus {
