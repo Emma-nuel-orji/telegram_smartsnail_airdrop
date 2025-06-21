@@ -32,9 +32,10 @@ export async function GET(req: Request) {
         duration: true,
         priceShells: true,
         description: true,
+        
       },
       orderBy: {
-        price: 'asc',
+        priceShells: 'asc',
       },
     });
 
