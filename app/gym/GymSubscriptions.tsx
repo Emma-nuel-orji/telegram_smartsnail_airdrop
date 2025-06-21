@@ -74,20 +74,20 @@ export default function GymSubscriptions() {
  
   const [telegramId, setTelegramId] = useState<string | null>(null);
 
-useEffect(() => {
-  // Initialize Telegram WebApp
-  if (typeof window !== "undefined") {
-    WebApp.ready();
+// useEffect(() => {
+//   // Initialize Telegram WebApp
+//   if (typeof window !== "undefined") {
+//     WebApp.ready();
     
-    const user = WebApp.initDataUnsafe?.user;
-    if (user?.id) {
-      setTelegramId(user.id.toString());
-    } else {
-      console.warn("Telegram ID not available");
-      addDebugInfo("Telegram user data not found");
-    }
-  }
-}, []);
+//     const user = WebApp.initDataUnsafe?.user;
+//     if (user?.id) {
+//       setTelegramId(user.id.toString());
+//     } else {
+//       console.warn("Telegram ID not available");
+//       addDebugInfo("Telegram user data not found");
+//     }
+//   }
+// }, []);
 
   const [shells, setShells] = useState<number>(2500);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -103,64 +103,67 @@ useEffect(() => {
     setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
-  // Simulate API calls with mock data
-  useEffect(() => {
-    if (!telegramId) {
-      addDebugInfo("No telegramId found");
-      setError("No telegram ID provided");
-      setLoading(false);
-      return;
+
+
+useEffect(() => {
+  const getTelegramId = () => {
+    // Same method as your working cafe code (without the demo fallback)
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+      return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
     }
+    return null; // Return null instead of demo user
+  };
 
-    async function fetchUserData() {
-      try {
+  const userId = getTelegramId();
+  
+  if (!userId) {
+    addDebugInfo("No Telegram ID found - app must be opened through Telegram");
+    setError("This app must be opened through Telegram. Please access it via your Telegram bot.");
+    setLoading(false);
+    return;
+  }
 
-        const res = await fetch(`/api/subscription/${telegramId}`);
-        const active = await res.json();
-        if (active?.approvedAt) {
-          setActiveSub(active);
-        }
-        setLoading(true);
-        addDebugInfo("Starting data fetch...");
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock user data fetch
-        addDebugInfo("Fetching user shells...");
-        const userRes = await fetch(`/api/user/${telegramId}`);
-        const user = await userRes.json();
-        setShells(Number(user.points));
+  setTelegramId(userId);
+  addDebugInfo(`Telegram ID found: ${userId}`);
 
-        // addDebugInfo("User shells loaded: 2500");
+  // Continue with your existing fetchUserData logic...
+  async function fetchUserData() {
+    try {
+      addDebugInfo("Starting data fetch...");
+      
+      // Your existing API calls
+      const userRes = await fetch(`/api/user/${userId}`);
+      const user = await userRes.json();
+      setShells(Number(user.points));
+      addDebugInfo(`User shells loaded: ${user.points}`);
 
-        // Mock subscriptions fetch
-        addDebugInfo("Fetching available subscriptions...");
-        const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
-        const data = await subsRes.json();
-        setSubscriptions(data);
+      const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
+      const data = await subsRes.json();
+      setSubscriptions(data);
+      addDebugInfo(`Loaded ${data.length} subscriptions`);
 
-        // addDebugInfo(`Loaded ${SUBSCRIPTIONS.length} subscriptions`);
-
-        // Mock active subscription check
-        addDebugInfo("Checking for active subscription...");
-        // Uncomment the line below to test with an active subscription
-        // setActiveSub({ id: 999, name: "Current Plan", duration: "1 Month", approvedAt: new Date().toISOString() });
+      const res = await fetch(`/api/subscription/${userId}`);
+      const active = await res.json();
+      if (active?.approvedAt) {
+        setActiveSub(active);
+        addDebugInfo("Active subscription found");
+      } else {
         addDebugInfo("No active subscription found");
-
-        addDebugInfo("All data loaded successfully");
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        addDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      } finally {
-        setLoading(false);
-        addDebugInfo("Loading complete");
       }
-    }
 
-    fetchUserData();
-  }, [telegramId]);
+      addDebugInfo("All data loaded successfully");
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      addDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+      addDebugInfo("Loading complete");
+    }
+  }
+
+  fetchUserData();
+}, []);
 
   useEffect(() => {
   if (!activeSub || !activeSub.approvedAt) return;
