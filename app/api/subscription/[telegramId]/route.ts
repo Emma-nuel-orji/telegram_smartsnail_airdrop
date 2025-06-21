@@ -45,7 +45,8 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
         '1 Year': 365,
       };
 
-      const days = durationMap[service.duration] || 30;
+      const days = service.duration ? durationMap[service.duration] || 30 : 30;
+
       expiresAt = new Date(tx.approvedAt);
       expiresAt.setDate(expiresAt.getDate() + days);
       isActive = new Date() < expiresAt;
