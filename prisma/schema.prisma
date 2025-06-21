@@ -368,6 +368,7 @@ model Service {
   createdAt   DateTime @default(now()) 
   updatedAt   DateTime @updatedAt    
   @@index([createdAt])  
+   active      Boolean  @default(true)
   purchases  Purchase[]  @relation("ServiceToPurchase")
 }
 
