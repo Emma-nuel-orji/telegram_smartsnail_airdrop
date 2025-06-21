@@ -1,7 +1,7 @@
 // app/gym/page.tsx
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-
+import Loader from '@/loader';
 // Dynamically import to ensure client-side only
 const GymSubscriptions = dynamic(() => import("./GymSubscriptions"), {
   ssr: false, // Disable server-side rendering for this component
@@ -10,8 +10,9 @@ const GymSubscriptions = dynamic(() => import("./GymSubscriptions"), {
 export default function GymPage() {
   return (
     <div>
+      {/* loading: () => <Loader /> */}
       
-      <Suspense fallback={<div className="text-white p-6">Loading...</div>}>
+      <Suspense fallback={<Loader />}>
         <GymSubscriptions />
       </Suspense>
     </div>

@@ -10,14 +10,13 @@ import toast, { Toaster } from "react-hot-toast";
 
 const GYM_BACKGROUND = "/images/bk.jpg";
 
-// const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
-
 interface Subscription {
   id: number;
   name: string;
   duration: string;
   priceShells: number;
   approvedAt?: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 function parseDuration(duration: string): number {
@@ -42,207 +41,142 @@ const getSubscriptionIcon = (name: string) => {
   return Dumbbell; // default
 };
 
-// Mock data for demonstration
-const MOCK_SUBSCRIPTIONS: Subscription[] = [
-  {
-    id: 1,
-    name: "Starter Boost",
-    duration: "1 Week",
-    priceShells: 500,
-  },
-  {
-    id: 2,
-    name: "Power Grind",
-    duration: "1 Month",
-    priceShells: 1500,
-  },
-  {
-    id: 3,
-    name: "Beast Mode",
-    duration: "3 Months",
-    priceShells: 4000,
-  },
-  {
-    id: 4,
-    name: "Champion Pro",
-    duration: "1 Year",
-    priceShells: 12000,
-  }
-];
-
 export default function GymSubscriptions() {
- 
   const [telegramId, setTelegramId] = useState<string | null>(null);
-
-// useEffect(() => {
-//   // Initialize Telegram WebApp
-//   if (typeof window !== "undefined") {
-//     WebApp.ready();
-    
-//     const user = WebApp.initDataUnsafe?.user;
-//     if (user?.id) {
-//       setTelegramId(user.id.toString());
-//     } else {
-//       console.warn("Telegram ID not available");
-//       addDebugInfo("Telegram user data not found");
-//     }
-//   }
-// }, []);
-
   const [shells, setShells] = useState<number>(2500);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [activeSub, setActiveSub] = useState<Subscription | null>(null);
+  const [pendingSub, setPendingSub] = useState<Subscription | null>(null);
   const [expiredSubs, setExpiredSubs] = useState<Subscription[]>([]);
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-
-  const addDebugInfo = (message: string): void => {
-    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-  };
-
-
-
-useEffect(() => {
-  const getTelegramId = () => {
-    // Same method as your working cafe code (without the demo fallback)
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-      return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
-    }
-    return null; // Return null instead of demo user
-  };
-
-  const userId = getTelegramId();
-  
-  if (!userId) {
-    addDebugInfo("No Telegram ID found - app must be opened through Telegram");
-    setError("This app must be opened through Telegram. Please access it via your Telegram bot.");
-    setLoading(false);
-    return;
-  }
-
-  setTelegramId(userId);
-  addDebugInfo(`Telegram ID found: ${userId}`);
-
-  // Continue with your existing fetchUserData logic...
-  async function fetchUserData() {
-    try {
-      addDebugInfo("Starting data fetch...");
-      
-      // Your existing API calls
-      const userRes = await fetch(`/api/user/${userId}`);
-      const user = await userRes.json();
-      setShells(Number(user.points));
-      addDebugInfo(`User shells loaded: ${user.points}`);
-
-      const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
-      const data = await subsRes.json();
-      setSubscriptions(data);
-      addDebugInfo(`Loaded ${data.length} subscriptions`);
-
-      const res = await fetch(`/api/subscription/${userId}`);
-      const active = await res.json();
-      if (active?.approvedAt) {
-        setActiveSub(active);
-        addDebugInfo("Active subscription found");
-      } else {
-        addDebugInfo("No active subscription found");
-      }
-
-      addDebugInfo("All data loaded successfully");
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      addDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-      addDebugInfo("Loading complete");
-    }
-  }
-
-  fetchUserData();
-}, []);
 
   useEffect(() => {
-  if (!activeSub || !activeSub.approvedAt) return;
+    const getTelegramId = () => {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+        return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+      }
+      return null;
+    };
 
-  const durationDays = parseDuration(activeSub.duration);
-  const approvedAt = new Date(activeSub.approvedAt);
-  const expiry = new Date(approvedAt.getTime() + durationDays * 86400000);
-
-  const interval = setInterval(() => {
-    const now = new Date();
-    const remaining = expiry.getTime() - now.getTime();
-
-    if (remaining <= 0) {
-      setTimeLeft("Expired");
-      setExpiredSubs((prev) => [...prev, activeSub]);
-      setActiveSub(null);
-      clearInterval(interval);
-    } else {
-      const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
-      const mins = Math.floor((remaining / (1000 * 60)) % 60);
-      setTimeLeft(`${days}d ${hours}h ${mins}m`);
+    const userId = getTelegramId();
+    
+    if (!userId) {
+      setError("This app must be opened through Telegram. Please access it via your Telegram bot.");
+      setLoading(false);
+      return;
     }
-  }, 60000);
 
-  return () => clearInterval(interval);
-}, [activeSub]);
+    setTelegramId(userId);
 
+    async function fetchUserData() {
+      try {
+        // Fetch user data
+        const userRes = await fetch(`/api/user/${userId}`);
+        const user = await userRes.json();
+        setShells(Number(user.points));
+
+        // Fetch available subscriptions
+        const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
+        const data = await subsRes.json();
+        setSubscriptions(data);
+
+        // Fetch user's subscription status
+        const res = await fetch(`/api/subscription/${userId}`);
+        const subData = await res.json();
+        
+        if (subData?.status === 'APPROVED' && subData?.approvedAt) {
+          setActiveSub(subData);
+        } else if (subData?.status === 'PENDING') {
+          setPendingSub(subData);
+        }
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    if (!activeSub || !activeSub.approvedAt) return;
+
+    const durationDays = parseDuration(activeSub.duration);
+    const approvedAt = new Date(activeSub.approvedAt);
+    const expiry = new Date(approvedAt.getTime() + durationDays * 86400000);
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const remaining = expiry.getTime() - now.getTime();
+
+      if (remaining <= 0) {
+        setTimeLeft("Expired");
+        setExpiredSubs((prev) => [...prev, activeSub]);
+        setActiveSub(null);
+        clearInterval(interval);
+      } else {
+        const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
+        const mins = Math.floor((remaining / (1000 * 60)) % 60);
+        setTimeLeft(`${days}d ${hours}h ${mins}m`);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [activeSub]);
 
   const handlePurchase = async (sub: Subscription): Promise<void> => {
-  if (!telegramId || shells < sub.priceShells || selectedPlan === sub.id) return;
+    if (!telegramId || shells < sub.priceShells || selectedPlan === sub.id) return;
 
-  // Prevent multiple subscriptions
-  if (activeSub) {
-    alert("You already have an active subscription!");
-    return;
-  }
-
-  setSelectedPlan(sub.id);
-  addDebugInfo(`Purchasing subscription: ${sub.name}`);
-
-  try {
-    const res = await fetch("/api/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ telegramId, serviceId: sub.id }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(errText || "Failed to subscribe.");
+    // Prevent multiple subscriptions
+    if (activeSub || pendingSub) {
+      toast.error(activeSub ? "You already have an active subscription!" : "You have a pending subscription request!");
+      return;
     }
 
-    addDebugInfo(`Purchase successful! Subscription request sent.`);
-    toast.success("Subscription request submitted for approval!");
+    setSelectedPlan(sub.id);
 
-    // Optionally refetch shells and subscription
-    const userRes = await fetch(`/api/user/${telegramId}`);
-    const userData = await userRes.json();
-    setShells(Number(userData.points));
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegramId, serviceId: sub.id }),
+      });
 
-    const activeRes = await fetch(`/api/subscription/${telegramId}`);
-    const active = await activeRes.json();
-    if (active?.approvedAt) {
-      setActiveSub(active);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || "Failed to subscribe.");
+      }
+
+      const result = await res.json();
+      
+      toast.success("Subscription request submitted for approval!");
+
+      // Set pending subscription
+      setPendingSub({
+        ...sub,
+        status: 'PENDING'
+      });
+
+      // Note: Don't deduct shells here - they should only be deducted when approved
+
+    } catch (error) {
+      console.error("Purchase error:", error);
+      toast.error("Failed to process subscription");
+    } finally {
+      setSelectedPlan(null);
     }
-
-  } catch (error) {
-    console.error("Purchase error:", error);
-    addDebugInfo(`Purchase error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    toast.error("Failed to process subscription");
-  } finally {
-    setSelectedPlan(null);
-  }
-};
+  };
 
   const getPlanIcon = (sub: Subscription) => {
     const IconComponent = getSubscriptionIcon(sub.name);
-    return <IconComponent className="w-8 h-8" />;
+    return <IconComponent className="w-8 h-8 text-white" />;
   };
 
   const getPlanColor = (duration: string): string => {
@@ -271,6 +205,7 @@ useEffect(() => {
   const isSubscriptionDisabled = (sub: Subscription): boolean => {
     if (shells < sub.priceShells) return true;
     if (activeSub) return true;
+    if (pendingSub) return true;
     if (selectedPlan === sub.id) return true;
     return false;
   };
@@ -278,6 +213,7 @@ useEffect(() => {
   const getButtonText = (sub: Subscription): string => {
     if (selectedPlan === sub.id) return "Processing...";
     if (activeSub) return "Already Subscribed";
+    if (pendingSub) return "Pending Approval";
     if (shells < sub.priceShells) return "Insufficient Shells";
     return "Subscribe Now";
   };
@@ -286,7 +222,7 @@ useEffect(() => {
     if (isSubscriptionDisabled(sub)) {
       return 'bg-gray-600 text-gray-400 cursor-not-allowed';
     }
-    return `bg-gradient-to-r ${getPlanColor(sub.duration)} text-white hover:shadow-lg hover:shadow-blue-500/25 transform hover:-translate-y-1`;
+    return `bg-gradient-to-r ${getPlanColor(sub.duration)} text-white hover:shadow-lg hover:shadow-blue-500/25 transform hover:-translate-y-1 transition-all duration-300`;
   };
 
   // Error state
@@ -308,16 +244,6 @@ useEffect(() => {
               Retry
             </button>
           </div>
-          
-          {/* Debug Information */}
-          <div className="bg-gray-900/50 border border-gray-600/50 rounded-xl p-4">
-            <h3 className="text-lg font-semibold text-gray-300 mb-2">Debug Information:</h3>
-            <div className="text-sm text-gray-400 space-y-1 max-h-40 overflow-y-auto">
-              {debugInfo.map((info, index) => (
-                <div key={index}>{info}</div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -327,15 +253,15 @@ useEffect(() => {
   if (loading) {
     return (
       <div className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
-        <Link href="/">
-        <img
-          src="/images/info/left-arrow.png" 
-          width={40}
-          height={40}
-          alt="back"
-          className="back-button"
-        />
-      </Link>
+        <Link href="/" className="absolute top-6 left-6 z-20">
+          <img
+            src="/images/info/left-arrow.png" 
+            width={40}
+            height={40}
+            alt="back"
+            className="back-button"
+          />
+        </Link>
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
           style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
@@ -343,16 +269,6 @@ useEffect(() => {
         <div className="relative z-10 text-center max-w-md mx-auto p-8">
           <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
           <p className="text-xl mb-6">Loading your gym subscriptions...</p>
-          
-          {/* Debug Information */}
-          <div className="bg-black/50 border border-gray-600/50 rounded-xl p-4 text-left">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">Loading Progress:</h3>
-            <div className="text-xs text-gray-400 space-y-1 max-h-32 overflow-y-auto">
-              {debugInfo.map((info, index) => (
-                <div key={index}>{info}</div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -360,6 +276,8 @@ useEffect(() => {
 
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden">
+      <Toaster position="top-center" />
+      
       {/* Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -383,9 +301,20 @@ useEffect(() => {
         ))}
       </div>
 
+      {/* Back Button */}
+      <Link href="/" className="absolute top-6 left-6 z-20">
+        <img
+          src="/images/info/left-arrow.png" 
+          width={40}
+          height={40}
+          alt="back"
+          className="back-button hover:opacity-80 transition-opacity"
+        />
+      </Link>
+
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 pt-12">
           <div className="flex items-center justify-center mb-6">
             <Dumbbell className="w-12 h-12 text-yellow-400 mr-4" />
             <h1 className="text-5xl font-black bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 bg-clip-text text-transparent">
@@ -429,13 +358,39 @@ useEffect(() => {
           </div>
         )}
 
+        {/* Pending Subscription */}
+        {pendingSub && (
+          <div className="mb-12">
+            <div className="bg-gradient-to-r from-yellow-600/20 to-orange-500/20 backdrop-blur-sm border border-yellow-400/30 rounded-3xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400/10 to-transparent rounded-full -translate-y-8 translate-x-8" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-yellow-400 mb-2">Pending Approval</h2>
+                    <p className="text-xl text-white font-semibold">{pendingSub.name}</p>
+                    <div className="flex items-center mt-2">
+                      <Clock className="w-5 h-5 text-yellow-400 mr-2 animate-pulse" />
+                      <span className="text-yellow-300">Waiting for approval...</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-600 rounded-2xl flex items-center justify-center">
+                      <Clock className="w-8 h-8 text-white animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Subscription Plans */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
             Choose Your Plan
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {subscriptions.map((sub) => (
               <div
                 key={sub.id}
@@ -475,7 +430,7 @@ useEffect(() => {
 
                       {/* Price */}
                       <div className="mb-6">
-                        <div className="text-3xl font-black text-white">{sub.priceShells}</div>
+                        <div className="text-3xl font-black text-white">{sub.priceShells.toLocaleString()}</div>
                         <div className="text-yellow-400 text-sm">Shells</div>
                       </div>
 
@@ -483,7 +438,7 @@ useEffect(() => {
                       <button
                         onClick={() => handlePurchase(sub)}
                         disabled={isSubscriptionDisabled(sub)}
-                        className={`w-full py-3 px-6 rounded-xl font-bold transition-all duration-300 ${getButtonStyle(sub)}`}
+                        className={`w-full py-3 px-6 rounded-xl font-bold ${getButtonStyle(sub)}`}
                       >
                         {getButtonText(sub)}
                       </button>
@@ -509,16 +464,6 @@ useEffect(() => {
             </div>
           </div>
         )}
-
-        {/* Debug Panel (remove in production) */}
-        {/* <div className="mt-8 bg-black/50 border border-gray-600/50 rounded-xl p-4">
-          <h3 className="text-lg font-semibold text-gray-300 mb-2">Debug Information:</h3>
-          <div className="text-sm text-gray-400 space-y-1 max-h-40 overflow-y-auto">
-            {debugInfo.map((info, index) => (
-              <div key={index}>{info}</div>
-            ))}
-          </div>
-        </div> */}
       </div>
     </div>
   );
