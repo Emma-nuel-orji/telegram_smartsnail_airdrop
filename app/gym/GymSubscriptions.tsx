@@ -71,7 +71,7 @@ export default function GymSubscriptions() {
   const [error, setError] = useState(null);
   const [debugInfo, setDebugInfo] = useState([]);
 
-  const addDebugInfo = (message) => {
+  const addDebugInfo = (message: string) => {
     setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
