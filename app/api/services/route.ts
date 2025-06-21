@@ -30,7 +30,7 @@ export async function GET(req: Request) {
         id: true,
         name: true,
         duration: true,
-        price: true,
+        priceShells: true,
         description: true,
       },
       orderBy: {

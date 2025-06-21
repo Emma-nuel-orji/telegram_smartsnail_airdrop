@@ -362,13 +362,14 @@ model Service {
   type        ServiceType // SUBSCRIPTION, ONE_TIME
   duration    String?     // e.g., "1 Month" (only for SUBSCRIPTION)
   priceShells BigInt
+  partnerType String?
   partnerId   String   @db.ObjectId
   partner     Partner  @relation(fields: [partnerId], references: [id])
   pointTransactions PointTransaction[] @relation("ServiceToPointTransactions")
   createdAt   DateTime @default(now()) 
   updatedAt   DateTime @updatedAt    
   @@index([createdAt])  
-   active      Boolean  @default(true)
+  active      Boolean  @default(true)
   purchases  Purchase[]  @relation("ServiceToPurchase")
 }
 
