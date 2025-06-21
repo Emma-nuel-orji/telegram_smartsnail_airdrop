@@ -32,7 +32,7 @@ export async function GET(req: Request) {
         duration: true,
         priceShells: true,
         description: true,
-        
+
       },
       orderBy: {
         priceShells: 'asc',
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
       id: s.id,
       name: s.name,
       duration: s.duration,
-      priceShells: s.price,
+      priceShells: s.priceShells, 
       description: s.description,
     }));
 
