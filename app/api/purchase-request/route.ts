@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     partnerId: service.partnerId, 
     pointsUsed: service.priceShells,
     status: "PENDING",
+    type: "SPEND",
   },
 });
 
