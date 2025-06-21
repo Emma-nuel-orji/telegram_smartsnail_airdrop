@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       data: {
         userId: user.id,
         serviceId: service.id,
-        amount: service.priceShells,
+        pointsUsed: service.priceShells,
         status: 'PENDING',
         type: 'SPEND',
       },
