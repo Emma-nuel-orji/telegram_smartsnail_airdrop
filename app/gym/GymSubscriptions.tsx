@@ -78,6 +78,9 @@ export default function GymSubscriptions() {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+
 
   // Fetch real user data and subscriptions
   useEffect(() => {
