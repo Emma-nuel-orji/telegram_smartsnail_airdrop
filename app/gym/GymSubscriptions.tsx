@@ -75,10 +75,35 @@ export default function GymSubscriptions() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
 
 useEffect(() => {
-  if (typeof window !== "undefined" && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-    setTelegramId(window.Telegram.WebApp.initDataUnsafe.user.id.toString());
-  } else {
-    console.warn("Telegram ID not available");
+  if (typeof window !== "undefined") {
+    WebApp.ready();
+    
+    // Try multiple sources for Telegram ID
+    let userId = null;
+    
+    // Method 1: Through @twa-dev/sdk
+    if (WebApp.initDataUnsafe?.user?.id) {
+      userId = WebApp.initDataUnsafe.user.id;
+    }
+    // Method 2: Through window.Telegram
+    else if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+      userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+    }
+    // Method 3: Direct window access
+    else if (window.TelegramWebviewProxy?.postEvent) {
+      // Sometimes available through proxy
+      console.log("Checking TelegramWebviewProxy...");
+    }
+    
+    if (userId) {
+      setTelegramId(userId.toString());
+      addDebugInfo(`Telegram ID found: ${userId}`);
+    } else {
+      console.warn("Telegram ID not available");
+      addDebugInfo("No Telegram ID found in any source");
+      addDebugInfo(`WebApp available: ${!!WebApp}`);
+      addDebugInfo(`Window.Telegram available: ${!!window.Telegram}`);
+    }
   }
 }, []);
 
