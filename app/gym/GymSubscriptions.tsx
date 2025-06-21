@@ -511,14 +511,14 @@ useEffect(() => {
         )}
 
         {/* Debug Panel (remove in production) */}
-        <div className="mt-8 bg-black/50 border border-gray-600/50 rounded-xl p-4">
+        {/* <div className="mt-8 bg-black/50 border border-gray-600/50 rounded-xl p-4">
           <h3 className="text-lg font-semibold text-gray-300 mb-2">Debug Information:</h3>
           <div className="text-sm text-gray-400 space-y-1 max-h-40 overflow-y-auto">
             {debugInfo.map((info, index) => (
               <div key={index}>{info}</div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
