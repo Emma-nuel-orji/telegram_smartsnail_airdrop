@@ -21,7 +21,7 @@ function parseDuration(duration: string): number {
 }
 
 // Icon mapping for different subscription types
-const getSubscriptionIcon = (name) => {
+const getSubscriptionIcon = (name: string) => {
   if (name.toLowerCase().includes("starter")) return Zap;
   if (name.toLowerCase().includes("power") || name.toLowerCase().includes("boost")) return Star;
   if (name.toLowerCase().includes("monthly") || name.toLowerCase().includes("grind")) return Dumbbell;
