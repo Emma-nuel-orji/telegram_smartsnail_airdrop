@@ -90,10 +90,10 @@ useEffect(() => {
       userId = window.Telegram.WebApp.initDataUnsafe.user.id;
     }
     // Method 3: Direct window access
-    else if (window.TelegramWebviewProxy?.postEvent) {
-      // Sometimes available through proxy
-      console.log("Checking TelegramWebviewProxy...");
-    }
+    // else if (window.TelegramWebviewProxy?.postEvent) {
+    //   // Sometimes available through proxy
+    //   console.log("Checking TelegramWebviewProxy...");
+    // }
     
     if (userId) {
       setTelegramId(userId.toString());
