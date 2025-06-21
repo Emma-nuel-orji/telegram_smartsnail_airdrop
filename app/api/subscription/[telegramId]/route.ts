@@ -4,57 +4,67 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: Request, { params }: { params: { telegramId: string } }) {
   const telegramId = BigInt(params.telegramId);
 
-  const user = await prisma.user.findUnique({
-    where: { telegramId },
-    select: {
-      id: true,
-      pointTransactions: {
-        where: {
-          status: 'APPROVED',
-          service: {
-            type: 'SUBSCRIPTION',
+  try {
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
+      select: {
+        id: true,
+        pointTransactions: {
+          where: {
+            service: {
+              type: 'SUBSCRIPTION',
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: {
+            service: true,
           },
         },
-        orderBy: { approvedAt: 'desc' },
-        take: 1,
-        include: {
-          service: true,
-        },
       },
-    },
-  });
+    });
 
-  if (!user || user.pointTransactions.length === 0) {
-    return NextResponse.json({ active: false });
+    if (!user || user.pointTransactions.length === 0) {
+      return NextResponse.json(null);
+    }
+
+    const tx = user.pointTransactions[0];
+    const service = tx.service;
+
+    // Check if it's still active
+    let isActive = false;
+    let expiresAt = null;
+
+    if (tx.status === 'APPROVED' && tx.approvedAt) {
+      const durationMap: Record<string, number> = {
+        '1 Week': 7,
+        '2 Weeks': 14,
+        '1 Month': 30,
+        '3 Months': 90,
+        '6 Months': 180,
+        '1 Year': 365,
+      };
+
+      const days = durationMap[service.duration] || 30;
+      expiresAt = new Date(tx.approvedAt);
+      expiresAt.setDate(expiresAt.getDate() + days);
+      isActive = new Date() < expiresAt;
+    }
+
+    // Return data in the format frontend expects
+    return NextResponse.json({
+      id: service.id,
+      name: service.name,
+      duration: service.duration,
+      priceShells: service.price,
+      approvedAt: tx.approvedAt,
+      status: tx.status,
+      active: isActive,
+      expiresAt,
+    });
+
+  } catch (error) {
+    console.error('Error fetching subscription:', error);
+    return NextResponse.json({ error: 'Failed to fetch subscription' }, { status: 500 });
   }
-
-  const tx = user.pointTransactions[0];
-  const approvedAt = tx.approvedAt;
-  const duration = tx.service.duration || '1 Month';
-
-  const durationMap: Record<string, number> = {
-    '1 Week': 7,
-    '2 Weeks': 14,
-    '1 Month': 30,
-    '3 Months': 90,
-    '6 Months': 180,
-    '1 Year': 365,
-  };
-
-  const days = durationMap[duration] || 30;
-
-  let expiresAt: Date | null = null;
-  if (approvedAt) {
-    expiresAt = new Date(approvedAt);
-    expiresAt.setDate(expiresAt.getDate() + days);
-  }
-
-  return NextResponse.json({
-    active: expiresAt ? new Date() < expiresAt : false,
-    serviceName: tx.service.name,
-    duration,
-    approvedAt,
-    expiresAt,
-    status: tx.status,
-  });
 }
