@@ -1,16 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
 
-const GYM_BACKGROUND = "/images/bk.jpg";
+const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
 
-// const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
-
-function parseDuration(duration: string): number {
-  const mapping: Record<string, number> = {
+function parseDuration(duration) {
+  const mapping = {
     "1 Week": 7,
     "2 Weeks": 14,
     "1 Month": 30,
@@ -22,7 +18,7 @@ function parseDuration(duration: string): number {
 }
 
 // Icon mapping for different subscription types
-const getSubscriptionIcon = (name: string) => {
+const getSubscriptionIcon = (name) => {
   if (name.toLowerCase().includes("starter")) return Zap;
   if (name.toLowerCase().includes("power") || name.toLowerCase().includes("boost")) return Star;
   if (name.toLowerCase().includes("monthly") || name.toLowerCase().includes("grind")) return Dumbbell;
@@ -31,55 +27,92 @@ const getSubscriptionIcon = (name: string) => {
   return Dumbbell; // default
 };
 
-export default function GymSubscriptions() {
-  const searchParams = useSearchParams();
-  const telegramId = searchParams.get("telegramId");
-  const [shells, setShells] = useState<number>(0);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [activeSub, setActiveSub] = useState<any | null>(null);
-  const [expiredSubs, setExpiredSubs] = useState<any[]>([]);
-  const [timeLeft, setTimeLeft] = useState<string>("");
-  const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+// Mock data for demonstration
+const MOCK_SUBSCRIPTIONS = [
+  {
+    id: 1,
+    name: "Starter Boost",
+    duration: "1 Week",
+    priceShells: 500,
+  },
+  {
+    id: 2,
+    name: "Power Grind",
+    duration: "1 Month",
+    priceShells: 1500,
+  },
+  {
+    id: 3,
+    name: "Beast Mode",
+    duration: "3 Months",
+    priceShells: 4000,
+  },
+  {
+    id: 4,
+    name: "Champion Pro",
+    duration: "1 Year",
+    priceShells: 12000,
+  }
+];
 
-  // Fetch real user data and subscriptions
+export default function GymSubscriptions() {
+  // Mock telegramId for demo - in real app this would come from URL params
+  const telegramId = "demo_user";
+  const [shells, setShells] = useState(2500);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [activeSub, setActiveSub] = useState(null);
+  const [expiredSubs, setExpiredSubs] = useState([]);
+  const [timeLeft, setTimeLeft] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [debugInfo, setDebugInfo] = useState([]);
+
+  const addDebugInfo = (message) => {
+    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  // Simulate API calls with mock data
   useEffect(() => {
-    if (!telegramId) return;
+    if (!telegramId) {
+      addDebugInfo("No telegramId found");
+      setError("No telegram ID provided");
+      setLoading(false);
+      return;
+    }
 
     async function fetchUserData() {
       try {
         setLoading(true);
+        addDebugInfo("Starting data fetch...");
         
-        // Fetch user points/shells
-        const userRes = await fetch(`/api/user/${telegramId}`);
-        const userData = await userRes.json();
-        setShells(parseInt(userData.points) || 0);
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mock user data fetch
+        addDebugInfo("Fetching user shells...");
+        setShells(2500);
+        addDebugInfo("User shells loaded: 2500");
 
-        // Fetch available gym subscriptions
-        const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
-        const subsData = await subsRes.json();
-        setSubscriptions(subsData);
+        // Mock subscriptions fetch
+        addDebugInfo("Fetching available subscriptions...");
+        setSubscriptions(MOCK_SUBSCRIPTIONS);
+        addDebugInfo(`Loaded ${MOCK_SUBSCRIPTIONS.length} subscriptions`);
 
-        // Fetch active subscription
-        const activeSubRes = await fetch(`/api/subscription/${telegramId}`);
-        const activeSubData = await activeSubRes.json();
+        // Mock active subscription check
+        addDebugInfo("Checking for active subscription...");
+        // Uncomment the line below to test with an active subscription
+        // setActiveSub({ id: 999, name: "Current Plan", duration: "1 Month", approvedAt: new Date().toISOString() });
+        addDebugInfo("No active subscription found");
 
-        if (activeSubData?.approvedAt) {
-          const durationDays = parseDuration(activeSubData.duration);
-          const expiry = new Date(new Date(activeSubData.approvedAt).getTime() + durationDays * 86400000);
-          const now = new Date();
-          
-          if (expiry <= now) {
-            setExpiredSubs([activeSubData]);
-          } else {
-            setActiveSub(activeSubData);
-          }
-        }
+        addDebugInfo("All data loaded successfully");
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Failed to load subscription data");
+        addDebugInfo(`Error: ${error.message}`);
+        setError(`Failed to load data: ${error.message}`);
       } finally {
         setLoading(false);
+        addDebugInfo("Loading complete");
       }
     }
 
@@ -99,7 +132,6 @@ export default function GymSubscriptions() {
 
       if (remaining <= 0) {
         setTimeLeft("Expired");
-        toast("Your gym subscription has expired.");
         setExpiredSubs([...expiredSubs, activeSub]);
         setActiveSub(null);
         clearInterval(interval);
@@ -114,48 +146,41 @@ export default function GymSubscriptions() {
     return () => clearInterval(interval);
   }, [activeSub, expiredSubs]);
 
-  const handlePurchase = async (sub: any) => {
+  const handlePurchase = async (sub) => {
     if (!telegramId || shells < sub.priceShells || selectedPlan === sub.id) return;
     
     // Check if user already has an active subscription
     if (activeSub) {
-      toast.error("You already have an active subscription!");
+      alert("You already have an active subscription!");
       return;
     }
     
     setSelectedPlan(sub.id);
+    addDebugInfo(`Purchasing subscription: ${sub.name}`);
     
     try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramId, serviceId: sub.id }),
-      });
-
-      if (res.ok) {
-        toast.success("Subscription request submitted for approval!");
-        // Refresh user data after successful purchase
-        const userRes = await fetch(`/api/user/${telegramId}`);
-        const userData = await userRes.json();
-        setShells(parseInt(userData.points) || 0);
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.message || "Failed to subscribe");
-      }
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Mock successful purchase
+      setShells(prev => prev - sub.priceShells);
+      addDebugInfo(`Purchase successful! Deducted ${sub.priceShells} shells`);
+      alert("Subscription request submitted for approval!");
     } catch (error) {
       console.error("Purchase error:", error);
-      toast.error("Failed to process subscription");
+      addDebugInfo(`Purchase error: ${error.message}`);
+      alert("Failed to process subscription");
     } finally {
       setSelectedPlan(null);
     }
   };
 
-  const getPlanIcon = (sub: any) => {
+  const getPlanIcon = (sub) => {
     const IconComponent = getSubscriptionIcon(sub.name);
     return <IconComponent className="w-8 h-8" />;
   };
 
-  const getPlanColor = (duration: string) => {
+  const getPlanColor = (duration) => {
     switch (duration) {
       case "1 Week":
         return "from-blue-500 to-blue-700";
@@ -174,36 +199,64 @@ export default function GymSubscriptions() {
     }
   };
 
-  const isPopularPlan = (duration: string) => {
+  const isPopularPlan = (duration) => {
     return duration === "1 Month" || duration === "3 Months";
   };
 
-  const isSubscriptionDisabled = (sub: any) => {
-    // Disable if user has insufficient shells
+  const isSubscriptionDisabled = (sub) => {
     if (shells < sub.priceShells) return true;
-    
-    // Disable if user already has an active subscription
     if (activeSub) return true;
-    
-    // Disable if currently processing this subscription
     if (selectedPlan === sub.id) return true;
-    
     return false;
   };
 
-  const getButtonText = (sub: any) => {
+  const getButtonText = (sub) => {
     if (selectedPlan === sub.id) return "Processing...";
     if (activeSub) return "Already Subscribed";
     if (shells < sub.priceShells) return "Insufficient Shells";
     return "Subscribe Now";
   };
 
-  const getButtonStyle = (sub: any) => {
+  const getButtonStyle = (sub) => {
     if (isSubscriptionDisabled(sub)) {
       return 'bg-gray-600 text-gray-400 cursor-not-allowed';
     }
     return `bg-gradient-to-r ${getPlanColor(sub.duration)} text-white hover:shadow-lg hover:shadow-blue-500/25 transform hover:-translate-y-1`;
   };
+
+  // Error state
+  if (error) {
+    return (
+      <div className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
+          style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
+        />
+        <div className="relative z-10 max-w-2xl mx-auto p-8">
+          <div className="bg-red-900/30 border border-red-500/50 rounded-xl p-6 mb-6">
+            <h2 className="text-2xl font-bold text-red-400 mb-4">Error Loading Subscriptions</h2>
+            <p className="text-red-300 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+          
+          {/* Debug Information */}
+          <div className="bg-gray-900/50 border border-gray-600/50 rounded-xl p-4">
+            <h3 className="text-lg font-semibold text-gray-300 mb-2">Debug Information:</h3>
+            <div className="text-sm text-gray-400 space-y-1 max-h-40 overflow-y-auto">
+              {debugInfo.map((info, index) => (
+                <div key={index}>{info}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (loading) {
@@ -213,9 +266,19 @@ export default function GymSubscriptions() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
           style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
         />
-        <div className="relative z-10 text-center">
+        <div className="relative z-10 text-center max-w-md mx-auto p-8">
           <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-xl">Loading your gym subscriptions...</p>
+          <p className="text-xl mb-6">Loading your gym subscriptions...</p>
+          
+          {/* Debug Information */}
+          <div className="bg-black/50 border border-gray-600/50 rounded-xl p-4 text-left">
+            <h3 className="text-sm font-semibold text-gray-300 mb-2">Loading Progress:</h3>
+            <div className="text-xs text-gray-400 space-y-1 max-h-32 overflow-y-auto">
+              {debugInfo.map((info, index) => (
+                <div key={index}>{info}</div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -223,8 +286,6 @@ export default function GymSubscriptions() {
 
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden">
-      <Toaster position="top-right" />
-      
       {/* Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -237,7 +298,7 @@ export default function GymSubscriptions() {
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className={`absolute w-2 h-2 bg-white/10 rounded-full animate-pulse`}
+            className="absolute w-2 h-2 bg-white/10 rounded-full animate-pulse"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -374,6 +435,16 @@ export default function GymSubscriptions() {
             </div>
           </div>
         )}
+
+        {/* Debug Panel (remove in production) */}
+        <div className="mt-8 bg-black/50 border border-gray-600/50 rounded-xl p-4">
+          <h3 className="text-lg font-semibold text-gray-300 mb-2">Debug Information:</h3>
+          <div className="text-sm text-gray-400 space-y-1 max-h-40 overflow-y-auto">
+            {debugInfo.map((info, index) => (
+              <div key={index}>{info}</div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
