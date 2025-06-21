@@ -2,11 +2,20 @@
 
 import React, { useEffect, useState } from "react";
 import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
+
 import toast, { Toaster } from "react-hot-toast";
 
 const GYM_BACKGROUND = "/images/bk.jpg";
 
 // const GYM_BACKGROUND = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80";
+
+interface Subscription {
+  id: number;
+  name: string;
+  duration: string;
+  priceShells: number;
+  approvedAt?: string;
+}
 
 function parseDuration(duration: string): number {
   const mapping: Record<string, number> = {
@@ -31,7 +40,7 @@ const getSubscriptionIcon = (name: string) => {
 };
 
 // Mock data for demonstration
-const MOCK_SUBSCRIPTIONS = [
+const MOCK_SUBSCRIPTIONS: Subscription[] = [
   {
     id: 1,
     name: "Starter Boost",
@@ -61,17 +70,17 @@ const MOCK_SUBSCRIPTIONS = [
 export default function GymSubscriptions() {
   // Mock telegramId for demo - in real app this would come from URL params
   const telegramId = "demo_user";
-  const [shells, setShells] = useState(2500);
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [activeSub, setActiveSub] = useState(null);
-  const [expiredSubs, setExpiredSubs] = useState([]);
-  const [timeLeft, setTimeLeft] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [debugInfo, setDebugInfo] = useState([]);
+  const [shells, setShells] = useState<number>(2500);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [activeSub, setActiveSub] = useState<Subscription | null>(null);
+  const [expiredSubs, setExpiredSubs] = useState<Subscription[]>([]);
+  const [timeLeft, setTimeLeft] = useState<string>("");
+  const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
-  const addDebugInfo = (message) => {
+  const addDebugInfo = (message: string): void => {
     setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
@@ -111,8 +120,8 @@ export default function GymSubscriptions() {
         addDebugInfo("All data loaded successfully");
       } catch (error) {
         console.error("Error fetching data:", error);
-        addDebugInfo(`Error: ${error.message}`);
-        setError(`Failed to load data: ${error.message}`);
+        addDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
         addDebugInfo("Loading complete");
@@ -149,7 +158,7 @@ export default function GymSubscriptions() {
     return () => clearInterval(interval);
   }, [activeSub, expiredSubs]);
 
-  const handlePurchase = async (sub) => {
+  const handlePurchase = async (sub: Subscription): Promise<void> => {
     if (!telegramId || shells < sub.priceShells || selectedPlan === sub.id) return;
     
     // Check if user already has an active subscription
@@ -171,19 +180,19 @@ export default function GymSubscriptions() {
       alert("Subscription request submitted for approval!");
     } catch (error) {
       console.error("Purchase error:", error);
-      addDebugInfo(`Purchase error: ${error.message}`);
+      addDebugInfo(`Purchase error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       alert("Failed to process subscription");
     } finally {
       setSelectedPlan(null);
     }
   };
 
-  const getPlanIcon = (sub) => {
+  const getPlanIcon = (sub: Subscription) => {
     const IconComponent = getSubscriptionIcon(sub.name);
     return <IconComponent className="w-8 h-8" />;
   };
 
-  const getPlanColor = (duration) => {
+  const getPlanColor = (duration: string): string => {
     switch (duration) {
       case "1 Week":
         return "from-blue-500 to-blue-700";
@@ -202,25 +211,25 @@ export default function GymSubscriptions() {
     }
   };
 
-  const isPopularPlan = (duration) => {
+  const isPopularPlan = (duration: string): boolean => {
     return duration === "1 Month" || duration === "3 Months";
   };
 
-  const isSubscriptionDisabled = (sub) => {
+  const isSubscriptionDisabled = (sub: Subscription): boolean => {
     if (shells < sub.priceShells) return true;
     if (activeSub) return true;
     if (selectedPlan === sub.id) return true;
     return false;
   };
 
-  const getButtonText = (sub) => {
+  const getButtonText = (sub: Subscription): string => {
     if (selectedPlan === sub.id) return "Processing...";
     if (activeSub) return "Already Subscribed";
     if (shells < sub.priceShells) return "Insufficient Shells";
     return "Subscribe Now";
   };
 
-  const getButtonStyle = (sub) => {
+  const getButtonStyle = (sub: Subscription): string => {
     if (isSubscriptionDisabled(sub)) {
       return 'bg-gray-600 text-gray-400 cursor-not-allowed';
     }
