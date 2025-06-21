@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
-
+import { useSearchParams } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 
 const GYM_BACKGROUND = "/images/bk.jpg";
@@ -110,16 +110,16 @@ export default function GymSubscriptions() {
         
         // Mock user data fetch
         addDebugInfo("Fetching user shells...");
-        const res = await fetch(`/api/user/${telegramId}`);
-        const user = await res.json();
+        const userRes = await fetch(`/api/user/${telegramId}`);
+const user = await userRes.json();
         setShells(Number(user.points));
 
         // addDebugInfo("User shells loaded: 2500");
 
         // Mock subscriptions fetch
         addDebugInfo("Fetching available subscriptions...");
-        const res = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
-        const data = await res.json();
+        const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
+        const data = await subsRes.json();
         setSubscriptions(data);
 
         addDebugInfo(`Loaded ${SUBSCRIPTIONS.length} subscriptions`);
