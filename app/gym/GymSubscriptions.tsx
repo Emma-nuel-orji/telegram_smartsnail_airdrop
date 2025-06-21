@@ -1,4 +1,6 @@
 "use client";
+import { useEffect, useState } from "react";
+import { WebApp } from "@twa-dev/sdk"; 
 
 import React, { useEffect, useState } from "react";
 import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
@@ -68,9 +70,17 @@ const MOCK_SUBSCRIPTIONS: Subscription[] = [
 ];
 
 export default function GymSubscriptions() {
-  // Mock telegramId for demo - in real app this would come from URL params
-  const searchParams = useSearchParams();
-  const telegramId = searchParams.get("telegramId");
+ 
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+
+useEffect(() => {
+  if (typeof window !== "undefined" && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+    setTelegramId(window.Telegram.WebApp.initDataUnsafe.user.id.toString());
+  } else {
+    console.warn("Telegram ID not available");
+  }
+}, []);
+
   const [shells, setShells] = useState<number>(2500);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [activeSub, setActiveSub] = useState<Subscription | null>(null);
@@ -306,6 +316,15 @@ export default function GymSubscriptions() {
   if (loading) {
     return (
       <div className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
+        <Link href="/">
+        <img
+          src="/images/info/left-arrow.png" 
+          width={40}
+          height={40}
+          alt="back"
+          className="back-button"
+        />
+      </Link>
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
           style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
