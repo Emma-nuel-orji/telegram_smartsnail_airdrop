@@ -1,7 +1,7 @@
 "use client";
 
 import WebApp from "@twa-dev/sdk";
-
+import Link from "next/link";
 
 import React, { useEffect, useState } from "react";
 import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
