@@ -5,7 +5,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { Dumbbell, MapPin, Star, Users, Clock, ChevronRight } from "lucide-react";
 
-const GYM_BACKGROUND = "/images/bk.jpg";
+const GYM_BACKGROUND = "/images/gymfit2.jpg";
 
 interface Gym {
   id: number;
@@ -26,25 +26,25 @@ const PARTNER_GYMS: Gym[] = [
     id: 1,
     name: "Lilburn Fitness Center",
     location: "Lilburn, GA",
-    rating: 4.8,
+    rating: 8.8,
     members: 1250,
-    openTime: "5:00 AM",
-    closeTime: "11:00 PM",
+    openTime: "7:00 AM",
+    closeTime: "8:00 PM",
     amenities: ["Free Weights", "Cardio Equipment", "Group Classes", "Pool", "Sauna"],
-    image: "/images/gyms/lilburn-gym.jpg",
+    image: "/images/gyms/gymfit.jpg",
     description: "Premium fitness facility with state-of-the-art equipment and expert trainers."
   },
   {
     id: 2,
-    name: "PowerHouse Gym Atlanta",
-    location: "Atlanta, GA",
-    rating: 4.6,
-    members: 2100,
-    openTime: "24/7",
-    closeTime: "24/7",
-    amenities: ["Free Weights", "Machines", "CrossFit Box", "Personal Training"],
+    name: "Sage Combat",
+    location: "Lilburn Gym",
+    rating: 7.6,
+    members: 20,
+    openTime: "8am",
+    closeTime: "10am",
+    amenities: ["Boxing Fundamentals", "Self-defense Techniques", "Combat conditioning", "Private sessions for serious athletes"],
     image: "/images/gyms/powerhouse-gym.jpg",
-    description: "24/7 access gym with professional bodybuilding equipment and training programs."
+    description: "Urban warrior meets mental discipline."
   },
   {
     id: 3,
