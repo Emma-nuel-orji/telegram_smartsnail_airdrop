@@ -4,7 +4,7 @@ import WebApp from "@twa-dev/sdk";
 import Link from "next/link";
 
 import React, { useEffect, useState } from "react";
-import { Clock, Zap, Star, Trophy, Crown, Dumbbell } from "lucide-react";
+import { Clock, Zap, Star, Trophy, Crown, Dumbbell, MapPin } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -42,6 +42,10 @@ const getSubscriptionIcon = (name: string) => {
 };
 
 export default function GymSubscriptions() {
+  const searchParams = useSearchParams();
+  const gymId = searchParams?.get('gymId') || '1';
+  const gymName = searchParams?.get('gymName') || 'Partner Gym';
+  
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [shells, setShells] = useState<number>(2500);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -52,6 +56,25 @@ export default function GymSubscriptions() {
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Store pending subscription in localStorage for persistence
+  const storePendingSubscription = (sub: Subscription | null) => {
+    if (typeof window !== 'undefined') {
+      if (sub) {
+        localStorage.setItem(`pendingSub_${telegramId}`, JSON.stringify(sub));
+      } else {
+        localStorage.removeItem(`pendingSub_${telegramId}`);
+      }
+    }
+  };
+
+  const loadPendingSubscription = (): Subscription | null => {
+    if (typeof window !== 'undefined' && telegramId) {
+      const stored = localStorage.getItem(`pendingSub_${telegramId}`);
+      return stored ? JSON.parse(stored) : null;
+    }
+    return null;
+  };
 
   useEffect(() => {
     const getTelegramId = () => {
@@ -73,24 +96,46 @@ export default function GymSubscriptions() {
 
     async function fetchUserData() {
       try {
+        // Load any pending subscription from localStorage first
+        const storedPending = loadPendingSubscription();
+        if (storedPending) {
+          setPendingSub(storedPending);
+        }
+
         // Fetch user data
         const userRes = await fetch(`/api/user/${userId}`);
         const user = await userRes.json();
         setShells(Number(user.points));
 
-        // Fetch available subscriptions
-        const subsRes = await fetch("/api/services?partnerType=GYM&type=SUBSCRIPTION");
+        // Fetch available subscriptions for this gym
+        const subsRes = await fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&gymId=${gymId}`);
         const data = await subsRes.json();
         setSubscriptions(data);
 
         // Fetch user's subscription status
-        const res = await fetch(`/api/subscription/${userId}`);
+        const res = await fetch(`/api/subscription/${userId}?gymId=${gymId}`);
         const subData = await res.json();
         
         if (subData?.status === 'APPROVED' && subData?.approvedAt) {
           setActiveSub(subData);
+          // Clear any pending subscription if approved
+          setPendingSub(null);
+          storePendingSubscription(null);
         } else if (subData?.status === 'PENDING') {
-          setPendingSub(subData);
+          const pendingData = { ...subData };
+          setPendingSub(pendingData);
+          storePendingSubscription(pendingData);
+        } else {
+          // Check if we have a stored pending that's not in the API anymore
+          if (storedPending) {
+            // Verify if it's still pending by checking with API
+            const verifyRes = await fetch(`/api/subscription/verify/${userId}?subscriptionId=${storedPending.id}`);
+            if (!verifyRes.ok) {
+              // Clear invalid pending subscription
+              setPendingSub(null);
+              storePendingSubscription(null);
+            }
+          }
         }
 
       } catch (error) {
@@ -102,7 +147,7 @@ export default function GymSubscriptions() {
     }
 
     fetchUserData();
-  }, []);
+  }, [telegramId, gymId]);
 
   useEffect(() => {
     if (!activeSub || !activeSub.approvedAt) return;
@@ -146,7 +191,12 @@ export default function GymSubscriptions() {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramId, serviceId: sub.id }),
+        body: JSON.stringify({ 
+          telegramId, 
+          serviceId: sub.id, 
+          gymId: gymId,
+          gymName: gymName 
+        }),
       });
 
       if (!res.ok) {
@@ -158,11 +208,13 @@ export default function GymSubscriptions() {
       
       toast.success("Subscription request submitted for approval!");
 
-      // Set pending subscription
-      setPendingSub({
+      // Set pending subscription and store it
+      const pendingData = {
         ...sub,
-        status: 'PENDING'
-      });
+        status: 'PENDING' as const
+      };
+      setPendingSub(pendingData);
+      storePendingSubscription(pendingData);
 
       // Note: Don't deduct shells here - they should only be deducted when approved
 
@@ -175,25 +227,27 @@ export default function GymSubscriptions() {
   };
 
   const handleCancelSubscription = async () => {
-  if (!telegramId || !pendingSub) return;
+    if (!telegramId || !pendingSub) return;
 
-  try {
-    const res = await fetch(`/api/subscription/${telegramId}`, {
-      method: "DELETE",
-    });
+    try {
+      const res = await fetch(`/api/subscription/${telegramId}`, {
+        method: "DELETE",
+        body: JSON.stringify({ gymId: gymId }),
+        headers: { "Content-Type": "application/json" }
+      });
 
-    if (!res.ok) {
-      throw new Error(await res.text());
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      toast.success("Subscription request cancelled.");
+      setPendingSub(null);
+      storePendingSubscription(null); // Clear from localStorage
+    } catch (err) {
+      console.error("Cancellation failed:", err);
+      toast.error("Failed to cancel subscription.");
     }
-
-    toast.success("Subscription request cancelled.");
-    setPendingSub(null); // Clear from UI
-  } catch (err) {
-    console.error("Cancellation failed:", err);
-    toast.error("Failed to cancel subscription.");
-  }
-};
-
+  };
 
   const getPlanIcon = (sub: Subscription) => {
     const IconComponent = getSubscriptionIcon(sub.name);
@@ -274,7 +328,7 @@ export default function GymSubscriptions() {
   if (loading) {
     return (
       <div className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
-        <Link href="/" className="absolute top-6 left-6 z-20">
+        <Link href="/gym" className="absolute top-6 left-6 z-20">
           <img
             src="/images/info/left-arrow.png" 
             width={40}
@@ -322,27 +376,29 @@ export default function GymSubscriptions() {
         ))}
       </div>
 
-      {/* Back Button */}
-      
-
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12 pt-12">
-          <Link href="/">
-        
-          <img
-            src="/images/info/output-onlinepngtools (6).png"
-            width={24}
-            height={24}
-            alt="back"
-          />
-        
-      </Link>
+          <Link href="/gym" className="absolute top-6 left-6">
+            <img
+              src="/images/info/output-onlinepngtools (6).png"
+              width={24}
+              height={24}
+              alt="back"
+            />
+          </Link>
+          
           <div className="flex items-center justify-center mb-6">
             <Dumbbell className="w-12 h-12 text-yellow-400 mr-4" />
             <h1 className="text-5xl font-black bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 bg-clip-text text-transparent">
               GYM MEMBERSHIPS
             </h1>
+          </div>
+          
+          {/* Gym Name Display */}
+          <div className="inline-flex items-center bg-gradient-to-r from-blue-600/20 to-blue-400/20 backdrop-blur-sm border border-blue-400/30 rounded-2xl px-6 py-3 mb-6">
+            <MapPin className="w-6 h-6 text-blue-400 mr-3" />
+            <span className="text-xl font-semibold text-blue-300">{decodeURIComponent(gymName)}</span>
           </div>
           
           {/* Shells Display */}
@@ -400,7 +456,6 @@ export default function GymSubscriptions() {
                       >
                         Cancel
                       </button>
-
                     </div>
                   </div>
                   <div className="text-right">
