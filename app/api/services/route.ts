@@ -48,8 +48,15 @@ export async function GET(req: Request) {
     }));
 
     return NextResponse.json(transformed);
-  } catch (error) {
-    console.error('Error fetching services:', error);
-    return NextResponse.json({ error: 'Failed to fetch services' }, { status: 500 });
-  }
+  } catch (error: any) {
+  console.error('🔥 Prisma error fetching services:', {
+    message: error.message,
+    stack: error.stack,
+    cause: error.cause,
+    code: error.code,
+  });
+
+  return NextResponse.json({ error: 'Failed to fetch services' }, { status: 500 });
+}
+
 }
