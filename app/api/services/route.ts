@@ -1,8 +1,6 @@
-// app/api/services/route.ts
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ServiceType } from '@prisma/client';
+import { PrismaClient, ServiceType } from '@prisma/client';
 
 export const dynamic = "force-dynamic";
 
