@@ -57,20 +57,22 @@ export default function GymSubscriptions() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Store pending subscription in localStorage for persistence
+  // Store pending subscription with gym-specific key
   const storePendingSubscription = (sub: Subscription | null) => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && telegramId) {
+      const key = `pendingSub_${telegramId}_${gymId}`;
       if (sub) {
-        localStorage.setItem(`pendingSub_${telegramId}`, JSON.stringify(sub));
+        localStorage.setItem(key, JSON.stringify(sub));
       } else {
-        localStorage.removeItem(`pendingSub_${telegramId}`);
+        localStorage.removeItem(key);
       }
     }
   };
 
   const loadPendingSubscription = (): Subscription | null => {
     if (typeof window !== 'undefined' && telegramId) {
-      const stored = localStorage.getItem(`pendingSub_${telegramId}`);
+      const key = `pendingSub_${telegramId}_${gymId}`;
+      const stored = localStorage.getItem(key);
       return stored ? JSON.parse(stored) : null;
     }
     return null;
@@ -93,17 +95,19 @@ export default function GymSubscriptions() {
     }
 
     setTelegramId(userId);
+  }, []);
+
+  useEffect(() => {
+    if (!telegramId) return;
 
     async function fetchUserData() {
       try {
         // Load any pending subscription from localStorage first
         const storedPending = loadPendingSubscription();
-        if (storedPending) {
-          setPendingSub(storedPending);
-        }
-
+        console.log('Loaded pending subscription from localStorage:', storedPending);
+        
         // Fetch user data
-        const userRes = await fetch(`/api/user/${userId}`);
+        const userRes = await fetch(`/api/user/${telegramId}`);
         const user = await userRes.json();
         setShells(Number(user.points));
 
@@ -112,34 +116,70 @@ export default function GymSubscriptions() {
         const data = await subsRes.json();
         setSubscriptions(data);
 
-        // Fetch user's subscription status
-        const res = await fetch(`/api/subscription/${userId}?gymId=${gymId}`);
-        const subData = await res.json();
+        // Fetch user's subscription status from API
+        const res = await fetch(`/api/subscription/${telegramId}?gymId=${gymId}`);
+        let subData = null;
         
+        if (res.ok) {
+          subData = await res.json();
+          console.log('API subscription data:', subData);
+        }
+        
+        // Priority handling:
+        // 1. If API returns APPROVED subscription, use it and clear pending
         if (subData?.status === 'APPROVED' && subData?.approvedAt) {
+          console.log('Setting active subscription from API');
           setActiveSub(subData);
-          // Clear any pending subscription if approved
           setPendingSub(null);
           storePendingSubscription(null);
-        } else if (subData?.status === 'PENDING') {
+        } 
+        // 2. If API returns PENDING, use it and store it
+        else if (subData?.status === 'PENDING') {
+          console.log('Setting pending subscription from API');
           const pendingData = { ...subData };
           setPendingSub(pendingData);
           storePendingSubscription(pendingData);
-        } else {
-          // Check if we have a stored pending that's not in the API anymore
-          if (storedPending) {
-            // Verify if it's still pending by checking with API
-            const verifyRes = await fetch(`/api/subscription/verify/${userId}?subscriptionId=${storedPending.id}`);
+        }
+        // 3. If API doesn't return pending but we have stored pending, keep it
+        else if (storedPending) {
+          console.log('Using stored pending subscription');
+          setPendingSub(storedPending);
+          
+          // Optional: Verify the stored pending is still valid
+          // You can uncomment this if you want to verify with API
+          /*
+          try {
+            const verifyRes = await fetch(`/api/subscription/verify/${telegramId}?subscriptionId=${storedPending.id}`);
             if (!verifyRes.ok) {
-              // Clear invalid pending subscription
+              console.log('Stored pending subscription is invalid, clearing it');
               setPendingSub(null);
               storePendingSubscription(null);
             }
+          } catch (verifyError) {
+            console.warn('Could not verify pending subscription:', verifyError);
+            // Keep the stored pending even if verification fails
           }
+          */
+        }
+        // 4. If API returns REJECTED, clear everything
+        else if (subData?.status === 'REJECTED') {
+          console.log('Subscription was rejected, clearing stored data');
+          setPendingSub(null);
+          setActiveSub(null);
+          storePendingSubscription(null);
+          toast.error("Your subscription request was rejected.");
         }
 
       } catch (error) {
         console.error("Error fetching data:", error);
+        
+        // If API fails but we have stored pending, still use it
+        const storedPending = loadPendingSubscription();
+        if (storedPending) {
+          console.log('API failed, but using stored pending subscription');
+          setPendingSub(storedPending);
+        }
+        
         setError(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
@@ -208,10 +248,11 @@ export default function GymSubscriptions() {
       
       toast.success("Subscription request submitted for approval!");
 
-      // Set pending subscription and store it
+      // Set pending subscription and store it with timestamp
       const pendingData = {
         ...sub,
-        status: 'PENDING' as const
+        status: 'PENDING' as const,
+        requestedAt: new Date().toISOString() // Add timestamp for tracking
       };
       setPendingSub(pendingData);
       storePendingSubscription(pendingData);
@@ -242,7 +283,7 @@ export default function GymSubscriptions() {
 
       toast.success("Subscription request cancelled.");
       setPendingSub(null);
-      storePendingSubscription(null); // Clear from localStorage
+      storePendingSubscription(null);
     } catch (err) {
       console.error("Cancellation failed:", err);
       toast.error("Failed to cancel subscription.");
