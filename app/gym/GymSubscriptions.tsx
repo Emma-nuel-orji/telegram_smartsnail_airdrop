@@ -174,6 +174,27 @@ export default function GymSubscriptions() {
     }
   };
 
+  const handleCancelSubscription = async () => {
+  if (!telegramId || !pendingSub) return;
+
+  try {
+    const res = await fetch(`/api/subscription/${telegramId}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+
+    toast.success("Subscription request cancelled.");
+    setPendingSub(null); // Clear from UI
+  } catch (err) {
+    console.error("Cancellation failed:", err);
+    toast.error("Failed to cancel subscription.");
+  }
+};
+
+
   const getPlanIcon = (sub: Subscription) => {
     const IconComponent = getSubscriptionIcon(sub.name);
     return <IconComponent className="w-8 h-8 text-white" />;
@@ -370,7 +391,14 @@ export default function GymSubscriptions() {
                     <p className="text-xl text-white font-semibold">{pendingSub.name}</p>
                     <div className="flex items-center mt-2">
                       <Clock className="w-5 h-5 text-yellow-400 mr-2 animate-pulse" />
-                      <span className="text-yellow-300">Waiting for approval...</span>
+                      <span className="text-yellow-300 mr-4">Waiting for approval...</span>
+                      <button
+                        onClick={handleCancelSubscription}
+                        className="ml-4 px-4 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+                      >
+                        Cancel
+                      </button>
+
                     </div>
                   </div>
                   <div className="text-right">

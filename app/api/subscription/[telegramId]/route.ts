@@ -24,6 +24,9 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
       },
     });
 
+
+
+
     if (!user || user.pointTransactions.length === 0) {
       return NextResponse.json(null);
     }
@@ -67,5 +70,27 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
   } catch (error) {
     console.error('Error fetching subscription:', error);
     return NextResponse.json({ error: 'Failed to fetch subscription' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_: Request, { params }: { params: { telegramId: string } }) {
+  try {
+    const telegramId = BigInt(params.telegramId);
+
+    const deleted = await prisma.gymSubscription.deleteMany({
+      where: {
+        telegramId,
+        status: "PENDING",
+      },
+    });
+
+    if (deleted.count === 0) {
+      return new NextResponse("No pending subscription found.", { status: 404 });
+    }
+
+    return new NextResponse("Pending subscription cancelled.", { status: 200 });
+  } catch (error) {
+    console.error("Error cancelling subscription:", error);
+    return new NextResponse("Failed to cancel subscription", { status: 500 });
   }
 }
