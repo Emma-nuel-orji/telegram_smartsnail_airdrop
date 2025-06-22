@@ -323,19 +323,21 @@ export default function GymSubscriptions() {
       </div>
 
       {/* Back Button */}
-      <Link href="/" className="absolute top-6 left-6 z-20">
-        <img
-          src="/images/info/left-arrow.png" 
-          width={40}
-          height={40}
-          alt="back"
-          className="back-button hover:opacity-80 transition-opacity"
-        />
-      </Link>
+      
 
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12 pt-12">
+          <Link href="/">
+        
+          <img
+            src="/images/info/output-onlinepngtools (6).png"
+            width={24}
+            height={24}
+            alt="back"
+          />
+        
+      </Link>
           <div className="flex items-center justify-center mb-6">
             <Dumbbell className="w-12 h-12 text-yellow-400 mr-4" />
             <h1 className="text-5xl font-black bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 bg-clip-text text-transparent">

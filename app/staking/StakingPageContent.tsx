@@ -679,13 +679,14 @@ export default function StakingPageContent() {
   return (
     <div className="staking-container">
       <Link href="/">
-        <img
-          src="/images/info/left-arrow.png" 
-          width={40}
-          height={40}
-          alt="back"
-          className="back-button"
-        />
+        
+          <img
+            src="/images/info/output-onlinepngtools (6).png"
+            width={24}
+            height={24}
+            alt="back"
+          />
+        
       </Link>
       <h1 className="staking-title">Support Your Fighter</h1>
       <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
