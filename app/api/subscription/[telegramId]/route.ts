@@ -14,6 +14,7 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
             service: {
               type: 'SUBSCRIPTION',
             },
+            status: { in: ['PENDING', 'APPROVED'] },
           },
           orderBy: { createdAt: 'desc' },
           take: 1,
@@ -23,9 +24,6 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
         },
       },
     });
-
-
-
 
     if (!user || user.pointTransactions.length === 0) {
       return NextResponse.json(null);
@@ -73,24 +71,27 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { telegramId: string } }) {
-  try {
-    const telegramId = BigInt(params.telegramId);
+export async function DELETE(req: Request, { params }: { params: { telegramId: string } }) {
+  const telegramId = BigInt(params.telegramId);
 
-    const deleted = await prisma.gymSubscription.deleteMany({
+  try {
+    const deleted = await prisma.pointTransaction.deleteMany({
       where: {
         telegramId,
-        status: "PENDING",
+        status: 'PENDING',
+        service: {
+          type: 'SUBSCRIPTION',
+        },
       },
     });
 
     if (deleted.count === 0) {
-      return new NextResponse("No pending subscription found.", { status: 404 });
+      return NextResponse.json({ message: "No pending subscription found." }, { status: 404 });
     }
 
-    return new NextResponse("Pending subscription cancelled.", { status: 200 });
+    return NextResponse.json({ message: "Pending subscription cancelled." }, { status: 200 });
   } catch (error) {
-    console.error("Error cancelling subscription:", error);
-    return new NextResponse("Failed to cancel subscription", { status: 500 });
+    console.error('Error cancelling subscription:', error);
+    return NextResponse.json({ error: 'Failed to cancel subscription' }, { status: 500 });
   }
 }
