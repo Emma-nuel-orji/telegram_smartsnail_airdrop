@@ -23,8 +23,9 @@ model User {
   updatedAt      DateTime        @updatedAt
   hasClaimedWelcome Boolean  @default(false)
   nft            Int           @default(0)
-  referrals      Referral[]      @relation("Referrer") // Outgoing referrals
-  referredBy     Referral[]      @relation("ReferredBy") // Incoming referrals
+  referralsMade     Referral[] @relation("Referrer")     // Users this user referred
+  referralReceived  Referral[] @relation("ReferredBy")   // How this user was referred
+
   purchases      Purchase[]
   completedTasks CompletedTask[] // A User can have many completed tasks
    consecutiveWins Int     @default(0)
@@ -35,6 +36,7 @@ model User {
 
   // Indexes
   @@index([points], name: "points_asc_index")
+ 
   
 }
 
@@ -76,18 +78,20 @@ model Task {
 }
 
 
-// Referral model
 model Referral {
   id         String   @id @default(cuid()) @map("_id") @db.ObjectId
-  referrerId BigInt
-  referredId BigInt
+  referrerId BigInt   // The user who made the referral
+  referredId BigInt   // The user who was referred
   createdAt  DateTime @default(now())
-
-  // Fix relations to reference telegramId instead of id
-  referrer User @relation("Referrer", fields: [referrerId], references: [telegramId]) 
+  
+  // Relations - these names MUST match the relation names in User model
+  referrer User @relation("Referrer", fields: [referrerId], references: [telegramId])
   referred User @relation("ReferredBy", fields: [referredId], references: [telegramId])
+  
+  // Ensure each user can only be referred once
+  @@unique([referredId], name: "unique_referred_user")
   @@index([referrerId], name: "referrer_index")
-  @@index([referredId], name: "referred_index")
+  
 }
 
 
