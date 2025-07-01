@@ -364,6 +364,7 @@ model Service {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String?
+  imageUrl    String?
   serviceId   String?       @db.ObjectId 
   type        ServiceType // SUBSCRIPTION, ONE_TIME
   duration    String?     // e.g., "1 Month" (only for SUBSCRIPTION)
