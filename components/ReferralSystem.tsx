@@ -10,11 +10,19 @@ interface ReferralSystemProps {
 }
 
 interface ReferralData {
-  referrals: string[];
-  referrer: string | null;
+  referrals: Array<{
+    telegramId: string;
+    username?: string;
+    createdAt: string;
+  }>;
+  referrer: {
+    telegramId: string;
+    username?: string;
+    createdAt: string;
+  } | null;
   totalEarned: number;
   pendingRewards: number;
-  referralRate: number; // Points earned per referral
+  referralRate: number;
   leaderboardPosition?: number;
 }
 
@@ -24,9 +32,10 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
     referrer: null,
     totalEarned: 0,
     pendingRewards: 0,
-    referralRate: 30000,
+    referralRate: 20000,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedStat, setExpandedStat] = useState<string | null>(null);
   const INVITE_URL = "https://t.me/SmartSnails_Bot";
   
@@ -35,20 +44,33 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
       if (userId) {
         try {
           setIsLoading(true);
-          const response = await fetch(`/api/referrals?userId=${userId}`);
-          if (!response.ok) throw new Error('Failed to fetch referrals');
-          const data = await response.json();
+          console.log("Fetching referral data for userId:", userId);
           
+          // FIX: Use 'telegramId' parameter to match your API
+          const response = await fetch(`/api/referrals?telegramId=${userId}`);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error:', response.status, errorText);
+            throw new Error(`Failed to fetch referrals: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log("Received referral data:", data);
+          
+          // Handle the new response structure from your API
           setReferralData({
             referrals: data.referrals || [],
             referrer: data.referrer,
-            totalEarned: data.totalEarned || data.referrals?.length * 30000 || 0,
-            pendingRewards: data.pendingRewards || 25,
-            referralRate: data.referralRate || 30000,
-            leaderboardPosition: data.leaderboardPosition || (data.referrals?.length > 0 ? Math.floor(Math.random() * 100) + 1 : undefined)
+            totalEarned: (data.referrals?.length || 0) * 20000,
+            pendingRewards: data.pendingRewards || 0,
+            referralRate: data.referralRate || 20000,
+            leaderboardPosition: data.referrals?.length > 0 ? Math.floor(Math.random() * 100) + 1 : undefined
           });
+          
         } catch (error) {
           console.error('Error fetching referral data:', error);
+          setError(error instanceof Error ? error.message : 'Failed to load referral data');
         } finally {
           setIsLoading(false);
         }
@@ -56,7 +78,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
     };
     
     fetchReferralData();
-    WebApp.ready(); // Notify Telegram that the app is ready
+    WebApp.ready();
   }, [userId]);
   
   const handleInviteFriend = () => {
@@ -91,10 +113,8 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
   
   const StatCard = ({ title, value, icon }: { title: string, value: string | number, icon: string }) => {
     const handleStatClick = () => {
-      // Toggle expanded state
       setExpandedStat(expandedStat === title ? null : title);
       
-      // If expanding, show a popup with the full info
       if (expandedStat !== title) {
         WebApp.showPopup({
           title: title,
@@ -141,12 +161,21 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
       <p>Loading your referral data...</p>
     </div>;
   }
+
+  if (error) {
+    return (
+      <div className="loading-container">
+        <p style={{ color: 'red' }}>Error: {error}</p>
+        <button onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
   
   return (
     <div className="referral-container">
       {/* Header Section */}
       <div className="referral-header">
-      <Link href="/">
+        <Link href="/">
           <img
             src="/images/info/left-arrow.png" 
             width={40}
@@ -189,7 +218,9 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
             </svg>
           </div>
           <p>
-            You were invited by <span className="referrer-name">{referralData.referrer}</span>
+            You were invited by <span className="referrer-name">
+              {referralData.referrer.username || `User ${referralData.referrer.telegramId}`}
+            </span>
           </p>
         </div>
       )}
@@ -231,11 +262,23 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
             {referralData.referrals.map((referral, index) => (
               <li key={index} className="referral-item">
                 <div className="referral-avatar">
-                  <span>{referral.charAt(0).toUpperCase()}</span>
+                  <span>
+                    {referral.username 
+                      ? referral.username.charAt(0).toUpperCase() 
+                      : referral.telegramId.charAt(0)
+                    }
+                  </span>
                 </div>
                 <div className="referral-details">
-                  <span className="referral-name">User {referral}</span>
-                  <span className="referral-date">Joined {Math.floor(Math.random() * 30) + 1}d ago</span>
+                  <span className="referral-name">
+                    {referral.username || `User ${referral.telegramId}`}
+                  </span>
+                  <span className="referral-date">
+                    {referral.createdAt 
+                      ? new Date(referral.createdAt).toLocaleDateString()
+                      : `Joined ${Math.floor(Math.random() * 30) + 1}d ago`
+                    }
+                  </span>
                 </div>
                 <div className="referral-reward">
                   <span>+{referralData.referralRate}</span>
@@ -256,6 +299,9 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
           </div>
           <h3>No Referrals Yet</h3>
           <p>Share your link with friends to start earning Shells!</p>
+          <div style={{ marginTop: '10px', fontSize: '12px', opacity: 0.7 }}>
+            Debug: Looking for referrals for user {userId}
+          </div>
         </div>
       )}
       

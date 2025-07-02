@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import Loader from '@/loader';
 import { useEffect, useState } from 'react';
 
-// Dynamically import the ReferralSystem component
 const ReferralSystemComponent = dynamic(() => import('@/components/ReferralSystem'), {
   ssr: false,
   loading: () => <Loader />,
@@ -23,19 +22,28 @@ export default function ReferralSystemPage() {
           WebApp.ready();
           const userIdFromTelegram = WebApp.initDataUnsafe?.user?.id?.toString() || null;
 
+          console.log("Telegram WebApp initialized. User ID:", userIdFromTelegram);
+
           if (!userIdFromTelegram) {
             throw new Error('User ID not found in Telegram init data');
           }
 
           setUserId(userIdFromTelegram);
 
-          // Extract referrer ID from URL (Telegram start parameter)
+          // Extract referrer ID from URL
           const urlParams = new URLSearchParams(window.location.search);
           const referrerTelegramId = urlParams.get("start");
 
+          console.log("URL params - start:", referrerTelegramId);
+
           if (referrerTelegramId && userIdFromTelegram !== referrerTelegramId) {
+            console.log("Processing referral:", {
+              userTelegramId: userIdFromTelegram,
+              referrerTelegramId
+            });
+
             // Save referral to backend
-            await fetch("/api/referrals", {
+            const response = await fetch("/api/referrals", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -43,6 +51,14 @@ export default function ReferralSystemPage() {
                 referrerTelegramId,
               }),
             });
+
+            const result = await response.json();
+            console.log("Referral API response:", result);
+
+            if (!response.ok) {
+              console.error("Referral creation failed:", result);
+              // Don't throw error here - user can still use the app
+            }
           }
 
         } catch (err) {
@@ -65,6 +81,12 @@ export default function ReferralSystemPage() {
     return (
       <div className="text-center p-4 text-red-500">
         <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -73,6 +95,12 @@ export default function ReferralSystemPage() {
     return (
       <div className="text-center p-4 text-purple-600">
         <p>User ID not found. Please reload the app.</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-purple-500 text-white rounded"
+        >
+          Reload
+        </button>
       </div>
     );
   }
