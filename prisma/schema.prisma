@@ -78,6 +78,7 @@ model Task {
 }
 
 
+
 model Referral {
   id         String   @id @default(cuid()) @map("_id") @db.ObjectId
   referrerId BigInt   // The user who made the referral

@@ -14,12 +14,9 @@ interface PrismaUser {
   telegramId: bigint;
   username: string | null;
   points: bigint;
-  referrals: {
-    id: string;
-    createdAt: Date;
-    referrerId: bigint;
-    referredId: bigint;
-  }[];
+  _count: {
+    referrals: number;
+  };
 }
 
 interface LeaderboardUser {
@@ -85,7 +82,7 @@ const mapUserWithDetails = (level: Level, skip: number) =>
     telegramId: user.telegramId.toString(),
     username: user.username || 'Anonymous',
     points: Number(user.points),
-    referrals: user.referrals.length,
+    referrals: user._count.referrals,
     color: level.color,
     rank: skip + index + 1,
   });
@@ -104,7 +101,11 @@ const fetchUsersForLevel = async (level: Level, limit: number, skip: number): Pr
         telegramId: true,
         username: true,
         points: true,
-        referrals: true,
+        _count: {
+          select: {
+            referrals: true,
+          },
+        },
       },
       orderBy: { points: 'desc' },
       take: limit,
