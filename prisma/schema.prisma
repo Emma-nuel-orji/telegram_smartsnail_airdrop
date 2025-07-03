@@ -25,7 +25,6 @@ model User {
   nft            Int           @default(0)
   referralsMade     Referral[] @relation("Referrer")     // Users this user referred
   referralReceived  Referral[] @relation("ReferredBy")   // How this user was referred
-
   purchases      Purchase[]
   completedTasks CompletedTask[] // A User can have many completed tasks
    consecutiveWins Int     @default(0)

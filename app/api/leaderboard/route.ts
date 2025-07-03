@@ -14,9 +14,6 @@ interface PrismaUser {
   telegramId: bigint;
   username: string | null;
   points: bigint;
-  _count: {
-    referrals: number;
-  };
 }
 
 interface LeaderboardUser {
@@ -77,12 +74,46 @@ const parseQueryParams = (searchParams: URLSearchParams) => {
   return { page, limit };
 };
 
-const mapUserWithDetails = (level: Level, skip: number) => 
+// Function to get referral counts for users
+const getReferralCounts = async (telegramIds: bigint[]): Promise<Map<string, number>> => {
+  try {
+    const referralCounts = new Map<string, number>();
+    
+    if (telegramIds.length === 0) {
+      return referralCounts;
+    }
+    
+    // Query the Referral model directly and group by referrerId
+    const referrals = await prisma.referral.groupBy({
+      by: ['referrerId'],
+      where: {
+        referrerId: {
+          in: telegramIds
+        }
+      },
+      _count: {
+        referrerId: true
+      }
+    });
+    
+    // Convert to map for easy lookup
+    referrals.forEach(item => {
+      referralCounts.set(item.referrerId.toString(), item._count.referrerId);
+    });
+    
+    return referralCounts;
+  } catch (error) {
+    console.error('[Leaderboard API] Failed to fetch referral counts:', error);
+    return new Map();
+  }
+};
+
+const mapUserWithDetails = (level: Level, skip: number, referralCounts: Map<string, number>) => 
   (user: PrismaUser, index: number): LeaderboardUser => ({
     telegramId: user.telegramId.toString(),
     username: user.username || 'Anonymous',
     points: Number(user.points),
-    referrals: user._count.referrals,
+    referrals: referralCounts.get(user.telegramId.toString()) || 0,
     color: level.color,
     rank: skip + index + 1,
   });
@@ -101,11 +132,6 @@ const fetchUsersForLevel = async (level: Level, limit: number, skip: number): Pr
         telegramId: true,
         username: true,
         points: true,
-        _count: {
-          select: {
-            referrals: true,
-          },
-        },
       },
       orderBy: { points: 'desc' },
       take: limit,
@@ -121,10 +147,14 @@ const fetchUsersForLevel = async (level: Level, limit: number, skip: number): Pr
     })
   ]);
 
+  // Get referral counts for all users in this level
+  const telegramIds = users.map(user => user.telegramId);
+  const referralCounts = await getReferralCounts(telegramIds);
+
   return {
     level: level.name,
     levelColor: level.color,
-    users: users.map(mapUserWithDetails(level, skip)),
+    users: users.map(mapUserWithDetails(level, skip, referralCounts)),
     totalUsersInLevel,
   };
 };
