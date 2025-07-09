@@ -1,32 +1,45 @@
-// app/api/fights/upcoming/route.ts
-import { NextResponse } from 'next/server';
-import{prisma} from '@/lib/prisma';
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    // Get all upcoming fights (scheduled and in the future)
-    const fights = await prisma.fight.findMany({
+    const upcomingFights = await prisma.fight.findMany({
       where: {
-        status: 'SCHEDULED',
         fightDate: {
-          gte: new Date()
-        }
-      },
-      include: {
-        fighter1: true,
-        fighter2: true
+          gte: new Date(),
+        },
+        status: "SCHEDULED",
       },
       orderBy: {
-        fightDate: 'asc'
-      }
+        fightDate: "asc",
+      },
+      include: {
+        fighter1: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            telegramId: true,
+            socialMedia: true,
+            gender: true, // ✅ add this
+          },
+        },
+        fighter2: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            telegramId: true,
+            socialMedia: true,
+            gender: true, // ✅ add this
+          },
+        },
+      },
     });
-    
-    return NextResponse.json(fights);
+
+    return NextResponse.json(upcomingFights);
   } catch (error) {
-    console.error('Error fetching upcoming fights:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch upcoming fights' },
-      { status: 500 }
-    );
+    console.error("Error fetching upcoming fights:", error);
+    return NextResponse.json({ error: "Failed to fetch fights" }, { status: 500 });
   }
 }

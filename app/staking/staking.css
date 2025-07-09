@@ -373,6 +373,14 @@
   text-align: center;
 }
 
+.staking-container {
+  background-image: url('/images/tyson.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 .stake-button {
   padding: 10px 20px;
   border: none;

@@ -9,6 +9,7 @@ import "./staking.css";
 interface Fighter {
   id: string;
   name: string;
+  gender?: string; 
   imageUrl?: string;
   telegramId?: string;
   socialMedia?: string;
@@ -56,8 +57,33 @@ const MOTIVATIONAL_MESSAGES = [
   "Let's go!"
 ];
 
+function getTimeRemaining(fightDate: string) {
+  const total = Date.parse(fightDate) - Date.now();
+  const seconds = Math.floor((total / 1000) % 60);
+  const minutes = Math.floor((total / 1000 / 60) % 60);
+  const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
+  const days = Math.floor(total / (1000 * 60 * 60 * 24));
+  return { total, days, hours, minutes, seconds };
+}
+
 function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
-  const isActive = !!fight;
+  const isActive = !!fight && new Date(fight.fightDate).getTime() > Date.now();
+  const isConcluded = !!fight && new Date(fight.fightDate).getTime() <= Date.now();
+  const [timer, setTimer] = useState<string>("");
+
+  useEffect(() => {
+    if (!fight) return;
+    const interval = setInterval(() => {
+      const remaining = getTimeRemaining(fight.fightDate);
+      if (remaining.total <= 0) {
+        clearInterval(interval);
+        setTimer("Fight Concluded");
+      } else {
+        setTimer(`${remaining.days}d ${remaining.hours}h ${remaining.minutes}m ${remaining.seconds}s`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [fight]);
   
   return (
     <div className={`fight-card ${!isActive ? 'inactive-fight' : ''}`}>
@@ -66,6 +92,7 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         <div className="fight-date">
           {fight ? new Date(fight.fightDate).toLocaleString() : "To be announced"}
         </div>
+        {fight && <div className="fight-timer">{timer}</div>}
       </div>
       
       <div className="fighters-container">
@@ -501,11 +528,28 @@ interface FightSliderProps {
   telegramId: string | null;
 }
 
+
 const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramId }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [startX, setStartX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [pastFights, setPastFights] = useState<Fight[]>([]);
+
+  useEffect(() => {
+    const fetchPastFights = async () => {
+      try {
+        const res = await fetch('/api/fights/past');
+        const data = await res.json();
+        setPastFights(data);
+      } catch (err) {
+        console.error('Error fetching past fights:', err);
+      }
+    };
+    fetchPastFights();
+  }, []);
+
+  const allSlides = [...fights, ...pastFights];
 
   const goToSlide = (index: number) => {
     if (sliderRef.current) {
@@ -531,12 +575,9 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
     if (!isDragging) return;
     const endX = e.changedTouches[0].clientX;
     const diff = startX - endX;
-    
-    if (diff > 50 && currentIndex < fights.length - 1) {
-      // Swipe left
+    if (diff > 50 && currentIndex < allSlides.length - 1) {
       goToSlide(currentIndex + 1);
     } else if (diff < -50 && currentIndex > 0) {
-      // Swipe right
       goToSlide(currentIndex - 1);
     }
     setIsDragging(false);
@@ -569,15 +610,12 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {fights.length === 0 ? (
+        {allSlides.length === 0 ? (
           <div className="slide">
-            <FightCard 
-              userPoints={userPoints}
-              telegramId={telegramId}
-            />
+            <FightCard userPoints={userPoints} telegramId={telegramId} />
           </div>
         ) : (
-          fights.map((fight, index) => (
+          allSlides.map((fight, index) => (
             <div key={fight.id} className="slide">
               <FightCard 
                 fight={fight} 
@@ -588,18 +626,15 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
           ))
         )}
       </div>
-      
-      {fights.length > 1 && (
-        <div className="slider-dots">
-          {fights.map((_, index) => (
-            <button
-              key={index}
-              className={`dot ${index === currentIndex ? 'active' : ''}`}
-              onClick={() => goToSlide(index)}
-            />
-          ))}
-        </div>
-      )}
+      <div className="slider-dots">
+        {allSlides.map((_, index) => (
+          <button
+            key={index}
+            className={`dot ${index === currentIndex ? 'active' : ''}`}
+            onClick={() => goToSlide(index)}
+          />
+        ))}
+      </div>
     </div>
   );
 };

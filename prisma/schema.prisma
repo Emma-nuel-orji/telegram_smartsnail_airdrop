@@ -244,10 +244,11 @@ model Fighter {
   id             String    @id @default(auto()) @map("_id") @db.ObjectId
   name           String
   imageUrl       String?
-  age            Int?      // Optional age field
-  height         Float?    // Optional height in meters
-  weight         Float?    // Optional weight in kilograms
-  fightingWeight Float?    // Optional fighting weight in kilograms
+  age            Int? 
+  gender         String?     
+  height         Float?    
+  weight         Float?    
+  fightingWeight Float?    
   telegramId     BigInt?   @unique
   socialMedia    String?
   points         BigInt    @default(0)
