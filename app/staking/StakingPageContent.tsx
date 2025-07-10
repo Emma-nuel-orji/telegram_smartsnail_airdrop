@@ -21,6 +21,7 @@ interface Fight {
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
+   winnerId?: string;
 }
 
 interface TotalSupport {
@@ -40,6 +41,7 @@ interface FighterStakingProps {
   fight?: Fight;
   userPoints: number;
   isActive: boolean;
+  isConcluded?: boolean;
   telegramId: string | null;
   position: 'left' | 'right';
 }
@@ -86,13 +88,17 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
   }, [fight]);
   
   return (
-    <div className={`fight-card ${!isActive ? 'inactive-fight' : ''}`}>
+    <div className={`fight-card ${isConcluded ? 'concluded' : ''} ${!isActive && !isConcluded ? 'inactive-fight' : ''}`}>
       <div className="fight-header">
         <h2>{fight ? fight.title : "No Current Fight"}</h2>
         <div className="fight-date">
           {fight ? new Date(fight.fightDate).toLocaleString() : "To be announced"}
         </div>
-        {fight && <div className="fight-timer">{timer}</div>}
+        {fight && (
+          <div className={`fight-timer ${isConcluded ? 'concluded' : ''}`}>
+            {timer}
+          </div>
+        )}
       </div>
       
       <div className="fighters-container">
@@ -102,6 +108,7 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
           fight={fight}
           userPoints={userPoints}
           isActive={isActive}
+          isConcluded={isConcluded}
           telegramId={telegramId}
           position="left"
         />
@@ -112,15 +119,22 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
           fight={fight}
           userPoints={userPoints}
           isActive={isActive}
+          isConcluded={isConcluded}
           telegramId={telegramId}
           position="right"
         />
       </div>
+      
+      {isConcluded && (
+        <div className="concluded-fight-overlay">
+          FIGHT CONCLUDED
+        </div>
+      )}
     </div>
   );
 }
 
-function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegramId, position }: FighterStakingProps) {
+function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConcluded = false, telegramId, position }: FighterStakingProps) {
   type StakeTypeOption = 'STARS' | 'POINTS';
   
   const [stakeType, setStakeType] = useState<StakeTypeOption>('STARS');
@@ -140,8 +154,12 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
 
   const MAX_STARS = 100000;
   const MIN_POINTS_REQUIRED = 200000;
-  const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive;
+  const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive && !isConcluded;
   const isFighter = fighter?.telegramId === telegramId;
+  
+  // Determine winner/loser (you'll need to add winner logic to your Fight interface)
+  const isWinner = isConcluded && fight?.winnerId === fighter?.id;
+  const isLoser = isConcluded && fight?.winnerId !== fighter?.id && fight?.winnerId;
 
   useEffect(() => {
     if (fighter?.id && isActive) {
@@ -390,15 +408,16 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
   return (
     <div 
       ref={fighterRef}
-      className={`fighter-staking ${position} ${!isActive ? 'inactive' : ''} ${tapping ? 'active-stake' : ''} ${isFighter ? 'is-fighter' : ''}`}
-      onMouseDown={handleTapStart}
-      onMouseUp={handleTapEnd}
-      onMouseLeave={handleTapEnd}
-      onMouseMove={tapping ? handleTap : undefined}
-      onTouchStart={handleTapStart}
-      onTouchEnd={handleTapEnd}
-      onTouchMove={tapping ? handleTap : undefined}
+      className={`fighter-staking ${position} ${!isActive && !isConcluded ? 'inactive' : ''} ${tapping ? 'active-stake' : ''} ${isFighter ? 'is-fighter' : ''} ${isWinner ? 'winner' : ''} ${isLoser ? 'loser' : ''}`}
+      onMouseDown={!isConcluded ? handleTapStart : undefined}
+      onMouseUp={!isConcluded ? handleTapEnd : undefined}
+      onMouseLeave={!isConcluded ? handleTapEnd : undefined}
+      onMouseMove={tapping && !isConcluded ? handleTap : undefined}
+      onTouchStart={!isConcluded ? handleTapStart : undefined}
+      onTouchEnd={!isConcluded ? handleTapEnd : undefined}
+      onTouchMove={tapping && !isConcluded ? handleTap : undefined}
     >
+      {isWinner && <div className="winner-badge">WINNER</div>}
       <div className="fighter-info">
         <div className="fighter-image">
           {fighter?.imageUrl ? (
@@ -517,6 +536,11 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, telegr
             </div>
           </>
         )}
+      {isConcluded && (
+          <div className="concluded-message">
+            Staking is closed for this fight
+          </div>
+        )}
       </div>
     </div>
   );
@@ -550,6 +574,7 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
   }, []);
 
   const allSlides = [...fights, ...pastFights];
+  const slidesToShow = allSlides.length > 0 ? allSlides : [undefined]; 
 
   const goToSlide = (index: number) => {
     if (sliderRef.current) {
@@ -601,6 +626,7 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
     }
   }, []);
 
+  
   return (
     <div className="fight-slider-container">
       <div 
@@ -610,24 +636,20 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {allSlides.length === 0 ? (
-          <div className="slide">
-            <FightCard userPoints={userPoints} telegramId={telegramId} />
+        {slidesToShow.map((fight, index) => (
+          <div key={fight?.id || `empty-${index}`} className="slide">
+            <FightCard 
+              fight={fight} 
+              userPoints={userPoints}
+              telegramId={telegramId}
+            />
           </div>
-        ) : (
-          allSlides.map((fight, index) => (
-            <div key={fight.id} className="slide">
-              <FightCard 
-                fight={fight} 
-                userPoints={userPoints}
-                telegramId={telegramId}
-              />
-            </div>
-          ))
-        )}
+        ))}
       </div>
+      
+      {/* Always show dots, even for empty slides */}
       <div className="slider-dots">
-        {allSlides.map((_, index) => (
+        {slidesToShow.map((_, index) => (
           <button
             key={index}
             className={`dot ${index === currentIndex ? 'active' : ''}`}

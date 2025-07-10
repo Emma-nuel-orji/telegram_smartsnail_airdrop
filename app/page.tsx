@@ -672,11 +672,11 @@ useEffect(() => {
     }
   }, []);
 
-  // const resetAppSession = () => {
-  //   localStorage.clear();
-  //   window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
-  //   // OR: window.location.reload(); // if you prefer reloading the app
-  // };
+  const resetAppSession = () => {
+    localStorage.clear();
+    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
+    // OR: window.location.reload(); // if you prefer reloading the app
+  };
   
 
   // Set first name effect
@@ -856,9 +856,9 @@ useEffect(() => {
       <Link href="/level">Level  :</Link>
     </div>
   </button>
-  {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
+  <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
-</button> */}
+</button>
 
 
       {/* Display Camouflage Level */}
