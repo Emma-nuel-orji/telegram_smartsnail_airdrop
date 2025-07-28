@@ -1,5 +1,5 @@
 // app/api/telegram/webhook/route.ts
-import { bot } from "@/lib/bot";
+// import { bot } from "@/lib/bot";
 import { NextRequest } from "next/server";
 
 export const dynamic = 'force-dynamic';
@@ -9,10 +9,14 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log("Webhook received body:", JSON.stringify(body));
-    
+    const { getBot } = await import("@/lib/bot");
+    const bot = getBot();
+
     // Handle the update with the bot
     await bot.handleUpdate(body);
     console.log("Update handled successfully");
+     
+
     
   } catch (err) {
     console.error("Webhook handler error:", err);
