@@ -1,4 +1,4 @@
-// app/api/telegram/webhook/route.ts
+export const runtime = "nodejs";
 import { bot } from "@/lib/bot";
 import { NextRequest } from "next/server";
 
