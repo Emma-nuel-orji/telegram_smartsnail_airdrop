@@ -2,12 +2,17 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link";
+import { toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import { ToastContainer } from 'react-toastify'
+
 
 // TypeScript interfaces
 interface Service {
   id: string
   name: string
   priceShells: bigint | number
+  imageUrl?: string 
 }
 
 interface User {
@@ -141,39 +146,49 @@ export default function Cafe() {
     fetchUser()
   }, [])
 
-  const handlePurchase = async (serviceId: string) => {
-    setLoading(true)
-    setPurchasingId(serviceId)
-    try {
-      const response = await fetch("/api/purchase", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ serviceId }),
-      })
+ const handlePurchase = async (serviceId: string) => {
+  setLoading(true)
+  setPurchasingId(serviceId)
+  try {
+    const response = await fetch("/api/purchase-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ serviceId, telegramId }),
+    })
 
-      if (response.ok) {
-        alert("Purchase successful!")
-        // Refresh user data to update points
-        const userResponse = await fetch(`/api/user/${telegramId}`)
-        if (userResponse.ok) {
-          const userData = await userResponse.json()
-          setUser(userData)
+    const data = await response.json()
+
+    if (response.ok) {
+      toast.info("Purchase request sent. Awaiting admin approval.")
+
+      // Optional: poll for status (could be replaced with WebSocket or Telegram-based notification)
+      const interval = setInterval(async () => {
+        const res = await fetch(`/api/transaction-status/${data.transaction.id}`)
+        const result = await res.json()
+        if (result.status === 'APPROVED') {
+          toast.success("Purchase approved!")
+          clearInterval(interval)
+          const userResponse = await fetch(`/api/user/${telegramId}`)
+          if (userResponse.ok) setUser(await userResponse.json())
+        } else if (result.status === 'DECLINED') {
+          toast.error("Purchase declined.")
+          clearInterval(interval)
         }
-      } else {
-        alert("Error during purchase")
-      }
-    } catch (err) {
-      console.error("Purchase error:", err)
-      alert("Error during purchase")
+      }, 3000)
+    } else {
+      toast.error(data.error || "Error during purchase")
     }
-    setLoading(false)
-    setPurchasingId(null)
+  } catch (err) {
+    console.error("Purchase error:", err)
+    toast.error("Error during purchase")
   }
+  setLoading(false)
+  setPurchasingId(null)
+}
 
   return (
     <div className="relative min-h-screen overflow-hidden">
+      <ToastContainer position="top-right" autoClose={4000} />
       {/* Animated Background */}
       <div className="absolute inset-0">
         <Image
@@ -266,6 +281,18 @@ export default function Cafe() {
                 
                 {/* Content */}
                 <div className="relative p-6 flex items-center justify-between">
+
+                    {service.imageUrl && (
+                    <div className="w-20 h-20 rounded-xl overflow-hidden mr-4">
+                      <Image
+                        src={service.imageUrl}
+                        alt={service.name}
+                        width={80}
+                        height={80}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className={`w-2 h-2 rounded-full animate-pulse ${canAfford ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-red-500'}`} />

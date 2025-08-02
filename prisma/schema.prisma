@@ -219,6 +219,9 @@ model Nonce {
 }
 
 
+
+
+
 model Fight {
   id           String    @id @default(auto()) @map("_id") @db.ObjectId
   title        String
@@ -384,6 +387,7 @@ model Service {
   active      Boolean  @default(true)
   purchases  Purchase[]  @relation("ServiceToPurchase")
 }
+
 
 enum ServiceType {
   SUBSCRIPTION
