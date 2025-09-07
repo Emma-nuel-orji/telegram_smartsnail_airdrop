@@ -86,6 +86,6 @@
     "seed": "ts-node prisma/seed.mjs"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   }
 }
