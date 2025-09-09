@@ -1,27 +1,24 @@
 export const runtime = "nodejs";
-import { bot } from "@/lib/bot";
 import { NextRequest } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   console.log("Webhook endpoint called");
-  
+
   try {
     const body = await req.json();
     console.log("Webhook received body:", JSON.stringify(body));
-    // const { getBot } = await import("@/lib/bot");
-    // const bot = getBot();
 
-    // Handle the update with the bot
+    // ✅ lazy-load bot at runtime, not at build
+    const { bot } = await import("@/lib/bot");
+
     await bot.handleUpdate(body);
     console.log("Update handled successfully");
-     
-
-    
   } catch (err) {
     console.error("Webhook handler error:", err);
   }
-  
+
   // Always return OK to prevent Telegram from retrying
   return new Response("OK", { status: 200 });
 }
