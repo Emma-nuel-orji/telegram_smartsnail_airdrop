@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // Helper function to serialize BigInt values
-function serializeBigInt(obj) {
+function serializeBigInt(obj: any): any {
   return JSON.parse(JSON.stringify(obj, (key, value) =>
     typeof value === 'bigint' ? value.toString() : value
   ));
