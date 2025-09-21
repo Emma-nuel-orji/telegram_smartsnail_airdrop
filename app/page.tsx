@@ -47,6 +47,12 @@ export default function Home() {
     hasClaimedWelcome?: boolean;
   }>(null);
   
+  const syncUserData = (userData: any) => {
+    const storageKey = `user_${userData.telegramId}`;
+    localStorage.setItem(storageKey, JSON.stringify(userData));
+    localStorage.setItem(`lastSync_${userData.telegramId}`, Date.now().toString());
+    setUser(userData);
+  };
 
   
   // useEffect(() => {
@@ -337,65 +343,61 @@ export default function Home() {
 const handleClaim = async () => {
   try {
     if (!user?.telegramId) {
-      setError('Please connect your Telegram account first.');
+      setError("Please connect your Telegram account first.");
       setTimeout(() => setError(null), 3000);
       return;
     }
 
-    // Show loading state
-    setLoading(true);
+    setLoading(true); // show spinner
 
-    // First, verify if user hasn't already claimed
+    // Prevent double claim
     if (user.hasClaimedWelcome) {
-      setError('Welcome bonus has already been claimed.');
+      setError("Welcome bonus has already been claimed.");
       setTimeout(() => setError(null), 3000);
       return;
     }
 
-    const res = await fetch('/api/claim-welcome', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
+    // Call API
+    const res = await fetch("/api/claim-welcome", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         telegramId: user.telegramId,
-        // Add a timestamp to help with debugging
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }),
     });
 
-    // Get the response data
     let data;
     try {
       data = await res.json();
     } catch (e) {
-      console.error('Failed to parse response:', e);
-      throw new Error('Invalid server response');
+      console.error("Failed to parse response:", e);
+      throw new Error("Invalid server response");
     }
 
-    if (!res.ok) {
-      throw new Error(data.message || `Server error: ${res.status}`);
-    }
+    if (!res.ok) throw new Error(data.message || `Server error: ${res.status}`);
+    if (!data.success) throw new Error(data.message || "Failed to claim bonus");
 
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to claim bonus');
-    }
-
-    // Success path
+    // Build updated user object
     const updatedUser = {
       ...user,
       points: data.points,
       hasClaimedWelcome: true,
     };
 
-    localStorage.setItem(`tg_user_${user.telegramId}`, JSON.stringify(updatedUser));
-    setUser(updatedUser);
+    // 🔹 Save everywhere consistently
+    syncUserData(updatedUser);
+
+    // Close popup & show confetti 🎉
     setShowWelcomePopup(false);
     triggerConfetti();
-
   } catch (err) {
-    console.error('Error in handleClaim:', err);
-    setError(err instanceof Error ? err.message : 'An error occurred while claiming the bonus.');
+    console.error("Error in handleClaim:", err);
+    setError(
+      err instanceof Error
+        ? err.message
+        : "An error occurred while claiming the bonus."
+    );
     setTimeout(() => setError(null), 3000);
   } finally {
     setLoading(false);
