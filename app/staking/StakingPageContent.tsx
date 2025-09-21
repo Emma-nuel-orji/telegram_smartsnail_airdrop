@@ -148,6 +148,9 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const [localUserPoints, setLocalUserPoints] = useState<number>(userPoints);
   const [buttonAnimation, setButtonAnimation] = useState<string>('');
   const [totalSupport, setTotalSupport] = useState<TotalSupport>({ stars: 0, points: 0 });
+  const [messageQueue, setMessageQueue] = useState<Array<{id: number, text: string, x: number, y: number}>>([]);
+  const [messageIdCounter, setMessageIdCounter] = useState(0);
+  
   const barDecayInterval = useRef<NodeJS.Timeout | null>(null);
   const messageInterval = useRef<NodeJS.Timeout | null>(null);
   const fighterRef = useRef<HTMLDivElement | null>(null);
@@ -206,9 +209,37 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       ripple.remove();
     }, 600);
   };
+
+  const showMotivationalMessage = (x: number, y: number) => {
+    const randomMessage = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
+    const newMessage = {
+      id: messageIdCounter,
+      text: randomMessage,
+      x,
+      y
+    };
+    
+    setMessageQueue(prev => [...prev, newMessage]);
+    setMessageIdCounter(prev => prev + 1);
+    
+    // Remove message after animation
+    setTimeout(() => {
+      setMessageQueue(prev => prev.filter(msg => msg.id !== newMessage.id));
+    }, 2500);
+  };
+
+  // Prevent text selection and context menu
+  const preventTextInteraction = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  };
   
-  const handleTapStart = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleInteractionStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked || isFighter) return;
+    
+    // Prevent text selection
+    e.preventDefault();
 
     setTapping(true);
 
@@ -217,27 +248,45 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       barDecayInterval.current = null;
     }
 
+    // Clear any existing message timeout
     if (messageInterval.current) {
       clearInterval(messageInterval.current);
       messageInterval.current = null;
     }
 
-    messageInterval.current = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
-      setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
-    }, 2000);
+    // Get coordinates for message display
+    let x: number, y: number;
+    if ('touches' in e) {
+      const touch = e.touches[0];
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = touch.clientX - rect.left;
+      y = touch.clientY - rect.top;
+    } else {
+      x = e.nativeEvent.offsetX;
+      y = e.nativeEvent.offsetY;
+    }
 
-    const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length);
-    setMessage(MOTIVATIONAL_MESSAGES[randomIndex]);
+    // Show initial motivational message
+    showMotivationalMessage(x, y);
+    
+    // Start interval for continuous messages
+    messageInterval.current = setInterval(() => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const randomX = Math.random() * rect.width;
+      const randomY = Math.random() * rect.height;
+      showMotivationalMessage(randomX, randomY);
+    }, 1500);
   };
   
   const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked || !tapping || isFighter) return;
     
+    e.preventDefault();
+    
     const now = Date.now();
     const timeDiff = now - lastTapTime;
     
-    if (timeDiff < 50) return;
+    if (timeDiff < 30) return; // Reduced threshold for more responsiveness
     
     let x: number, y: number;
     if ('touches' in e) {
@@ -254,16 +303,22 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     setLastTapTime(now);
     setTapCount(prev => prev + 1);
     
-    const increment = Math.max(0.5, 2 - (timeDiff < 300 ? 0.5 : 0));
+    // Improved tap responsiveness
+    const increment = Math.max(1, 3 - (timeDiff < 200 ? 0.5 : 0));
     setBarHeight(prev => {
       const newHeight = Math.min(100, prev + increment);
       const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
       setStakeAmount(newStakeAmount);
       return newHeight;
     });
+
+    // Show motivational message at tap location occasionally
+    if (Math.random() < 0.3) {
+      showMotivationalMessage(x, y);
+    }
   };
   
-  const handleTapEnd = () => {
+  const handleInteractionEnd = () => {
     if (!canParticipate || barLocked || isFighter) return;
   
     setTapping(false);
@@ -278,25 +333,33 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       barDecayInterval.current = null;
     }
     
-    barDecayInterval.current = setInterval(() => {
-      setBarHeight((prev) => {
-        if (prev <= 0) {
-          if (barDecayInterval.current) {
-            clearInterval(barDecayInterval.current);
-            barDecayInterval.current = null;
-          }
-          return 0;
-        }
-        const newHeight = prev - 0.5;
-        const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
-        setStakeAmount(newStakeAmount);
-        return newHeight;
-      });
-    }, 100);
+    // Start decay after 1 second delay
+    setTimeout(() => {
+      if (!barLocked) {
+        barDecayInterval.current = setInterval(() => {
+          setBarHeight((prev) => {
+            if (prev <= 0) {
+              if (barDecayInterval.current) {
+                clearInterval(barDecayInterval.current);
+                barDecayInterval.current = null;
+              }
+              return 0;
+            }
+            const newHeight = Math.max(0, prev - 1);
+            const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
+            setStakeAmount(newStakeAmount);
+            return newHeight;
+          });
+        }, 80);
+      }
+    }, 1000);
   };
   
-  const handleBarClick = () => {
+  const handleBarClick = (e: React.MouseEvent) => {
     if (!canParticipate || isFighter) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
 
     setBarLocked(prev => !prev);
     if (!barLocked) {
@@ -305,7 +368,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
         barDecayInterval.current = null;
       }
     } else {
-      handleTapEnd();
+      handleInteractionEnd();
     }
   };
 
@@ -409,14 +472,39 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     <div 
       ref={fighterRef}
       className={`fighter-staking ${position} ${!isActive && !isConcluded ? 'inactive' : ''} ${tapping ? 'active-stake' : ''} ${isFighter ? 'is-fighter' : ''} ${isWinner ? 'winner' : ''} ${isLoser ? 'loser' : ''}`}
-      onMouseDown={!isConcluded ? handleTapStart : undefined}
-      onMouseUp={!isConcluded ? handleTapEnd : undefined}
-      onMouseLeave={!isConcluded ? handleTapEnd : undefined}
+      style={{ 
+        userSelect: 'none', 
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitTapHighlightColor: 'transparent'
+      }}
+      onMouseDown={!isConcluded ? handleInteractionStart : undefined}
+      onMouseUp={!isConcluded ? handleInteractionEnd : undefined}
+      onMouseLeave={!isConcluded ? handleInteractionEnd : undefined}
       onMouseMove={tapping && !isConcluded ? handleTap : undefined}
-      onTouchStart={!isConcluded ? handleTapStart : undefined}
-      onTouchEnd={!isConcluded ? handleTapEnd : undefined}
+      onTouchStart={!isConcluded ? handleInteractionStart : undefined}
+      onTouchEnd={!isConcluded ? handleInteractionEnd : undefined}
       onTouchMove={tapping && !isConcluded ? handleTap : undefined}
+      onContextMenu={preventTextInteraction}
+      onSelectStart={preventTextInteraction}
+      onDragStart={preventTextInteraction}
     >
+      {/* Motivational Messages Overlay */}
+      <div className="motivational-messages-container">
+        {messageQueue.map((msg) => (
+          <div
+            key={msg.id}
+            className="floating-message"
+            style={{
+              left: `${msg.x}px`,
+              top: `${msg.y}px`,
+            }}
+          >
+            {msg.text}
+          </div>
+        ))}
+      </div>
+
       {isWinner && <div className="winner-badge">WINNER</div>}
       <div className="fighter-info">
         <div className="fighter-image">
@@ -427,6 +515,8 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
               width={150} 
               height={150} 
               className="fighter-portrait"
+              draggable={false}
+              onDragStart={preventTextInteraction}
             />
           ) : (
             <div className="fighter-placeholder">
@@ -467,6 +557,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                 className={`stake-type-button ${stakeType === 'STARS' ? 'active' : ''} ${buttonAnimation === 'STARS' ? 'btn-pulse' : ''}`}
                 onClick={() => handleStakeTypeChange('STARS')}
                 disabled={!isActive}
+                style={{ userSelect: 'none' }}
               >
                 Stake with Stars
               </button>
@@ -474,6 +565,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                 className={`stake-type-button ${stakeType === 'POINTS' ? 'active' : ''} ${buttonAnimation === 'POINTS' ? 'btn-pulse' : ''}`}
                 onClick={() => handleStakeTypeChange('POINTS')}
                 disabled={!isActive}
+                style={{ userSelect: 'none' }}
               >
                 Stake with Shells
               </button>
@@ -483,6 +575,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
               <div 
                 className={`tapping-bar-container ${!canParticipate ? 'disabled' : ''} ${barLocked ? 'locked' : ''}`}
                 onClick={handleBarClick}
+                style={{ userSelect: 'none' }}
               >
                 <div className="tapping-bar-track">
                   <div 
@@ -492,9 +585,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                     {tapping && <div className="tapping-bar-pulse"></div>}
                   </div>
                 </div>
-                {message && (
-                  <div className="motivation-message">{message}</div>
-                )}
               </div>
               
               <div className="stake-amount">
@@ -518,6 +608,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                   className="stake-button"
                   onClick={submitStake}
                   disabled={!canParticipate || stakeAmount === 0 || !barLocked}
+                  style={{ userSelect: 'none' }}
                 >
                   Place Stake
                 </button>
@@ -552,13 +643,12 @@ interface FightSliderProps {
   telegramId: string | null;
 }
 
-
 const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramId }) => {
-  const sliderRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [startX, setStartX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
   const [pastFights, setPastFights] = useState<Fight[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   useEffect(() => {
     const fetchPastFights = async () => {
@@ -577,18 +667,25 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
   const slidesToShow = allSlides.length > 0 ? allSlides : [undefined]; 
 
   const goToSlide = (index: number) => {
-    if (sliderRef.current) {
-      sliderRef.current.scrollTo({
-        left: sliderRef.current.offsetWidth * index,
-        behavior: 'smooth'
-      });
-      setCurrentIndex(index);
+    setCurrentIndex(Math.max(0, Math.min(index, slidesToShow.length - 1)));
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
+  const handleNext = () => {
+    if (currentIndex < slidesToShow.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  // Touch/swipe handlers
   const handleTouchStart = (e: React.TouchEvent) => {
-    setStartX(e.touches[0].clientX);
     setIsDragging(true);
+    setStartX(e.touches[0].clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -598,43 +695,72 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!isDragging) return;
+    
     const endX = e.changedTouches[0].clientX;
     const diff = startX - endX;
-    if (diff > 50 && currentIndex < allSlides.length - 1) {
-      goToSlide(currentIndex + 1);
-    } else if (diff < -50 && currentIndex > 0) {
-      goToSlide(currentIndex - 1);
+    
+    // Minimum swipe distance
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < slidesToShow.length - 1) {
+        // Swipe left - next slide
+        handleNext();
+      } else if (diff < 0 && currentIndex > 0) {
+        // Swipe right - previous slide
+        handlePrevious();
+      }
     }
+    
     setIsDragging(false);
   };
 
-  const handleScroll = () => {
-    if (sliderRef.current) {
-      const slideWidth = sliderRef.current.offsetWidth;
-      const newIndex = Math.round(sliderRef.current.scrollLeft / slideWidth);
-      if (newIndex !== currentIndex) {
-        setCurrentIndex(newIndex);
-      }
-    }
+  // Mouse drag handlers for desktop
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartX(e.clientX);
+    setScrollLeft(currentIndex);
   };
 
-  useEffect(() => {
-    const slider = sliderRef.current;
-    if (slider) {
-      slider.addEventListener('scroll', handleScroll);
-      return () => slider.removeEventListener('scroll', handleScroll);
-    }
-  }, []);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+  };
 
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    
+    const endX = e.clientX;
+    const diff = startX - endX;
+    
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < slidesToShow.length - 1) {
+        handleNext();
+      } else if (diff < 0 && currentIndex > 0) {
+        handlePrevious();
+      }
+    }
+    
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
   
   return (
     <div className="fight-slider-container">
       <div 
-        className="fight-slider" 
-        ref={sliderRef}
+        className="fight-slider"
+        style={{
+          transform: `translateX(-${currentIndex * 100}%)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-in-out'
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
       >
         {slidesToShow.map((fight, index) => (
           <div key={fight?.id || `empty-${index}`} className="slide">
@@ -647,7 +773,27 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
         ))}
       </div>
       
-      {/* Always show dots, even for empty slides */}
+      {/* Navigation arrows */}
+      {slidesToShow.length > 1 && (
+        <>
+          <button 
+            className={`slider-nav prev ${currentIndex === 0 ? 'disabled' : ''}`}
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+          >
+            ‹
+          </button>
+          <button 
+            className={`slider-nav next ${currentIndex === slidesToShow.length - 1 ? 'disabled' : ''}`}
+            onClick={handleNext}
+            disabled={currentIndex === slidesToShow.length - 1}
+          >
+            ›
+          </button>
+        </>
+      )}
+      
+      {/* Dots indicator */}
       <div className="slider-dots">
         {slidesToShow.map((_, index) => (
           <button
@@ -723,36 +869,3 @@ export default function StakingPageContent() {
       } finally {
         setLoading(false);
       }
-    };
-
-    if (telegramId) {
-      fetchData();
-    }
-  }, [telegramId]);
-
-  if (!isRouterReady || loading) return <Loader />;
-  if (error) return <div className="error-container">Error: {error}</div>;
-
-  return (
-    <div className="staking-container">
-      <Link href="/">
-        
-          <img
-            src="/images/info/output-onlinepngtools (6).png"
-            width={24}
-            height={24}
-            alt="back"
-          />
-        
-      </Link>
-      <h1 className="staking-title">Support Your Fighter</h1>
-      <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
-      
-      <FightSlider 
-        fights={fights} 
-        userPoints={userPoints}
-        telegramId={telegramId}
-      />
-    </div>
-  );
-}
