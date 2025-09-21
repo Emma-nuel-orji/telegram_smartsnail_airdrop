@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-import "./stakingg.css";
+import "./staking.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -913,6 +913,46 @@ export default function StakingPageContent() {
         if (!fightsResponse.ok) throw new Error('Failed to fetch fights');
         const fightsData = await fightsResponse.json();
         setFights(fightsData);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unexpected error occurred');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (telegramId) {
+      fetchData();
+    }
+  }, [telegramId]);
+
+  if (!isRouterReady || loading) return <Loader />;
+  if (error) return <div className="error-container">Error: {error}</div>;
+
+  return (
+    <div className="staking-container">
+      <Link href="/">
+        <img
+          src="/images/info/output-onlinepngtools (6).png"
+          width={24}
+          height={24}
+          alt="back"
+        />
+      </Link>
+      <h1 className="staking-title">Support Your Fighter</h1>
+      <p className="points-balance">Shells Balance: {userPoints.toLocaleString()}</p>
+      
+      <FightSlider 
+        fights={fights} 
+        userPoints={userPoints}
+        telegramId={telegramId}
+      />
+    </div>
+  );
+}
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
