@@ -680,7 +680,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
             </div>
           </>
         )}
-      {isConcluded && (
+        {isConcluded && (
           <div className="concluded-message">
             Staking is closed for this fight
           </div>
@@ -953,12 +953,3 @@ export default function StakingPageContent() {
     </div>
   );
 }
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('An unexpected error occurred');
-        }
-      } finally {
-        setLoading(false);
-      }
