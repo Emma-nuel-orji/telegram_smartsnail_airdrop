@@ -1,6 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+function stringifyBigInts(obj: any) {
+  return JSON.parse(
+    JSON.stringify(obj, (_, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    )
+  );
+}
+
 export async function GET() {
   try {
     const upcomingFights = await prisma.fight.findMany({
@@ -21,7 +29,7 @@ export async function GET() {
             imageUrl: true,
             telegramId: true,
             socialMedia: true,
-            gender: true, // ✅ add this
+            gender: true, 
           },
         },
         fighter2: {
@@ -31,7 +39,7 @@ export async function GET() {
             imageUrl: true,
             telegramId: true,
             socialMedia: true,
-            gender: true, // ✅ add this
+            gender: true, 
           },
         },
       },
