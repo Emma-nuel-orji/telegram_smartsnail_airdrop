@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-import "./staking.css";
+import "./stakingg.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -509,20 +509,73 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       <div className="fighter-info">
         <div className="fighter-image">
           {fighter?.imageUrl ? (
-            <Image 
-              src={fighter.imageUrl} 
-              alt={fighter.name} 
-              width={150} 
-              height={150} 
-              className="fighter-portrait"
-              draggable={false}
-              onDragStart={preventTextInteraction}
-            />
-          ) : (
-            <div className="fighter-placeholder">
-              {!isActive ? "?" : fighter?.name?.[0] || "?"}
-            </div>
-          )}
+            <>
+              <Image 
+                src={fighter.imageUrl} 
+                alt={fighter.name || "Fighter"} 
+                width={150} 
+                height={150} 
+                className="fighter-portrait"
+                draggable={false}
+                onDragStart={preventTextInteraction}
+                onError={(e) => {
+                  console.log("NextJS Image failed to load:", fighter.imageUrl);
+                  e.currentTarget.style.display = 'none';
+                  const placeholder = e.currentTarget.parentElement?.querySelector('.fighter-placeholder') as HTMLElement;
+                  if (placeholder) {
+                    placeholder.style.display = 'flex';
+                  }
+                }}
+                onLoad={() => {
+                  console.log("NextJS Image loaded successfully:", fighter.imageUrl);
+                  const placeholder = document.querySelector(`[data-fighter-id="${fighter.id}"] .fighter-placeholder`) as HTMLElement;
+                  if (placeholder) {
+                    placeholder.style.display = 'none';
+                  }
+                }}
+                unoptimized={true}
+                priority={false}
+              />
+              {/* Fallback regular img tag */}
+              <img
+                src={fighter.imageUrl}
+                alt={fighter.name || "Fighter"}
+                width={150}
+                height={150}
+                className="fighter-portrait-fallback"
+                draggable={false}
+                onDragStart={preventTextInteraction}
+                onError={(e) => {
+                  console.log("Fallback image failed to load:", fighter.imageUrl);
+                  e.currentTarget.style.display = 'none';
+                  const placeholder = e.currentTarget.parentElement?.querySelector('.fighter-placeholder') as HTMLElement;
+                  if (placeholder) {
+                    placeholder.style.display = 'flex';
+                  }
+                }}
+                onLoad={(e) => {
+                  console.log("Fallback image loaded successfully:", fighter.imageUrl);
+                  // Hide NextJS Image if fallback loads
+                  const nextImage = e.currentTarget.parentElement?.querySelector('.fighter-portrait') as HTMLElement;
+                  if (nextImage) {
+                    nextImage.style.display = 'none';
+                  }
+                  const placeholder = e.currentTarget.parentElement?.querySelector('.fighter-placeholder') as HTMLElement;
+                  if (placeholder) {
+                    placeholder.style.display = 'none';
+                  }
+                }}
+                style={{ display: 'none', borderRadius: '50%', border: '3px solid rgba(255,255,255,0.3)', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', objectFit: 'cover' }}
+              />
+            </>
+          ) : null}
+          <div 
+            className="fighter-placeholder"
+            data-fighter-id={fighter?.id}
+            style={{ display: fighter?.imageUrl ? 'none' : 'flex' }}
+          >
+            {!isActive ? "?" : fighter?.name?.[0] || "?"}
+          </div>
         </div>
         <h3 className="fighter-name">{fighter?.name || "Unknown Fighter"}</h3>
         
