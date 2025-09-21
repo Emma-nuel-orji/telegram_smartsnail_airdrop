@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-import "./staking.css";
+import "./stakingg.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -18,6 +18,7 @@ interface Fighter {
 interface Fight {
   id: string;
   title: string;
+  
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
@@ -476,7 +477,9 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
         userSelect: 'none', 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
-        WebkitTapHighlightColor: 'transparent'
+        WebkitTapHighlightColor: 'transparent',
+        MozUserSelect: 'none',
+        msUserSelect: 'none'
       }}
       onMouseDown={!isConcluded ? handleInteractionStart : undefined}
       onMouseUp={!isConcluded ? handleInteractionEnd : undefined}
@@ -486,7 +489,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       onTouchEnd={!isConcluded ? handleInteractionEnd : undefined}
       onTouchMove={tapping && !isConcluded ? handleTap : undefined}
       onContextMenu={preventTextInteraction}
-      onSelectStart={preventTextInteraction}
       onDragStart={preventTextInteraction}
     >
       {/* Motivational Messages Overlay */}
