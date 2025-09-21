@@ -1,12 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-function stringifyBigInts(obj: any) {
-  return JSON.parse(
-    JSON.stringify(obj, (_, value) =>
-      typeof value === "bigint" ? value.toString() : value
-    )
-  );
+// Helper function to serialize BigInt values
+function serializeBigInt(obj) {
+  return JSON.parse(JSON.stringify(obj, (key, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+  ));
 }
 
 export async function GET() {
@@ -45,7 +44,10 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(upcomingFights);
+    // Serialize BigInt values before returning
+    const serializedFights = serializeBigInt(upcomingFights);
+
+    return NextResponse.json(serializedFights);
   } catch (error) {
     console.error("Error fetching upcoming fights:", error);
     return NextResponse.json({ error: "Failed to fetch fights" }, { status: 500 });
