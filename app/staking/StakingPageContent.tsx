@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-import "./stakingg.css";
+import "./staking.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -18,7 +18,6 @@ interface Fighter {
 interface Fight {
   id: string;
   title: string;
-  
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
@@ -158,6 +157,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
 
   const MAX_STARS = 100000;
   const MIN_POINTS_REQUIRED = 200000;
+  const MAX_AMOUNT = stakeType === 'STARS' ? MAX_STARS : localUserPoints;
   const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive && !isConcluded;
   const isFighter = fighter?.telegramId === telegramId;
   
@@ -239,8 +239,9 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const handleInteractionStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked || isFighter) return;
     
-    // Prevent text selection
+    // Prevent text selection and scrolling
     e.preventDefault();
+    e.stopPropagation();
 
     setTapping(true);
 
@@ -263,8 +264,8 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       x = touch.clientX - rect.left;
       y = touch.clientY - rect.top;
     } else {
-      x = e.nativeEvent.offsetX;
-      y = e.nativeEvent.offsetY;
+      x = e.nativeEvent.offsetX || 0;
+      y = e.nativeEvent.offsetY || 0;
     }
 
     // Show initial motivational message
@@ -283,6 +284,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     if (!canParticipate || barLocked || !tapping || isFighter) return;
     
     e.preventDefault();
+    e.stopPropagation();
     
     const now = Date.now();
     const timeDiff = now - lastTapTime;
@@ -296,8 +298,8 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       x = touch.clientX - rect.left;
       y = touch.clientY - rect.top;
     } else {
-      x = e.nativeEvent.offsetX;
-      y = e.nativeEvent.offsetY;
+      x = e.nativeEvent.offsetX || 0;
+      y = e.nativeEvent.offsetY || 0;
     }
     createTapEffect(x, y);
     
@@ -308,7 +310,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     const increment = Math.max(1, 3 - (timeDiff < 200 ? 0.5 : 0));
     setBarHeight(prev => {
       const newHeight = Math.min(100, prev + increment);
-      const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
+      const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
       setStakeAmount(newStakeAmount);
       return newHeight;
     });
@@ -334,7 +336,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       barDecayInterval.current = null;
     }
     
-    // Start decay after 1 second delay
+    // Start decay after 2 seconds delay (slower)
     setTimeout(() => {
       if (!barLocked) {
         barDecayInterval.current = setInterval(() => {
@@ -346,14 +348,14 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
               }
               return 0;
             }
-            const newHeight = Math.max(0, prev - 1);
-            const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
+            const newHeight = Math.max(0, prev - 0.5); // Slower decay
+            const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
             setStakeAmount(newStakeAmount);
             return newHeight;
           });
-        }, 80);
+        }, 150); // Slower interval
       }
-    }, 1000);
+    }, 2000); // Longer delay
   };
   
   const handleBarClick = (e: React.MouseEvent) => {
@@ -512,43 +514,16 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
         <div className="fighter-image">
           {fighter?.imageUrl ? (
             <>
-              <Image 
-                src={fighter.imageUrl} 
-                alt={fighter.name || "Fighter"} 
-                width={150} 
-                height={150} 
-                className="fighter-portrait"
-                draggable={false}
-                onDragStart={preventTextInteraction}
-                onError={(e) => {
-                  console.log("NextJS Image failed to load:", fighter.imageUrl);
-                  e.currentTarget.style.display = 'none';
-                  const placeholder = e.currentTarget.parentElement?.querySelector('.fighter-placeholder') as HTMLElement;
-                  if (placeholder) {
-                    placeholder.style.display = 'flex';
-                  }
-                }}
-                onLoad={() => {
-                  console.log("NextJS Image loaded successfully:", fighter.imageUrl);
-                  const placeholder = document.querySelector(`[data-fighter-id="${fighter.id}"] .fighter-placeholder`) as HTMLElement;
-                  if (placeholder) {
-                    placeholder.style.display = 'none';
-                  }
-                }}
-                unoptimized={true}
-                priority={false}
-              />
-              {/* Fallback regular img tag */}
               <img
                 src={fighter.imageUrl}
                 alt={fighter.name || "Fighter"}
                 width={150}
                 height={150}
-                className="fighter-portrait-fallback"
+                className="fighter-portrait"
                 draggable={false}
                 onDragStart={preventTextInteraction}
                 onError={(e) => {
-                  console.log("Fallback image failed to load:", fighter.imageUrl);
+                  console.log("Image failed to load:", fighter.imageUrl);
                   e.currentTarget.style.display = 'none';
                   const placeholder = e.currentTarget.parentElement?.querySelector('.fighter-placeholder') as HTMLElement;
                   if (placeholder) {
@@ -556,18 +531,19 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                   }
                 }}
                 onLoad={(e) => {
-                  console.log("Fallback image loaded successfully:", fighter.imageUrl);
-                  // Hide NextJS Image if fallback loads
-                  const nextImage = e.currentTarget.parentElement?.querySelector('.fighter-portrait') as HTMLElement;
-                  if (nextImage) {
-                    nextImage.style.display = 'none';
-                  }
+                  console.log("Image loaded successfully:", fighter.imageUrl);
                   const placeholder = e.currentTarget.parentElement?.querySelector('.fighter-placeholder') as HTMLElement;
                   if (placeholder) {
                     placeholder.style.display = 'none';
                   }
                 }}
-                style={{ display: 'none', borderRadius: '50%', border: '3px solid rgba(255,255,255,0.3)', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', objectFit: 'cover' }}
+                style={{ 
+                  borderRadius: '50%', 
+                  border: '3px solid rgba(255,255,255,0.3)', 
+                  boxShadow: '0 5px 15px rgba(0,0,0,0.3)', 
+                  objectFit: 'cover',
+                  display: 'block'
+                }}
               />
             </>
           ) : null}
@@ -629,10 +605,12 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
             <div className="staking-area">
               <div 
                 className={`tapping-bar-container ${!canParticipate ? 'disabled' : ''} ${barLocked ? 'locked' : ''}`}
-                onClick={handleBarClick}
                 style={{ userSelect: 'none' }}
               >
-                <div className="tapping-bar-track">
+                <div 
+                  className="tapping-bar-track"
+                  onClick={handleBarClick}
+                >
                   <div 
                     className={`tapping-bar-fill ${stakeType.toLowerCase()}`} 
                     style={{ height: `${barHeight}%` }}
@@ -643,7 +621,10 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
               </div>
               
               <div className="stake-amount">
-                {stakeAmount.toLocaleString()} {stakeType === 'STARS' ? 'Stars' : 'Points'}
+                {stakeAmount.toLocaleString()} {stakeType === 'STARS' ? 'Stars' : 'Shells'}
+                <div className="stake-amount-max">
+                  Max: {MAX_AMOUNT.toLocaleString()} {stakeType === 'STARS' ? 'Stars' : 'Shells'}
+                </div>
               </div>
               
               {!canParticipate && isActive && (
