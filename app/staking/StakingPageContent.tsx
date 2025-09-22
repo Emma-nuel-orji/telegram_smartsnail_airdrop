@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-import "./stakingg.css";
+import "./staking.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -239,13 +239,11 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const handleInteractionStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked || isFighter) return;
     
-    // Prevent all default behaviors including scrolling
-    e.preventDefault();
-    e.stopPropagation();
-    if ('touches' in e) {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
+    // Only prevent default for mouse events, not touch events to allow scrolling
+    if (!('touches' in e)) {
+      e.preventDefault();
     }
+    e.stopPropagation();
 
     setTapping(true);
 
@@ -287,7 +285,22 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked || !tapping || isFighter) return;
     
-    e.preventDefault();
+    // For touch events, only prevent default if we're actively tapping (not scrolling)
+    if ('touches' in e) {
+      const touch = e.touches[0];
+      const rect = e.currentTarget.getBoundingClientRect();
+      const isInBounds = touch.clientX >= rect.left && 
+                        touch.clientX <= rect.right && 
+                        touch.clientY >= rect.top && 
+                        touch.clientY <= rect.bottom;
+      
+      if (isInBounds) {
+        e.preventDefault();
+      }
+    } else {
+      e.preventDefault();
+    }
+    
     e.stopPropagation();
     
     const now = Date.now();
@@ -329,10 +342,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     if (!canParticipate || barLocked || isFighter) return;
   
     setTapping(false);
-    
-    // Restore scrolling
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
   
     if (messageInterval.current) {
       clearInterval(messageInterval.current);
@@ -367,49 +376,47 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   };
   
   const handleBarClick = (e: React.MouseEvent) => {
-    if (!canParticipate || isFighter) return;
+    if (!canParticipate || isFighter || stakeAmount === 0) return;
     
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Bar clicked, current barLocked:', barLocked);
+    console.log('Bar clicked, current barLocked:', barLocked, 'stakeAmount:', stakeAmount);
 
-    setBarLocked(prev => {
-      const newLocked = !prev;
-      console.log('Setting barLocked to:', newLocked);
-      
-      if (newLocked) {
-        // Locking the bar - stop any decay
+    const newLocked = !barLocked;
+    setBarLocked(newLocked);
+    console.log('Setting barLocked to:', newLocked);
+    
+    if (newLocked) {
+      // Locking the bar - stop any decay
+      if (barDecayInterval.current) {
+        clearInterval(barDecayInterval.current);
+        barDecayInterval.current = null;
+      }
+    } else {
+      // Unlocking the bar - start decay after delay
+      setTimeout(() => {
         if (barDecayInterval.current) {
           clearInterval(barDecayInterval.current);
           barDecayInterval.current = null;
         }
-      } else {
-        // Unlocking the bar - start decay
-        setTimeout(() => {
-          if (barDecayInterval.current) {
-            clearInterval(barDecayInterval.current);
-          }
-          barDecayInterval.current = setInterval(() => {
-            setBarHeight((prevHeight) => {
-              if (prevHeight <= 0) {
-                if (barDecayInterval.current) {
-                  clearInterval(barDecayInterval.current);
-                  barDecayInterval.current = null;
-                }
-                return 0;
+        barDecayInterval.current = setInterval(() => {
+          setBarHeight((prevHeight) => {
+            if (prevHeight <= 0) {
+              if (barDecayInterval.current) {
+                clearInterval(barDecayInterval.current);
+                barDecayInterval.current = null;
               }
-              const newHeight = Math.max(0, prevHeight - 0.2);
-              const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-              setStakeAmount(newStakeAmount);
-              return newHeight;
-            });
-          }, 300);
-        }, 1000);
-      }
-      
-      return newLocked;
-    });
+              return 0;
+            }
+            const newHeight = Math.max(0, prevHeight - 0.2);
+            const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
+            setStakeAmount(newStakeAmount);
+            return newHeight;
+          });
+        }, 300);
+      }, 2000);
+    }
   };
 
   const handleStakeWithStars = async () => {
@@ -678,12 +685,12 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
               
               {isActive && (
                 <button 
-                  className="stake-button"
+                  className={`stake-button ${barLocked && stakeAmount > 0 ? 'active' : ''}`}
                   onClick={submitStake}
                   disabled={!canParticipate || stakeAmount === 0 || !barLocked}
                   style={{ userSelect: 'none' }}
                 >
-                  Place Stake
+                  {barLocked && stakeAmount > 0 ? 'Place Stake' : 'Lock bar to place stake'}
                 </button>
               )}
               

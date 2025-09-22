@@ -7,7 +7,6 @@
   padding: 20px;
   position: relative;
   overflow-x: hidden;
-  touch-action: pan-y;
 }
 
 .staking-title {
@@ -229,7 +228,6 @@
   -ms-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
   overflow: hidden;
 }
 
@@ -451,7 +449,6 @@
   transition: all 0.3s ease;
   border: 2px solid rgba(255,255,255,0.2);
   overflow: hidden;
-  touch-action: none;
 }
 
 .tapping-bar-container:hover:not(.disabled) {
@@ -460,7 +457,18 @@
 
 .tapping-bar-container.locked {
   border-color: #ffd700;
-  box-shadow: 0 0 20px rgba(255,215,0,0.4);
+  box-shadow: 0 0 20px rgba(255,215,0,0.6);
+  background: rgba(255,215,0,0.2);
+  animation: lockPulse 2s infinite;
+}
+
+@keyframes lockPulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(255,215,0,0.6);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255,215,0,0.8);
+  }
 }
 
 .tapping-bar-container.disabled {
@@ -475,6 +483,14 @@
   border-radius: 28px;
   overflow: hidden;
   cursor: pointer;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: all 0.3s ease;
+}
+
+.tapping-bar-track:hover {
+  background: rgba(0,0,0,0.4);
+  border-color: rgba(255,255,255,0.2);
 }
 
 .tapping-bar-fill {
@@ -544,6 +560,24 @@
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(76,175,80,0.3);
   user-select: none;
+  min-height: 50px;
+}
+
+.stake-button.active {
+  background: linear-gradient(45deg, #4CAF50, #66BB6A);
+  box-shadow: 0 6px 20px rgba(76,175,80,0.5);
+  animation: buttonPulse 2s infinite;
+}
+
+@keyframes buttonPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 6px 20px rgba(76,175,80,0.5);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(76,175,80,0.7);
+  }
 }
 
 .stake-button:hover:not(:disabled) {
@@ -555,6 +589,8 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  background: linear-gradient(45deg, #666, #888);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .insufficient-balance,
