@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-import "./stakingg.css";
+import "./staking.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -239,9 +239,13 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const handleInteractionStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canParticipate || barLocked || isFighter) return;
     
-    // Prevent text selection and scrolling
+    // Prevent all default behaviors including scrolling
     e.preventDefault();
     e.stopPropagation();
+    if ('touches' in e) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    }
 
     setTapping(true);
 
@@ -325,6 +329,10 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     if (!canParticipate || barLocked || isFighter) return;
   
     setTapping(false);
+    
+    // Restore scrolling
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
   
     if (messageInterval.current) {
       clearInterval(messageInterval.current);
@@ -336,7 +344,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       barDecayInterval.current = null;
     }
     
-    // Start decay after 2 seconds delay (slower)
+    // Start decay after 4 seconds delay (much slower)
     setTimeout(() => {
       if (!barLocked) {
         barDecayInterval.current = setInterval(() => {
@@ -348,14 +356,14 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
               }
               return 0;
             }
-            const newHeight = Math.max(0, prev - 0.5); // Slower decay
+            const newHeight = Math.max(0, prev - 0.2); // Much slower decay
             const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
             setStakeAmount(newStakeAmount);
             return newHeight;
           });
-        }, 150); // Slower interval
+        }, 300); // Much slower interval
       }
-    }, 2000); // Longer delay
+    }, 4000); // Much longer delay
   };
   
   const handleBarClick = (e: React.MouseEvent) => {
@@ -363,16 +371,45 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     
     e.preventDefault();
     e.stopPropagation();
+    
+    console.log('Bar clicked, current barLocked:', barLocked);
 
-    setBarLocked(prev => !prev);
-    if (!barLocked) {
-      if (barDecayInterval.current) {
-        clearInterval(barDecayInterval.current);
-        barDecayInterval.current = null;
+    setBarLocked(prev => {
+      const newLocked = !prev;
+      console.log('Setting barLocked to:', newLocked);
+      
+      if (newLocked) {
+        // Locking the bar - stop any decay
+        if (barDecayInterval.current) {
+          clearInterval(barDecayInterval.current);
+          barDecayInterval.current = null;
+        }
+      } else {
+        // Unlocking the bar - start decay
+        setTimeout(() => {
+          if (barDecayInterval.current) {
+            clearInterval(barDecayInterval.current);
+          }
+          barDecayInterval.current = setInterval(() => {
+            setBarHeight((prevHeight) => {
+              if (prevHeight <= 0) {
+                if (barDecayInterval.current) {
+                  clearInterval(barDecayInterval.current);
+                  barDecayInterval.current = null;
+                }
+                return 0;
+              }
+              const newHeight = Math.max(0, prevHeight - 0.2);
+              const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
+              setStakeAmount(newStakeAmount);
+              return newHeight;
+            });
+          }, 300);
+        }, 1000);
       }
-    } else {
-      handleInteractionEnd();
-    }
+      
+      return newLocked;
+    });
   };
 
   const handleStakeWithStars = async () => {
