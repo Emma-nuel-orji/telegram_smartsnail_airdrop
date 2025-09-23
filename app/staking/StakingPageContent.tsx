@@ -192,6 +192,41 @@ useEffect(() => {
   };
 }, []);
 
+const startBarDecay = () => {
+  if (barDecayInterval.current) {
+    clearInterval(barDecayInterval.current);
+    barDecayInterval.current = null;
+  }
+
+  if (barHeight > 0) {
+    barDecayInterval.current = setInterval(() => {
+      setBarHeight((prev) => {
+        if (barLockedRef.current) {
+          clearInterval(barDecayInterval.current!);
+          barDecayInterval.current = null;
+          return prev;
+        }
+        if (prev <= 0) {
+          clearInterval(barDecayInterval.current!);
+          barDecayInterval.current = null;
+          return 0;
+        }
+        const newH = Math.max(0, prev - 0.4);
+        setStakeAmount(Math.floor((newH / 100) * MAX_STARS));
+        return newH;
+      });
+    }, 150);
+  }
+};
+
+const stopBarDecay = () => {
+  if (barDecayInterval.current) {
+    clearInterval(barDecayInterval.current);
+    barDecayInterval.current = null;
+  }
+};
+
+
 // IMPORTANT: attach a non-passive touchmove listener to reliably prevent scroll.
 // This ensures that when we call e.preventDefault() the browser honors it.
 // 1. Define your handler for *native DOM TouchEvent*
@@ -259,10 +294,8 @@ const handleTouchStart = (e: TouchEvent) => {
   setIsTouchMoving(false);
   lastTapTimeRef.current = 0;
 
-  if (barDecayInterval.current) {
-    clearInterval(barDecayInterval.current);
-    barDecayInterval.current = null;
-  }
+  // stop decay immediately when user interacts
+  stopBarDecay();
 };
 
 const handleTouchMove = (e: TouchEvent) => {
@@ -287,7 +320,7 @@ const handleTouchMove = (e: TouchEvent) => {
 
   if (touchIntentRef.current === "scroll") return;
 
-  // prevent scrolling
+  // prevent scrolling while staking
   e.preventDefault();
   e.stopPropagation();
 
@@ -312,40 +345,20 @@ const handleTouchMove = (e: TouchEvent) => {
   }
 };
 
-const handleTouchEnd = (e: TouchEvent) => {
+const handleTouchEnd = () => {
   setTapping(false);
   setIsTouchMoving(false);
 
-  // Only start decay if bar is not locked
-  if (!barLocked && barHeight > 0) {
+  // only start decay if bar not locked
+  if (!barLockedRef.current && barHeight > 0) {
     setTimeout(() => {
-      if (!barLocked && barDecayInterval.current === null) {
-        barDecayInterval.current = setInterval(() => {
-          setBarHeight((prev) => {
-            if (barLocked) {
-              if (barDecayInterval.current) {
-                clearInterval(barDecayInterval.current);
-                barDecayInterval.current = null;
-              }
-              return prev;
-            }
-            if (prev <= 0) {
-              if (barDecayInterval.current) {
-                clearInterval(barDecayInterval.current);
-                barDecayInterval.current = null;
-              }
-              return 0;
-            }
-            const newHeight = Math.max(0, prev - 0.2);
-            const newStakeAmount = Math.floor((newHeight / 100) * MAX_STARS);
-            setStakeAmount(newStakeAmount);
-            return newHeight;
-          });
-        }, 150);
+      if (!barLockedRef.current) {
+        startBarDecay();
       }
-    }, 2000);
+    }, 2000); // wait a bit before decaying
   }
 };
+
 
 
 // Hook up as a native listener
@@ -591,55 +604,23 @@ useEffect(() => {
   };
 
   // Fixed bar click handler with immediate decay on unlock
- const handleBarClick = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-  // stop bubbling/scroll
-  if (e && e.preventDefault) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
+ const handleBarClick = (
+  e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
+) => {
+  e.preventDefault();
+  e.stopPropagation();
 
-  // toggle lock (update state + ref)
   const newLocked = !barLockedRef.current;
   setBarLocked(newLocked);
   barLockedRef.current = newLocked;
 
   if (newLocked) {
-    // lock -> cancel any decay
-    if (barDecayInterval.current) {
-      clearInterval(barDecayInterval.current);
-      barDecayInterval.current = null;
-    }
+    stopBarDecay();
   } else {
-    // unlock -> start decay immediately (if bar > 0)
-    if (barHeight > 0) {
-      if (barDecayInterval.current) {
-        clearInterval(barDecayInterval.current);
-        barDecayInterval.current = null;
-      }
-      barDecayInterval.current = setInterval(() => {
-        setBarHeight((prev) => {
-          if (barLockedRef.current) {
-            if (barDecayInterval.current) {
-              clearInterval(barDecayInterval.current);
-              barDecayInterval.current = null;
-            }
-            return prev;
-          }
-          if (prev <= 0) {
-            if (barDecayInterval.current) {
-              clearInterval(barDecayInterval.current);
-              barDecayInterval.current = null;
-            }
-            return 0;
-          }
-          const newH = Math.max(0, prev - 0.4);
-          setStakeAmount(Math.floor((newH / 100) * MAX_STARS));
-          return newH;
-        });
-      }, 150);
-    }
+    startBarDecay();
   }
 };
+
 
 
   const handleStakeWithStars = async () => {
