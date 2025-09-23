@@ -279,7 +279,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       return;
     }
     
-    if (verticalMovement > 50) {
+    if (verticalMovement > 10) {
       // Large movement - fill bar and prevent scrolling
       e.preventDefault();
       e.stopPropagation();
