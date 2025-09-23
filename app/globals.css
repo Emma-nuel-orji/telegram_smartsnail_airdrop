@@ -573,11 +573,7 @@ html, body, #__next, [data-nextjs] {
   flex: 1;
 }
 
-.counter-text {
-  font-size: 14px;
-  color: #666;
-  white-space: nowrap;
-}
+
 
 
 .error-message {

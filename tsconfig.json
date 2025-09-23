@@ -42,6 +42,6 @@
     ".next/types/**/*.ts",
     "testConnection.ts",
     "global.d.ts"
-, "test-connection.mjs", "prisma/seed.mjs"  ],
+, "test-connection.mjs", "prisma/seed.mjs", "lib/bot.js", "lib/bot.js"  ],
   "exclude": ["node_modules"]
 }

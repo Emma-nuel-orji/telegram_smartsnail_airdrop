@@ -242,7 +242,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     return false;
   };
 
-  // Touch handlers with corrected logic
+  // Touch handlers with CORRECT logic
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!canParticipate || isFighter) return;
     
@@ -251,7 +251,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     setIsTouchMoving(false);
     setTapping(true);
     
-    // Stop any existing decay
+    // Stop any existing decay immediately
     if (barDecayInterval.current) {
       clearInterval(barDecayInterval.current);
       barDecayInterval.current = null;
@@ -271,76 +271,79 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     const touch = e.touches[0];
     const verticalMovement = Math.abs(touch.clientY - touchStartY);
     
-    // Only allow scrolling for SHORT vertical movements (quick swipes)
-    if (verticalMovement > 10 && verticalMovement < 50) {
+    // CORRECT LOGIC: Small movement (<10px) = SCROLL, Large movement (>50px) = FILL BAR
+    if (verticalMovement < 10) {
+      // Small movement - allow scrolling
       setIsTouchMoving(true);
       setTapping(false);
-      return; // Allow scrolling
+      return;
     }
     
-    // For all other movements (small, horizontal, or large vertical), fill the bar
-    if (!barLocked) {
+    if (verticalMovement > 50) {
+      // Large movement - fill bar and prevent scrolling
       e.preventDefault();
       e.stopPropagation();
       
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
-      
-      createTapEffect(x, y);
-      
-      // Continuous bar filling
-      const now = Date.now();
-      if (now - lastTapTime > 30) {
-        setBarHeight(prev => {
-          const newHeight = Math.min(100, prev + 1.5);
-          const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-          setStakeAmount(newStakeAmount);
-          return newHeight;
-        });
-        setLastTapTime(now);
+      if (!barLocked) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
         
-        if (Math.random() < 0.3) {
-          showMotivationalMessage(x, y);
+        createTapEffect(x, y);
+        
+        // Continuous bar filling
+        const now = Date.now();
+        if (now - lastTapTime > 30) {
+          setBarHeight(prev => {
+            const newHeight = Math.min(100, prev + 1.5);
+            const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
+            setStakeAmount(newStakeAmount);
+            return newHeight;
+          });
+          setLastTapTime(now);
+          
+          if (Math.random() < 0.3) {
+            showMotivationalMessage(x, y);
+          }
         }
       }
     }
+    // Medium movements (10-50px) do nothing - natural behavior
   };
 
   const handleTouchEnd = () => {
     setTapping(false);
     setIsTouchMoving(false);
     
-    // Start decay timer only if bar is not locked
+    // Only start decay if bar is not locked
     if (!barLocked && barHeight > 0) {
       setTimeout(() => {
-        // Double-check lock status before starting decay
-        setBarHeight(currentHeight => {
-          if (barLocked || currentHeight <= 0) {
-            return currentHeight;
-          }
-          
-          if (barDecayInterval.current === null) {
-            barDecayInterval.current = setInterval(() => {
-              setBarHeight((prev) => {
-                // Check lock status in each interval
-                if (barLocked || prev <= 0) {
-                  if (barDecayInterval.current) {
-                    clearInterval(barDecayInterval.current);
-                    barDecayInterval.current = null;
-                  }
-                  return prev <= 0 ? 0 : prev;
+        if (!barLocked && barDecayInterval.current === null) {
+          barDecayInterval.current = setInterval(() => {
+            setBarHeight((prev) => {
+              if (barLocked) {
+                if (barDecayInterval.current) {
+                  clearInterval(barDecayInterval.current);
+                  barDecayInterval.current = null;
                 }
-                const newHeight = Math.max(0, prev - 0.2);
-                const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-                setStakeAmount(newStakeAmount);
-                return newHeight;
-              });
-            }, 150);
-          }
-          
-          return currentHeight;
-        });
+                return prev;
+              }
+              
+              if (prev <= 0) {
+                if (barDecayInterval.current) {
+                  clearInterval(barDecayInterval.current);
+                  barDecayInterval.current = null;
+                }
+                return 0;
+              }
+              
+              const newHeight = Math.max(0, prev - 0.2);
+              const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
+              setStakeAmount(newStakeAmount);
+              return newHeight;
+            });
+          }, 150);
+        }
       }, 2000);
     }
   };
@@ -396,82 +399,96 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     // Start decay if not locked
     if (!barLocked && barHeight > 0) {
       setTimeout(() => {
-        setBarHeight(currentHeight => {
-          if (barLocked || currentHeight <= 0) {
-            return currentHeight;
-          }
-          
-          if (barDecayInterval.current === null) {
-            barDecayInterval.current = setInterval(() => {
-              setBarHeight((prev) => {
-                if (barLocked || prev <= 0) {
-                  if (barDecayInterval.current) {
-                    clearInterval(barDecayInterval.current);
-                    barDecayInterval.current = null;
-                  }
-                  return prev <= 0 ? 0 : prev;
+        if (!barLocked && barDecayInterval.current === null) {
+          barDecayInterval.current = setInterval(() => {
+            setBarHeight((prev) => {
+              if (barLocked) {
+                if (barDecayInterval.current) {
+                  clearInterval(barDecayInterval.current);
+                  barDecayInterval.current = null;
                 }
-                const newHeight = Math.max(0, prev - 0.2);
-                const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-                setStakeAmount(newStakeAmount);
-                return newHeight;
-              });
-            }, 150);
-          }
-          
-          return currentHeight;
-        });
+                return prev;
+              }
+              
+              if (prev <= 0) {
+                if (barDecayInterval.current) {
+                  clearInterval(barDecayInterval.current);
+                  barDecayInterval.current = null;
+                }
+                return 0;
+              }
+              
+              const newHeight = Math.max(0, prev - 0.2);
+              const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
+              setStakeAmount(newStakeAmount);
+              return newHeight;
+            });
+          }, 150);
+        }
       }, 2000);
     }
   };
 
-  // Fixed bar click handler - should work on first click
+  // Fixed bar click handler with immediate decay on unlock
   const handleBarClick = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Bar clicked! Current state - locked:', barLocked, 'height:', barHeight);
+    console.log('=== BAR CLICK ===');
+    console.log('Current barLocked:', barLocked);
+    console.log('Current barHeight:', barHeight);
     
-    // Toggle lock state immediately
-    const newLockedState = !barLocked;
-    setBarLocked(newLockedState);
-    
-    console.log('Setting lock to:', newLockedState);
-    
-    // Handle the state change
-    if (newLockedState) {
-      // Locking - immediately stop any decay
-      if (barDecayInterval.current) {
-        clearInterval(barDecayInterval.current);
-        barDecayInterval.current = null;
-        console.log('Stopped decay - bar is now locked');
-      }
-    } else {
-      // Unlocking - start decay if there's content
-      console.log('Unlocking - will start decay if height > 0');
-      if (barHeight > 0) {
-        setTimeout(() => {
-          console.log('Starting decay timer after unlock');
-          if (!barLocked && barDecayInterval.current === null) {
-            barDecayInterval.current = setInterval(() => {
-              setBarHeight((prev) => {
-                if (prev <= 0) {
+    setBarLocked(currentLocked => {
+      const newLocked = !currentLocked;
+      console.log('Setting barLocked to:', newLocked);
+      
+      if (newLocked) {
+        // Locking the bar
+        console.log('LOCKING: Stopping decay');
+        if (barDecayInterval.current) {
+          clearInterval(barDecayInterval.current);
+          barDecayInterval.current = null;
+        }
+      } else {
+        // Unlocking the bar - START DECAY IMMEDIATELY
+        console.log('UNLOCKING: Starting decay immediately');
+        if (barHeight > 0) {
+          if (barDecayInterval.current) {
+            clearInterval(barDecayInterval.current);
+          }
+          barDecayInterval.current = setInterval(() => {
+            setBarHeight((prev) => {
+              // Check if it got locked again
+              setBarLocked(lockState => {
+                if (lockState) {
+                  console.log('Bar locked again, stopping decay');
                   if (barDecayInterval.current) {
                     clearInterval(barDecayInterval.current);
                     barDecayInterval.current = null;
                   }
-                  return 0;
                 }
-                const newHeight = Math.max(0, prev - 0.2);
-                const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-                setStakeAmount(newStakeAmount);
-                return newHeight;
+                return lockState;
               });
-            }, 150);
-          }
-        }, 1000);
+              
+              if (prev <= 0) {
+                if (barDecayInterval.current) {
+                  clearInterval(barDecayInterval.current);
+                  barDecayInterval.current = null;
+                }
+                return 0;
+              }
+              
+              const newHeight = Math.max(0, prev - 0.2);
+              const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
+              setStakeAmount(newStakeAmount);
+              return newHeight;
+            });
+          }, 150);
+        }
       }
-    }
+      
+      return newLocked;
+    });
   };
 
   const handleStakeWithStars = async () => {
@@ -756,9 +773,15 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                   className={`stake-button ${barLocked && stakeAmount > 0 ? 'active' : ''}`}
                   onClick={submitStake}
                   disabled={!canParticipate || stakeAmount === 0 || !barLocked}
-                  style={{ userSelect: 'none' }}
+                  style={{ 
+                    userSelect: 'none',
+                    pointerEvents: (!canParticipate || stakeAmount === 0 || !barLocked) ? 'none' : 'auto',
+                    opacity: (!canParticipate || stakeAmount === 0 || !barLocked) ? 0.5 : 1
+                  }}
                 >
-                  {barLocked && stakeAmount > 0 ? 'Place Stake' : barLocked ? 'Unlock to adjust' : 'Fill bar then tap to lock'}
+                  {!barLocked ? 'Lock bar to place stake' : 
+                   stakeAmount === 0 ? 'Fill and lock bar first' :
+                   'Place Stake'}
                 </button>
               )}
               

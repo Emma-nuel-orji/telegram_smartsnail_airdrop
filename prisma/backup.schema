@@ -1,6 +1,7 @@
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+   connectionLimit = 50
 }
 
 generator client {
@@ -21,14 +22,17 @@ model User {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   hasClaimedWelcome Boolean  @default(false)
-  nft            Boolean         @default(false)
+  nft            Int           @default(0)
   referrals      Referral[]      @relation("Referrer") // Outgoing referrals
   referredBy     Referral[]      @relation("ReferredBy") // Incoming referrals
   purchases      Purchase[]
   completedTasks CompletedTask[] // A User can have many completed tasks
+   consecutiveWins Int     @default(0)
+  stakes          Stake[]
 
   // Indexes
   @@index([points], name: "points_asc_index")
+  
 }
 
 // CompletedTask model
@@ -77,6 +81,8 @@ model Referral {
   // Fix relations to reference telegramId instead of id
   referrer User @relation("Referrer", fields: [referrerId], references: [telegramId]) 
   referred User @relation("ReferredBy", fields: [referredId], references: [telegramId])
+  @@index([referrerId], name: "referrer_index")
+  @@index([referredId], name: "referred_index")
 }
 
 
@@ -198,3 +204,80 @@ model Nonce {
 }
 
 
+model Fight {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  fightDate    DateTime
+  status       FightStatus @default(SCHEDULED)
+  fighter1     Fighter   @relation("Fighter1Fights", fields: [fighter1Id], references: [id])
+  fighter1Id   String    @db.ObjectId
+  fighter2     Fighter   @relation("Fighter2Fights", fields: [fighter2Id], references: [id])
+  fighter2Id   String    @db.ObjectId
+  stakes       Stake[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  winnerId     String?   @db.ObjectId // Null until fight is completed
+  winner       Fighter?  @relation("FightWinner", fields: [winnerId], references: [id])  // ✅ Add relation name
+
+  @@index([fightDate], name: "fight_date_index")
+  @@index([fighter1Id], name: "fighter1_fight_index")
+  @@index([fighter2Id], name: "fighter2_fight_index")
+}
+
+
+model Fighter {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  imageUrl     String?
+  telegramId   BigInt?   @unique
+  socialMedia  String?
+  points       BigInt    @default(0)
+  fightsAsF1   Fight[]   @relation("Fighter1Fights")
+  fightsAsF2   Fight[]   @relation("Fighter2Fights")
+  stakes       Stake[]
+  winnerOf     Fight[]   @relation("FightWinner") // ✅ Add this relation
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+
+
+// Stake model
+model Stake {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  user         User      @relation(fields: [userId], references: [id])
+  userId       String    @db.ObjectId
+  fight        Fight     @relation(fields: [fightId], references: [id])
+  fightId      String    @db.ObjectId
+  fighter      Fighter   @relation(fields: [fighterId], references: [id])
+  fighterId    String    @db.ObjectId
+  stakeAmount  Int       // Amount in stars (max 100,000)
+  stakeType    StakeType // STARS or POINTS
+  outcome      StakeOutcome? // Will be set after fight completion
+  pointsEarned BigInt?   // Calculated after fight completion
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  originalStakeAmount Int
+  @@index([fightId], name: "fight_stakes_index")
+
+}
+
+// Enums
+enum FightStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  DRAW
+}
+
+enum StakeType {
+  STARS
+  POINTS
+}
+
+enum StakeOutcome {
+  WIN
+  LOSS
+  DRAW
+  CANCELLED
+}
