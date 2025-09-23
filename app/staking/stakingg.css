@@ -462,12 +462,19 @@
   animation: lockPulse 2s infinite;
 }
 
+.tapping-bar-container.locked .tapping-bar-track {
+  background: rgba(255,215,0,0.3);
+  border-color: rgba(255,215,0,0.5);
+}
+
 @keyframes lockPulse {
   0%, 100% { 
     box-shadow: 0 0 20px rgba(255,215,0,0.6);
+    border-color: #ffd700;
   }
   50% { 
     box-shadow: 0 0 30px rgba(255,215,0,0.8);
+    border-color: #ffed4e;
   }
 }
 
