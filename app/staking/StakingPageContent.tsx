@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+<div className="staking-area">
+              <div 
+                className={`tapping-bar-container ${!canParticipate ? 'disabled' : ''} ${barLocked ? 'locked' : ''}`}
+                style={{ userimport React, { useState, useEffect, useRef } from "react";
 import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-import "./stakingg.css";
+import "./staking.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -527,13 +530,13 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
         MozUserSelect: 'none',
         msUserSelect: 'none'
       }}
-      onMouseDown={!isConcluded ? handleInteractionStart : undefined}
-      onMouseUp={!isConcluded ? handleInteractionEnd : undefined}
-      onMouseLeave={!isConcluded ? handleInteractionEnd : undefined}
-      onMouseMove={tapping && !isConcluded ? handleTap : undefined}
-      onTouchStart={!isConcluded ? handleInteractionStart : undefined}
-      onTouchEnd={!isConcluded ? handleInteractionEnd : undefined}
-      onTouchMove={tapping && !isConcluded ? handleTap : undefined}
+      onTouchStart={!isConcluded ? handleTouchStart : undefined}
+      onTouchMove={!isConcluded ? handleTouchMove : undefined}
+      onTouchEnd={!isConcluded ? handleTouchEnd : undefined}
+      onMouseDown={!isConcluded ? handleMouseDown : undefined}
+      onMouseMove={!isConcluded ? handleMouseMove : undefined}
+      onMouseUp={!isConcluded ? handleMouseUp : undefined}
+      onMouseLeave={!isConcluded ? handleMouseUp : undefined}
       onContextMenu={preventTextInteraction}
       onDragStart={preventTextInteraction}
     >
@@ -654,6 +657,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                 <div 
                   className="tapping-bar-track"
                   onClick={handleBarClick}
+                  onTouchEnd={handleBarClick}
                 >
                   <div 
                     className={`tapping-bar-fill ${stakeType.toLowerCase()}`} 
@@ -661,6 +665,9 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                   >
                     {tapping && <div className="tapping-bar-pulse"></div>}
                   </div>
+                  {barLocked && (
+                    <div className="lock-indicator">🔒</div>
+                  )}
                 </div>
               </div>
               
@@ -690,18 +697,18 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
                   disabled={!canParticipate || stakeAmount === 0 || !barLocked}
                   style={{ userSelect: 'none' }}
                 >
-                  {barLocked && stakeAmount > 0 ? 'Place Stake' : 'Lock bar to place stake'}
+                  {barLocked && stakeAmount > 0 ? 'Place Stake' : 'Tap bar to lock position'}
                 </button>
               )}
               
               <div className="stake-info">
                 <div className="instruction">
                   <span className="icon">👆</span>
-                  <p className="text">Tap repeatedly to increase your stake</p>
+                  <p className="text">Tap and hold to fill the bar</p>
                 </div>
                 <div className="instruction">
                   <span className="icon">🔒</span>
-                  <p className="text">Tap the bar once to lock in your stake</p>
+                  <p className="text">Tap the bar to lock your stake</p>
                 </div>
               </div>
             </div>

@@ -493,6 +493,23 @@
   border-color: rgba(255,255,255,0.2);
 }
 
+.lock-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255,215,0,0.8);
+  animation: lockBounce 1s ease-in-out infinite alternate;
+  z-index: 10;
+}
+
+@keyframes lockBounce {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  100% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
 .tapping-bar-fill {
   position: absolute;
   bottom: 0;
