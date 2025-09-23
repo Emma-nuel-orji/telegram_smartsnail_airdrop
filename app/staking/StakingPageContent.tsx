@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/loader";
-import "./stakingg.css";
+import "./staking.css";
 
 // Define interfaces for our data structures
 interface Fighter {
@@ -179,9 +179,15 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       if (response.ok) {
         const data = await response.json();
         setTotalSupport(data);
+      } else {
+        console.warn('Failed to fetch total support:', response.status);
+        // Set default values if fetch fails
+        setTotalSupport({ stars: 0, points: 0 });
       }
     } catch (error) {
       console.error("Error fetching total support:", error);
+      // Set default values if fetch fails
+      setTotalSupport({ stars: 0, points: 0 });
     }
   };
 
@@ -236,7 +242,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     return false;
   };
 
-  // Touch handlers with better logic
+  // Touch handlers with corrected logic
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!canParticipate || isFighter) return;
     
@@ -264,16 +270,15 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     
     const touch = e.touches[0];
     const verticalMovement = Math.abs(touch.clientY - touchStartY);
-    const horizontalMovement = Math.abs(touch.clientX - (e.currentTarget.getBoundingClientRect().left + e.currentTarget.getBoundingClientRect().width / 2));
     
-    // If significant vertical movement, allow scrolling
-    if (verticalMovement > 30 && verticalMovement > horizontalMovement) {
+    // Only allow scrolling for SHORT vertical movements (quick swipes)
+    if (verticalMovement > 10 && verticalMovement < 50) {
       setIsTouchMoving(true);
       setTapping(false);
-      return;
+      return; // Allow scrolling
     }
     
-    // If finger is steady or moving horizontally within bounds, fill bar
+    // For all other movements (small, horizontal, or large vertical), fill the bar
     if (!barLocked) {
       e.preventDefault();
       e.stopPropagation();
@@ -306,26 +311,36 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     setTapping(false);
     setIsTouchMoving(false);
     
-    // Only start decay if bar is not locked
+    // Start decay timer only if bar is not locked
     if (!barLocked && barHeight > 0) {
       setTimeout(() => {
-        if (!barLocked && barDecayInterval.current === null) {
-          barDecayInterval.current = setInterval(() => {
-            setBarHeight((prev) => {
-              if (prev <= 0 || barLocked) {
-                if (barDecayInterval.current) {
-                  clearInterval(barDecayInterval.current);
-                  barDecayInterval.current = null;
+        // Double-check lock status before starting decay
+        setBarHeight(currentHeight => {
+          if (barLocked || currentHeight <= 0) {
+            return currentHeight;
+          }
+          
+          if (barDecayInterval.current === null) {
+            barDecayInterval.current = setInterval(() => {
+              setBarHeight((prev) => {
+                // Check lock status in each interval
+                if (barLocked || prev <= 0) {
+                  if (barDecayInterval.current) {
+                    clearInterval(barDecayInterval.current);
+                    barDecayInterval.current = null;
+                  }
+                  return prev <= 0 ? 0 : prev;
                 }
-                return prev <= 0 ? 0 : prev;
-              }
-              const newHeight = Math.max(0, prev - 0.2);
-              const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-              setStakeAmount(newStakeAmount);
-              return newHeight;
-            });
-          }, 150);
-        }
+                const newHeight = Math.max(0, prev - 0.2);
+                const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
+                setStakeAmount(newStakeAmount);
+                return newHeight;
+              });
+            }, 150);
+          }
+          
+          return currentHeight;
+        });
       }, 2000);
     }
   };
@@ -381,50 +396,62 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     // Start decay if not locked
     if (!barLocked && barHeight > 0) {
       setTimeout(() => {
-        if (!barLocked && barDecayInterval.current === null) {
-          barDecayInterval.current = setInterval(() => {
-            setBarHeight((prev) => {
-              if (prev <= 0 || barLocked) {
-                if (barDecayInterval.current) {
-                  clearInterval(barDecayInterval.current);
-                  barDecayInterval.current = null;
+        setBarHeight(currentHeight => {
+          if (barLocked || currentHeight <= 0) {
+            return currentHeight;
+          }
+          
+          if (barDecayInterval.current === null) {
+            barDecayInterval.current = setInterval(() => {
+              setBarHeight((prev) => {
+                if (barLocked || prev <= 0) {
+                  if (barDecayInterval.current) {
+                    clearInterval(barDecayInterval.current);
+                    barDecayInterval.current = null;
+                  }
+                  return prev <= 0 ? 0 : prev;
                 }
-                return prev <= 0 ? 0 : prev;
-              }
-              const newHeight = Math.max(0, prev - 0.2);
-              const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-              setStakeAmount(newStakeAmount);
-              return newHeight;
-            });
-          }, 150);
-        }
+                const newHeight = Math.max(0, prev - 0.2);
+                const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
+                setStakeAmount(newStakeAmount);
+                return newHeight;
+              });
+            }, 150);
+          }
+          
+          return currentHeight;
+        });
       }, 2000);
     }
   };
 
-  // Fixed bar click handler for locking/unlocking
+  // Fixed bar click handler - should work on first click
   const handleBarClick = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Bar clicked! stakeAmount:', stakeAmount, 'barLocked:', barLocked);
+    console.log('Bar clicked! Current state - locked:', barLocked, 'height:', barHeight);
     
-    // Allow locking/unlocking regardless of stake amount
+    // Toggle lock state immediately
     const newLockedState = !barLocked;
     setBarLocked(newLockedState);
     
-    console.log('New lock state:', newLockedState);
+    console.log('Setting lock to:', newLockedState);
     
+    // Handle the state change
     if (newLockedState) {
-      // Locking - stop any decay
+      // Locking - immediately stop any decay
       if (barDecayInterval.current) {
         clearInterval(barDecayInterval.current);
         barDecayInterval.current = null;
+        console.log('Stopped decay - bar is now locked');
       }
     } else {
       // Unlocking - start decay if there's content
+      console.log('Unlocking - will start decay if height > 0');
       if (barHeight > 0) {
         setTimeout(() => {
+          console.log('Starting decay timer after unlock');
           if (!barLocked && barDecayInterval.current === null) {
             barDecayInterval.current = setInterval(() => {
               setBarHeight((prev) => {
@@ -448,7 +475,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   };
 
   const handleStakeWithStars = async () => {
-    if (!canParticipate || stakeAmount <= 0 || isFighter) return;
+    if (!canParticipate || stakeAmount <= 0 || isFighter || !barLocked) return;
 
     try {
       const response = await fetch('/api/stakes/stars', {
@@ -461,19 +488,28 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
           fighterId: fighter?.id,
           stakeAmount,
           telegramId,
+          title: `Support ${fighter?.name || 'Fighter'}`,
+          description: `Stake ${stakeAmount} Stars to support ${fighter?.name || 'your fighter'} in ${fight?.title || 'the fight'}`,
+          label: `${stakeAmount} Telegram Stars`
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create Stars payment');
+      }
 
       const data = await response.json();
 
       if (data.invoiceLink) {
+        // Redirect to Telegram payment
         window.location.href = data.invoiceLink;
       } else {
-        throw new Error("Failed to create payment link");
+        throw new Error("No invoice link received from server");
       }
     } catch (error) {
       console.error("Staking with Stars failed:", error);
-      setMessage("Failed to place stake. Please try again.");
+      setMessage(error instanceof Error ? error.message : "Failed to place stake. Please try again.");
     }
   };
 
