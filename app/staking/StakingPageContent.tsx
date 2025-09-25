@@ -284,88 +284,92 @@ const stopBarDecay = () => {
 // };
 
 // Handlers stay native
-const handleTouchStart = (e: TouchEvent) => {
-  if (!canParticipate || isFighter) return;
-  const t = e.touches[0];
-  if (!t) return;
+useEffect(() => {
+  const el = fighterRef.current;
+  if (!el) return;
 
-  touchStartXRef.current = t.clientX;
-  touchStartYRef.current = t.clientY;
-  touchIntentRef.current = "idle";
-  setTapping(true);
-  setIsTouchMoving(false);
-  lastTapTimeRef.current = 0;
+  const handleTouchStart = (e: TouchEvent) => {
+    if (!canParticipate || isFighter) return;
+    const t = e.touches[0];
+    if (!t) return;
 
-  stopBarDecay();
-};
-
-const handleTouchMove = (e: TouchEvent) => {
-  if (!canParticipate || isFighter) return;
-  const touch = e.touches[0];
-  if (!touch) return;
-
-  const dx = Math.abs(touch.clientX - touchStartXRef.current);
-  const dy = Math.abs(touch.clientY - touchStartYRef.current);
-
-  if (touchIntentRef.current === "idle") {
-    // If movement is small → ignore
-    if (dx < 8 && dy < 8) return;
-
-    // If movement looks like scroll → allow scroll
-    if (dy > dx && dy < 30) {
-      touchIntentRef.current = "scroll";
-      setIsTouchMoving(true);
-      setTapping(false);
-      return;
-    }
-
-    // Otherwise → stake (horizontal or strong vertical)
-    touchIntentRef.current = "stake";
-    setIsTouchMoving(false);
+    touchStartXRef.current = t.clientX;
+    touchStartYRef.current = t.clientY;
+    touchIntentRef.current = "idle";
     setTapping(true);
-  }
+    setIsTouchMoving(false);
+    lastTapTimeRef.current = 0;
 
-  if (touchIntentRef.current === "scroll") return;
-
-  // At this point → STAKE → block scrolling
-  e.preventDefault();
-  e.stopPropagation();
-
-  const rect = fighterRef.current?.getBoundingClientRect?.() ?? { left: 0, top: 0 };
-  const x = touch.clientX - rect.left;
-  const y = touch.clientY - rect.top;
-  createTapEffect(x, y);
-
-  const now = Date.now();
-  if (now - lastTapTimeRef.current > 40) {
-    setBarHeight((prev) => {
-      const increment = 1.5;
-      const newHeight = Math.min(100, prev + increment);
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-      return newHeight;
-    });
-    lastTapTimeRef.current = now;
-
-    if (Math.random() < 0.25) {
-      showMotivationalMessage(x, y);
+    if (barDecayInterval.current) {
+      clearInterval(barDecayInterval.current);
+      barDecayInterval.current = null;
     }
-  }
-};
+  };
 
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!canParticipate || isFighter) return;
+    const touch = e.touches[0];
+    if (!touch) return;
 
-const handleTouchEnd = () => {
-  setTapping(false);
-  setIsTouchMoving(false);
+    const dx = Math.abs(touch.clientX - touchStartXRef.current);
+    const dy = Math.abs(touch.clientY - touchStartYRef.current);
 
-  // only start decay if bar not locked
-  if (!barLockedRef.current && barHeight > 0) {
-    setTimeout(() => {
-      if (!barLockedRef.current) {
-        startBarDecay();
+    if (touchIntentRef.current === "idle") {
+      if (dx < 8 && dy < 8) return; // too tiny
+      if (dy > dx && dy < 25) {
+        touchIntentRef.current = "scroll";
+        setIsTouchMoving(true);
+        setTapping(false);
+        return;
       }
-    }, 2000); // wait a bit before decaying
-  }
-};
+      touchIntentRef.current = "stake";
+      setIsTouchMoving(false);
+      setTapping(true);
+    }
+
+    if (touchIntentRef.current === "scroll") return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = fighterRef.current?.getBoundingClientRect?.() ?? { left: 0, top: 0 };
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    createTapEffect(x, y);
+
+    const now = Date.now();
+    if (now - lastTapTimeRef.current > 40) {
+      setBarHeight(prev => {
+        const increment = 1.5;
+        const newHeight = Math.min(100, prev + increment);
+        setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+        return newHeight;
+      });
+      lastTapTimeRef.current = now;
+
+      if (Math.random() < 0.25) {
+        showMotivationalMessage(x, y);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setTapping(false);
+    setIsTouchMoving(false);
+    touchIntentRef.current = "idle";
+  };
+
+  el.addEventListener("touchstart", handleTouchStart, { passive: false });
+  el.addEventListener("touchmove", handleTouchMove, { passive: false });
+  el.addEventListener("touchend", handleTouchEnd, { passive: false });
+
+  return () => {
+    el.removeEventListener("touchstart", handleTouchStart);
+    el.removeEventListener("touchmove", handleTouchMove);
+    el.removeEventListener("touchend", handleTouchEnd);
+  };
+}, [canParticipate, isFighter]);
+
 
 
 
@@ -380,20 +384,20 @@ const handleTouchEnd = () => {
 //   };
 // }, []);
 
-useEffect(() => {
-  const el = fighterRef.current;
-  if (!el) return;
+// useEffect(() => {
+//   const el = fighterRef.current;
+//   if (!el) return;
 
-  el.addEventListener("touchstart", handleTouchStart, { passive: false });
-  el.addEventListener("touchmove", handleTouchMove, { passive: false });
-  el.addEventListener("touchend", handleTouchEnd, { passive: false });
+//   el.addEventListener("touchstart", handleTouchStart, { passive: false });
+//   el.addEventListener("touchmove", handleTouchMove, { passive: false });
+//   el.addEventListener("touchend", handleTouchEnd, { passive: false });
 
-  return () => {
-    el.removeEventListener("touchstart", handleTouchStart);
-    el.removeEventListener("touchmove", handleTouchMove);
-    el.removeEventListener("touchend", handleTouchEnd);
-  };
-}, [canParticipate, isFighter, barLocked, barHeight]);
+//   return () => {
+//     el.removeEventListener("touchstart", handleTouchStart);
+//     el.removeEventListener("touchmove", handleTouchMove);
+//     el.removeEventListener("touchend", handleTouchEnd);
+//   };
+// }, [canParticipate, isFighter, barLocked, barHeight]);
 
 
 
