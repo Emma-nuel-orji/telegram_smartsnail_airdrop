@@ -288,49 +288,39 @@ useEffect(() => {
   const el = fighterRef.current;
   if (!el) return;
 
+  let lastTapTime = 0;
+  let stakeMode = false;
+
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
     const t = e.touches[0];
     if (!t) return;
 
-    touchStartXRef.current = t.clientX;
-    touchStartYRef.current = t.clientY;
-    touchIntentRef.current = "idle";
-    setTapping(true);
-    setIsTouchMoving(false);
-    lastTapTimeRef.current = 0;
+    const now = Date.now();
 
-    if (barDecayInterval.current) {
-      clearInterval(barDecayInterval.current);
-      barDecayInterval.current = null;
+    // detect double-tap (within 300ms)
+    if (now - lastTapTime < 300) {
+      stakeMode = true; // activate staking mode
+      e.preventDefault();
+      e.stopPropagation();
+      stopBarDecay();
+    } else {
+      stakeMode = false; // normal scroll
     }
+
+    lastTapTime = now;
   };
 
   const handleTouchMove = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
-    const touch = e.touches[0];
-    if (!touch) return;
+    if (!stakeMode) return; // let scroll happen normally
 
-    const dx = Math.abs(touch.clientX - touchStartXRef.current);
-    const dy = Math.abs(touch.clientY - touchStartYRef.current);
-
-    if (touchIntentRef.current === "idle") {
-      if (dx < 8 && dy < 8) return; // too tiny
-      if (dy > dx && dy < 25) {
-        touchIntentRef.current = "scroll";
-        setIsTouchMoving(true);
-        setTapping(false);
-        return;
-      }
-      touchIntentRef.current = "stake";
-      setIsTouchMoving(false);
-      setTapping(true);
-    }
-
-    if (touchIntentRef.current === "scroll") return;
-
+    // In stake mode → block scroll and fill bar
     e.preventDefault();
     e.stopPropagation();
+
+    const touch = e.touches[0];
+    if (!touch) return;
 
     const rect = fighterRef.current?.getBoundingClientRect?.() ?? { left: 0, top: 0 };
     const x = touch.clientX - rect.left;
@@ -353,10 +343,20 @@ useEffect(() => {
     }
   };
 
+
+
   const handleTouchEnd = () => {
     setTapping(false);
     setIsTouchMoving(false);
-    touchIntentRef.current = "idle";
+    stakeMode = false; // reset mode
+
+    if (!barLockedRef.current && barHeight > 0) {
+      setTimeout(() => {
+        if (!barLockedRef.current) {
+          startBarDecay();
+        }
+      }, 2000);
+    }
   };
 
   el.addEventListener("touchstart", handleTouchStart, { passive: false });
@@ -368,7 +368,7 @@ useEffect(() => {
     el.removeEventListener("touchmove", handleTouchMove);
     el.removeEventListener("touchend", handleTouchEnd);
   };
-}, [canParticipate, isFighter]);
+}, [canParticipate, isFighter, barHeight]);
 
 
 
@@ -397,7 +397,7 @@ useEffect(() => {
 //     el.removeEventListener("touchmove", handleTouchMove);
 //     el.removeEventListener("touchend", handleTouchEnd);
 //   };
-// }, [canParticipate, isFighter, barLocked, barHeight]);
+// }, [canParticipate, isFighter, barLocked, barHeight]);m
 
 
 
