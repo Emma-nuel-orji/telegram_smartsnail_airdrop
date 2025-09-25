@@ -291,14 +291,12 @@ useEffect(() => {
   let lastTapTime = 0;
   let stakeMode = false;
 
-  const handleTouchStart = (e: TouchEvent) => {
+  const handleTouchStart: (e: TouchEvent) => void = (e) => {
     if (!canParticipate || isFighter) return;
     const now = Date.now();
-
     const t = e.touches[0];
     if (!t) return;
 
-    // double-tap activates stake mode
     if (now - lastTapTime < 300) {
       stakeMode = true;
       e.preventDefault();
@@ -311,26 +309,21 @@ useEffect(() => {
     lastTapTime = now;
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
-    if (!stakeMode) return; // if not in stake mode, let page scroll
+  const handleTouchMove: (e: TouchEvent) => void = (e) => {
+    if (!stakeMode) return;
     e.preventDefault();
     e.stopPropagation();
-
     const t = e.touches[0];
     if (!t) return;
 
     const rect = el.getBoundingClientRect();
     const relY = Math.max(0, Math.min(1, 1 - (t.clientY - rect.top) / rect.height));
     const relX = Math.max(0, Math.min(1, (t.clientX - rect.left) / rect.width));
-
-    // choose whichever movement is stronger (horizontal OR vertical)
     const value = Math.max(relY, relX);
 
     const newHeight = Math.round(value * 100);
-
     setBarHeight(newHeight);
     setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-
     createTapEffect(t.clientX - rect.left, t.clientY - rect.top);
 
     if (Math.random() < 0.2) {
@@ -338,7 +331,7 @@ useEffect(() => {
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd: (e: TouchEvent) => void = () => {
     stakeMode = false;
     setTapping(false);
     setIsTouchMoving(false);
