@@ -153,6 +153,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const [touchStartY, setTouchStartY] = useState<number>(0);
   const [isTouchMoving, setIsTouchMoving] = useState<boolean>(false);
   const touchStartYRef = useRef(0);
+  const touchStartXRef = useRef(0);
   const touchIntentRef = useRef('idle'); // 'idle' | 'scroll' | 'stake'
   const barLockedRef = useRef<boolean>(barLocked); // keep a ref mirror of state
   const lastTapTimeRef = useRef<number>(0);
@@ -360,7 +361,7 @@ const handleTouchEnd = () => {
   if (!barLockedRef.current && barHeight > 0) {
     setTimeout(() => {
       if (!barLockedRef.current) {
-        startDecay();
+        startBarDecay();
       }
     }, 2000); // wait a bit before decaying
   }
