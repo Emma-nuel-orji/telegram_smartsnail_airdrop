@@ -290,8 +290,6 @@ useEffect(() => {
 
   let lastTapTime = 0;
   let stakeMode = false;
-  let touchStartX = 0;
-  let touchStartY = 0;
 
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
@@ -300,49 +298,42 @@ useEffect(() => {
     const t = e.touches[0];
     if (!t) return;
 
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
-
-    // detect double tap (within 300ms)
+    // double-tap activates stake mode
     if (now - lastTapTime < 300) {
       stakeMode = true;
       e.preventDefault();
       e.stopPropagation();
       stopBarDecay();
     } else {
-      stakeMode = false; // default scroll mode
+      stakeMode = false;
     }
 
     lastTapTime = now;
   };
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (!stakeMode) return; // allow normal scroll
+    if (!stakeMode) return; // if not in stake mode, let page scroll
     e.preventDefault();
     e.stopPropagation();
 
     const t = e.touches[0];
     if (!t) return;
 
-    // movement distance
-    const dx = t.clientX - touchStartX;
-    const dy = t.clientY - touchStartY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    const rect = el.getBoundingClientRect();
+    const relY = Math.max(0, Math.min(1, 1 - (t.clientY - rect.top) / rect.height));
+    const relX = Math.max(0, Math.min(1, (t.clientX - rect.left) / rect.width));
 
-    // map movement speed to bar growth
-    setBarHeight((prev) => {
-      const newHeight = Math.min(100, prev + distance * 0.2); // adjust multiplier for smoothness
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-      return newHeight;
-    });
+    // choose whichever movement is stronger (horizontal OR vertical)
+    const value = Math.max(relY, relX);
 
-    // reset start point for continuous smooth movement
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
+    const newHeight = Math.round(value * 100);
 
-    // effects
-    createTapEffect(t.clientX, t.clientY);
-    if (Math.random() < 0.25) {
+    setBarHeight(newHeight);
+    setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+
+    createTapEffect(t.clientX - rect.left, t.clientY - rect.top);
+
+    if (Math.random() < 0.2) {
       showMotivationalMessage(t.clientX, t.clientY);
     }
   };
