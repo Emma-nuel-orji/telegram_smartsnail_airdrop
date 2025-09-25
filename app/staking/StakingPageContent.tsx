@@ -288,13 +288,13 @@ const handleTouchStart = (e: TouchEvent) => {
   const t = e.touches[0];
   if (!t) return;
 
+  touchStartXRef.current = t.clientX;
   touchStartYRef.current = t.clientY;
   touchIntentRef.current = "idle";
   setTapping(true);
   setIsTouchMoving(false);
   lastTapTimeRef.current = 0;
 
-  // stop decay immediately when user interacts
   stopBarDecay();
 };
 
@@ -303,16 +303,22 @@ const handleTouchMove = (e: TouchEvent) => {
   const touch = e.touches[0];
   if (!touch) return;
 
+  const dx = Math.abs(touch.clientX - touchStartXRef.current);
   const dy = Math.abs(touch.clientY - touchStartYRef.current);
 
   if (touchIntentRef.current === "idle") {
-    if (dy < 8) return;
-    if (dy < 30) {
+    // If movement is small → ignore
+    if (dx < 8 && dy < 8) return;
+
+    // If movement looks like scroll → allow scroll
+    if (dy > dx && dy < 30) {
       touchIntentRef.current = "scroll";
       setIsTouchMoving(true);
       setTapping(false);
       return;
     }
+
+    // Otherwise → stake (horizontal or strong vertical)
     touchIntentRef.current = "stake";
     setIsTouchMoving(false);
     setTapping(true);
@@ -320,7 +326,7 @@ const handleTouchMove = (e: TouchEvent) => {
 
   if (touchIntentRef.current === "scroll") return;
 
-  // prevent scrolling while staking
+  // At this point → STAKE → block scrolling
   e.preventDefault();
   e.stopPropagation();
 
@@ -345,6 +351,7 @@ const handleTouchMove = (e: TouchEvent) => {
   }
 };
 
+
 const handleTouchEnd = () => {
   setTapping(false);
   setIsTouchMoving(false);
@@ -353,7 +360,7 @@ const handleTouchEnd = () => {
   if (!barLockedRef.current && barHeight > 0) {
     setTimeout(() => {
       if (!barLockedRef.current) {
-        startBarDecay();
+        startDecay();
       }
     }, 2000); // wait a bit before decaying
   }
