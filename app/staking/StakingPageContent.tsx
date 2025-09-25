@@ -290,65 +290,67 @@ useEffect(() => {
 
   let lastTapTime = 0;
   let stakeMode = false;
+  let touchStartX = 0;
+  let touchStartY = 0;
 
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
+    const now = Date.now();
+
     const t = e.touches[0];
     if (!t) return;
 
-    const now = Date.now();
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
 
-    // detect double-tap (within 300ms)
+    // detect double tap (within 300ms)
     if (now - lastTapTime < 300) {
-      stakeMode = true; // activate staking mode
+      stakeMode = true;
       e.preventDefault();
       e.stopPropagation();
       stopBarDecay();
     } else {
-      stakeMode = false; // normal scroll
+      stakeMode = false; // default scroll mode
     }
 
     lastTapTime = now;
   };
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-    if (!stakeMode) return; // let scroll happen normally
-
-    // In stake mode → block scroll and fill bar
+    if (!stakeMode) return; // allow normal scroll
     e.preventDefault();
     e.stopPropagation();
 
-    const touch = e.touches[0];
-    if (!touch) return;
+    const t = e.touches[0];
+    if (!t) return;
 
-    const rect = fighterRef.current?.getBoundingClientRect?.() ?? { left: 0, top: 0 };
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    createTapEffect(x, y);
+    // movement distance
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
 
-    const now = Date.now();
-    if (now - lastTapTimeRef.current > 40) {
-      setBarHeight(prev => {
-        const increment = 1.5;
-        const newHeight = Math.min(100, prev + increment);
-        setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-        return newHeight;
-      });
-      lastTapTimeRef.current = now;
+    // map movement speed to bar growth
+    setBarHeight((prev) => {
+      const newHeight = Math.min(100, prev + distance * 0.2); // adjust multiplier for smoothness
+      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+      return newHeight;
+    });
 
-      if (Math.random() < 0.25) {
-        showMotivationalMessage(x, y);
-      }
+    // reset start point for continuous smooth movement
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+
+    // effects
+    createTapEffect(t.clientX, t.clientY);
+    if (Math.random() < 0.25) {
+      showMotivationalMessage(t.clientX, t.clientY);
     }
   };
 
-
-
   const handleTouchEnd = () => {
+    stakeMode = false;
     setTapping(false);
     setIsTouchMoving(false);
-    stakeMode = false; // reset mode
 
     if (!barLockedRef.current && barHeight > 0) {
       setTimeout(() => {
@@ -369,7 +371,6 @@ useEffect(() => {
     el.removeEventListener("touchend", handleTouchEnd);
   };
 }, [canParticipate, isFighter, barHeight]);
-
 
 
 
