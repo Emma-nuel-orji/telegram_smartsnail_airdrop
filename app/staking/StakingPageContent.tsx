@@ -284,93 +284,88 @@ const stopBarDecay = () => {
 // };
 
 // Handlers stay native
-useEffect(() => {
-  const el = fighterRef.current;
-  if (!el) return;
+const handleTouchStart = (e: TouchEvent) => {
+  if (!canParticipate || isFighter) return;
+  const t = e.touches[0];
+  if (!t) return;
 
-  let lastTapTime = 0;
-  let stakeMode = false;
-  let touchStartX = 0;
-  let touchStartY = 0;
+  touchStartXRef.current = t.clientX;
+  touchStartYRef.current = t.clientY;
+  touchIntentRef.current = "idle";
+  setTapping(true);
+  setIsTouchMoving(false);
+  lastTapTimeRef.current = 0;
 
-  const handleTouchStart = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-    const now = Date.now();
+  stopBarDecay();
+};
 
-    const t = e.touches[0];
-    if (!t) return;
+const handleTouchMove = (e: TouchEvent) => {
+  if (!canParticipate || isFighter) return;
+  const touch = e.touches[0];
+  if (!touch) return;
 
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
+  const dx = Math.abs(touch.clientX - touchStartXRef.current);
+  const dy = Math.abs(touch.clientY - touchStartYRef.current);
 
-    // detect double tap (within 300ms)
-    if (now - lastTapTime < 300) {
-      stakeMode = true;
-      e.preventDefault();
-      e.stopPropagation();
-      stopBarDecay();
-    } else {
-      stakeMode = false; // default scroll mode
+  if (touchIntentRef.current === "idle") {
+    // If movement is small → ignore
+    if (dx < 8 && dy < 8) return;
+
+    // If movement looks like scroll → allow scroll
+    if (dy > dx && dy < 30) {
+      touchIntentRef.current = "scroll";
+      setIsTouchMoving(true);
+      setTapping(false);
+      return;
     }
 
-    lastTapTime = now;
-  };
+    // Otherwise → stake (horizontal or strong vertical)
+    touchIntentRef.current = "stake";
+    setIsTouchMoving(false);
+    setTapping(true);
+  }
 
-  const handleTouchMove = (e: TouchEvent) => {
-    if (!stakeMode) return; // allow normal scroll
-    e.preventDefault();
-    e.stopPropagation();
+  if (touchIntentRef.current === "scroll") return;
 
-    const t = e.touches[0];
-    if (!t) return;
+  // At this point → STAKE → block scrolling
+  e.preventDefault();
+  e.stopPropagation();
 
-    // movement distance
-    const dx = t.clientX - touchStartX;
-    const dy = t.clientY - touchStartY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+  const rect = fighterRef.current?.getBoundingClientRect?.() ?? { left: 0, top: 0 };
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+  createTapEffect(x, y);
 
-    // map movement speed to bar growth
+  const now = Date.now();
+  if (now - lastTapTimeRef.current > 40) {
     setBarHeight((prev) => {
-      const newHeight = Math.min(100, prev + distance * 0.2); // adjust multiplier for smoothness
+      const increment = 1.5;
+      const newHeight = Math.min(100, prev + increment);
       setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
       return newHeight;
     });
+    lastTapTimeRef.current = now;
 
-    // reset start point for continuous smooth movement
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
-
-    // effects
-    createTapEffect(t.clientX, t.clientY);
     if (Math.random() < 0.25) {
-      showMotivationalMessage(t.clientX, t.clientY);
+      showMotivationalMessage(x, y);
     }
-  };
+  }
+};
 
-  const handleTouchEnd = () => {
-    stakeMode = false;
-    setTapping(false);
-    setIsTouchMoving(false);
 
-    if (!barLockedRef.current && barHeight > 0) {
-      setTimeout(() => {
-        if (!barLockedRef.current) {
-          startBarDecay();
-        }
-      }, 2000);
-    }
-  };
+const handleTouchEnd = () => {
+  setTapping(false);
+  setIsTouchMoving(false);
 
-  el.addEventListener("touchstart", handleTouchStart, { passive: false });
-  el.addEventListener("touchmove", handleTouchMove, { passive: false });
-  el.addEventListener("touchend", handleTouchEnd, { passive: false });
-
-  return () => {
-    el.removeEventListener("touchstart", handleTouchStart);
-    el.removeEventListener("touchmove", handleTouchMove);
-    el.removeEventListener("touchend", handleTouchEnd);
-  };
-}, [canParticipate, isFighter, barHeight]);
+  // only start decay if bar not locked
+  if (!barLockedRef.current && barHeight > 0) {
+    setTimeout(() => {
+      if (!barLockedRef.current) {
+        startBarDecay();
+      }
+    }, 2000); // wait a bit before decaying
+  }
+};
 
 
 
@@ -385,20 +380,20 @@ useEffect(() => {
 //   };
 // }, []);
 
-// useEffect(() => {
-//   const el = fighterRef.current;
-//   if (!el) return;
+useEffect(() => {
+  const el = fighterRef.current;
+  if (!el) return;
 
-//   el.addEventListener("touchstart", handleTouchStart, { passive: false });
-//   el.addEventListener("touchmove", handleTouchMove, { passive: false });
-//   el.addEventListener("touchend", handleTouchEnd, { passive: false });
+  el.addEventListener("touchstart", handleTouchStart, { passive: false });
+  el.addEventListener("touchmove", handleTouchMove, { passive: false });
+  el.addEventListener("touchend", handleTouchEnd, { passive: false });
 
-//   return () => {
-//     el.removeEventListener("touchstart", handleTouchStart);
-//     el.removeEventListener("touchmove", handleTouchMove);
-//     el.removeEventListener("touchend", handleTouchEnd);
-//   };
-// }, [canParticipate, isFighter, barLocked, barHeight]);m
+  return () => {
+    el.removeEventListener("touchstart", handleTouchStart);
+    el.removeEventListener("touchmove", handleTouchMove);
+    el.removeEventListener("touchend", handleTouchEnd);
+  };
+}, [canParticipate, isFighter, barLocked, barHeight]);
 
 
 
