@@ -291,12 +291,13 @@ useEffect(() => {
   let lastTapTime = 0;
   let stakeMode = false;
 
-  const handleTouchStart: (e: TouchEvent) => void = (e) => {
+  const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
     const now = Date.now();
     const t = e.touches[0];
     if (!t) return;
 
+    // Double-tap within 300ms → enter stake mode
     if (now - lastTapTime < 300) {
       stakeMode = true;
       e.preventDefault();
@@ -309,21 +310,31 @@ useEffect(() => {
     lastTapTime = now;
   };
 
-  const handleTouchMove: (e: TouchEvent) => void = (e) => {
+  const handleTouchMove = (e: TouchEvent) => {
     if (!stakeMode) return;
+
+    // block scroll/swipe immediately
     e.preventDefault();
     e.stopPropagation();
+
     const t = e.touches[0];
     if (!t) return;
 
     const rect = el.getBoundingClientRect();
-    const relY = Math.max(0, Math.min(1, 1 - (t.clientY - rect.top) / rect.height));
-    const relX = Math.max(0, Math.min(1, (t.clientX - rect.left) / rect.width));
-    const value = Math.max(relY, relX);
 
+    // map finger position to % (Y for vertical, X for horizontal)
+    const relY = 1 - (t.clientY - rect.top) / rect.height;
+    const relX = (t.clientX - rect.left) / rect.width;
+
+    // clamp values between 0 and 1
+    const value = Math.max(0, Math.min(1, Math.max(relY, relX)));
+
+    // convert to %
     const newHeight = Math.round(value * 100);
+
     setBarHeight(newHeight);
     setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+
     createTapEffect(t.clientX - rect.left, t.clientY - rect.top);
 
     if (Math.random() < 0.2) {
@@ -331,7 +342,7 @@ useEffect(() => {
     }
   };
 
-  const handleTouchEnd: (e: TouchEvent) => void = () => {
+  const handleTouchEnd = () => {
     stakeMode = false;
     setTapping(false);
     setIsTouchMoving(false);
@@ -341,7 +352,7 @@ useEffect(() => {
         if (!barLockedRef.current) {
           startBarDecay();
         }
-      }, 2000);
+      }, 1500); // wait before decay
     }
   };
 
