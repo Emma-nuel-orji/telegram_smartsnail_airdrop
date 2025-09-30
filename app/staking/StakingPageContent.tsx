@@ -228,162 +228,104 @@ const stopBarDecay = () => {
 };
 
 
-// IMPORTANT: attach a non-passive touchmove listener to reliably prevent scroll.
-// This ensures that when we call e.preventDefault() the browser honors it.
-// 1. Define your handler for *native DOM TouchEvent*
-// Use the correct type for native DOM handler
-// const handleTouchMove = (e: globalThis.TouchEvent) => {
-//   if (!canParticipate || isFighter) return;
 
-//   const touch = e.touches[0];
-//   if (!touch) return;
-
-//   const dy = Math.abs(touch.clientY - touchStartYRef.current);
-
-//   if (touchIntentRef.current === "idle") {
-//     if (dy < 8) return;
-//     if (dy < 30) {
-//       touchIntentRef.current = "scroll";
-//       setIsTouchMoving(true);
-//       setTapping(false);
-//       return;
-//     }
-//     touchIntentRef.current = "stake";
-//     setIsTouchMoving(false);
-//     setTapping(true);
-//   }
-
-//   if (touchIntentRef.current === "scroll") return;
-
-//   // ✅ Only works because we used { passive: false }
-//   e.preventDefault();
-//   e.stopPropagation();
-
-//   // Use e.target instead of e.currentTarget
-//   const target = e.target as HTMLElement | null;
-//   const rect = target?.getBoundingClientRect() ?? { left: 0, top: 0 };
-
-//   const x = touch.clientX - rect.left;
-//   const y = touch.clientY - rect.top;
-//   createTapEffect(x, y);
-
-//   const now = Date.now();
-//   if (now - lastTapTimeRef.current > 40) {
-//     setBarHeight((prev) => {
-//       const increment = 1.5;
-//       const newHeight = Math.min(100, prev + increment);
-//       setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-//       return newHeight;
-//     });
-//     lastTapTimeRef.current = now;
-
-//     if (Math.random() < 0.25) {
-//       showMotivationalMessage(x, y);
-//     }
-//   }
-// };
-
-// Handlers stay native
-const handleTouchStart = (e: TouchEvent) => {
-  if (!canParticipate || isFighter) return;
-  const t = e.touches[0];
-  if (!t) return;
-
-  touchStartXRef.current = t.clientX;
-  touchStartYRef.current = t.clientY;
-  touchIntentRef.current = "idle";
-  setTapping(true);
-  setIsTouchMoving(false);
-  lastTapTimeRef.current = 0;
-
-  stopBarDecay();
-};
-
-const handleTouchMove = (e: TouchEvent) => {
-  if (!canParticipate || isFighter) return;
-  const touch = e.touches[0];
-  if (!touch) return;
-
-  const dx = Math.abs(touch.clientX - touchStartXRef.current);
-  const dy = Math.abs(touch.clientY - touchStartYRef.current);
-
-  if (touchIntentRef.current === "idle") {
-    // If movement is small → ignore
-    if (dx < 8 && dy < 8) return;
-
-    // If movement looks like scroll → allow scroll
-    if (dy > dx && dy < 30) {
-      touchIntentRef.current = "scroll";
-      setIsTouchMoving(true);
-      setTapping(false);
-      return;
-    }
-
-    // Otherwise → stake (horizontal or strong vertical)
-    touchIntentRef.current = "stake";
-    setIsTouchMoving(false);
-    setTapping(true);
-  }
-
-  if (touchIntentRef.current === "scroll") return;
-
-  // At this point → STAKE → block scrolling
-  e.preventDefault();
-  e.stopPropagation();
-
-  const rect = fighterRef.current?.getBoundingClientRect?.() ?? { left: 0, top: 0 };
-  const x = touch.clientX - rect.left;
-  const y = touch.clientY - rect.top;
-  createTapEffect(x, y);
-
-  const now = Date.now();
-  if (now - lastTapTimeRef.current > 40) {
-    setBarHeight((prev) => {
-      const increment = 1.5;
-      const newHeight = Math.min(100, prev + increment);
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-      return newHeight;
-    });
-    lastTapTimeRef.current = now;
-
-    if (Math.random() < 0.25) {
-      showMotivationalMessage(x, y);
-    }
-  }
-};
-
-
-const handleTouchEnd = () => {
-  setTapping(false);
-  setIsTouchMoving(false);
-
-  // only start decay if bar not locked
-  if (!barLockedRef.current && barHeight > 0) {
-    setTimeout(() => {
-      if (!barLockedRef.current) {
-        startBarDecay();
-      }
-    }, 2000); // wait a bit before decaying
-  }
-};
-
-
-
-// Hook up as a native listener
-// useEffect(() => {
-//   const el = fighterRef.current;
-//   if (!el) return;
-
-//   el.addEventListener("touchmove", handleTouchMove, { passive: false });
-//   return () => {
-//     el.removeEventListener("touchmove", handleTouchMove);
-//   };
-// }, []);
+// 🟢 CSS (important for Telegram webview to disable default scroll/gestures inside the fighter zone)
+// add this to your CSS or Tailwind class
+// .touch-none { touch-action: none; }
 
 useEffect(() => {
   const el = fighterRef.current;
   if (!el) return;
 
+  let isStaking = false;
+
+  const handleTouchStart = (e: TouchEvent) => {
+    if (!canParticipate || isFighter) return;
+    const t = e.touches[0];
+    if (!t) return;
+
+    touchStartXRef.current = t.clientX;
+    touchStartYRef.current = t.clientY;
+    touchIntentRef.current = "idle";
+    isStaking = false;
+
+    setTapping(true);
+    setIsTouchMoving(false);
+    lastTapTimeRef.current = 0;
+
+    stopBarDecay();
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!canParticipate || isFighter) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const dx = Math.abs(touch.clientX - touchStartXRef.current);
+    const dy = Math.abs(touch.clientY - touchStartYRef.current);
+
+    // First decision about intent
+    if (touchIntentRef.current === "idle") {
+      if (dx < 8 && dy < 8) return; // too tiny, ignore
+
+      // If mostly vertical + small movement → scroll
+      if (dy > dx && dy < 15) {
+        touchIntentRef.current = "scroll";
+        setIsTouchMoving(true);
+        setTapping(false);
+        return;
+      }
+
+      // Otherwise → stake
+      touchIntentRef.current = "stake";
+      isStaking = true;
+      setIsTouchMoving(false);
+      setTapping(true);
+    }
+
+    if (touchIntentRef.current === "scroll") return;
+
+    // STAKE mode → block Telegram scroll
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = fighterRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    // Map finger position → percentage fill
+    const relY = 1 - (touch.clientY - rect.top) / rect.height; // 0 (bottom) → 1 (top)
+    const relX = (touch.clientX - rect.left) / rect.width;     // 0 (left) → 1 (right)
+
+    // Allow both horizontal and vertical → whichever is stronger
+    const fill = Math.max(relX, relY);
+    const newHeight = Math.min(100, Math.max(0, fill * 100));
+
+    setBarHeight(newHeight);
+    setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+
+    // Optional: show effect & message
+    createTapEffect(touch.clientX - rect.left, touch.clientY - rect.top);
+    if (Math.random() < 0.15) {
+      showMotivationalMessage(touch.clientX, touch.clientY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setTapping(false);
+    setIsTouchMoving(false);
+    touchIntentRef.current = "idle";
+
+    // restart decay if not locked
+    if (!barLockedRef.current && barHeight > 0) {
+      setTimeout(() => {
+        if (!barLockedRef.current) {
+          startBarDecay();
+        }
+      }, 1200); // delay before decay
+    }
+  };
+
+  // Attach listeners (non-passive so we can block scroll)
   el.addEventListener("touchstart", handleTouchStart, { passive: false });
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
   el.addEventListener("touchend", handleTouchEnd, { passive: false });
@@ -393,9 +335,7 @@ useEffect(() => {
     el.removeEventListener("touchmove", handleTouchMove);
     el.removeEventListener("touchend", handleTouchEnd);
   };
-}, [canParticipate, isFighter, barLocked, barHeight]);
-
-
+}, [canParticipate, isFighter, barHeight]);
 
   const fetchTotalSupport = async () => {
     try {
