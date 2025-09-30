@@ -157,12 +157,11 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const touchIntentRef = useRef('idle'); // 'idle' | 'scroll' | 'stake'
   const barLockedRef = useRef<boolean>(barLocked); // keep a ref mirror of state
   const lastTapTimeRef = useRef<number>(0);
-  const lastTapRef = useRef(0);
-  const [stakeMode, setStakeMode] = useState(false);
+  
   const barDecayInterval = useRef<NodeJS.Timeout | null>(null);
   const messageInterval = useRef<NodeJS.Timeout | null>(null);
   const fighterRef = useRef<HTMLDivElement | null>(null);
-  const decayRef = useRef<number | null>(null);
+
   const MAX_STARS = 100000;
   const MIN_POINTS_REQUIRED = 200000;
   const MAX_AMOUNT = stakeType === 'STARS' ? MAX_STARS : localUserPoints;
@@ -194,26 +193,39 @@ useEffect(() => {
   };
 }, []);
 
- const startBarDecay = () => {
-    if (decayRef.current) cancelAnimationFrame(decayRef.current);
+const startBarDecay = () => {
+  if (barDecayInterval.current) {
+    clearInterval(barDecayInterval.current);
+    barDecayInterval.current = null;
+  }
 
-    const decay = () => {
-      setBarHeight(prev => {
-        if (prev <= 0 || stakeMode) return prev; // stop if locked or empty
-        const next = Math.max(0, prev - 0.3); // small smooth step
-        setStakeAmount(Math.floor((next / 100) * MAX_STARS));
-        return next;
+  if (barHeight > 0) {
+    barDecayInterval.current = setInterval(() => {
+      setBarHeight((prev) => {
+        if (barLockedRef.current) {
+          clearInterval(barDecayInterval.current!);
+          barDecayInterval.current = null;
+          return prev;
+        }
+        if (prev <= 0) {
+          clearInterval(barDecayInterval.current!);
+          barDecayInterval.current = null;
+          return 0;
+        }
+        const newH = Math.max(0, prev - 0.4);
+        setStakeAmount(Math.floor((newH / 100) * MAX_STARS));
+        return newH;
       });
-      decayRef.current = requestAnimationFrame(decay);
-    };
+    }, 150);
+  }
+};
 
-    decayRef.current = requestAnimationFrame(decay);
-  };
-
-  const stopBarDecay = () => {
-    if (decayRef.current) cancelAnimationFrame(decayRef.current);
-    decayRef.current = null;
-  };
+const stopBarDecay = () => {
+  if (barDecayInterval.current) {
+    clearInterval(barDecayInterval.current);
+    barDecayInterval.current = null;
+  }
+};
 
 
 // IMPORTANT: attach a non-passive touchmove listener to reliably prevent scroll.
@@ -278,44 +290,74 @@ useEffect(() => {
 
   let lastTapTime = 0;
   let stakeMode = false;
+  let touchStartX = 0;
+  let touchStartY = 0;
 
-   const handleTouchStart = (e: TouchEvent) => {
+  const handleTouchStart = (e: TouchEvent) => {
+    if (!canParticipate || isFighter) return;
     const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      // double tap → toggle stake mode
-      setStakeMode(prev => !prev);
-      stopBarDecay();
-    }
-    lastTapRef.current = now;
 
-    if (stakeMode) {
-      e.preventDefault(); // block scroll
+    const t = e.touches[0];
+    if (!t) return;
+
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+
+    // detect double tap (within 300ms)
+    if (now - lastTapTime < 300) {
+      stakeMode = true;
+      e.preventDefault();
+      e.stopPropagation();
+      stopBarDecay();
+    } else {
+      stakeMode = false; // default scroll mode
     }
+
+    lastTapTime = now;
   };
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (!stakeMode) return;
+    if (!stakeMode) return; // allow normal scroll
+    e.preventDefault();
+    e.stopPropagation();
 
-    if (e.cancelable) e.preventDefault(); // block scroll while sliding
+    const t = e.touches[0];
+    if (!t) return;
 
-    const touch = e.touches[0];
-    const el = fighterRef.current;
-    if (!el) return;
+    // movement distance
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
 
-    const rect = el.getBoundingClientRect();
+    // map movement speed to bar growth
+    setBarHeight((prev) => {
+      const newHeight = Math.min(100, prev + distance * 0.2); // adjust multiplier for smoothness
+      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+      return newHeight;
+    });
 
-    // vertical % (top=100, bottom=0)
-    const relY = 1 - (touch.clientY - rect.top) / rect.height;
-    const clamped = Math.min(1, Math.max(0, relY));
-    const newHeight = clamped * 100;
+    // reset start point for continuous smooth movement
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
 
-    setBarHeight(newHeight);
-    setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+    // effects
+    createTapEffect(t.clientX, t.clientY);
+    if (Math.random() < 0.25) {
+      showMotivationalMessage(t.clientX, t.clientY);
+    }
   };
 
   const handleTouchEnd = () => {
-    if (stakeMode && barHeight > 0) {
-      startBarDecay(); // decay when finger released
+    stakeMode = false;
+    setTapping(false);
+    setIsTouchMoving(false);
+
+    if (!barLockedRef.current && barHeight > 0) {
+      setTimeout(() => {
+        if (!barLockedRef.current) {
+          startBarDecay();
+        }
+      }, 2000);
     }
   };
 
