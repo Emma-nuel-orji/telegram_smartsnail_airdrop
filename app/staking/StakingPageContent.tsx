@@ -21,7 +21,9 @@ interface Fight {
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
-   winnerId?: string;
+  status: "SCHEDULED" | "COMPLETED" | "DRAW" | "CANCELLED"; // ✅ add status
+  winnerId?: string; // still keep this
+  winner?: Fighter | null; // ✅ add relation (from API include)
 }
 
 interface TotalSupport {
@@ -45,6 +47,8 @@ interface FighterStakingProps {
   telegramId: string | null;
   position: 'left' | 'right';
 }
+
+
 
 const MOTIVATIONAL_MESSAGES = [
   "Wow! Keep supporting your fighter!",
@@ -130,6 +134,28 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
           FIGHT CONCLUDED
         </div>
       )}
+
+      {isConcluded && (
+  <div className="concluded-fight-overlay">
+    {fight.status === "COMPLETED" && fight.winner ? (
+      <div className="winner-display">
+        <img 
+          src={fight.winner.imageUrl} 
+          alt={fight.winner.name}
+          className="winner-image"
+        />
+        <div className="winner-text">🏆 {fight.winner.name} Wins!</div>
+      </div>
+    ) : fight.status === "DRAW" ? (
+      <div className="draw-display">🤝 Draw</div>
+    ) : fight.status === "CANCELLED" ? (
+      <div className="cancelled-display">❌ Cancelled</div>
+    ) : (
+      <div>⚠️ Fight Concluded</div>
+    )}
+  </div>
+)}
+
     </div>
   );
 }
