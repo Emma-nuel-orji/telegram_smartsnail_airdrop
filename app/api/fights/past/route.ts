@@ -7,7 +7,7 @@ export async function GET() {
       fightDate: {
         lt: new Date(),
       },
-      status: "COMPLETED", 
+      // status: "COMPLETED", 
     },
     orderBy: {
       fightDate: "desc",
