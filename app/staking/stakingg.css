@@ -862,40 +862,339 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-.concluded-fight-overlay {
+/* Enhanced Fight Result Overlay Styles */
+
+.fight-result-overlay {
   position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.result-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.result-content {
+  position: relative;
+  z-index: 101;
+  text-align: center;
+  padding: 2rem;
+  max-width: 90%;
+  animation: slideUp 0.6s ease-out;
+}
+
+/* Winner Styles */
+.winner-result {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  text-align: center;
+  gap: 1rem;
 }
 
-.winner-image {
-  width: 120px;
-  height: 120px;
+.winner-image-container {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin-bottom: 1rem;
+  animation: scaleIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.winner-portrait {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  border: 4px solid gold;
-  margin-bottom: 12px;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+  object-fit: cover;
+  border: 5px solid #FFD700;
+  box-shadow: 
+    0 0 30px rgba(255, 215, 0, 0.6),
+    0 0 60px rgba(255, 215, 0, 0.4),
+    0 10px 40px rgba(0, 0, 0, 0.5);
+  animation: glow 2s ease-in-out infinite;
 }
 
-.winner-text {
-  color: gold;
-  font-size: 1.8rem;
+.winner-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
   font-weight: bold;
+  color: white;
+  border: 5px solid #FFD700;
+  box-shadow: 
+    0 0 30px rgba(255, 215, 0, 0.6),
+    0 0 60px rgba(255, 215, 0, 0.4);
+  animation: glow 2s ease-in-out infinite;
 }
 
-.draw-display {
-  color: lightblue;
-  font-size: 1.6rem;
-  font-weight: bold;
+.winner-crown {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 3rem;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 5px 10px rgba(255, 215, 0, 0.5));
 }
 
-.cancelled-display {
-  color: red;
-  font-size: 1.6rem;
-  font-weight: bold;
+.winner-name {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #FFD700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 
+    0 0 20px rgba(255, 215, 0, 0.8),
+    0 0 40px rgba(255, 215, 0, 0.5),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
+  margin: 0.5rem 0;
+  animation: textGlow 2s ease-in-out infinite;
+}
+
+.winner-label {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-top: 0.5rem;
+  background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+/* Draw Styles */
+.draw-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.draw-result .result-icon {
+  font-size: 5rem;
+  animation: bounce 2s ease-in-out infinite;
+  filter: drop-shadow(0 5px 15px rgba(255, 255, 255, 0.3));
+}
+
+.draw-result .result-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #4ECDC4;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-shadow: 
+    0 0 20px rgba(78, 205, 196, 0.8),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
+  animation: textGlow 2s ease-in-out infinite;
+}
+
+.draw-result .result-subtitle {
+  font-size: 1.2rem;
+  color: #fff;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+/* Confetti Animation */
+.confetti-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -10px;
+  opacity: 0;
+  animation: confettiFall 3s linear infinite;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 30px rgba(255, 215, 0, 0.6),
+      0 0 60px rgba(255, 215, 0, 0.4),
+      0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow: 
+      0 0 40px rgba(255, 215, 0, 0.8),
+      0 0 80px rgba(255, 215, 0, 0.6),
+      0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes textGlow {
+  0%, 100% {
+    text-shadow: 
+      0 0 20px rgba(255, 215, 0, 0.8),
+      0 0 40px rgba(255, 215, 0, 0.5),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
+  }
+  50% {
+    text-shadow: 
+      0 0 30px rgba(255, 215, 0, 1),
+      0 0 60px rgba(255, 215, 0, 0.7),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-10px);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    top: -10px;
+    opacity: 1;
+    transform: translateX(0) rotate(0deg);
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+    transform: translateX(50px) rotate(720deg);
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .winner-image-container {
+    width: 150px;
+    height: 150px;
+  }
+
+  .winner-name {
+    font-size: 2rem;
+  }
+
+  .winner-label {
+    font-size: 1.1rem;
+  }
+
+  .winner-crown {
+    font-size: 2.5rem;
+    top: -15px;
+  }
+
+  .draw-result .result-icon {
+    font-size: 4rem;
+  }
+
+  .draw-result .result-title {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .winner-image-container {
+    width: 120px;
+    height: 120px;
+  }
+
+  .winner-name {
+    font-size: 1.5rem;
+  }
+
+  .winner-label {
+    font-size: 1rem;
+    letter-spacing: 2px;
+  }
+
+  .winner-crown {
+    font-size: 2rem;
+    top: -10px;
+  }
+
+  .draw-result .result-title {
+    font-size: 1.8rem;
+  }
+
+  .draw-result .result-subtitle {
+    font-size: 1rem;
+  }
 }

@@ -21,9 +21,7 @@ interface Fight {
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
-  status: "SCHEDULED" | "COMPLETED" | "DRAW" | "CANCELLED"; // ✅ add status
-  winnerId?: string; // still keep this
-  winner?: Fighter | null; // ✅ add relation (from API include)
+   winnerId?: string;
 }
 
 interface TotalSupport {
@@ -48,8 +46,6 @@ interface FighterStakingProps {
   position: 'left' | 'right';
 }
 
-
-
 const MOTIVATIONAL_MESSAGES = [
   "Wow! Keep supporting your fighter!",
   "Awesome support!",
@@ -72,10 +68,18 @@ function getTimeRemaining(fightDate: string) {
   return { total, days, hours, minutes, seconds };
 }
 
+// Add this enhanced winner overlay to your FightCard component
+
 function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
   const isActive = !!fight && new Date(fight.fightDate).getTime() > Date.now();
   const isConcluded = !!fight && new Date(fight.fightDate).getTime() <= Date.now();
   const [timer, setTimer] = useState<string>("");
+
+  // Determine fight result
+  const isDraw = isConcluded && fight && !fight.winnerId;
+  const winner = isConcluded && fight?.winnerId 
+    ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
+    : null;
 
   useEffect(() => {
     if (!fight) return;
@@ -129,33 +133,52 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         />
       </div>
       
+      {/* Enhanced Winner/Draw Overlay */}
       {isConcluded && (
-        <div className="concluded-fight-overlay">
-          FIGHT CONCLUDED
+        <div className="fight-result-overlay">
+          <div className="result-backdrop"></div>
+          
+          {isDraw ? (
+            <div className="result-content draw-result">
+              <div className="result-icon">🤝</div>
+              <h2 className="result-title">IT'S A DRAW!</h2>
+              <p className="result-subtitle">Both fighters showed incredible skill</p>
+            </div>
+          ) : winner ? (
+            <div className="result-content winner-result">
+              <div className="winner-image-container">
+                {winner.imageUrl ? (
+                  <img 
+                    src={winner.imageUrl} 
+                    alt={winner.name}
+                    className="winner-portrait"
+                  />
+                ) : (
+                  <div className="winner-placeholder">
+                    {winner.name?.[0] || "W"}
+                  </div>
+                )}
+                <div className="winner-crown">👑</div>
+              </div>
+              <h2 className="result-title winner-name">{winner.name}</h2>
+              <p className="result-subtitle winner-label">WINS BY VICTORY!</p>
+              <div className="confetti-container">
+                {[...Array(20)].map((_, i) => (
+                  <div key={i} className="confetti" style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                    backgroundColor: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4', '#45B7D1'][Math.floor(Math.random() * 5)]
+                  }}></div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="result-content">
+              <h2 className="result-title">FIGHT CONCLUDED</h2>
+            </div>
+          )}
         </div>
       )}
-
-      {isConcluded && (
-  <div className="concluded-fight-overlay">
-    {fight.status === "COMPLETED" && fight.winner ? (
-      <div className="winner-display">
-        <img 
-          src={fight.winner.imageUrl} 
-          alt={fight.winner.name}
-          className="winner-image"
-        />
-        <div className="winner-text">🏆 {fight.winner.name} Wins!</div>
-      </div>
-    ) : fight.status === "DRAW" ? (
-      <div className="draw-display">🤝 Draw</div>
-    ) : fight.status === "CANCELLED" ? (
-      <div className="cancelled-display">❌ Cancelled</div>
-    ) : (
-      <div>⚠️ Fight Concluded</div>
-    )}
-  </div>
-)}
-
     </div>
   );
 }
