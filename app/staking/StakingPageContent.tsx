@@ -18,6 +18,7 @@ interface Fighter {
 interface Fight {
   id: string;
   title: string;
+  status?: string;
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
@@ -80,6 +81,14 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
   const winner = isConcluded && fight?.winnerId 
     ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
     : null;
+  const isCancelled = isConcluded && fight?.status === 'cancelled';
+
+  // Scroll to top when fight concludes
+  useEffect(() => {
+    if (isConcluded) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [isConcluded]);
 
   useEffect(() => {
     if (!fight) return;
@@ -109,43 +118,49 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         )}
       </div>
       
-      <div className="fighters-container">
-        <FighterStaking 
-          fighter={fight?.fighter1}
-          opponent={fight?.fighter2}
-          fight={fight}
-          userPoints={userPoints}
-          isActive={isActive}
-          isConcluded={isConcluded}
-          telegramId={telegramId}
-          position="left"
-        />
-        <div className="vs-container">VS</div>
-        <FighterStaking 
-          fighter={fight?.fighter2}
-          opponent={fight?.fighter1}
-          fight={fight}
-          userPoints={userPoints}
-          isActive={isActive}
-          isConcluded={isConcluded}
-          telegramId={telegramId}
-          position="right"
-        />
-      </div>
+      {/* Conditionally render fighters section - hide when concluded */}
+      {!isConcluded && fight && (
+        <div className="fighters-container">
+          <div className="fighter-staking"><h3>{fight.fighter1.name}</h3></div>
+          <div className="vs-container">VS</div>
+          <div className="fighter-staking"><h3>{fight.fighter2.name}</h3></div>
+        </div>
+      )}
       
-      {/* Enhanced Winner/Draw Overlay */}
-      {isConcluded && (
+      {/* Enhanced Winner/Draw/Cancelled Overlay */}
+      {isConcluded && fight && (
         <div className="fight-result-overlay">
           <div className="result-backdrop"></div>
           
-          {isDraw ? (
+          {isCancelled ? (
+            <div className="result-content cancelled-result">
+              <div className="matchup-info">
+                <span className="fighter-name-small">{fight.fighter1.name}</span>
+                <span className="vs-small">VS</span>
+                <span className="fighter-name-small">{fight.fighter2.name}</span>
+              </div>
+              <div className="result-icon">🚫</div>
+              <h2 className="result-title">FIGHT CANCELLED</h2>
+              <p className="result-subtitle">This fight has been cancelled</p>
+            </div>
+          ) : isDraw ? (
             <div className="result-content draw-result">
+              <div className="matchup-info">
+                <span className="fighter-name-small">{fight.fighter1.name}</span>
+                <span className="vs-small">VS</span>
+                <span className="fighter-name-small">{fight.fighter2.name}</span>
+              </div>
               <div className="result-icon">🤝</div>
               <h2 className="result-title">IT'S A DRAW!</h2>
               <p className="result-subtitle">Both fighters showed incredible skill</p>
             </div>
           ) : winner ? (
             <div className="result-content winner-result">
+              <div className="matchup-info">
+                <span className="fighter-name-small">{fight.fighter1.name}</span>
+                <span className="vs-small">VS</span>
+                <span className="fighter-name-small">{fight.fighter2.name}</span>
+              </div>
               <div className="winner-image-container">
                 {winner.imageUrl ? (
                   <img 
@@ -174,6 +189,11 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
             </div>
           ) : (
             <div className="result-content">
+              <div className="matchup-info">
+                <span className="fighter-name-small">{fight.fighter1.name}</span>
+                <span className="vs-small">VS</span>
+                <span className="fighter-name-small">{fight.fighter2.name}</span>
+              </div>
               <h2 className="result-title">FIGHT CONCLUDED</h2>
             </div>
           )}
@@ -287,124 +307,116 @@ useEffect(() => {
   const el = fighterRef.current;
   if (!el) return;
 
-  let isStaking = false;
+  let pressTimer: NodeJS.Timeout | null = null;
+  let isBarFillingMode = false;
 
- const handleTouchStart = (e: TouchEvent) => {
-  e.preventDefault();
-  if (!canParticipate || isFighter) return;
-  const t = e.touches[0];
-  if (!t) return;
+  const handleTouchStart = (e: TouchEvent) => {
+    if (!canParticipate || isFighter) return;
+    const t = e.touches[0];
+    if (!t) return;
 
-  touchStartXRef.current = t.clientX;
-  touchStartYRef.current = t.clientY;
-  touchIntentRef.current = "idle";
-  lastTapTimeRef.current = Date.now(); // Track start time for velocity
+    touchStartXRef.current = t.clientX;
+    touchStartYRef.current = t.clientY;
+    touchIntentRef.current = "idle";
+    isBarFillingMode = false;
 
-  setTapping(true);
-  setIsTouchMoving(false);
-
-  stopBarDecay();
-};
-
- const handleTouchMove = (e: TouchEvent) => {
-  if (!canParticipate || isFighter) return;
-  const touch = e.touches[0];
-  if (!touch) return;
-
-  const dx = Math.abs(touch.clientX - touchStartXRef.current);
-  const dy = Math.abs(touch.clientY - touchStartYRef.current);
-  const totalDistance = Math.sqrt(dx * dx + dy * dy);
-
-  if (touchIntentRef.current === "idle") {
-    // Still in deadzone - wait for clearer movement
-    if (totalDistance < 10) return;
-
-    // Calculate velocity for swipe detection
-    const now = Date.now();
-    const timeDelta = now - (lastTapTimeRef.current || now);
-    const velocity = totalDistance / Math.max(timeDelta, 1);
-
-    // INTENT 1: Fast horizontal swipe (page change)
-    if (dx > dy * 2 && velocity > 0.5) { // Horizontal dominant + fast
-      touchIntentRef.current = "swipe";
-      setIsTouchMoving(true);
-      setTapping(false);
-      // Allow default swipe behavior
-      return;
-    }
-
-    // INTENT 2: Vertical scroll
-    if (dy > dx * 1.5 && dy > 15) { // Vertical dominant
-      touchIntentRef.current = "scroll";
-      setIsTouchMoving(true);
-      setTapping(false);
-      // Allow default scroll behavior
-      return;
-    }
-
-    // INTENT 3: Bar filling (slow movement or press-and-hold within element)
-    touchIntentRef.current = "stake";
-    setIsTouchMoving(false);
+    // Show visual feedback immediately
     setTapping(true);
-  }
+    setIsTouchMoving(false);
 
-  // Allow scroll and swipe gestures
-  if (touchIntentRef.current === "scroll" || touchIntentRef.current === "swipe") {
-    return; // Don't preventDefault - let browser handle it
-  }
+    // Start timer to enter bar filling mode after 200ms of holding
+    pressTimer = setTimeout(() => {
+      isBarFillingMode = true;
+      touchIntentRef.current = "stake";
+      e.preventDefault(); // Now prevent scroll
+      stopBarDecay();
+    }, 200); // 200ms hold to activate bar filling
+  };
 
-  // Only prevent default for bar filling
-  e.preventDefault();
-  e.stopPropagation();
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!canParticipate || isFighter) return;
+    const touch = e.touches[0];
+    if (!touch) return;
 
-  const rect = fighterRef.current?.getBoundingClientRect?.();
-  if (!rect) return;
+    const dx = Math.abs(touch.clientX - touchStartXRef.current);
+    const dy = Math.abs(touch.clientY - touchStartYRef.current);
 
-  const relativeY = (touch.clientY - rect.top) / rect.height;
-  const newHeight = Math.max(0, Math.min(100, 100 - relativeY * 100));
+    // If user moved before bar filling mode activated, cancel it
+    if (!isBarFillingMode && (dx > 10 || dy > 10)) {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+      setTapping(false); // Remove color highlight
+      
+      // Determine if it's scroll or swipe
+      if (dy > dx * 1.5) {
+        touchIntentRef.current = "scroll";
+      } else if (dx > dy * 1.5) {
+        touchIntentRef.current = "swipe";
+      }
+      return; // Allow default behavior
+    }
 
-  setBarHeight(newHeight);
-  setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+    // If in bar filling mode (color changed), fill the bar
+    if (isBarFillingMode && touchIntentRef.current === "stake") {
+      e.preventDefault();
+      e.stopPropagation();
 
-  createTapEffect(touch.clientX - rect.left, touch.clientY - rect.top);
+      const rect = fighterRef.current?.getBoundingClientRect?.();
+      if (!rect) return;
 
-  if (Math.random() < 0.25) {
-    showMotivationalMessage(touch.clientX, touch.clientY);
-  }
-};
+      // Allow both vertical and horizontal movement to fill bar
+      const relativeY = (touch.clientY - rect.top) / rect.height;
+      const newHeight = Math.max(0, Math.min(100, 100 - relativeY * 100));
 
+      setBarHeight(newHeight);
+      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+
+      createTapEffect(touch.clientX - rect.left, touch.clientY - rect.top);
+
+      if (Math.random() < 0.25) {
+        showMotivationalMessage(touch.clientX, touch.clientY);
+      }
+    }
+  };
 
   const handleTouchEnd = () => {
+    // Clear the press timer if still waiting
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
 
-  setTapping(false);
-  setIsTouchMoving(false);
+    setTapping(false);
+    setIsTouchMoving(false);
+    isBarFillingMode = false;
 
-  if (!barLockedRef.current && barHeight > 0) {
-    setTimeout(() => {
-      if (!barLockedRef.current) {
-        startBarDecay();
-      }
-    }, 500); // short delay before decay
-  }
-};
+    if (!barLockedRef.current && barHeight > 0) {
+      setTimeout(() => {
+        if (!barLockedRef.current) {
+          startBarDecay();
+        }
+      }, 500);
+    }
+  };
 
-
-  // Attach listeners (non-passive so we can block scroll)
-  el.addEventListener("touchstart", handleTouchStart, { passive: false });
+  // Attach listeners
+  el.addEventListener("touchstart", handleTouchStart, { passive: true });
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
-  el.addEventListener("touchend", handleTouchEnd, { passive: false });
+  el.addEventListener("touchend", handleTouchEnd, { passive: true });
 
   return () => {
-  el.removeEventListener("touchstart", handleTouchStart);
-  el.removeEventListener("touchmove", handleTouchMove);
-  el.removeEventListener("touchend", handleTouchEnd);
+    if (pressTimer) clearTimeout(pressTimer);
+    el.removeEventListener("touchstart", handleTouchStart);
+    el.removeEventListener("touchmove", handleTouchMove);
+    el.removeEventListener("touchend", handleTouchEnd);
 
-  if (decayRef.current) {
-    cancelAnimationFrame(decayRef.current);
-    decayRef.current = null;
-  }
-};
-
+    if (decayRef.current) {
+      cancelAnimationFrame(decayRef.current);
+      decayRef.current = null;
+    }
+  };
 }, [canParticipate, isFighter, barHeight]);
 
   const fetchTotalSupport = async () => {
