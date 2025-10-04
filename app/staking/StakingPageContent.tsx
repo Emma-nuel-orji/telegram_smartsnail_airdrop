@@ -203,7 +203,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const [isTouchMoving, setIsTouchMoving] = useState<boolean>(false);
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
-  const touchIntentRef = useRef('idle'); // 'idle' | 'scroll' | 'stake'
+  const touchIntentRef = useRef<"idle" | "scroll" | "swipe" | "stake">("idle");
   const barLockedRef = useRef<boolean>(barLocked); // keep a ref mirror of state
   const lastTapTimeRef = useRef<number>(0);
   const decayRef = useRef<number | null>(null);
@@ -289,49 +289,71 @@ useEffect(() => {
 
   let isStaking = false;
 
-  const handleTouchStart = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-    const t = e.touches[0];
-    if (!t) return;
+ const handleTouchStart = (e: TouchEvent) => {
+  e.preventDefault();
+  if (!canParticipate || isFighter) return;
+  const t = e.touches[0];
+  if (!t) return;
 
-    touchStartXRef.current = t.clientX;
-    touchStartYRef.current = t.clientY;
-    touchIntentRef.current = "idle";
-    isStaking = false;
+  touchStartXRef.current = t.clientX;
+  touchStartYRef.current = t.clientY;
+  touchIntentRef.current = "idle";
+  lastTapTimeRef.current = Date.now(); // Track start time for velocity
 
-    setTapping(true);
-    setIsTouchMoving(false);
-    lastTapTimeRef.current = 0;
+  setTapping(true);
+  setIsTouchMoving(false);
 
-    stopBarDecay();
-  };
+  stopBarDecay();
+};
 
-  const handleTouchMove = (e: TouchEvent) => {
+ const handleTouchMove = (e: TouchEvent) => {
   if (!canParticipate || isFighter) return;
   const touch = e.touches[0];
   if (!touch) return;
 
   const dx = Math.abs(touch.clientX - touchStartXRef.current);
   const dy = Math.abs(touch.clientY - touchStartYRef.current);
+  const totalDistance = Math.sqrt(dx * dx + dy * dy);
 
   if (touchIntentRef.current === "idle") {
-    if (dx < 8 && dy < 8) return;
+    // Still in deadzone - wait for clearer movement
+    if (totalDistance < 10) return;
 
-    if (dy > dx && dy < 30) {
-      touchIntentRef.current = "scroll";
+    // Calculate velocity for swipe detection
+    const now = Date.now();
+    const timeDelta = now - (lastTapTimeRef.current || now);
+    const velocity = totalDistance / Math.max(timeDelta, 1);
+
+    // INTENT 1: Fast horizontal swipe (page change)
+    if (dx > dy * 2 && velocity > 0.5) { // Horizontal dominant + fast
+      touchIntentRef.current = "swipe";
       setIsTouchMoving(true);
       setTapping(false);
+      // Allow default swipe behavior
       return;
     }
 
+    // INTENT 2: Vertical scroll
+    if (dy > dx * 1.5 && dy > 15) { // Vertical dominant
+      touchIntentRef.current = "scroll";
+      setIsTouchMoving(true);
+      setTapping(false);
+      // Allow default scroll behavior
+      return;
+    }
+
+    // INTENT 3: Bar filling (slow movement or press-and-hold within element)
     touchIntentRef.current = "stake";
     setIsTouchMoving(false);
     setTapping(true);
   }
 
-  if (touchIntentRef.current === "scroll") return;
+  // Allow scroll and swipe gestures
+  if (touchIntentRef.current === "scroll" || touchIntentRef.current === "swipe") {
+    return; // Don't preventDefault - let browser handle it
+  }
 
-  // prevent scroll only while staking
+  // Only prevent default for bar filling
   e.preventDefault();
   e.stopPropagation();
 
@@ -353,6 +375,7 @@ useEffect(() => {
 
 
   const handleTouchEnd = () => {
+
   setTapping(false);
   setIsTouchMoving(false);
 
