@@ -161,7 +161,7 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
                 <div className="winner-crown">👑</div>
               </div>
               <h2 className="result-title winner-name">{winner.name}</h2>
-              <p className="result-subtitle winner-label">WINS BY VICTORY!</p>
+              <p className="result-subtitle winner-label">WINS!</p>
               <div className="confetti-container">
                 {[...Array(20)].map((_, i) => (
                   <div key={i} className="confetti" style={{
