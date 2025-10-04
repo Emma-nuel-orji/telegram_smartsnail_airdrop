@@ -7,7 +7,7 @@ export async function GET() {
       fightDate: {
         lt: new Date(),
       },
-      // status: "COMPLETED", 
+      // status: "COMPLETEvD", 
     },
     orderBy: {
       fightDate: "desc",
@@ -18,6 +18,7 @@ export async function GET() {
       winner: { select: { id: true } },
     },
   });
+
 
   return NextResponse.json(pastFights);
 }
