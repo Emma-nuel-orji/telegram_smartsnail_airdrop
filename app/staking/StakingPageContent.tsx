@@ -18,12 +18,12 @@ interface Fighter {
 interface Fight {
   id: string;
   title: string;
-  status: "SCHEDULED" | "COMPLETED" | "DRAW" | "CANCELLED";
+  status: "SCHEDULED" | "COMPLETED" | "DRAW" | "CANCELLED" | "EXPIRED";
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
-   winnerId?: string;
-   winner?: Fighter | null;
+  winnerId?: string;
+  winner?: Fighter | null;
 }
 
 interface TotalSupport {
@@ -73,23 +73,27 @@ function getTimeRemaining(fightDate: string) {
 // Add this enhanced winner overlay to your FightCard component
 
 function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
-  const isActive = !!fight && new Date(fight.fightDate).getTime() > Date.now();
-  const isConcluded = !!fight && new Date(fight.fightDate).getTime() <= Date.now();
+  const isActive = !!fight && 
+    fight.status === "SCHEDULED" && 
+    new Date(fight.fightDate).getTime() > Date.now();
+  // const isActive = !!fight && new Date(fight.fightDate).getTime() > Date.now();
+  // const isConcluded = !!fight && new Date(fight.fightDate).getTime() <= Date.now();
+  const isConcluded = !!fight && (
+    fight.status === "COMPLETED" ||
+    fight.status === "DRAW" ||
+    fight.status === "CANCELLED" ||
+    fight.status === "EXPIRED" ||
+    new Date(fight.fightDate).getTime() <= Date.now()
+  );
   const [timer, setTimer] = useState<string>("");
 
   // // Determine fight result
-  const isDraw = isConcluded && fight && !fight.winnerId;
+   const isDraw = isConcluded && fight && !fight.winnerId && fight.status !== "CANCELLED" && fight.status !== "EXPIRED";
+  // const isDraw = isConcluded && fight && !fight.winnerId;
   const winner = isConcluded && fight?.winnerId 
     ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
     : null;
-  // const isCancelled = isConcluded && fight?.status === 'cancelled';
 
-  // // Scroll to top when fight concludes
-  // useEffect(() => {
-  //   if (isConcluded) {
-  //     window.scrollTo({ top: 0, behavior: 'smooth' });
-  //   }
-  // }, [isConcluded]);
 
   useEffect(() => {
     if (!fight) return;
@@ -148,12 +152,24 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         <div className="fight-result-overlay">
           <div className="result-backdrop"></div>
           
-          {isDraw ? (
-            <div className="result-content draw-result">
-              <div className="result-icon">🤝</div>
-              <h2 className="result-title">IT'S A DRAW!</h2>
-              <p className="result-subtitle">Both fighters showed incredible skill</p>
-            </div>
+          {fight.status === "CANCELLED" ? (
+      <div className="result-content cancelled-result">
+        <div className="result-icon">🚫</div>
+        <h2 className="result-title">FIGHT CANCELLED</h2>
+        {/* <p className="result-subtitle">This fight will not take place</p> */}
+      </div>
+    ) : fight.status === "EXPIRED" ? (
+      <div className="result-content expired-result">
+        <div className="result-icon">⏰</div>
+        <h2 className="result-title">AWAITING RESULTS</h2>
+        {/* <p className="result-subtitle">Fight concluded, results pending</p> */}
+      </div>
+    ) : isDraw ? (
+      <div className="result-content draw-result">
+        <div className="result-icon">🤝</div>
+        <h2 className="result-title">IT'S A DRAW!</h2>
+        <p className="result-subtitle">Both fighters showed incredible skill</p>
+      </div>
           ) : winner ? (
             <div className="result-content winner-result">
               <div className="winner-image-container">
@@ -478,69 +494,6 @@ useEffect(() => {
     e.stopPropagation();
     return false;
   };
-
-  // Touch handlers with CORRECT logic
-// const handleTouchStart = (e: TouchEvent) => {
-//   if (!canParticipate || isFighter) return;
-//   const t = e.touches && e.touches[0];
-//   if (!t) return;
-
-//   touchStartYRef.current = t.clientY;
-//   touchIntentRef.current = 'idle'; // undecided yet
-//   setTapping(true);
-//   setIsTouchMoving(false);
-//   lastTapTimeRef.current = 0;
-
-//   // Stop any pending decay immediately while user starts interaction
-//   if (barDecayInterval.current) {
-//     clearInterval(barDecayInterval.current);
-//     barDecayInterval.current = null;
-//   }
-// };
-
-
- 
-
-//   const handleTouchEnd = () => {
-//   setTapping(false);
-//   setIsTouchMoving(false);
-
-//   // if intent was stake, start decay (if not locked)
-//   touchIntentRef.current = 'idle';
-
-//   if (!barLockedRef.current && barHeight > 0) {
-//     // small delay before starting decay (2s used in your code)
-//     setTimeout(() => {
-//       if (barDecayInterval.current) {
-//         clearInterval(barDecayInterval.current);
-//         barDecayInterval.current = null;
-//       }
-//       if (barLockedRef.current) return; // might be locked in the meantime
-//       barDecayInterval.current = setInterval(() => {
-//         setBarHeight(prev => {
-//           // stop decay if locked
-//           if (barLockedRef.current) {
-//             if (barDecayInterval.current) {
-//               clearInterval(barDecayInterval.current);
-//               barDecayInterval.current = null;
-//             }
-//             return prev;
-//           }
-//           if (prev <= 0) {
-//             if (barDecayInterval.current) {
-//               clearInterval(barDecayInterval.current);
-//               barDecayInterval.current = null;
-//             }
-//             return 0;
-//           }
-//           const newHeight = Math.max(0, prev - 0.4); // decay speed; tweak as desired
-//           setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-//           return newHeight;
-//         });
-//       }, 150);
-//     }, 1200);
-//   }
-// };
 
 
   // Mouse handlers for desktop
