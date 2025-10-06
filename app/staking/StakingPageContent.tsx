@@ -18,7 +18,7 @@ interface Fighter {
 interface Fight {
   id: string;
   title: string;
-  status: string;
+  status: "SCHEDULED" | "COMPLETED" | "DRAW" | "CANCELLED";
   fightDate: string;
   fighter1: Fighter;
   fighter2: Fighter;
@@ -77,19 +77,19 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
   const isConcluded = !!fight && new Date(fight.fightDate).getTime() <= Date.now();
   const [timer, setTimer] = useState<string>("");
 
-  // Determine fight result
+  // // Determine fight result
   const isDraw = isConcluded && fight && !fight.winnerId;
   const winner = isConcluded && fight?.winnerId 
     ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
     : null;
-  const isCancelled = isConcluded && fight?.status === 'cancelled';
+  // const isCancelled = isConcluded && fight?.status === 'cancelled';
 
-  // Scroll to top when fight concludes
-  useEffect(() => {
-    if (isConcluded) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [isConcluded]);
+  // // Scroll to top when fight concludes
+  // useEffect(() => {
+  //   if (isConcluded) {
+  //     window.scrollTo({ top: 0, behavior: 'smooth' });
+  //   }
+  // }, [isConcluded]);
 
   useEffect(() => {
     if (!fight) return;
@@ -119,59 +119,43 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         )}
       </div>
       
-      {/* Conditionally render fighters section - greyed out when concluded */}
-      <div className={`fighters-container ${isConcluded ? 'greyed-out' : ''}`}>
-        {fight && (
-          <>
-            <div className="fighter-staking">
-              {fight.fighter1.imageUrl && (
-                <img src={fight.fighter1.imageUrl} alt={fight.fighter1.name} className="fighter-image" />
-              )}
-              <h3>{fight.fighter1.name}</h3>
-            </div>
-            <div className="vs-container">VS</div>
-            <div className="fighter-staking">
-              {fight.fighter2.imageUrl && (
-                <img src={fight.fighter2.imageUrl} alt={fight.fighter2.name} className="fighter-image" />
-              )}
-              <h3>{fight.fighter2.name}</h3>
-            </div>
-          </>
-        )}
+            <div className="fighters-container">
+        <FighterStaking 
+          fighter={fight?.fighter1}
+          opponent={fight?.fighter2}
+          fight={fight}
+          userPoints={userPoints}
+          isActive={isActive}
+          isConcluded={isConcluded}
+          telegramId={telegramId}
+          position="left"
+        />
+        <div className="vs-container">VS</div>
+        <FighterStaking 
+          fighter={fight?.fighter2}
+          opponent={fight?.fighter1}
+          fight={fight}
+          userPoints={userPoints}
+          isActive={isActive}
+          isConcluded={isConcluded}
+          telegramId={telegramId}
+          position="right"
+        />
       </div>
       
-      {/* Result Overlay - appears centered over greyed content */}
-      {isConcluded && fight && (
-        <div className="fight-result-centered">
-          {isCancelled ? (
-            <div className="result-content cancelled-result">
-              <div className="matchup-info">
-                <span className="fighter-name-small">{fight.fighter1.name}</span>
-                <span className="vs-small">VS</span>
-                <span className="fighter-name-small">{fight.fighter2.name}</span>
-              </div>
-              <div className="result-icon">🚫</div>
-              <h2 className="result-title">FIGHT CANCELLED</h2>
-              <p className="result-subtitle">This fight has been cancelled</p>
-            </div>
-          ) : isDraw ? (
+        {/* Enhanced Winner/Draw Overlay */}
+      {isConcluded && (
+        <div className="fight-result-overlay">
+          <div className="result-backdrop"></div>
+          
+          {isDraw ? (
             <div className="result-content draw-result">
-              <div className="matchup-info">
-                <span className="fighter-name-small">{fight.fighter1.name}</span>
-                <span className="vs-small">VS</span>
-                <span className="fighter-name-small">{fight.fighter2.name}</span>
-              </div>
               <div className="result-icon">🤝</div>
               <h2 className="result-title">IT'S A DRAW!</h2>
               <p className="result-subtitle">Both fighters showed incredible skill</p>
             </div>
           ) : winner ? (
             <div className="result-content winner-result">
-              <div className="matchup-info">
-                <span className="fighter-name-small">{fight.fighter1.name}</span>
-                <span className="vs-small">VS</span>
-                <span className="fighter-name-small">{fight.fighter2.name}</span>
-              </div>
               <div className="winner-image-container">
                 {winner.imageUrl ? (
                   <img 
@@ -200,11 +184,6 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
             </div>
           ) : (
             <div className="result-content">
-              <div className="matchup-info">
-                <span className="fighter-name-small">{fight.fighter1.name}</span>
-                <span className="vs-small">VS</span>
-                <span className="fighter-name-small">{fight.fighter2.name}</span>
-              </div>
               <h2 className="result-title">FIGHT CONCLUDED</h2>
             </div>
           )}
@@ -212,7 +191,9 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
       )}
     </div>
   );
+
 }
+
 function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConcluded = false, telegramId, position }: FighterStakingProps) {
   type StakeTypeOption = 'STARS' | 'POINTS';
   
