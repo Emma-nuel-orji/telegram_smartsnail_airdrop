@@ -316,6 +316,7 @@ useEffect(() => {
 
   let pressTimer: NodeJS.Timeout | null = null;
   let isBarFillingMode = false;
+  let initialBarHeight = 0;
 
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
@@ -326,18 +327,22 @@ useEffect(() => {
     touchStartYRef.current = t.clientY;
     touchIntentRef.current = "idle";
     isBarFillingMode = false;
+    initialBarHeight = barHeight;
 
     // Show visual feedback immediately
     setTapping(true);
     setIsTouchMoving(false);
+    stopBarDecay();
 
-    // Start timer to enter bar filling mode after 200ms of holding
+    // Start timer to enter bar filling mode after hold duration
     pressTimer = setTimeout(() => {
       isBarFillingMode = true;
       touchIntentRef.current = "stake";
-      e.preventDefault(); // Now prevent scroll
-      stopBarDecay();
-    }, 200); // 200ms hold to activate bar filling
+      // Haptic feedback if available
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+      }
+    }, 300); // 300ms hold to activate
   };
 
   const handleTouchMove = (e: TouchEvent) => {
@@ -348,48 +353,54 @@ useEffect(() => {
     const dx = Math.abs(touch.clientX - touchStartXRef.current);
     const dy = Math.abs(touch.clientY - touchStartYRef.current);
 
-    // If user moved before bar filling mode activated, cancel it
+    // If user moved before bar filling mode activated, cancel it and allow scroll
     if (!isBarFillingMode && (dx > 10 || dy > 10)) {
       if (pressTimer) {
         clearTimeout(pressTimer);
         pressTimer = null;
       }
-      setTapping(false); // Remove color highlight
-      
-      // Determine if it's scroll or swipe
-      if (dy > dx * 1.5) {
-        touchIntentRef.current = "scroll";
-      } else if (dx > dy * 1.5) {
-        touchIntentRef.current = "swipe";
-      }
-      return; // Allow default behavior
+      setTapping(false);
+      touchIntentRef.current = dy > dx ? "scroll" : "swipe";
+      return; // Allow default scroll behavior
     }
 
-    // If in bar filling mode (color changed), fill the bar
+    // If in bar filling mode, prevent scroll and fill bar smoothly
     if (isBarFillingMode && touchIntentRef.current === "stake") {
       e.preventDefault();
       e.stopPropagation();
 
-      const rect = fighterRef.current?.getBoundingClientRect?.();
-      if (!rect) return;
-
-      // Allow both vertical and horizontal movement to fill bar
-      const relativeY = (touch.clientY - rect.top) / rect.height;
-      const newHeight = Math.max(0, Math.min(100, 100 - relativeY * 100));
+      const rect = el.getBoundingClientRect();
+      
+      // Calculate movement delta from start position
+      const deltaY = touchStartYRef.current - touch.clientY;
+      const deltaX = touch.clientX - touchStartXRef.current;
+      
+      // Use combined vertical and horizontal movement for filling
+      // Vertical movement has more weight
+      const combinedDelta = deltaY * 0.8 + deltaX * 0.2;
+      
+      // Convert pixel movement to percentage (adjust sensitivity as needed)
+      const heightChange = (combinedDelta / rect.height) * 100;
+      const newHeight = Math.max(0, Math.min(100, initialBarHeight + heightChange));
 
       setBarHeight(newHeight);
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
+      setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
 
-      createTapEffect(touch.clientX - rect.left, touch.clientY - rect.top);
+      // Visual feedback
+      const localX = touch.clientX - rect.left;
+      const localY = touch.clientY - rect.top;
+      
+      if (Math.random() < 0.15) {
+        createTapEffect(localX, localY);
+      }
 
-      if (Math.random() < 0.25) {
+      if (Math.random() < 0.08) {
         showMotivationalMessage(touch.clientX, touch.clientY);
       }
     }
   };
 
   const handleTouchEnd = () => {
-    // Clear the press timer if still waiting
     if (pressTimer) {
       clearTimeout(pressTimer);
       pressTimer = null;
@@ -397,6 +408,12 @@ useEffect(() => {
 
     setTapping(false);
     setIsTouchMoving(false);
+    
+    // If bar filling mode was never activated, it was just a tap
+    if (!isBarFillingMode) {
+      touchIntentRef.current = "idle";
+    }
+    
     isBarFillingMode = false;
 
     if (!barLockedRef.current && barHeight > 0) {
@@ -408,23 +425,25 @@ useEffect(() => {
     }
   };
 
-  // Attach listeners
+  // Use passive: true for start/end, passive: false for move
   el.addEventListener("touchstart", handleTouchStart, { passive: true });
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
   el.addEventListener("touchend", handleTouchEnd, { passive: true });
+  el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
   return () => {
     if (pressTimer) clearTimeout(pressTimer);
     el.removeEventListener("touchstart", handleTouchStart);
     el.removeEventListener("touchmove", handleTouchMove);
     el.removeEventListener("touchend", handleTouchEnd);
+    el.removeEventListener("touchcancel", handleTouchEnd);
 
     if (decayRef.current) {
       cancelAnimationFrame(decayRef.current);
       decayRef.current = null;
     }
   };
-}, [canParticipate, isFighter, barHeight]);
+}, [canParticipate, isFighter, barHeight, MAX_AMOUNT]);
 
   const fetchTotalSupport = async () => {
     try {
