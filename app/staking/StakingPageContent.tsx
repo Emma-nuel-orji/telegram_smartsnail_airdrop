@@ -307,116 +307,124 @@ useEffect(() => {
   const el = fighterRef.current;
   if (!el) return;
 
-  let pressTimer: NodeJS.Timeout | null = null;
-  let isBarFillingMode = false;
+  let isStaking = false;
 
-  const handleTouchStart = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-    const t = e.touches[0];
-    if (!t) return;
+ const handleTouchStart = (e: TouchEvent) => {
+  e.preventDefault();
+  if (!canParticipate || isFighter) return;
+  const t = e.touches[0];
+  if (!t) return;
 
-    touchStartXRef.current = t.clientX;
-    touchStartYRef.current = t.clientY;
-    touchIntentRef.current = "idle";
-    isBarFillingMode = false;
+  touchStartXRef.current = t.clientX;
+  touchStartYRef.current = t.clientY;
+  touchIntentRef.current = "idle";
+  lastTapTimeRef.current = Date.now(); // Track start time for velocity
 
-    // Show visual feedback immediately
-    setTapping(true);
+  setTapping(true);
+  setIsTouchMoving(false);
+
+  stopBarDecay();
+};
+
+ const handleTouchMove = (e: TouchEvent) => {
+  if (!canParticipate || isFighter) return;
+  const touch = e.touches[0];
+  if (!touch) return;
+
+  const dx = Math.abs(touch.clientX - touchStartXRef.current);
+  const dy = Math.abs(touch.clientY - touchStartYRef.current);
+  const totalDistance = Math.sqrt(dx * dx + dy * dy);
+
+  if (touchIntentRef.current === "idle") {
+    // Still in deadzone - wait for clearer movement
+    if (totalDistance < 10) return;
+
+    // Calculate velocity for swipe detection
+    const now = Date.now();
+    const timeDelta = now - (lastTapTimeRef.current || now);
+    const velocity = totalDistance / Math.max(timeDelta, 1);
+
+    // INTENT 1: Fast horizontal swipe (page change)
+    if (dx > dy * 2 && velocity > 0.5) { // Horizontal dominant + fast
+      touchIntentRef.current = "swipe";
+      setIsTouchMoving(true);
+      setTapping(false);
+      // Allow default swipe behavior
+      return;
+    }
+
+    // INTENT 2: Vertical scroll
+    if (dy > dx * 1.5 && dy > 15) { // Vertical dominant
+      touchIntentRef.current = "scroll";
+      setIsTouchMoving(true);
+      setTapping(false);
+      // Allow default scroll behavior
+      return;
+    }
+
+    // INTENT 3: Bar filling (slow movement or press-and-hold within element)
+    touchIntentRef.current = "stake";
     setIsTouchMoving(false);
+    setTapping(true);
+  }
 
-    // Start timer to enter bar filling mode after 200ms of holding
-    pressTimer = setTimeout(() => {
-      isBarFillingMode = true;
-      touchIntentRef.current = "stake";
-      e.preventDefault(); // Now prevent scroll
-      stopBarDecay();
-    }, 200); // 200ms hold to activate bar filling
-  };
+  // Allow scroll and swipe gestures
+  if (touchIntentRef.current === "scroll" || touchIntentRef.current === "swipe") {
+    return; // Don't preventDefault - let browser handle it
+  }
 
-  const handleTouchMove = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-    const touch = e.touches[0];
-    if (!touch) return;
+  // Only prevent default for bar filling
+  e.preventDefault();
+  e.stopPropagation();
 
-    const dx = Math.abs(touch.clientX - touchStartXRef.current);
-    const dy = Math.abs(touch.clientY - touchStartYRef.current);
+  const rect = fighterRef.current?.getBoundingClientRect?.();
+  if (!rect) return;
 
-    // If user moved before bar filling mode activated, cancel it
-    if (!isBarFillingMode && (dx > 10 || dy > 10)) {
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-      setTapping(false); // Remove color highlight
-      
-      // Determine if it's scroll or swipe
-      if (dy > dx * 1.5) {
-        touchIntentRef.current = "scroll";
-      } else if (dx > dy * 1.5) {
-        touchIntentRef.current = "swipe";
-      }
-      return; // Allow default behavior
-    }
+  const relativeY = (touch.clientY - rect.top) / rect.height;
+  const newHeight = Math.max(0, Math.min(100, 100 - relativeY * 100));
 
-    // If in bar filling mode (color changed), fill the bar
-    if (isBarFillingMode && touchIntentRef.current === "stake") {
-      e.preventDefault();
-      e.stopPropagation();
+  setBarHeight(newHeight);
+  setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
 
-      const rect = fighterRef.current?.getBoundingClientRect?.();
-      if (!rect) return;
+  createTapEffect(touch.clientX - rect.left, touch.clientY - rect.top);
 
-      // Allow both vertical and horizontal movement to fill bar
-      const relativeY = (touch.clientY - rect.top) / rect.height;
-      const newHeight = Math.max(0, Math.min(100, 100 - relativeY * 100));
+  if (Math.random() < 0.25) {
+    showMotivationalMessage(touch.clientX, touch.clientY);
+  }
+};
 
-      setBarHeight(newHeight);
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-
-      createTapEffect(touch.clientX - rect.left, touch.clientY - rect.top);
-
-      if (Math.random() < 0.25) {
-        showMotivationalMessage(touch.clientX, touch.clientY);
-      }
-    }
-  };
 
   const handleTouchEnd = () => {
-    // Clear the press timer if still waiting
-    if (pressTimer) {
-      clearTimeout(pressTimer);
-      pressTimer = null;
-    }
 
-    setTapping(false);
-    setIsTouchMoving(false);
-    isBarFillingMode = false;
+  setTapping(false);
+  setIsTouchMoving(false);
 
-    if (!barLockedRef.current && barHeight > 0) {
-      setTimeout(() => {
-        if (!barLockedRef.current) {
-          startBarDecay();
-        }
-      }, 500);
-    }
-  };
+  if (!barLockedRef.current && barHeight > 0) {
+    setTimeout(() => {
+      if (!barLockedRef.current) {
+        startBarDecay();
+      }
+    }, 500); // short delay before decay
+  }
+};
 
-  // Attach listeners
-  el.addEventListener("touchstart", handleTouchStart, { passive: true });
+
+  // Attach listeners (non-passive so we can block scroll)
+  el.addEventListener("touchstart", handleTouchStart, { passive: false });
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
-  el.addEventListener("touchend", handleTouchEnd, { passive: true });
+  el.addEventListener("touchend", handleTouchEnd, { passive: false });
 
   return () => {
-    if (pressTimer) clearTimeout(pressTimer);
-    el.removeEventListener("touchstart", handleTouchStart);
-    el.removeEventListener("touchmove", handleTouchMove);
-    el.removeEventListener("touchend", handleTouchEnd);
+  el.removeEventListener("touchstart", handleTouchStart);
+  el.removeEventListener("touchmove", handleTouchMove);
+  el.removeEventListener("touchend", handleTouchEnd);
 
-    if (decayRef.current) {
-      cancelAnimationFrame(decayRef.current);
-      decayRef.current = null;
-    }
-  };
+  if (decayRef.current) {
+    cancelAnimationFrame(decayRef.current);
+    decayRef.current = null;
+  }
+};
+
 }, [canParticipate, isFighter, barHeight]);
 
   const fetchTotalSupport = async () => {
