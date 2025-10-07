@@ -60,68 +60,69 @@ export default function FighterRegistration() {
   }, []);
 
   const steps = [
-    {
-      title: 'Full Name',
-      icon: User,
-      field: 'name',
-      placeholder: 'e.g., Mike Tyson',
-      validation: (val) => val.length >= 3,
-      errorMsg: 'Name must be at least 3 characters'
-    },
-    {
-      title: 'Age',
-      icon: Hash,
-      field: 'age',
-      type: 'number',
-      placeholder: 'e.g., 25',
-      validation: (val) => val >= 18 && val <= 60,
-      errorMsg: 'Age must be between 18 and 60'
-    },
-    {
-      title: 'Gender',
-      icon: User,
-      field: 'gender',
-      type: 'select',
-      options: ['Male', 'Female', 'Other'],
-      validation: (val) => val !== '',
-      errorMsg: 'Please select a gender'
-    },
-    {
-      title: 'Height (cm)',
-      icon: Ruler,
-      field: 'height',
-      type: 'number',
-      placeholder: 'e.g., 180',
-      validation: (val) => val >= 140 && val <= 230,
-      errorMsg: 'Height must be between 140-230 cm'
-    },
-    {
-      title: 'Weight (kg)',
-      icon: Weight,
-      field: 'weight',
-      type: 'number',
-      placeholder: 'e.g., 75',
-      validation: (val) => val >= 40 && val <= 200,
-      errorMsg: 'Weight must be between 40-200 kg'
-    },
-    {
-      title: 'Weight Class',
-      icon: Trophy,
-      field: 'weightClass',
-      type: 'select',
-      options: WEIGHT_CLASSES,
-      validation: (val) => val !== '',
-      errorMsg: 'Please select a weight class'
-    },
-    {
-      title: 'Profile Photo',
-      icon: Camera,
-      field: 'photo',
-      type: 'file',
-      validation: () => true, // Optional
-      errorMsg: ''
-    }
-  ];
+  {
+    title: 'Full Name',
+    icon: User,
+    field: 'name',
+    placeholder: 'e.g., Mike Tyson',
+    validation: (val: string) => val.length >= 3,
+    errorMsg: 'Name must be at least 3 characters',
+  },
+  {
+    title: 'Age',
+    icon: Hash,
+    field: 'age',
+    type: 'number',
+    placeholder: 'e.g., 25',
+    validation: (val: number) => val >= 18 && val <= 60,
+    errorMsg: 'Age must be between 18 and 60',
+  },
+  {
+    title: 'Gender',
+    icon: User,
+    field: 'gender',
+    type: 'select',
+    options: ['Male', 'Female', 'Other'],
+    validation: (val: string) => val !== '',
+    errorMsg: 'Please select a gender',
+  },
+  {
+    title: 'Height (cm)',
+    icon: Ruler,
+    field: 'height',
+    type: 'number',
+    placeholder: 'e.g., 180',
+    validation: (val: number) => val >= 140 && val <= 230,
+    errorMsg: 'Height must be between 140–230 cm',
+  },
+  {
+    title: 'Weight (kg)',
+    icon: Weight,
+    field: 'weight',
+    type: 'number',
+    placeholder: 'e.g., 75',
+    validation: (val: number) => val >= 40 && val <= 200,
+    errorMsg: 'Weight must be between 40–200 kg',
+  },
+  {
+    title: 'Weight Class',
+    icon: Trophy,
+    field: 'weightClass',
+    type: 'select',
+    options: WEIGHT_CLASSES,
+    validation: (val: string) => val !== '',
+    errorMsg: 'Please select a weight class',
+  },
+  {
+    title: 'Profile Photo',
+    icon: Camera,
+    field: 'photo',
+    type: 'file',
+    validation: (_val: File | null) => true, // optional, always valid
+    errorMsg: '',
+  },
+];
+
 
   const currentStepData = steps[step];
 
