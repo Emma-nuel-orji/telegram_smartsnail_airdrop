@@ -858,9 +858,9 @@ useEffect(() => {
       <Link href="/level">Level  :</Link>
     </div>
   </button>
-  <button onClick={resetAppSession} className="mt-4 text-red-600">
+  {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
-</button>
+</button> */}
 
 
       {/* Display Camouflage Level */}
@@ -968,13 +968,13 @@ useEffect(() => {
 
           
   {/* <div className="absolute top-4 right-4 z-20"> */}
-              <Link href="/cafe" passHref>
+              <Link href="/register" passHref>
                 <button
                   // onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
                 >
         <img
-          src="/images/dish.png"
+          src="/images/register.png"
           alt="Fight Club"
           className="w-6 h-6" // Adjust size as needed
           onClick={(e) => e.stopPropagation()}
