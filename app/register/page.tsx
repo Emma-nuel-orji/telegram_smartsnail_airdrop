@@ -22,7 +22,9 @@ export default function FighterRegistration() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [telegramId, setTelegramId] = useState(null);
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+
+  // const [telegramId, setTelegramId] = useState(null);
   const [userShells, setUserShells] = useState(0);
   
   const [formData, setFormData] = useState({
