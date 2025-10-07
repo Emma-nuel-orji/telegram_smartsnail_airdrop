@@ -16,6 +16,22 @@ const WEIGHT_CLASSES = [
   'Heavyweight'
 ];
 
+type PaymentMethod = "stars" | "shells";
+
+
+
+interface Step {
+  title: string;
+  icon: any;
+  field: keyof FighterFormData;
+  type?: string;
+  placeholder?: string;
+  options?: string[];
+  validation: (val: any) => boolean;
+  errorMsg: string;
+}
+
+
 interface FighterFormData {
   name: string;
   age: string;
@@ -31,7 +47,7 @@ interface FighterFormData {
 
 export default function FighterRegistration() {
   const [step, setStep] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -73,7 +89,7 @@ export default function FighterRegistration() {
     }
   }, []);
 
-  const steps = [
+  const steps: Step[] =  [
   {
     title: 'Full Name',
     icon: User,
@@ -195,9 +211,10 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
 
-  const handlePaymentSelect = (method) => {
-    setPaymentMethod(method);
-  };
+ 
+const handlePaymentSelect = (method: PaymentMethod) => {
+  setPaymentMethod(method);
+};
 
   const handleSubmit = async () => {
     if (!paymentMethod) {
@@ -268,8 +285,13 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSuccess(true);
       }
     } catch (err) {
-      setError(err.message || 'Failed to register. Please try again.');
-    } finally {
+  if (err instanceof Error) {
+    setError(err.message);
+  } else {
+    setError('Failed to register. Please try again.');
+  }
+}
+ finally {
       setIsSubmitting(false);
     }
   };
