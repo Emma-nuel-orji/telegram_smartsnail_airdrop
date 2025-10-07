@@ -16,6 +16,19 @@ const WEIGHT_CLASSES = [
   'Heavyweight'
 ];
 
+interface FighterFormData {
+  name: string;
+  age: string;
+  gender: string;
+  height: string;
+  weight: string;
+  weightClass: string;
+  telegramId: string;
+  photo: File | null;
+  photoPreview: string | null;
+}
+
+
 export default function FighterRegistration() {
   const [step, setStep] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState(null);
@@ -27,17 +40,18 @@ export default function FighterRegistration() {
   // const [telegramId, setTelegramId] = useState(null);
   const [userShells, setUserShells] = useState(0);
   
-  const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    gender: '',
-    height: '',
-    weight: '',
-    weightClass: '',
-    telegramId: '',
-    photo: null,
-    photoPreview: null
-  });
+ const [formData, setFormData] = useState<FighterFormData>({
+  name: '',
+  age: '',
+  gender: '',
+  height: '',
+  weight: '',
+  weightClass: '',
+  telegramId: '',
+  photo: null,
+  photoPreview: null,
+});
+
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
