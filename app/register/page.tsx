@@ -52,6 +52,8 @@ export default function FighterRegistration() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [telegramId, setTelegramId] = useState<string | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string>('');
+
 
   // const [telegramId, setTelegramId] = useState(null);
   const [userShells, setUserShells] = useState(0);
@@ -297,6 +299,15 @@ const handlePaymentSelect = (method: PaymentMethod) => {
   };
 
   const progressPercentage = ((step + 1) / (steps.length + 1)) * 100;
+  const handleSelectOption = (option: string) => {
+  setSelectedOption(option);
+  setFormData((prev) => ({
+    ...prev,
+    [steps[step].field]: option,
+  }));
+  setError('');
+};
+
 
   if (success) {
     return (
@@ -376,22 +387,22 @@ const handlePaymentSelect = (method: PaymentMethod) => {
               <div className="mb-6">
                 {currentStepData.type === 'select' ? (
                   <div className="grid grid-cols-1 gap-3">
-                    {currentStepData.options.map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, [currentStepData.field]: option }));
-                          setError('');
-                        }}
-                        className={`p-4 rounded-xl border-2 transition-all ${
-                          formData[currentStepData.field] === option
-                            ? 'border-purple-500 bg-purple-500/20 text-white'
-                            : 'border-white/20 bg-white/5 text-gray-300 hover:border-purple-400'
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
+                    {currentStepData.type === 'select' && currentStepData.options?.map((option) => (
+  <button
+    key={option}
+    onClick={() => {
+      handleSelectOption(option);
+    }}
+    className={`w-full py-3 rounded-lg border transition ${
+      selectedOption === option
+        ? 'bg-blue-600 text-white border-blue-600'
+        : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
+    }`}
+  >
+    {option}
+  </button>
+))}
+
                   </div>
                 ) : currentStepData.type === 'file' ? (
                   <div className="text-center">
@@ -430,11 +441,12 @@ const handlePaymentSelect = (method: PaymentMethod) => {
                   <input
                     type={currentStepData.type || 'text'}
                     name={currentStepData.field}
-                    value={formData[currentStepData.field]}
+                    value={(formData[currentStepData.field] as string) || ''}
                     onChange={handleInputChange}
                     placeholder={currentStepData.placeholder}
                     className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-6 py-4 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 transition-all text-lg"
                   />
+
                 )}
               </div>
 
