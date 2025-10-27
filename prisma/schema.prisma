@@ -255,12 +255,19 @@ model Fighter {
   telegramId     BigInt?   @unique
   socialMedia    String?
   points         BigInt    @default(0)
+  status         FighterStatus  @default(PENDING)
   fightsAsF1     Fight[]   @relation("Fighter1Fights")
   fightsAsF2     Fight[]   @relation("Fighter2Fights")
   stakes         Stake[]
   winnerOf       Fight[]   @relation("FightWinner")
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+enum FighterStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 
