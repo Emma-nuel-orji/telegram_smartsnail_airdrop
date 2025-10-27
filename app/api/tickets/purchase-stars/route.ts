@@ -70,5 +70,7 @@ export async function POST(req: NextRequest) {
       { success: false, message: error.message },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         paymentMethod: ticket.paymentMethod,
         totalCost: ticket.totalCost,
         status: ticket.status,
-        purchaseDate: ticket.purchaseDate
+        purchaseDate: ticket.purchaseDate.toISOString()
       },
       newBalance: Number(updatedUser.points)
     });
@@ -80,5 +80,7 @@ export async function POST(req: NextRequest) {
       { success: false, message: error.message },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
