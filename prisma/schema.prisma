@@ -251,7 +251,7 @@ model Fighter {
   gender         String?     
   height         Float?    
   weight         Float?    
-  weightClass    Float?    
+  weightClass    String   
   telegramId     BigInt?   @unique
   socialMedia    String?
   points         BigInt    @default(0)
@@ -393,4 +393,25 @@ model Service {
 enum ServiceType {
   SUBSCRIPTION
   ONE_TIME
+}
+
+model Ticket {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  ticketId      String   @unique
+  telegramId    BigInt
+  userName      String
+  ticketType    String   // 'Regular', 'VIP', 'VVIP'
+  quantity      Int
+  paymentMethod String   // 'stars', 'shells'
+  totalCost     Int
+  pricePerTicket Int
+  status        String   @default("pending") // 'pending', 'approved', 'rejected'
+  purchaseDate  DateTime @default(now())
+  approvedDate  DateTime?
+  approvedBy    String?  // Admin telegram ID
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([telegramId])
+  @@index([status])
 }

@@ -1,5 +1,8 @@
 'use client';
+import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useCallback, useContext, useRef  } from "react";
+import { Check, Ticket, Star, Coins, Users, Crown, Sparkles } from 'lucide-react';
+
 import { io } from "socket.io-client";
 import Link from "next/link";
 import axios from "axios";
@@ -12,11 +15,17 @@ import { useRouter } from "next/navigation";
 import { useWallet } from '../context/walletContext';
 import Confetti from "react-confetti";
 import { useWindowSize } from 'react-use';
+// import TicketPurchaseSystem from '@/app/tickets/page';
+
 
 // import { generateHMACSignature } from "@/src/utils/paymentUtils"
 
 // Context
 import { useBoostContext } from "../api/context/BoostContext";
+
+const TicketPurchaseSystem = dynamic(() => import('@/app/tickets/page'), {
+  ssr: false
+});
 
 interface StockLimit {
   fxckedUpBagsLimit: number;
@@ -168,15 +177,7 @@ useEffect(() => {
   }, [purchaseEmail, redemptionEmail, referralLink]);
 
  
-  // useEffect(() => {
-  //   // Basic snapshot
-  //   console.log('Current Stock:', {
-  //     fxckedUp: `${stockLimit.fxckedUpBagsUsed}/${stockLimit.fxckedUpBagsLimit}`,
-  //     human: `${stockLimit.humanRelationsUsed}/${stockLimit.humanRelationsLimit}`,
-  //     timestamp: new Date().toISOString()
-  //   });
   
-    
 
   //   // Change analysis
   useEffect(() => {
@@ -245,26 +246,7 @@ const triggerConfetti = () => {
 };
   
 
-  // Fetch Stock Data
-  // const fetchStockData = async () => {
-  //   try {
-  //     const response = await fetch('/api/stock');
-  //     const data = await response.json();
-      
-  //     setStockLimit({
-  //       fxckedUpBagsLimit: data.fxckedUpBagsLimit,
-  //     fxckedUpBagsUsed: data.fxckedUpBagsUsed,
-  //     fxckedUpBags: data.fxckedUpBags, // Make sure API returns this
-  //     humanRelationsLimit: data.humanRelationsLimit,
-  //     humanRelationsUsed: data.humanRelationsUsed,
-  //     humanRelations: data.humanRelations
-      
-  //     });
-      
-  //   } catch (error) {
-  //     console.error("Failed to load stock:", error);
-  //   }
-  // }
+
 
 
   useEffect(() => {
@@ -867,8 +849,19 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
 
       {/* Message Display */}
       {message && <p className="message">{message}</p>}
+
+         {/* Section Separator */}
+        <div className="section-separator">
+          <div className="separator-line"></div>
+          <h2 className="separator-title">🎟️ Event Tickets</h2>
+          <div className="separator-line"></div>
+        </div>
+
+        <TicketPurchaseSystem />
       
     </div>
+
+    
     </>
   );
 }
