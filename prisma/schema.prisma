@@ -227,6 +227,7 @@ model Fight {
   title        String
   fightDate    DateTime
   status       FightStatus @default(SCHEDULED)
+  weightClass  String?
   fighter1     Fighter   @relation("Fighter1Fights", fields: [fighter1Id], references: [id])
   fighter1Id   String    @db.ObjectId
   fighter2     Fighter   @relation("Fighter2Fights", fields: [fighter2Id], references: [id])
