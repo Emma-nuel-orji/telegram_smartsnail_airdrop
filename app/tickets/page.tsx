@@ -446,13 +446,15 @@ export default function TicketPurchaseSystem() {
                       : 'bg-yellow-500/20 text-yellow-400 border border-yellow-400'
                   }`}>
                     {purchase.status === 'approved' ? (
-                      <span className="flex items-center gap-2">
-                        <Check className="w-4 h-4" />
-                        Approved
-                      </span>
-                    ) : (
-                      'Pending'
-                    )}
+                        <span className="flex items-center gap-2">
+                            <Check className="w-4 h-4" /> Approved
+                        </span>
+                        ) : purchase.status === 'pending' ? (
+                        'Pending Verification'
+                        ) : (
+                        'Not Presented'
+                        )}
+
                   </div>
                 </div>
 

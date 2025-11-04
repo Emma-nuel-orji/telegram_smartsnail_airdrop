@@ -32,6 +32,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 🟡 Mark ticket as pending verification
+    await prisma.ticket.update({
+      where: { ticketId },
+      data: { status: 'pending' }
+    });
+
     // Send notification to admin group
     const BOT_TOKEN = process.env.BOT_TOKEN;
     const ADMIN_GROUP_ID = process.env.ADMIN_GROUP_ID;

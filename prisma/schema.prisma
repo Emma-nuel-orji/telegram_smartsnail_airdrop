@@ -412,7 +412,7 @@ model Ticket {
   paymentMethod String   // 'stars', 'shells'
   totalCost     Int
   pricePerTicket Int
-  status        String   @default("pending") // 'pending', 'approved', 'rejected'
+  status        String    @default("purchased") // 'pending', 'approved', 'rejected'
   purchaseDate  DateTime @default(now())
   approvedDate  DateTime?
   approvedBy    String?  // Admin telegram ID

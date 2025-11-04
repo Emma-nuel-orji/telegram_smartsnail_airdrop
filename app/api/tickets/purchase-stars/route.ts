@@ -1,26 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import axios from 'axios';
+import { NextResponse } from "next/server";
+import { prisma } from "@/prisma/client";
+import { Bot } from "grammy";
 
-const prisma = new PrismaClient();
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-export async function POST(req: NextRequest) {
+if (!TELEGRAM_BOT_TOKEN) {
+  throw new Error("TELEGRAM_BOT_TOKEN is missing from .env");
+}
+
+const bot = new Bot(TELEGRAM_BOT_TOKEN);
+
+export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { telegramId, userName, ticketType, quantity, paymentMethod, totalCost, pricePerTicket } = body;
+    const { telegramId, userName, ticketType, quantity, totalCost, pricePerTicket } = await req.json();
 
-    // Validate inputs
     if (!telegramId || !ticketType || !quantity || !totalCost) {
-      return NextResponse.json(
-        { success: false, message: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: "Missing required fields" }, { status: 400 });
     }
 
-    // Generate unique ticket ID
     const ticketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create pending ticket record
     const ticket = await prisma.ticket.create({
       data: {
         ticketId,
@@ -28,49 +27,27 @@ export async function POST(req: NextRequest) {
         userName,
         ticketType,
         quantity,
-        paymentMethod: 'stars',
+        paymentMethod: "stars",
         totalCost,
         pricePerTicket,
-        status: 'pending'
-      }
+        status: "purchased",
+      },
     });
 
-    // Create Telegram Stars invoice
-    const BOT_TOKEN = process.env.BOT_TOKEN;
-    const invoicePayload = {
-      title: `${ticketType} Ticket - ${quantity}x`,
-      description: `Event ticket purchase for ${userName}`,
-      payload: JSON.stringify({ 
-        ticketId,
-        telegramId,
-        type: 'ticket_purchase'
-      }),
-      currency: 'XTR',
-      prices: [{ label: `${ticketType} Ticket`, amount: totalCost }]
-    };
+    const payload = JSON.stringify({ ticketId, telegramId, type: "ticket_purchase" });
 
-    const invoiceResponse = await axios.post(
-      `https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`,
-      invoicePayload
+    const invoiceLink = await bot.api.createInvoiceLink(
+      `${ticketType} Ticket - ${quantity}x`,
+      `Event ticket purchase for ${userName}`,
+      payload,
+      "", // provider token must be empty for Stars
+      "XTR",
+      [{ label: `${ticketType} Ticket`, amount: Math.max(1, Math.round(totalCost * 100)) }]
     );
 
-    if (!invoiceResponse.data.ok) {
-      throw new Error('Failed to create invoice');
-    }
-
-    return NextResponse.json({
-      success: true,
-      invoiceLink: invoiceResponse.data.result,
-      ticketId
-    });
-
+    return NextResponse.json({ success: true, invoiceLink, ticketId });
   } catch (error: any) {
-    console.error('Stars purchase error:', error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+    console.error("Stars purchase error:", error.response?.data || error.message || error);
+    return NextResponse.json({ success: false, message: error.message || "Invoice creation failed" }, { status: 500 });
   }
 }

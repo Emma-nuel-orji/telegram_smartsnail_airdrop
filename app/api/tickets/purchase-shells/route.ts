@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
           paymentMethod: 'shells',
           totalCost,
           pricePerTicket,
-          status: 'pending'
+          status: 'purchased'
         }
       }),
       prisma.user.update({

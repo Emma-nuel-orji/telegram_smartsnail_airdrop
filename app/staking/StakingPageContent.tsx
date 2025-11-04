@@ -249,6 +249,8 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const isWinner = isConcluded && fight?.winnerId === fighter?.id;
   const isLoser = isConcluded && fight?.winnerId !== fighter?.id && fight?.winnerId;
 
+  
+
   useEffect(() => {
     if (fighter?.id && isActive) {
       fetchTotalSupport();
@@ -314,9 +316,9 @@ useEffect(() => {
   const el = fighterRef.current;
   if (!el) return;
 
-  let pressTimer: NodeJS.Timeout | null = null;
   let isBarFillingMode = false;
-  let initialBarHeight = 0;
+  let intentLocked = false;
+  let barRect: DOMRect | null = null;
 
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
@@ -327,95 +329,90 @@ useEffect(() => {
     touchStartYRef.current = t.clientY;
     touchIntentRef.current = "idle";
     isBarFillingMode = false;
-    initialBarHeight = barHeight;
+    intentLocked = false;
 
+    // Get bar position for accurate tracking
+    barRect = el.getBoundingClientRect();
+    
     // Show visual feedback immediately
     setTapping(true);
-    setIsTouchMoving(false);
     stopBarDecay();
-
-    // Start timer to enter bar filling mode after hold duration
-    pressTimer = setTimeout(() => {
-      isBarFillingMode = true;
-      touchIntentRef.current = "stake";
-      // Haptic feedback if available
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-      }
-    }, 300); // 300ms hold to activate
   };
 
   const handleTouchMove = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
     const touch = e.touches[0];
-    if (!touch) return;
+    if (!touch || !barRect) return;
 
-    const dx = Math.abs(touch.clientX - touchStartXRef.current);
-    const dy = Math.abs(touch.clientY - touchStartYRef.current);
+    const dx = touch.clientX - touchStartXRef.current;
+    const dy = touch.clientY - touchStartYRef.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
 
-    // If user moved before bar filling mode activated, cancel it and allow scroll
-    if (!isBarFillingMode && (dx > 10 || dy > 10)) {
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
+    // Determine intent on first significant movement (only once per gesture)
+    if (!intentLocked && (absDx > 5 || absDy > 5)) {
+      intentLocked = true;
+      
+      // Vertical movement with minimal horizontal drift = bar filling
+      if (absDy > absDx * 1.5) {
+        isBarFillingMode = true;
+        touchIntentRef.current = "stake";
+        
+        // Haptic feedback when bar mode activates
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+      } else {
+        // More horizontal or diagonal = scroll/swipe
+        isBarFillingMode = false;
+        touchIntentRef.current = absDx > absDy ? "swipe" : "scroll";
+        setTapping(false);
       }
-      setTapping(false);
-      touchIntentRef.current = dy > dx ? "scroll" : "swipe";
-      return; // Allow default scroll behavior
     }
 
-    // If in bar filling mode, prevent scroll and fill bar smoothly
+    // Only process bar filling if we're in that mode
     if (isBarFillingMode && touchIntentRef.current === "stake") {
       e.preventDefault();
       e.stopPropagation();
 
-      const rect = el.getBoundingClientRect();
-      
-      // Calculate movement delta from start position
-      const deltaY = touchStartYRef.current - touch.clientY;
-      const deltaX = touch.clientX - touchStartXRef.current;
-      
-      // Use combined vertical and horizontal movement for filling
-      // Vertical movement has more weight
-      const combinedDelta = deltaY * 0.8 + deltaX * 0.2;
-      
-      // Convert pixel movement to percentage (adjust sensitivity as needed)
-      const heightChange = (combinedDelta / rect.height) * 100;
-      const newHeight = Math.max(0, Math.min(100, initialBarHeight + heightChange));
+      // Calculate finger position relative to bar (bottom to top)
+      const fingerY = touch.clientY;
+      const barTop = barRect.top;
+      const barBottom = barRect.bottom;
+      const barHeight = barRect.height;
 
+      // Convert finger position to percentage (inverted: bottom = 0%, top = 100%)
+      let newHeight = ((barBottom - fingerY) / barHeight) * 100;
+      
+      // Clamp between 0 and 100
+      newHeight = Math.max(0, Math.min(100, newHeight));
+
+      // Update bar and stake amount
       setBarHeight(newHeight);
       setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
 
-      // Visual feedback
-      const localX = touch.clientX - rect.left;
-      const localY = touch.clientY - rect.top;
+      // Visual feedback (reduced frequency for performance)
+      const localX = touch.clientX - barRect.left;
+      const localY = touch.clientY - barRect.top;
       
-      if (Math.random() < 0.15) {
+      if (Math.random() < 0.1) {
         createTapEffect(localX, localY);
       }
 
-      if (Math.random() < 0.08) {
+      if (Math.random() < 0.05) {
         showMotivationalMessage(touch.clientX, touch.clientY);
       }
     }
   };
 
   const handleTouchEnd = () => {
-    if (pressTimer) {
-      clearTimeout(pressTimer);
-      pressTimer = null;
-    }
-
     setTapping(false);
-    setIsTouchMoving(false);
-    
-    // If bar filling mode was never activated, it was just a tap
-    if (!isBarFillingMode) {
-      touchIntentRef.current = "idle";
-    }
-    
     isBarFillingMode = false;
+    intentLocked = false;
+    touchIntentRef.current = "idle";
+    barRect = null;
 
+    // Start decay after a delay if bar is not locked
     if (!barLockedRef.current && barHeight > 0) {
       setTimeout(() => {
         if (!barLockedRef.current) {
@@ -425,14 +422,13 @@ useEffect(() => {
     }
   };
 
-  // Use passive: true for start/end, passive: false for move
+  // Passive for start/end, non-passive for move to allow preventDefault
   el.addEventListener("touchstart", handleTouchStart, { passive: true });
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
   el.addEventListener("touchend", handleTouchEnd, { passive: true });
   el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
   return () => {
-    if (pressTimer) clearTimeout(pressTimer);
     el.removeEventListener("touchstart", handleTouchStart);
     el.removeEventListener("touchmove", handleTouchMove);
     el.removeEventListener("touchend", handleTouchEnd);
@@ -444,7 +440,6 @@ useEffect(() => {
     }
   };
 }, [canParticipate, isFighter, barHeight, MAX_AMOUNT]);
-
   const fetchTotalSupport = async () => {
     try {
       const response = await fetch(`/api/stakes/total/${fighter?.id}`);

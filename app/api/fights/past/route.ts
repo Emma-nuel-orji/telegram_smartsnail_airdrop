@@ -17,19 +17,18 @@ export async function GET() {
       where: {
         fightDate: { lt: now },
         status: {
-          in: ["COMPLETED", "CANCELLED", "DRAW", "EXPIRED"], // ✅ multiple statuses
+          in: ["COMPLETED", "CANCELLED", "DRAW", "EXPIRED"],
         },
       },
       orderBy: { fightDate: "desc" },
       include: {
-        fighter1: true,
+        fighter1: true, // ✅ these must match exactly your Fight model field names
         fighter2: true,
         winner: true,
       },
     });
 
     const transformedFights = pastFights.map((fight) => {
-      // If it's still marked as SCHEDULED but already in the past → treat as EXPIRED
       const effectiveStatus =
         fight.status === "SCHEDULED" && fight.fightDate < now
           ? "EXPIRED"
@@ -43,18 +42,18 @@ export async function GET() {
         winnerId: fight.winnerId?.toString() || undefined,
         winner: fight.winner
           ? {
-              id: fight.winner.id.toString(),
+              id: fight.winner.id,
               name: fight.winner.name,
               imageUrl: fight.winner.imageUrl,
             }
           : null,
         fighter1: {
-          id: fight.fighter1.id.toString(),
+          id: fight.fighter1.id,
           name: fight.fighter1.name,
           imageUrl: fight.fighter1.imageUrl,
         },
         fighter2: {
-          id: fight.fighter2.id.toString(),
+          id: fight.fighter2.id,
           name: fight.fighter2.name,
           imageUrl: fight.fighter2.imageUrl,
         },
@@ -62,12 +61,11 @@ export async function GET() {
     });
 
     return NextResponse.json(serializeBigInt(transformedFights));
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching past fights:", error);
     return NextResponse.json(
-      { error: "Failed to fetch fights" },
+      { error: error.message || "Failed to fetch fights" },
       { status: 500 }
     );
   }
 }
-// jjkl
