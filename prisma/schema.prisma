@@ -413,7 +413,7 @@ model Ticket {
   paymentMethod String   // 'stars', 'shells'
   totalCost     Int
   pricePerTicket Int
-  status        String    @default("purchased") // 'pending', 'approved', 'rejected'
+  status        TicketStatus @default(purchased) // 'pending', 'approved', 'rejected'
   purchaseDate  DateTime @default(now())
   approvedDate  DateTime?
   approvedBy    String?  // Admin telegram ID
@@ -422,4 +422,11 @@ model Ticket {
 
   @@index([telegramId])
   @@index([status])
+}
+
+enum TicketStatus {
+  purchased
+  pending
+  approved
+  rejected
 }
