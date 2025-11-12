@@ -35,12 +35,13 @@ export async function POST(req: NextRequest) {
     });
     console.log("✏️ Ticket marked as pending");
 
-    const BOT_TOKEN = process.env.BOT_TOKEN;
+    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    // const BOT_TOKEN = process.env.BOT_TOKEN;
     const ADMIN_GROUP_ID = process.env.ADMIN_GROUP_ID;
 
-    console.log("🔑 Bot token exists:", !!BOT_TOKEN, "Group ID exists:", !!ADMIN_GROUP_ID);
+    console.log("🔑 Bot token exists:", !!TELEGRAM_BOT_TOKEN, "Group ID exists:", !!ADMIN_GROUP_ID);
 
-    if (!BOT_TOKEN || !ADMIN_GROUP_ID) {
+    if (!TELEGRAM_BOT_TOKEN || !ADMIN_GROUP_ID) {
       return NextResponse.json({ success: false, message: 'Bot configuration missing' }, { status: 500 });
     }
 
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     console.log("📨 Sending Telegram message...");
 
-    const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       chat_id: ADMIN_GROUP_ID,
       text: message,
       parse_mode: 'Markdown',
