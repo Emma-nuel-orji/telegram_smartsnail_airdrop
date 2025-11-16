@@ -175,10 +175,10 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
       if (data.success) {
 
         // ✅ Telegram haptic feedback
-        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        (window as any).Telegram?.WebApp.HapticFeedback.notificationOccurred('success');
 
         // ✅ Telegram success popup
-        Telegram.WebApp.showPopup({
+        (window as any).Telegram?.WebApp.showPopup({
           title: 'Purchase Successful!',
           message: 'Your ticket has been purchased successfully.',
           buttons: [{ text: 'OK', type: 'default' }]
