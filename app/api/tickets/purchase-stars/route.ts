@@ -10,13 +10,24 @@ if (!TELEGRAM_BOT_TOKEN) {
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
+// Helper to safely serialize BigInt fields
+const safeTicket = (ticket: any) => ({
+  ...ticket,
+  telegramId: ticket.telegramId.toString(),
+  totalCost: Number(ticket.totalCost),
+  pricePerTicket: Number(ticket.pricePerTicket),
+});
+
 export async function POST(req: Request) {
   try {
     const { telegramId, userName, ticketType, quantity, totalCost, pricePerTicket } =
       await req.json();
 
     if (!telegramId || !ticketType || !quantity || !totalCost) {
-      return NextResponse.json({ success: false, message: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     // 1️⃣ Prepare payload for Telegram Stars
@@ -27,8 +38,8 @@ export async function POST(req: Request) {
       type: "ticket_purchase"
     });
 
-    // 2️⃣ Calculate amount (integer, ≥1)
-    const amountInStars = Math.max(1, Math.round(totalCost)); // Do NOT multiply by 100 for XTR
+    // 2️⃣ Calculate amount (integer ≥1)
+    const amountInStars = Math.max(1, Math.round(totalCost)); // XTR requires integer
 
     // 3️⃣ Create Stars invoice
     let invoiceLink;
@@ -38,7 +49,7 @@ export async function POST(req: Request) {
         `Event ticket purchase for ${userName}`,
         payload,
         "", // empty provider token for Stars
-        "XTR", // Stars currency
+        "XTR",
         [
           {
             label: `${ticketType} Ticket`,
@@ -48,7 +59,10 @@ export async function POST(req: Request) {
       );
     } catch (invErr: any) {
       console.error("❌ Telegram Stars invoice error:", invErr);
-      return NextResponse.json({ success: false, message: "Telegram invoice creation failed" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "Telegram invoice creation failed" },
+        { status: 400 }
+      );
     }
 
     // 4️⃣ Create ticket in DB **after invoice succeeds**
@@ -68,7 +82,13 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, invoiceLink, ticketId, ticket });
+    // 5️⃣ Return safe JSON
+    return NextResponse.json({
+      success: true,
+      invoiceLink,
+      ticketId,
+      ticket: safeTicket(ticket),
+    });
   } catch (error: any) {
     console.error("🔥 Stars purchase final error:", error?.response?.data || error.message || error);
     return NextResponse.json(

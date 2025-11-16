@@ -157,10 +157,11 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
 
       const data = await response.json();
 
-      if (data.invoiceLink) {
+      if (data.success && data.invoiceLink) {
+        // Redirect user to Telegram Stars payment
         window.location.href = data.invoiceLink;
       } else {
-        throw new Error('Failed to create payment link');
+        throw new Error(data.message || 'Failed to create Stars payment link');
       }
 
     } else {
@@ -174,6 +175,9 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
       const data = await response.json();
 
       if (data.success) {
+        // Only update UI after purchase is actually successful
+        setUserBalance(data.newBalance);
+        setPurchasedTickets(prev => [...prev, data.ticket]);
 
         // ✅ Telegram haptic feedback
         (window as any).Telegram?.WebApp.HapticFeedback.notificationOccurred('success');
@@ -185,15 +189,13 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
           buttons: [{ text: 'OK', type: 'default' }]
         });
 
-              confetti({
+        // Confetti
+        confetti({
           particleCount: 150,
           spread: 70,
-          origin: {  x: 0.5, y: 0.6 }
+          origin: { y: 0.6 }
         });
 
-        // --- Your existing UI updates ---
-        setUserBalance(data.newBalance);
-        setPurchasedTickets(prev => [...prev, data.ticket]);
         setShowSuccess(true);
         setQuantity(1);
         setSelectedTicket(null);
@@ -211,6 +213,7 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
     setIsProcessing(false);
   }
 };
+
 
 
  const handlePresentTicket = async (ticketId: string) => {
