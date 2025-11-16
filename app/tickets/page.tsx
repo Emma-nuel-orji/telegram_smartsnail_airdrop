@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Ticket, Star, Coins, Crown, Sparkles, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import confetti from "canvas-confetti";
 
 interface TicketType {
   id: string;
@@ -182,6 +183,12 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
           title: 'Purchase Successful!',
           message: 'Your ticket has been purchased successfully.',
           buttons: [{ text: 'OK', type: 'default' }]
+        });
+
+              confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: {  x: 0.5, y: 0.6 }
         });
 
         // --- Your existing UI updates ---
