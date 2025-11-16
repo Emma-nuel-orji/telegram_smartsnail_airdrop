@@ -1,8 +1,8 @@
 'use client';
 import dynamic from 'next/dynamic';
-import React, { useState, useEffect, useCallback, useContext, useRef  } from "react";
+import React, { useState, useEffect, useCallback, useContext, useRef, Suspense   } from "react";
 import { Check, Ticket, Star, Coins, Users, Crown, Sparkles } from 'lucide-react';
-import React, { Suspense } from 'react';
+// import React, { Suspense } from 'react';
 import { io } from "socket.io-client";
 import Link from "next/link";
 import axios from "axios";
