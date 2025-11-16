@@ -108,137 +108,163 @@ export default function TicketPurchaseSystem() {
     return () => clearInterval(interval);
   }, [telegramId]);
 
-  const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
-    if (!telegramId) {
-      alert('User authentication required. Please restart the app.');
-      return;
-    }
+const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
+  if (!telegramId) {
+    alert('User authentication required. Please restart the app.');
+    return;
+  }
 
-    if (!selectedTicket) {
-      alert('Please select a ticket type.');
-      return;
-    }
+  if (!selectedTicket) {
+    alert('Please select a ticket type.');
+    return;
+  }
 
-    const ticket = ticketTypes.find(t => t.id === selectedTicket);
-    if (!ticket) return;
+  const ticket = ticketTypes.find(t => t.id === selectedTicket);
+  if (!ticket) return;
 
-    const totalCost = paymentMethod === 'shells' 
-      ? ticket.priceShells * quantity 
-      : ticket.priceStars * quantity;
+  const totalCost = paymentMethod === 'shells'
+    ? ticket.priceShells * quantity
+    : ticket.priceStars * quantity;
 
-    if (paymentMethod === 'shells' && userBalance < totalCost) {
-      alert('Insufficient shell balance!');
-      return;
-    }
+  if (paymentMethod === 'shells' && userBalance < totalCost) {
+    alert('Insufficient shell balance!');
+    return;
+  }
 
-    setIsProcessing(true);
+  setIsProcessing(true);
 
-    try {
-      const purchaseData = {
-        telegramId,
-        userName,
-        ticketType: ticket.name,
-        quantity,
-        paymentMethod,
-        totalCost,
-        pricePerTicket: paymentMethod === 'shells' ? ticket.priceShells : ticket.priceStars
-      };
+  try {
+    const purchaseData = {
+      telegramId,
+      userName,
+      ticketType: ticket.name,
+      quantity,
+      paymentMethod,
+      totalCost,
+      pricePerTicket: paymentMethod === 'shells'
+        ? ticket.priceShells
+        : ticket.priceStars
+    };
 
-      if (paymentMethod === 'stars') {
-        // Create Stars invoice
-        const response = await fetch('/api/tickets/purchase-stars', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(purchaseData)
-        });
-        
-        const data = await response.json();
-        
-        if (data.invoiceLink) {
-          window.location.href = data.invoiceLink;
-        } else {
-          throw new Error('Failed to create payment link');
-        }
-      } else {
-        // Purchase with shells
-        const response = await fetch('/api/tickets/purchase-shells', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(purchaseData)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          setUserBalance(data.newBalance);
-          setPurchasedTickets(prev => [...prev, data.ticket]);
-          setShowSuccess(true);
-          setQuantity(1);
-          setSelectedTicket(null);
-
-          setTimeout(() => setShowSuccess(false), 3000);
-        } else {
-          throw new Error(data.message || 'Purchase failed');
-        }
-      }
-    } catch (error: any) {
-      console.error('Purchase error:', error);
-      alert(error.message || 'Purchase failed. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handlePresentTicket = async (ticketId: string) => {
-    if (!telegramId) return;
-
-    const ticket = purchasedTickets.find(t => t.ticketId === ticketId);
-    if (!ticket) return;
-
-    if (ticket.status === 'approved') {
-      // Show verified ticket
-      (window as any).Telegram?.WebApp.showPopup({
-        title: '✅ Verified Ticket',
-        message: `Your ${ticket.ticketType} ticket (${ticket.quantity}x) has been approved and verified!`,
-        buttons: [{ text: 'OK', type: 'default' }]
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      // Send ticket presentation request to admin
-      const response = await fetch('/api/tickets/present', {
+    if (paymentMethod === 'stars') {
+      // Create Stars invoice
+      const response = await fetch('/api/tickets/purchase-stars', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticketId: ticket.ticketId,
-          telegramId,
-          userName,
-          ticketType: ticket.ticketType,
-          quantity: ticket.quantity,
-          paymentMethod: ticket.paymentMethod,
-          purchaseDate: ticket.purchaseDate
-        })
+        body: JSON.stringify(purchaseData)
+      });
+
+      const data = await response.json();
+
+      if (data.invoiceLink) {
+        window.location.href = data.invoiceLink;
+      } else {
+        throw new Error('Failed to create payment link');
+      }
+
+    } else {
+      // Purchase with shells
+      const response = await fetch('/api/tickets/purchase-shells', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(purchaseData)
       });
 
       const data = await response.json();
 
       if (data.success) {
-        (window as any).Telegram?.WebApp.showPopup({
-          title: '📤 Ticket Submitted',
-          message: 'Your ticket has been submitted to admins for verification. You will be notified once approved.',
+
+        // ✅ Telegram haptic feedback
+        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+
+        // ✅ Telegram success popup
+        Telegram.WebApp.showPopup({
+          title: 'Purchase Successful!',
+          message: 'Your ticket has been purchased successfully.',
           buttons: [{ text: 'OK', type: 'default' }]
         });
+
+        // --- Your existing UI updates ---
+        setUserBalance(data.newBalance);
+        setPurchasedTickets(prev => [...prev, data.ticket]);
+        setShowSuccess(true);
+        setQuantity(1);
+        setSelectedTicket(null);
+
+        setTimeout(() => setShowSuccess(false), 3000);
+
+      } else {
+        throw new Error(data.message || 'Purchase failed');
       }
-    } catch (error) {
-      console.error('Present ticket error:', error);
-      alert('Failed to submit ticket. Please try again.');
-    } finally {
-      setIsProcessing(false);
     }
-  };
+  } catch (error: any) {
+    console.error('Purchase error:', error);
+    alert(error.message || 'Purchase failed. Please try again.');
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
+
+ const handlePresentTicket = async (ticketId: string) => {
+  if (!telegramId) return;
+
+  const ticket = purchasedTickets.find(t => t.ticketId === ticketId);
+  if (!ticket) return;
+
+  // If already approved
+  if (ticket.status === 'approved') {
+
+    // ✅ Success haptic feedback
+    (window as any).Telegram?.WebApp.HapticFeedback.notificationOccurred('success');
+
+    (window as any).Telegram?.WebApp.showPopup({
+      title: '✅ Verified Ticket',
+      message: `Your ${ticket.ticketType} ticket (${ticket.quantity}x) has been approved and verified!`,
+      buttons: [{ text: 'OK', type: 'default' }]
+    });
+
+    return;
+  }
+
+  setIsProcessing(true);
+
+  try {
+    const response = await fetch('/api/tickets/present', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticketId: ticket.ticketId,
+        telegramId,
+        userName,
+        ticketType: ticket.ticketType,
+        quantity: ticket.quantity,
+        paymentMethod: ticket.paymentMethod,
+        purchaseDate: ticket.purchaseDate
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+
+      // ✅ Soft haptic feedback (subtle tap)
+      (window as any).Telegram?.WebApp.HapticFeedback.impactOccurred('light');
+
+      (window as any).Telegram?.WebApp.showPopup({
+        title: '📤 Ticket Submitted',
+        message: 'Your ticket has been submitted to admins for verification. You will be notified once approved.',
+        buttons: [{ text: 'OK', type: 'default' }]
+      });
+    }
+  } catch (error) {
+    console.error('Present ticket error:', error);
+    alert('Failed to submit ticket. Please try again.');
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">

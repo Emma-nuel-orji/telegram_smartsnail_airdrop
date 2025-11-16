@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useCallback, useContext, useRef  } from "react";
 import { Check, Ticket, Star, Coins, Users, Crown, Sparkles } from 'lucide-react';
-
+import React, { Suspense } from 'react';
 import { io } from "socket.io-client";
 import Link from "next/link";
 import axios from "axios";
@@ -857,7 +857,13 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
           <div className="separator-line"></div>
         </div>
 
+        <Suspense fallback={
+        <div className="ticket-loading">
+          <span className="spinner-gear"></span> Loading tickets...
+        </div>
+      }>
         <TicketPurchaseSystem />
+      </Suspense>
       
     </div>
 

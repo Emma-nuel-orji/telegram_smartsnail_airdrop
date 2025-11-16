@@ -231,6 +231,15 @@ input[type='number']:not(:placeholder-shown)::placeholder {
   
 }
 
+.ticket-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: white;
+}
+
 /* BoostPage.css */
 .spinner-gear {
   display: inline-block;
