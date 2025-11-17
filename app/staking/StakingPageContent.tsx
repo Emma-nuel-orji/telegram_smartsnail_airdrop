@@ -1111,6 +1111,8 @@ export default function StakingPageContent() {
   const [userPoints, setUserPoints] = useState<number>(0);
   const [isRouterReady, setIsRouterReady] = useState(false);
 
+  
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsRouterReady(true);
