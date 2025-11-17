@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
           inline_keyboard: [
             [
               { text: '✅ Approve', callback_data: `approve_ticket_${ticketId}` },
-              { text: '❌ Reject', callback_data: `reject_ticket_${ticketId}` },
+              // { text: '❌ Reject', callback_data: `reject_ticket_${ticketId}` },
             ],
           ],
         },

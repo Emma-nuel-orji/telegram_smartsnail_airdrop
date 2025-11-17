@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/prisma/client";
 import { Bot } from "grammy";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -9,14 +8,6 @@ if (!TELEGRAM_BOT_TOKEN) {
 }
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
-
-// Helper to safely serialize BigInt fields
-const safeTicket = (ticket: any) => ({
-  ...ticket,
-  telegramId: ticket.telegramId.toString(),
-  totalCost: Number(ticket.totalCost),
-  pricePerTicket: Number(ticket.pricePerTicket),
-});
 
 export async function POST(req: Request) {
   try {
@@ -30,18 +21,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1️⃣ Prepare payload for Telegram Stars
+    // Generate unique ticket ID for tracking
+    const ticketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // 1️⃣ Prepare payload - include ALL ticket data
     const payload = JSON.stringify({
+      ticketId,
+      telegramId,
+      userName,
       ticketType,
       quantity,
-      telegramId,
+      totalCost,
+      pricePerTicket,
       type: "ticket_purchase"
     });
 
     // 2️⃣ Calculate amount (integer ≥1)
-    const amountInStars = Math.max(1, Math.round(totalCost)); // XTR requires integer
+    const amountInStars = Math.max(1, Math.round(totalCost));
 
-    // 3️⃣ Create Stars invoice
+    // 3️⃣ Create Stars invoice WITHOUT creating ticket in DB yet
     let invoiceLink;
     try {
       invoiceLink = await bot.api.createInvoiceLink(
@@ -57,6 +55,9 @@ export async function POST(req: Request) {
           },
         ]
       );
+      
+      console.log("✅ Invoice created successfully:", invoiceLink);
+      
     } catch (invErr: any) {
       console.error("❌ Telegram Stars invoice error:", invErr);
       return NextResponse.json(
@@ -65,32 +66,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4️⃣ Create ticket in DB **after invoice succeeds**
-    const ticketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    const ticket = await prisma.ticket.create({
-      data: {
-        ticketId,
-        telegramId: BigInt(telegramId),
-        userName,
-        ticketType,
-        quantity,
-        paymentMethod: "stars",
-        totalCost,
-        pricePerTicket,
-        status: "purchased",
-      },
-    });
-
-    // 5️⃣ Return safe JSON
+    // 4️⃣ Return invoice link - ticket will be created AFTER payment via webhook
     return NextResponse.json({
       success: true,
       invoiceLink,
-      ticketId,
-      ticket: safeTicket(ticket),
+      ticketId, // Return for reference, but don't create in DB yet
     });
+    
   } catch (error: any) {
-    console.error("🔥 Stars purchase final error:", error?.response?.data || error.message || error);
+    console.error("🔥 Stars purchase error:", error?.response?.data || error.message || error);
     return NextResponse.json(
       { success: false, message: error.message || "Invoice creation failed" },
       { status: 500 }
