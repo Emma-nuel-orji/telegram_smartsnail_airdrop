@@ -125,8 +125,8 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
       
             <div className="fighters-container">
         <FighterStaking 
-          fighter={fight?.fighter1}
-          opponent={fight?.fighter2}
+           fighter={fight?.fighter1 || undefined}
+          opponent={fight?.fighter2 || undefined}
           fight={fight}
           userPoints={userPoints}
           isActive={isActive}

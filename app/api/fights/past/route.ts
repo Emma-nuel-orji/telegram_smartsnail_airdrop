@@ -16,49 +16,47 @@ export async function GET() {
     const pastFights = await prisma.fight.findMany({
       where: {
         fightDate: { lt: now },
-        status: {
-          in: ["COMPLETED", "CANCELLED", "DRAW", "EXPIRED"],
-        },
+        status: { in: ["COMPLETED", "CANCELLED", "DRAW", "EXPIRED"] },
       },
       orderBy: { fightDate: "desc" },
       include: {
-        fighter1: true, // ✅ these must match exactly your Fight model field names
+        fighter1: true,
         fighter2: true,
         winner: true,
       },
     });
 
-    const transformedFights = pastFights.map((fight) => {
-      const effectiveStatus =
+    const transformedFights = pastFights.map((fight) => ({
+      id: fight.id.toString(),
+      title: fight.title,
+      fightDate: fight.fightDate.toISOString(),
+      status:
         fight.status === "SCHEDULED" && fight.fightDate < now
           ? "EXPIRED"
-          : fight.status;
-
-      return {
-        id: fight.id.toString(),
-        title: fight.title,
-        fightDate: fight.fightDate.toISOString(),
-        status: effectiveStatus,
-        winnerId: fight.winnerId?.toString() || undefined,
-        winner: fight.winner
-          ? {
-              id: fight.winner.id,
-              name: fight.winner.name,
-              imageUrl: fight.winner.imageUrl,
-            }
-          : null,
-        fighter1: {
-          id: fight.fighter1.id,
-          name: fight.fighter1.name,
-          imageUrl: fight.fighter1.imageUrl,
-        },
-        fighter2: {
-          id: fight.fighter2.id,
-          name: fight.fighter2.name,
-          imageUrl: fight.fighter2.imageUrl,
-        },
-      };
-    });
+          : fight.status,
+      winnerId: fight.winnerId?.toString() || undefined,
+      winner: fight.winner
+        ? {
+            id: fight.winner.id,
+            name: fight.winner.name,
+            imageUrl: fight.winner.imageUrl || null,
+          }
+        : null,
+      fighter1: fight.fighter1
+        ? {
+            id: fight.fighter1.id,
+            name: fight.fighter1.name,
+            imageUrl: fight.fighter1.imageUrl || null,
+          }
+        : null,
+      fighter2: fight.fighter2
+        ? {
+            id: fight.fighter2.id,
+            name: fight.fighter2.name,
+            imageUrl: fight.fighter2.imageUrl || null,
+          }
+        : null,
+    }));
 
     return NextResponse.json(serializeBigInt(transformedFights));
   } catch (error: any) {
