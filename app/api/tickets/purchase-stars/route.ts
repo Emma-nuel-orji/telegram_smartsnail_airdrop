@@ -35,6 +35,7 @@ export async function POST(req: Request) {
       pricePerTicket,
       type: "ticket_purchase"
     });
+    
 
     // 2️⃣ Calculate amount (integer ≥1)
     const amountInStars = Math.max(1, Math.round(totalCost));
