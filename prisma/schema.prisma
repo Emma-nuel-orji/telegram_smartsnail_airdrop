@@ -252,7 +252,7 @@ model Fighter {
   gender         String?     
   height         Float?    
   weight         Float?    
-  weightClass    String   
+  weightClass    String?   
   telegramId     BigInt?   @unique
   socialMedia    String?
   points         BigInt    @default(0)
