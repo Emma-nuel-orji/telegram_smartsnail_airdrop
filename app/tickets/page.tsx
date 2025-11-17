@@ -109,6 +109,27 @@ export default function TicketPurchaseSystem() {
     return () => clearInterval(interval);
   }, [telegramId]);
 
+
+  // Check for payment success on page load (after redirect from Telegram)
+useEffect(() => {
+  const checkPaymentStatus = async () => {
+    if (telegramId) {
+      try {
+        const response = await fetch(`/api/tickets/user/${telegramId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setPurchasedTickets(data.tickets);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tickets:', error);
+      }
+    }
+  };
+
+  checkPaymentStatus();
+}, [telegramId]);
+
 const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
   if (!telegramId) {
     alert('User authentication required. Please restart the app.');

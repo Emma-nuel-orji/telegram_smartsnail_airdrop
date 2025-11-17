@@ -1,13 +1,11 @@
+// app/api/tickets/purchase-stars/route.ts
 import { NextResponse } from "next/server";
-import { Bot } from "grammy";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 if (!TELEGRAM_BOT_TOKEN) {
   throw new Error("TELEGRAM_BOT_TOKEN is missing from .env");
 }
-
-const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
 export async function POST(req: Request) {
   try {
@@ -21,63 +19,86 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generate unique ticket ID for tracking
-    const ticketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate unique ticket ID
+    const ticketId = `TKT${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-    // 1️⃣ Prepare payload - include ALL ticket data
+    // ⚠️ IMPORTANT: Keep payload under 128 bytes
     const payload = JSON.stringify({
-      ticketId,
-      telegramId,
-      userName,
-      ticketType,
-      quantity,
-      totalCost,
-      pricePerTicket,
-      type: "ticket_purchase"
+      type: "ticket_purchase",
+      id: ticketId,
+      tid: telegramId,
+      qty: quantity,
+      tt: ticketType,
+      cost: totalCost,
+      ppt: pricePerTicket
     });
-    
 
-    // 2️⃣ Calculate amount (integer ≥1)
-    const amountInStars = Math.max(1, Math.round(totalCost));
+    console.log("📦 Payload:", payload);
+    console.log("📏 Payload length:", payload.length, "bytes");
 
-    // 3️⃣ Create Stars invoice WITHOUT creating ticket in DB yet
-    let invoiceLink;
-    try {
-      invoiceLink = await bot.api.createInvoiceLink(
-        `${ticketType} Ticket - ${quantity}x`,
-        `Event ticket purchase for ${userName}`,
-        payload,
-        "", // empty provider token for Stars
-        "XTR",
-        [
-          {
-            label: `${ticketType} Ticket`,
-            amount: amountInStars,
-          },
-        ]
-      );
-      
-      console.log("✅ Invoice created successfully:", invoiceLink);
-      
-    } catch (invErr: any) {
-      console.error("❌ Telegram Stars invoice error:", invErr);
+    if (payload.length > 128) {
+      console.error("❌ Payload too long:", payload.length);
       return NextResponse.json(
-        { success: false, message: "Telegram invoice creation failed" },
+        { success: false, message: "Payload exceeds Telegram limit" },
         { status: 400 }
       );
     }
 
-    // 4️⃣ Return invoice link - ticket will be created AFTER payment via webhook
+    // Calculate amount (must be positive integer)
+    const amountInStars = Math.max(1, Math.round(totalCost));
+
+    // Create invoice using direct Telegram Bot API
+    const invoiceResponse = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/createInvoiceLink`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${ticketType} Ticket`,
+          description: `${quantity}x ${ticketType} ticket(s) for ${userName || 'User'}`,
+          payload: payload,
+          currency: "XTR", // Telegram Stars
+          prices: [
+            {
+              label: `${ticketType} Ticket (${quantity}x)`,
+              amount: amountInStars,
+            },
+          ],
+        }),
+      }
+    );
+
+    const invoiceData = await invoiceResponse.json();
+
+    if (!invoiceResponse.ok || !invoiceData.ok) {
+      console.error("❌ Telegram API Error:", invoiceData);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: invoiceData.description || "Failed to create invoice",
+          error: invoiceData 
+        },
+        { status: 400 }
+      );
+    }
+
+    const invoiceLink = invoiceData.result;
+    console.log("✅ Invoice created:", invoiceLink);
+
     return NextResponse.json({
       success: true,
       invoiceLink,
-      ticketId, // Return for reference, but don't create in DB yet
+      ticketId,
     });
-    
+
   } catch (error: any) {
-    console.error("🔥 Stars purchase error:", error?.response?.data || error.message || error);
+    console.error("🔥 Invoice creation error:", error);
     return NextResponse.json(
-      { success: false, message: error.message || "Invoice creation failed" },
+      { 
+        success: false, 
+        message: error.message || "Invoice creation failed",
+        details: error.toString()
+      },
       { status: 500 }
     );
   }
