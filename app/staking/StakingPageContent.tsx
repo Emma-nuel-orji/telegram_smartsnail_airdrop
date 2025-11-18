@@ -295,37 +295,84 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const el = fighterRef.current;
   if (!el) return;
 
+  const LONG_PRESS_MS = 260; // long press threshold
+  const MOVE_THRESHOLD_PX = 12; // movement tolerance before we treat as scroll
   let pressTimer: NodeJS.Timeout | null = null;
-  let mode: "idle" | "scroll" | "press" | "stake" | "swipe" = "idle";
+  let stakeMode = false; // true when we lock scrolling and start filling bar
   let barRect: DOMRect | null = null;
+  let lastTouchY = 0;
+  let lastTouchX = 0;
+
+  // Smooth update helper (lerp)
+  const smoothUpdateBar = (targetPercent: number) => {
+    setBarHeight((prev) => {
+      const next = prev + (targetPercent - prev) * 0.35; // smoothing factor
+      return Math.max(0, Math.min(100, next));
+    });
+  };
+
+  const activateHaptic = () => {
+    try {
+      // Use Telegram WebApp haptic if available
+      (window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.("medium");
+    } catch {}
+    try {
+      // Fallback vibration
+      if (navigator && (navigator as any).vibrate) {
+        (navigator as any).vibrate(30);
+      }
+    } catch {}
+  };
 
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
-
     const t = e.touches[0];
     if (!t) return;
 
-    // Store initial touch
+    // record start coords
     touchStartXRef.current = t.clientX;
     touchStartYRef.current = t.clientY;
-    mode = "press";
+    lastTouchY = t.clientY;
+    lastTouchX = t.clientX;
+    touchIntentRef.current = "idle";
+    stakeMode = false;
+
     barRect = el.getBoundingClientRect();
-
-    // IMPORTANT: stop scroll from activating
-    e.preventDefault();
-
     setTapping(true);
     stopBarDecay();
 
-    // Long press → activate bar filling
+    // Start timer for long press — does NOT preventDefault here so scroll still possible
+    if (pressTimer) clearTimeout(pressTimer);
     pressTimer = setTimeout(() => {
-      mode = "stake";
+      // Only activate stake mode if user hasn't moved much
+      const dx = Math.abs(lastTouchX - touchStartXRef.current);
+      const dy = Math.abs(lastTouchY - touchStartYRef.current);
+      if (dx <= MOVE_THRESHOLD_PX && dy <= MOVE_THRESHOLD_PX) {
+        stakeMode = true;
+        touchIntentRef.current = "stake";
+        activateHaptic();
 
-      try {
-        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred("medium");
-      } catch {}
-
-    }, 250);
+        // Immediately compute a target percentage based on the current finger Y
+        if (barRect) {
+          const paddedTop = barRect.top - 20;
+          const paddedBottom = barRect.bottom + 20;
+          const newHeight = Math.max(
+            0,
+            Math.min(
+              100,
+              ((paddedBottom - lastTouchY) / (paddedBottom - paddedTop)) * 100
+            )
+          );
+          // Set immediately without jump (we smooth update)
+          setBarHeight(newHeight);
+          setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+        }
+      } else {
+        // If user moved too much during the timeout => treat as scroll
+        touchIntentRef.current = Math.abs(lastTouchY - touchStartYRef.current) > Math.abs(lastTouchX - touchStartXRef.current) ? "scroll" : "swipe";
+      }
+      pressTimer = null;
+    }, LONG_PRESS_MS);
   };
 
   const handleTouchMove = (e: TouchEvent) => {
@@ -333,25 +380,24 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     const t = e.touches[0];
     if (!t) return;
 
+    lastTouchY = t.clientY;
+    lastTouchX = t.clientX;
+
     const dx = Math.abs(t.clientX - touchStartXRef.current);
     const dy = Math.abs(t.clientY - touchStartYRef.current);
 
-    // If user moves before long press → scrolling/swiping
-    if (mode === "press" && (dx > 10 || dy > 10)) {
-      mode = dy > dx ? "scroll" : "swipe";
-
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-
+    // If long-press hasn't triggered yet and user moves beyond threshold -> cancel press and allow scroll
+    if (!stakeMode && pressTimer && (dx > MOVE_THRESHOLD_PX || dy > MOVE_THRESHOLD_PX)) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
       setTapping(false);
-      return;
+      touchIntentRef.current = dy > dx ? "scroll" : "swipe";
+      return; // let browser handle scroll
     }
 
-    // Once bar filling mode is active
-    if (mode === "stake") {
-      // Prevent scroll *during* bar fill
+    // If stake mode active -> lock scroll and handle bar filling
+    if (stakeMode) {
+      // prevent scroll while staking
       e.preventDefault();
       e.stopPropagation();
 
@@ -359,19 +405,24 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       const paddedTop = barRect.top - 20;
       const paddedBottom = barRect.bottom + 20;
 
-      // Convert finger position → percentage
-      let newHeight =
-        ((paddedBottom - fingerY) / (paddedBottom - paddedTop)) * 100;
+      let percent = ((paddedBottom - fingerY) / (paddedBottom - paddedTop)) * 100;
+      percent = Math.max(0, Math.min(100, percent));
 
-      newHeight = Math.max(0, Math.min(100, newHeight));
+      // Smooth update to avoid jumpiness
+      smoothUpdateBar(percent);
 
-      setBarHeight(newHeight);
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+      // set stake amount derived from the smoothed visible barHeight
+      setStakeAmount(prev => {
+        // use current barHeight (note: setBarHeight is async; approximate by prev)
+        const approx = Math.floor(((prev || 0) / 100) * MAX_AMOUNT);
+        // but also ensure we set floor from percent eventually (in case smoothing didn't reach target yet)
+        const target = Math.floor((percent / 100) * MAX_AMOUNT);
+        return target;
+      });
 
-      // FX
+      // visual fx
       const localX = t.clientX - barRect.left;
       const localY = t.clientY - barRect.top;
-
       if (Math.random() < 0.12) createTapEffect(localX, localY);
       if (Math.random() < 0.06) showMotivationalMessage(t.clientX, t.clientY);
     }
@@ -383,21 +434,27 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       pressTimer = null;
     }
 
-    // Reset status
-    setTapping(false);
-    barRect = null;
-    mode = "idle";
-
-    // Start decay if unlocked
-    if (!barLockedRef.current && barHeight > 0) {
-      setTimeout(() => {
-        if (!barLockedRef.current) startBarDecay();
-      }, 500);
+    if (stakeMode) {
+      // If stakeMode was active, keep bar locked or start decay depending on barLockedRef
+      if (!barLockedRef.current && barHeight > 0) {
+        setTimeout(() => {
+          if (!barLockedRef.current) startBarDecay();
+        }, 420);
+      }
+    } else {
+      // user was scrolling or just tapped -> no side effects
     }
+
+    stakeMode = false;
+    setTapping(false);
+    touchIntentRef.current = "idle";
+    barRect = null;
   };
 
-  // Correct event listener config:
-  el.addEventListener("touchstart", handleTouchStart, { passive: false });
+  // event listeners:
+  // touchstart passive true is OK (we don't call preventDefault there)
+  el.addEventListener("touchstart", handleTouchStart, { passive: true });
+  // touchmove must be passive: false so we can preventDefault when stakeMode becomes true
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
   el.addEventListener("touchend", handleTouchEnd, { passive: true });
   el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
