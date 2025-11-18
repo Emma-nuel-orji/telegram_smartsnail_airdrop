@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import Image from 'next/image';
 import Link from "next/link";
@@ -291,109 +290,137 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   };
 
   // Touch handlers
-useEffect(() => {
-  const el = fighterRef.current;
-  if (!el) return;
+  useEffect(() => {
+    const el = fighterRef.current;
+    if (!el) return;
 
-  let pressTimer: NodeJS.Timeout | null = null;
-  let isStakeMode = false;
+    let pressTimer: NodeJS.Timeout | null = null;
+    let isBarFillingMode = false;
+    let startFingerY = 0;
+    let startBarHeight = 0;
+    let barRect: DOMRect | null = null;
 
-  let startFingerY = 0;
-  let startBarHeight = 0;
+    const handleTouchStart = (e: TouchEvent) => {
+      if (!canParticipate || isFighter) return;
+      const t = e.touches[0];
+      if (!t) return;
 
-  const SENSITIVITY = 0.9; // much stronger, feels natural
-
-  const handleTouchStart = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-
-    const t = e.touches[0];
-    if (!t) return;
-
-    // store initial touch
-    touchStartXRef.current = t.clientX;
-    touchStartYRef.current = t.clientY;
-    touchIntentRef.current = "idle";
-    isStakeMode = false;
-
-    setTapping(true);
-    stopBarDecay();
-
-    // long press → stake mode
-    pressTimer = setTimeout(() => {
-      isStakeMode = true;
-      touchIntentRef.current = "stake";
-
+      // Store initial values IMMEDIATELY
+      touchStartXRef.current = t.clientX;
+      touchStartYRef.current = t.clientY;
       startFingerY = t.clientY;
-      startBarHeight = barHeight;
+      startBarHeight = barHeight; // Capture current bar height
+      touchIntentRef.current = "idle";
+      isBarFillingMode = false;
 
-      try {
-        window?.Telegram?.WebApp?.HapticFeedback?.impactOccurred("medium");
-      } catch {}
-    }, 250);
-  };
+      // Get bar dimensions
+      barRect = el.getBoundingClientRect();
+      
+      setTapping(true);
+      stopBarDecay();
 
-  const handleTouchMove = (e: TouchEvent) => {
-    const touch = e.touches[0];
-    if (!touch) return;
+      // Timer to activate bar mode
+      pressTimer = setTimeout(() => {
+        isBarFillingMode = true;
+        touchIntentRef.current = "stake";
+        
+        try {
+          if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+          }
+        } catch (error) {
+          console.log('Haptic not available');
+        }
+      }, 250);
+    };
 
-    const dx = Math.abs(touch.clientX - touchStartXRef.current);
-    const dy = Math.abs(touch.clientY - touchStartYRef.current);
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!canParticipate || isFighter || !barRect) return;
+      const touch = e.touches[0];
+      if (!touch) return;
 
-    // NOT in stake mode → detect scroll
-    if (!isStakeMode) {
-      // if moved → cancel long press
-      if (dx > 10 || dy > 10) {
-        if (pressTimer) clearTimeout(pressTimer);
-        setTapping(false);
-        touchIntentRef.current = "scroll"; // allow scroll
+      const dx = Math.abs(touch.clientX - touchStartXRef.current);
+      const dy = Math.abs(touch.clientY - touchStartYRef.current);
+
+      // NOT in bar mode yet - detect intent
+      if (!isBarFillingMode) {
+        if (dx > 10 || dy > 10) {
+          // Cancel bar mode
+          if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+          setTapping(false);
+          touchIntentRef.current = dy > dx ? "scroll" : "swipe";
+          return; // Allow scroll
+        }
         return;
       }
-      return;
-    }
 
-    // IN STAKE MODE → BLOCK SCROLL RIGHT AWAY
-    e.preventDefault();
-    e.stopPropagation();
+      // IN BAR MODE - prevent scroll immediately
+      e.preventDefault();
+      e.stopPropagation();
 
-    // Smooth dragging distance
-    const deltaY = (startFingerY - touch.clientY) * SENSITIVITY;
+      // Calculate movement from start position
+      const pixelsMoved = startFingerY - touch.clientY; // Negative = down, Positive = up
+      const barHeightPx = barRect.height;
+      
+      // Convert pixels to percentage (more movement = more fill)
+      const percentageChange = (pixelsMoved / barHeightPx) * 100;
+      
+      // Calculate new bar height
+      let newHeight = startBarHeight + percentageChange;
+      newHeight = Math.max(0, Math.min(100, newHeight));
 
-    let newValue = startBarHeight + deltaY;
-    newValue = Math.max(0, Math.min(100, newValue));
+      setBarHeight(newHeight);
+      setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
 
-    setBarHeight(newValue);
-    setStakeAmount(Math.floor((newValue / 100) * MAX_AMOUNT));
-  };
+      // Visual feedback
+      const localX = touch.clientX - barRect.left;
+      const localY = touch.clientY - barRect.top;
+      
+      if (Math.random() < 0.12) {
+        createTapEffect(localX, localY);
+      }
 
-  const handleTouchEnd = () => {
-    if (pressTimer) clearTimeout(pressTimer);
-    pressTimer = null;
+      if (Math.random() < 0.06) {
+        showMotivationalMessage(touch.clientX, touch.clientY);
+      }
+    };
 
-    setTapping(false);
-    isStakeMode = false;
-    touchIntentRef.current = "idle";
+    const handleTouchEnd = () => {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
 
-    // resume decay
-    if (!barLockedRef.current && barHeight > 0) {
-      setTimeout(() => {
-        if (!barLockedRef.current) startBarDecay();
-      }, 500);
-    }
-  };
+      setTapping(false);
+      isBarFillingMode = false;
+      touchIntentRef.current = "idle";
+      barRect = null;
 
-  el.addEventListener("touchstart", handleTouchStart, { passive: true });
-  el.addEventListener("touchmove", handleTouchMove, { passive: false });
-  el.addEventListener("touchend", handleTouchEnd, { passive: true });
-  el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+      if (!barLockedRef.current && barHeight > 0) {
+        setTimeout(() => {
+          if (!barLockedRef.current) {
+            startBarDecay();
+          }
+        }, 500);
+      }
+    };
 
-  return () => {
-    el.removeEventListener("touchstart", handleTouchStart);
-    el.removeEventListener("touchmove", handleTouchMove);
-    el.removeEventListener("touchend", handleTouchEnd);
-    el.removeEventListener("touchcancel", handleTouchEnd);
-  };
-}, [canParticipate, isFighter, barHeight, MAX_AMOUNT]);
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
+    return () => {
+      if (pressTimer) clearTimeout(pressTimer);
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+      el.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [canParticipate, isFighter, barHeight, MAX_AMOUNT]);
 
   const fetchTotalSupport = async () => {
     try {
@@ -749,6 +776,7 @@ useEffect(() => {
     </div>
   );
 }
+
 interface FightSliderProps {
   fights: Fight[];
   userPoints: number;
@@ -918,6 +946,7 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
     </div>
   );
 };
+
 export default function StakingPageContent() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [fights, setFights] = useState<Fight[]>([]);
