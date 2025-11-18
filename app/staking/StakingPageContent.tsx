@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import Image from 'next/image';
 import Link from "next/link";
@@ -70,14 +71,11 @@ function getTimeRemaining(fightDate: string) {
   return { total, days, hours, minutes, seconds };
 }
 
-// Add this enhanced winner overlay to your FightCard component
-
 function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
   const isActive = !!fight && 
     fight.status === "SCHEDULED" && 
     new Date(fight.fightDate).getTime() > Date.now();
-  // const isActive = !!fight && new Date(fight.fightDate).getTime() > Date.now();
-  // const isConcluded = !!fight && new Date(fight.fightDate).getTime() <= Date.now();
+  
   const isConcluded = !!fight && (
     fight.status === "COMPLETED" ||
     fight.status === "DRAW" ||
@@ -85,15 +83,13 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
     fight.status === "EXPIRED" ||
     new Date(fight.fightDate).getTime() <= Date.now()
   );
+  
   const [timer, setTimer] = useState<string>("");
 
-  // // Determine fight result
-   const isDraw = isConcluded && fight && !fight.winnerId && fight.status !== "CANCELLED" && fight.status !== "EXPIRED";
-  // const isDraw = isConcluded && fight && !fight.winnerId;
+  const isDraw = isConcluded && fight && !fight.winnerId && fight.status !== "CANCELLED" && fight.status !== "EXPIRED";
   const winner = isConcluded && fight?.winnerId 
     ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
     : null;
-
 
   useEffect(() => {
     if (!fight) return;
@@ -123,9 +119,9 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         )}
       </div>
       
-            <div className="fighters-container">
+      <div className="fighters-container">
         <FighterStaking 
-           fighter={fight?.fighter1 || undefined}
+          fighter={fight?.fighter1 || undefined}
           opponent={fight?.fighter2 || undefined}
           fight={fight}
           userPoints={userPoints}
@@ -147,29 +143,27 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
         />
       </div>
       
-        {/* Enhanced Winner/Draw Overlay */}
+      {/* Enhanced Winner/Draw Overlay */}
       {isConcluded && (
         <div className="fight-result-overlay">
           <div className="result-backdrop"></div>
           
           {fight.status === "CANCELLED" ? (
-      <div className="result-content cancelled-result">
-        <div className="result-icon">🚫</div>
-        <h2 className="result-title">FIGHT CANCELLED</h2>
-        {/* <p className="result-subtitle">This fight will not take place</p> */}
-      </div>
-    ) : fight.status === "EXPIRED" ? (
-      <div className="result-content expired-result">
-        <div className="result-icon">⏰</div>
-        <h2 className="result-title">AWAITING RESULTS</h2>
-        {/* <p className="result-subtitle">Fight concluded, results pending</p> */}
-      </div>
-    ) : isDraw ? (
-      <div className="result-content draw-result">
-        <div className="result-icon">🤝</div>
-        <h2 className="result-title">IT'S A DRAW!</h2>
-        <p className="result-subtitle">Both fighters showed incredible skill</p>
-      </div>
+            <div className="result-content cancelled-result">
+              <div className="result-icon">🚫</div>
+              <h2 className="result-title">FIGHT CANCELLED</h2>
+            </div>
+          ) : fight.status === "EXPIRED" ? (
+            <div className="result-content expired-result">
+              <div className="result-icon">⏰</div>
+              <h2 className="result-title">AWAITING RESULTS</h2>
+            </div>
+          ) : isDraw ? (
+            <div className="result-content draw-result">
+              <div className="result-icon">🤝</div>
+              <h2 className="result-title">IT'S A DRAW!</h2>
+              <p className="result-subtitle">Both fighters showed incredible skill</p>
+            </div>
           ) : winner ? (
             <div className="result-content winner-result">
               <div className="winner-image-container">
@@ -207,7 +201,6 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
       )}
     </div>
   );
-
 }
 
 function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConcluded = false, telegramId, position }: FighterStakingProps) {
@@ -219,24 +212,17 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const [barHeight, setBarHeight] = useState<number>(0);
   const [barLocked, setBarLocked] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
-  const [tapCount, setTapCount] = useState<number>(0);
-  const [lastTapTime, setLastTapTime] = useState<number>(0);
   const [localUserPoints, setLocalUserPoints] = useState<number>(userPoints);
   const [buttonAnimation, setButtonAnimation] = useState<string>('');
   const [totalSupport, setTotalSupport] = useState<TotalSupport>({ stars: 0, points: 0 });
   const [messageQueue, setMessageQueue] = useState<Array<{id: number, text: string, x: number, y: number}>>([]);
   const [messageIdCounter, setMessageIdCounter] = useState(0);
-  const [touchStartY, setTouchStartY] = useState<number>(0);
-  const [isTouchMoving, setIsTouchMoving] = useState<boolean>(false);
+  
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
   const touchIntentRef = useRef<"idle" | "scroll" | "swipe" | "stake">("idle");
-  const barLockedRef = useRef<boolean>(barLocked); // keep a ref mirror of state
-  const lastTapTimeRef = useRef<number>(0);
+  const barLockedRef = useRef<boolean>(barLocked);
   const decayRef = useRef<number | null>(null);
-
-  const barDecayInterval = useRef<NodeJS.Timeout | null>(null);
-  const messageInterval = useRef<NodeJS.Timeout | null>(null);
   const fighterRef = useRef<HTMLDivElement | null>(null);
 
   const MAX_STARS = 100000;
@@ -245,204 +231,183 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const canParticipate = localUserPoints >= MIN_POINTS_REQUIRED && isActive && !isConcluded;
   const isFighter = fighter?.telegramId === telegramId;
   
-  // Determine winner/loser
   const isWinner = isConcluded && fight?.winnerId === fighter?.id;
   const isLoser = isConcluded && fight?.winnerId !== fighter?.id && fight?.winnerId;
 
-  
+  // Keep barLockedRef in sync
+  useEffect(() => { 
+    barLockedRef.current = barLocked; 
+  }, [barLocked]);
 
+  // Fetch total support
   useEffect(() => {
     if (fighter?.id && isActive) {
       fetchTotalSupport();
     }
   }, [fighter, isActive]);
 
-  // keep the barLockedRef in sync with state
-useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
-
-
-
-// Ensure we clear the decay interval on unmount
-useEffect(() => {
-  return () => {
-    if (barDecayInterval.current) {
-      clearInterval(barDecayInterval.current);
-      barDecayInterval.current = null;
-    }
-  };
-}, []);
-
-const startBarDecay = () => {
-  if (decayRef.current) {
-    cancelAnimationFrame(decayRef.current);
-  }
-
-  let lastTime = 0;
-  const smoothDecay = (timestamp: number) => {
-    if (!lastTime) lastTime = timestamp;
-    const delta = (timestamp - lastTime) / 1000; // seconds since last frame
-    lastTime = timestamp;
-
-    setBarHeight(prev => {
-      if (barLockedRef.current || prev <= 0) return prev;
-      const newHeight = Math.max(0, prev - delta * 20); // 20% per second decay
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_STARS));
-      return newHeight;
-    });
-
-    if (!barLockedRef.current && barHeight > 0) {
-      decayRef.current = requestAnimationFrame(smoothDecay);
-    }
-  };
-
-  decayRef.current = requestAnimationFrame(smoothDecay);
-};
-
-
-const stopBarDecay = () => {
-  if (barDecayInterval.current) {
-    clearInterval(barDecayInterval.current);
-    barDecayInterval.current = null;
-  }
-};
-
-
-
-// 🟢 CSS (important for Telegram webview to disable default scroll/gestures inside the fighter zone)
-// add this to your CSS or Tailwind class
-// .touch-none { touch-action: none; }
-
-useEffect(() => {
-  const el = fighterRef.current;
-  if (!el) return;
-
-  let pressTimer: NodeJS.Timeout | null = null;
-  let isBarFillingMode = false;
-  let barRect: DOMRect | null = null;
-
-  const handleTouchStart = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-    const t = e.touches[0];
-    if (!t) return;
-
-    touchStartXRef.current = t.clientX;
-    touchStartYRef.current = t.clientY;
-    touchIntentRef.current = "idle";
-    isBarFillingMode = false;
-
-    // Get bar dimensions for position tracking
-    barRect = el.getBoundingClientRect();
-    
-    // Show visual feedback immediately
-    setTapping(true);
-    stopBarDecay();
-
-    // Start timer to enter bar filling mode after hold duration
-    pressTimer = setTimeout(() => {
-      isBarFillingMode = true;
-      touchIntentRef.current = "stake";
-      // Haptic feedback if available
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (decayRef.current) {
+        cancelAnimationFrame(decayRef.current);
+        decayRef.current = null;
       }
-    }, 250); // 250ms hold to activate
+    };
+  }, []);
+
+  const startBarDecay = () => {
+    if (decayRef.current) {
+      cancelAnimationFrame(decayRef.current);
+      decayRef.current = null;
+    }
+
+    let lastTime = 0;
+    const smoothDecay = (timestamp: number) => {
+      if (!lastTime) lastTime = timestamp;
+      const delta = (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+
+      setBarHeight(prev => {
+        if (barLockedRef.current || prev <= 0) return prev;
+        const newHeight = Math.max(0, prev - delta * 20);
+        setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+        return newHeight;
+      });
+
+      if (!barLockedRef.current && barHeight > 0) {
+        decayRef.current = requestAnimationFrame(smoothDecay);
+      }
+    };
+
+    decayRef.current = requestAnimationFrame(smoothDecay);
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
-    if (!canParticipate || isFighter || !barRect) return;
-    const touch = e.touches[0];
-    if (!touch) return;
-
-    const dx = Math.abs(touch.clientX - touchStartXRef.current);
-    const dy = Math.abs(touch.clientY - touchStartYRef.current);
-
-    // If user moved before bar filling mode activated, cancel it and allow scroll
-    if (!isBarFillingMode && (dx > 10 || dy > 10)) {
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-      setTapping(false);
-      touchIntentRef.current = dy > dx ? "scroll" : "swipe";
-      return; // Allow default scroll behavior
-    }
-
-    // If in bar filling mode, prevent scroll and track finger position
-    if (isBarFillingMode && touchIntentRef.current === "stake") {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Track finger Y position relative to bar (direct position tracking)
-      const fingerY = touch.clientY;
-      const barTop = barRect.top;
-      const barBottom = barRect.bottom;
-      const barHeightPx = barRect.height;
-
-      // Convert finger position to percentage (inverted: bottom = 0%, top = 100%)
-      // Add some padding at top and bottom for easier 0% and 100% reach
-      const paddedTop = barTop - 20;
-      const paddedBottom = barBottom + 20;
-      let newHeight = ((paddedBottom - fingerY) / (paddedBottom - paddedTop)) * 100;
-      
-      // Clamp between 0 and 100
-      newHeight = Math.max(0, Math.min(100, newHeight));
-
-      setBarHeight(newHeight);
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
-
-      // Visual feedback
-      const localX = touch.clientX - barRect.left;
-      const localY = touch.clientY - barRect.top;
-      
-      if (Math.random() < 0.12) {
-        createTapEffect(localX, localY);
-      }
-
-      if (Math.random() < 0.06) {
-        showMotivationalMessage(touch.clientX, touch.clientY);
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (pressTimer) {
-      clearTimeout(pressTimer);
-      pressTimer = null;
-    }
-
-    setTapping(false);
-    isBarFillingMode = false;
-    touchIntentRef.current = "idle";
-    barRect = null;
-
-    if (!barLockedRef.current && barHeight > 0) {
-      setTimeout(() => {
-        if (!barLockedRef.current) {
-          startBarDecay();
-        }
-      }, 500);
-    }
-  };
-
-  // Use passive: true for start/end, passive: false for move
-  el.addEventListener("touchstart", handleTouchStart, { passive: true });
-  el.addEventListener("touchmove", handleTouchMove, { passive: false });
-  el.addEventListener("touchend", handleTouchEnd, { passive: true });
-  el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
-
-  return () => {
-    if (pressTimer) clearTimeout(pressTimer);
-    el.removeEventListener("touchstart", handleTouchStart);
-    el.removeEventListener("touchmove", handleTouchMove);
-    el.removeEventListener("touchend", handleTouchEnd);
-    el.removeEventListener("touchcancel", handleTouchEnd);
-
+  const stopBarDecay = () => {
     if (decayRef.current) {
       cancelAnimationFrame(decayRef.current);
       decayRef.current = null;
     }
   };
-}, [canParticipate, isFighter, barHeight, MAX_AMOUNT]);
+
+  // Touch handlers
+  useEffect(() => {
+    const el = fighterRef.current;
+    if (!el) return;
+
+    let pressTimer: NodeJS.Timeout | null = null;
+    let isBarFillingMode = false;
+    let barRect: DOMRect | null = null;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (!canParticipate || isFighter) return;
+      const t = e.touches[0];
+      if (!t) return;
+
+      touchStartXRef.current = t.clientX;
+      touchStartYRef.current = t.clientY;
+      touchIntentRef.current = "idle";
+      isBarFillingMode = false;
+
+      barRect = el.getBoundingClientRect();
+      setTapping(true);
+      stopBarDecay();
+
+      pressTimer = setTimeout(() => {
+        isBarFillingMode = true;
+        touchIntentRef.current = "stake";
+        
+        try {
+          if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+          }
+        } catch (error) {
+          console.log('Haptic not available');
+        }
+      }, 250);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!canParticipate || isFighter || !barRect) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      const dx = Math.abs(touch.clientX - touchStartXRef.current);
+      const dy = Math.abs(touch.clientY - touchStartYRef.current);
+
+      if (!isBarFillingMode && (dx > 10 || dy > 10)) {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+        setTapping(false);
+        touchIntentRef.current = dy > dx ? "scroll" : "swipe";
+        return;
+      }
+
+      if (isBarFillingMode && touchIntentRef.current === "stake") {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const fingerY = touch.clientY;
+        const barTop = barRect.top;
+        const barBottom = barRect.bottom;
+
+        const paddedTop = barTop - 20;
+        const paddedBottom = barBottom + 20;
+        let newHeight = ((paddedBottom - fingerY) / (paddedBottom - paddedTop)) * 100;
+        
+        newHeight = Math.max(0, Math.min(100, newHeight));
+
+        setBarHeight(newHeight);
+        setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+
+        const localX = touch.clientX - barRect.left;
+        const localY = touch.clientY - barRect.top;
+        
+        if (Math.random() < 0.12) {
+          createTapEffect(localX, localY);
+        }
+
+        if (Math.random() < 0.06) {
+          showMotivationalMessage(touch.clientX, touch.clientY);
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+
+      setTapping(false);
+      isBarFillingMode = false;
+      touchIntentRef.current = "idle";
+      barRect = null;
+
+      if (!barLockedRef.current && barHeight > 0) {
+        setTimeout(() => {
+          if (!barLockedRef.current) {
+            startBarDecay();
+          }
+        }, 500);
+      }
+    };
+
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+
+    return () => {
+      if (pressTimer) clearTimeout(pressTimer);
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+      el.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [canParticipate, isFighter, barHeight, MAX_AMOUNT]);
 
   const fetchTotalSupport = async () => {
     try {
@@ -451,13 +416,10 @@ useEffect(() => {
         const data = await response.json();
         setTotalSupport(data);
       } else {
-        console.warn('Failed to fetch total support:', response.status);
-        // Set default values if fetch fails
         setTotalSupport({ stars: 0, points: 0 });
       }
     } catch (error) {
       console.error("Error fetching total support:", error);
-      // Set default values if fetch fails
       setTotalSupport({ stars: 0, points: 0 });
     }
   };
@@ -513,107 +475,22 @@ useEffect(() => {
     return false;
   };
 
-
-  // Mouse handlers for desktop
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!canParticipate || isFighter) return;
-    
+  const handleBarClick = (
+    e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
+  ) => {
     e.preventDefault();
-    setTapping(true);
-    
-    if (barDecayInterval.current) {
-      clearInterval(barDecayInterval.current);
-      barDecayInterval.current = null;
-    }
+    e.stopPropagation();
 
-    const x = e.nativeEvent.offsetX || 0;
-    const y = e.nativeEvent.offsetY || 0;
-    
-    createTapEffect(x, y);
-    showMotivationalMessage(x, y);
-  };
+    const newLocked = !barLockedRef.current;
+    setBarLocked(newLocked);
+    barLockedRef.current = newLocked;
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!canParticipate || isFighter || !tapping || barLocked) return;
-    
-    e.preventDefault();
-    
-    const x = e.nativeEvent.offsetX || 0;
-    const y = e.nativeEvent.offsetY || 0;
-    
-    createTapEffect(x, y);
-    
-    const now = Date.now();
-    if (now - lastTapTime > 30) {
-      setBarHeight(prev => {
-        const newHeight = Math.min(100, prev + 1.5);
-        const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-        setStakeAmount(newStakeAmount);
-        return newHeight;
-      });
-      setLastTapTime(now);
-      
-      if (Math.random() < 0.3) {
-        showMotivationalMessage(x, y);
-      }
+    if (newLocked) {
+      stopBarDecay();
+    } else {
+      startBarDecay();
     }
   };
-
-  const handleMouseUp = () => {
-    setTapping(false);
-    
-    // Start decay if not locked
-    if (!barLocked && barHeight > 0) {
-      setTimeout(() => {
-        if (!barLocked && barDecayInterval.current === null) {
-          barDecayInterval.current = setInterval(() => {
-            setBarHeight((prev) => {
-              if (barLocked) {
-                if (barDecayInterval.current) {
-                  clearInterval(barDecayInterval.current);
-                  barDecayInterval.current = null;
-                }
-                return prev;
-              }
-              
-              if (prev <= 0) {
-                if (barDecayInterval.current) {
-                  clearInterval(barDecayInterval.current);
-                  barDecayInterval.current = null;
-                }
-                return 0;
-              }
-              
-              const newHeight = Math.max(0, prev - 0.2);
-              const newStakeAmount = Math.floor((newHeight / 100) * MAX_AMOUNT);
-              setStakeAmount(newStakeAmount);
-              return newHeight;
-            });
-          }, 150);
-        }
-      }, 2000);
-    }
-  };
-
-  // Fixed bar click handler with immediate decay on unlock
- const handleBarClick = (
-  e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
-) => {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const newLocked = !barLockedRef.current;
-  setBarLocked(newLocked);
-  barLockedRef.current = newLocked;
-
-  if (newLocked) {
-    stopBarDecay();
-  } else {
-    startBarDecay();
-  }
-};
-
-
 
   const handleStakeWithStars = async () => {
     if (!canParticipate || stakeAmount <= 0 || isFighter || !barLocked) return;
@@ -643,7 +520,6 @@ useEffect(() => {
       const data = await response.json();
 
       if (data.invoiceLink) {
-        // Redirect to Telegram payment
         window.location.href = data.invoiceLink;
       } else {
         throw new Error("No invoice link received from server");
@@ -707,19 +583,6 @@ useEffect(() => {
     setLocalUserPoints(userPoints);
   }, [userPoints]);
   
-  useEffect(() => {
-    return () => {
-      if (barDecayInterval.current) {
-        clearInterval(barDecayInterval.current);
-        barDecayInterval.current = null;
-      }
-      if (messageInterval.current) {
-        clearInterval(messageInterval.current);
-        messageInterval.current = null;
-      }
-    };
-  }, []);
-  
   return (
     <div 
       ref={fighterRef}
@@ -732,17 +595,10 @@ useEffect(() => {
         MozUserSelect: 'none',
         msUserSelect: 'none'
       }}
-      // onTouchStart={!isConcluded ? handleTouchStart : undefined}
-      // onTouchMove={!isConcluded ? handleTouchMove : undefined}
-      // onTouchEnd={!isConcluded ? handleTouchEnd : undefined}
-      onMouseDown={!isConcluded ? handleMouseDown : undefined}
-      onMouseMove={!isConcluded ? handleMouseMove : undefined}
-      onMouseUp={!isConcluded ? handleMouseUp : undefined}
-      onMouseLeave={!isConcluded ? handleMouseUp : undefined}
       onContextMenu={preventTextInteraction}
       onDragStart={preventTextInteraction}
     >
-      {/* Motivational Messages Overlay */}
+      {/* Motivational Messages */}
       <div className="motivational-messages-container">
         {messageQueue.map((msg) => (
           <div
@@ -759,50 +615,34 @@ useEffect(() => {
       </div>
 
       {isWinner && <div className="winner-badge">WINNER</div>}
+      
       <div className="fighter-info">
         <div className="fighter-image">
           {fighter?.imageUrl ? (
-            <>
-              <img
-                src={fighter.imageUrl}
-                alt={fighter.name || "Fighter"}
-                width={150}
-                height={150}
-                className="fighter-portrait"
-                draggable={false}
-                onDragStart={preventTextInteraction}
-                onError={(e) => {
-                  console.log("Image failed to load:", fighter.imageUrl);
-                  e.currentTarget.style.display = 'none';
-                  const placeholder = e.currentTarget.parentElement?.querySelector('.fighter-placeholder') as HTMLElement;
-                  if (placeholder) {
-                    placeholder.style.display = 'flex';
-                  }
-                }}
-                onLoad={(e) => {
-                  console.log("Image loaded successfully:", fighter.imageUrl);
-                  const placeholder = e.currentTarget.parentElement?.querySelector('.fighter-placeholder') as HTMLElement;
-                  if (placeholder) {
-                    placeholder.style.display = 'none';
-                  }
-                }}
-                style={{ 
-                  borderRadius: '50%', 
-                  border: '3px solid rgba(255,255,255,0.3)', 
-                  boxShadow: '0 5px 15px rgba(0,0,0,0.3)', 
-                  objectFit: 'cover',
-                  display: 'block'
-                }}
-              />
-            </>
-          ) : null}
-          <div 
-            className="fighter-placeholder"
-            data-fighter-id={fighter?.id}
-            style={{ display: fighter?.imageUrl ? 'none' : 'flex' }}
-          >
-            {!isActive ? "?" : fighter?.name?.[0] || "?"}
-          </div>
+            <img
+              src={fighter.imageUrl}
+              alt={fighter.name || "Fighter"}
+              width={150}
+              height={150}
+              className="fighter-portrait"
+              draggable={false}
+              onDragStart={preventTextInteraction}
+              style={{ 
+                borderRadius: '50%', 
+                border: '3px solid rgba(255,255,255,0.3)', 
+                boxShadow: '0 5px 15px rgba(0,0,0,0.3)', 
+                objectFit: 'cover',
+                display: 'block'
+              }}
+            />
+          ) : (
+            <div 
+              className="fighter-placeholder"
+              data-fighter-id={fighter?.id}
+            >
+              {!isActive ? "?" : fighter?.name?.[0] || "?"}
+            </div>
+          )}
         </div>
         <h3 className="fighter-name">{fighter?.name || "Unknown Fighter"}</h3>
         
@@ -837,7 +677,6 @@ useEffect(() => {
                 className={`stake-type-button ${stakeType === 'STARS' ? 'active' : ''} ${buttonAnimation === 'STARS' ? 'btn-pulse' : ''}`}
                 onClick={() => handleStakeTypeChange('STARS')}
                 disabled={!isActive}
-                style={{ userSelect: 'none' }}
               >
                 Stake with Stars
               </button>
@@ -845,7 +684,6 @@ useEffect(() => {
                 className={`stake-type-button ${stakeType === 'POINTS' ? 'active' : ''} ${buttonAnimation === 'POINTS' ? 'btn-pulse' : ''}`}
                 onClick={() => handleStakeTypeChange('POINTS')}
                 disabled={!isActive}
-                style={{ userSelect: 'none' }}
               >
                 Stake with Shells
               </button>
@@ -854,7 +692,6 @@ useEffect(() => {
             <div className="staking-area">
               <div 
                 className={`tapping-bar-container ${!canParticipate ? 'disabled' : ''} ${barLocked ? 'locked' : ''}`}
-                style={{ userSelect: 'none' }}
               >
                 <div 
                   className="tapping-bar-track"
@@ -897,11 +734,6 @@ useEffect(() => {
                   className={`stake-button ${barLocked && stakeAmount > 0 ? 'active' : ''}`}
                   onClick={submitStake}
                   disabled={!canParticipate || stakeAmount === 0 || !barLocked}
-                  style={{ 
-                    userSelect: 'none',
-                    pointerEvents: (!canParticipate || stakeAmount === 0 || !barLocked) ? 'none' : 'auto',
-                    opacity: (!canParticipate || stakeAmount === 0 || !barLocked) ? 0.5 : 1
-                  }}
                 >
                   {!barLocked ? 'Lock bar to place stake' : 
                    stakeAmount === 0 ? 'Fill and lock bar first' :
@@ -931,7 +763,6 @@ useEffect(() => {
     </div>
   );
 }
-
 interface FightSliderProps {
   fights: Fight[];
   userPoints: number;
@@ -1101,52 +932,47 @@ const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramI
     </div>
   );
 };
-
 export default function StakingPageContent() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
-  const router = useRouter();
   const [fights, setFights] = useState<Fight[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0);
-  const [isRouterReady, setIsRouterReady] = useState(false);
 
-  
-
+  // Initialize Telegram WebApp
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setIsRouterReady(true);
+      const webApp = window.Telegram?.WebApp;
+      
+      if (webApp) {
+        webApp.ready();
+        webApp.expand();
+        
+        // Test haptic
+        if (webApp.HapticFeedback) {
+          console.log('✅ Haptic available');
+          webApp.HapticFeedback.impactOccurred('light');
+        } else {
+          console.log('❌ Haptic NOT available');
+        }
+        
+        if (webApp.initDataUnsafe?.user?.id) {
+          setTelegramId(webApp.initDataUnsafe.user.id.toString());
+        } else {
+          setError("Could not retrieve Telegram ID");
+        }
+      } else {
+        setError("Telegram WebApp not initialized");
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && isRouterReady) {
-      try {
-        if (window.Telegram?.WebApp) {
-          const webApp = window.Telegram.WebApp;
-          if (webApp.initDataUnsafe?.user?.id) {
-            setTelegramId(webApp.initDataUnsafe.user.id.toString());
-          } else {
-            setError("Could not retrieve Telegram ID. Please open this app from Telegram.");
-          }
-        } else {
-          setError("Telegram WebApp not initialized");
-        }
-      } catch (err) {
-        console.error("Error initializing Telegram data:", err);
-        setError("Failed to initialize Telegram data");
-      }
-    }
-  }, [isRouterReady]);
-
-  useEffect(() => {
     const fetchData = async () => {
+      if (!telegramId) return;
+      
       try {
         setLoading(true);
-
-        if (!telegramId) {
-          throw new Error('Telegram ID is not available');
-        }
 
         const userResponse = await fetch(`/api/user/${telegramId}`);
         if (!userResponse.ok) throw new Error('Failed to fetch user info');
@@ -1168,12 +994,10 @@ export default function StakingPageContent() {
       }
     };
 
-    if (telegramId) {
-      fetchData();
-    }
+    fetchData();
   }, [telegramId]);
 
-  if (!isRouterReady || loading) return <Loader />;
+  if (loading) return <Loader />;
   if (error) return <div className="error-container">Error: {error}</div>;
 
   return (
