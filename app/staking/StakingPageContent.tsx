@@ -291,7 +291,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   };
 
   // Touch handlers
- useEffect(() => {
+useEffect(() => {
   const el = fighterRef.current;
   if (!el) return;
 
@@ -301,7 +301,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   let startFingerY = 0;
   let startBarHeight = 0;
 
-  const SENSITIVITY = 0.35; // adjust smoothness
+  const SENSITIVITY = 0.9; // much stronger, feels natural
 
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
@@ -309,6 +309,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     const t = e.touches[0];
     if (!t) return;
 
+    // store initial touch
     touchStartXRef.current = t.clientX;
     touchStartYRef.current = t.clientY;
     touchIntentRef.current = "idle";
@@ -317,6 +318,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     setTapping(true);
     stopBarDecay();
 
+    // long press → stake mode
     pressTimer = setTimeout(() => {
       isStakeMode = true;
       touchIntentRef.current = "stake";
@@ -327,7 +329,6 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
       try {
         window?.Telegram?.WebApp?.HapticFeedback?.impactOccurred("medium");
       } catch {}
-
     }, 250);
   };
 
@@ -338,30 +339,30 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     const dx = Math.abs(touch.clientX - touchStartXRef.current);
     const dy = Math.abs(touch.clientY - touchStartYRef.current);
 
-    // 🔹 NOT YET IN STAKE MODE → detect scroll/swipe
+    // NOT in stake mode → detect scroll
     if (!isStakeMode) {
-      // user moved → cancel long press
+      // if moved → cancel long press
       if (dx > 10 || dy > 10) {
         if (pressTimer) clearTimeout(pressTimer);
-        touchIntentRef.current = dy > dx ? "scroll" : "swipe";
         setTapping(false);
-        return; // allow scroll
+        touchIntentRef.current = "scroll"; // allow scroll
+        return;
       }
       return;
     }
 
-    // 🔹 IN STAKE MODE → block scroll
+    // IN STAKE MODE → BLOCK SCROLL RIGHT AWAY
     e.preventDefault();
     e.stopPropagation();
 
-    // Smooth glide logic
-    const deltaY = startFingerY - touch.clientY;
-    let newH = startBarHeight + deltaY * SENSITIVITY;
+    // Smooth dragging distance
+    const deltaY = (startFingerY - touch.clientY) * SENSITIVITY;
 
-    newH = Math.max(0, Math.min(100, newH));
+    let newValue = startBarHeight + deltaY;
+    newValue = Math.max(0, Math.min(100, newValue));
 
-    setBarHeight(newH);
-    setStakeAmount(Math.floor((newH / 100) * MAX_AMOUNT));
+    setBarHeight(newValue);
+    setStakeAmount(Math.floor((newValue / 100) * MAX_AMOUNT));
   };
 
   const handleTouchEnd = () => {
@@ -369,10 +370,8 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     pressTimer = null;
 
     setTapping(false);
-
-    // reset intent
-    touchIntentRef.current = "idle";
     isStakeMode = false;
+    touchIntentRef.current = "idle";
 
     // resume decay
     if (!barLockedRef.current && barHeight > 0) {
@@ -394,6 +393,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     el.removeEventListener("touchcancel", handleTouchEnd);
   };
 }, [canParticipate, isFighter, barHeight, MAX_AMOUNT]);
+
 
   const fetchTotalSupport = async () => {
     try {
