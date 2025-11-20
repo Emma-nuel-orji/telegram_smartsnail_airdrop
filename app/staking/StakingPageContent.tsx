@@ -787,6 +787,176 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   );
 }
 
+
+interface FightSliderProps {
+  fights: Fight[];
+  userPoints: number;
+  telegramId: string | null;
+}
+
+const FightSlider: React.FC<FightSliderProps> = ({ fights, userPoints, telegramId }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [pastFights, setPastFights] = useState<Fight[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  useEffect(() => {
+    const fetchPastFights = async () => {
+      try {
+        const res = await fetch('/api/fights/past');
+        const data = await res.json();
+        setPastFights(data);
+      } catch (err) {
+        console.error('Error fetching past fights:', err);
+      }
+    };
+    fetchPastFights();
+  }, []);
+
+  const allSlides = [...fights, ...pastFights];
+  const slidesToShow = allSlides.length > 0 ? allSlides : [undefined]; 
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(Math.max(0, Math.min(index, slidesToShow.length - 1)));
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < slidesToShow.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  // Touch/swipe handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    
+    const endX = e.changedTouches[0].clientX;
+    const diff = startX - endX;
+    
+    // Minimum swipe distance
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < slidesToShow.length - 1) {
+        // Swipe left - next slide
+        handleNext();
+      } else if (diff < 0 && currentIndex > 0) {
+        // Swipe right - previous slide
+        handlePrevious();
+      }
+    }
+    
+    setIsDragging(false);
+  };
+
+  // Mouse drag handlers for desktop
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartX(e.clientX);
+    setScrollLeft(currentIndex);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    
+    const endX = e.clientX;
+    const diff = startX - endX;
+    
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < slidesToShow.length - 1) {
+        handleNext();
+      } else if (diff < 0 && currentIndex > 0) {
+        handlePrevious();
+      }
+    }
+    
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+  
+  return (
+    <div className="fight-slider-container">
+      <div 
+        className="fight-slider"
+        style={{
+          transform: `translateX(-${currentIndex * 100}%)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-in-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      >
+        {slidesToShow.map((fight, index) => (
+          <div key={fight?.id || `empty-${index}`} className="slide">
+            <FightCard 
+              fight={fight} 
+              userPoints={userPoints}
+              telegramId={telegramId}
+            />
+          </div>
+        ))}
+      </div>
+      
+      {/* Navigation arrows */}
+      {slidesToShow.length > 1 && (
+        <>
+          <button 
+            className={`slider-nav prev ${currentIndex === 0 ? 'disabled' : ''}`}
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+          >
+            ‹
+          </button>
+          <button 
+            className={`slider-nav next ${currentIndex === slidesToShow.length - 1 ? 'disabled' : ''}`}
+            onClick={handleNext}
+            disabled={currentIndex === slidesToShow.length - 1}
+          >
+            ›
+          </button>
+        </>
+      )}
+      
+      {/* Dots indicator */}
+      <div className="slider-dots">
+        {slidesToShow.map((_, index) => (
+          <button
+            key={index}
+            className={`dot ${index === currentIndex ? 'active' : ''}`}
+            onClick={() => goToSlide(index)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
 export default function StakingPageContent() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [fights, setFights] = useState<Fight[]>([]);
@@ -795,50 +965,56 @@ export default function StakingPageContent() {
   const [userPoints, setUserPoints] = useState<number>(0);
 
   // Initialize Telegram WebApp
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const webApp = window.Telegram?.WebApp;
-      
-      if (webApp) {
-        webApp.ready();
-        webApp.expand();
-        
-        // ✅ Disable vertical swipes (prevent pull-to-close)
-        try {
-          if (webApp.disableVerticalSwipes) {
-            webApp.disableVerticalSwipes();
-            console.log('✅ Vertical swipes disabled');
-          }
-          
-          // Alternative method using postEvent
-          if (webApp.postEvent) {
-            webApp.postEvent("web_app_setup_swipe_behavior", {
-              allow_vertical_swipe: false,
-            });
-            console.log('✅ Swipe behavior configured');
-          }
-        } catch (error) {
-          console.log('⚠️ Could not disable swipes:', error);
+ useEffect(() => {
+  if (typeof window !== "undefined") {
+    const webApp = window.Telegram?.WebApp;
+
+    if (webApp) {
+      webApp.ready();
+      webApp.expand();
+
+      try {
+        // Cast once, reuse everywhere Telegram lacks proper typings
+        const anyWebApp = webApp as any;
+
+        // Official method — but missing in types, so use anyWebApp
+        if (typeof anyWebApp.disableVerticalSwipes === "function") {
+          anyWebApp.disableVerticalSwipes();
+          console.log("✅ Vertical swipes disabled");
         }
-        
-        // Test haptic
-        if (webApp.HapticFeedback) {
-          console.log('✅ Haptic available');
-          webApp.HapticFeedback.impactOccurred('light');
-        } else {
-          console.log('❌ Haptic NOT available');
+
+        // Unofficial method — also via any
+        if (typeof anyWebApp.postEvent === "function") {
+          anyWebApp.postEvent("web_app_setup_swipe_behavior", {
+            allow_vertical_swipe: false,
+          });
+          console.log("✅ Swipe behavior configured");
         }
-        
-        if (webApp.initDataUnsafe?.user?.id) {
-          setTelegramId(webApp.initDataUnsafe.user.id.toString());
-        } else {
-          setError("Could not retrieve Telegram ID");
-        }
-      } else {
-        setError("Telegram WebApp not initialized");
+      } catch (err) {
+        console.log("⚠️ Could not configure swipes:", err);
       }
+
+      // Haptic Feedback
+      if (webApp.HapticFeedback) {
+        console.log("✅ Haptic available");
+        webApp.HapticFeedback.impactOccurred("light");
+      } else {
+        console.log("❌ Haptic NOT available");
+      }
+
+      // Retrieve Telegram ID
+      if (webApp.initDataUnsafe?.user?.id) {
+        setTelegramId(webApp.initDataUnsafe.user.id.toString());
+      } else {
+        setError("Could not retrieve Telegram ID");
+      }
+    } else {
+      setError("Telegram WebApp not initialized");
     }
-  }, []);
+  }
+}, []);
+
+
 
   useEffect(() => {
     const fetchData = async () => {
