@@ -65,8 +65,9 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
             totalEarned: (data.referrals?.length || 0) * 20000,
             pendingRewards: data.pendingRewards || 0,
             referralRate: data.referralRate || 20000,
-            leaderboardPosition: data.referrals?.length > 0 ? Math.floor(Math.random() * 100) + 1 : undefined
-          });
+            leaderboardPosition: data.leaderboardPosition
+
+            });
           
         } catch (error) {
           console.error('Error fetching referral data:', error);

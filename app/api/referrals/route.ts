@@ -115,59 +115,67 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("telegramId");
+    const telegramId = request.nextUrl.searchParams.get('telegramId');
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Missing telegramId" },
-        { status: 400 }
-      );
+    if (!telegramId) {
+      return NextResponse.json({ error: 'Missing telegramId' }, { status: 400 });
     }
 
-    // 1. Get referrals including referred user details
-    const referrals = await prisma.referral.findMany({
-      where: { referrerId: BigInt(userId) },
-      include: {
-        referred: true, // MUST have relation in Prisma schema
-      },
-    });
+    const userId = BigInt(telegramId);
 
-    // 2. Get the referrer (who referred THIS user)
-    const referrer = await prisma.referral.findFirst({
-      where: { referredId: BigInt(userId) },
+    // Fetch the user’s referrer (if any)
+    const referrerReferral = await prisma.referral.findFirst({
+      where: { referredId: userId },
+      include: { referrer: true },
     });
 
     let referrerUser = null;
-    if (referrer) {
+    if (referrerReferral) {
       referrerUser = await prisma.user.findUnique({
-        where: { telegramId: referrer.referrerId },
+        where: { telegramId: referrerReferral.referrerId },
       });
     }
 
-    // 3. FINAL RETURN — place this EXACTLY here
+    // Fetch all users with their referral counts for leaderboard calculation
+    const allUsers = await prisma.user.findMany({
+      include: { referralsMade: true }, // referralsMade is the array of users this user referred
+    });
+
+    // Sort descending by number of referrals
+    allUsers.sort((a, b) => b.referralsMade.length - a.referralsMade.length);
+
+    // Determine leaderboard position
+    const leaderboardPosition =
+      allUsers.findIndex(u => u.telegramId.toString() === telegramId) + 1 || undefined;
+
+    // Fetch this user's referrals
+    const referrals = await prisma.referral.findMany({
+      where: { referrerId: userId },
+      include: { referred: true },
+    });
+
     return NextResponse.json({
-      referrals: referrals.map((r) => ({
+      referrals: referrals.map(r => ({
         telegramId: r.referred.telegramId.toString(),
         username: r.referred.username || null,
         createdAt: r.referred.createdAt || null,
       })),
-      referrer: referrer
+      referrer: referrerUser
         ? {
-            telegramId: referrer.referrerId.toString(),
-            username: referrerUser?.username || null,
-            createdAt: referrerUser?.createdAt || null,
+            telegramId: referrerUser.telegramId.toString(),
+            username: referrerUser.username || null,
+            createdAt: referrerUser.createdAt || null,
           }
         : null,
+      totalEarned: (referrals?.length || 0) * 20000, // or whatever your rate is
+      pendingRewards: 0, // calculate if you have pending rewards
+      referralRate: 20000, // your reward per referral
+      leaderboardPosition,
     });
-
   } catch (error) {
-    console.error("Error fetching referral data:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch referral data" },
-      { status: 500 }
-    );
+    console.error('Error fetching referral data:', error);
+    return NextResponse.json({ error: 'Error fetching referral data' }, { status: 500 });
   }
 }
