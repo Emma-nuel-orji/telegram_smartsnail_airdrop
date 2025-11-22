@@ -154,10 +154,10 @@ export default function Home() {
 };
 
   
-    // const clearLocalStorage = () => {
-    //   localStorage.clear(); // Clears all data in localStorage
-    //   alert('LocalStorage has been cleared!');
-    // };
+    const clearLocalStorage = () => {
+      localStorage.clear(); // Clears all data in localStorage
+      alert('LocalStorage has been cleared!');
+    };
   // const [pendingRequests, setPendingRequests] = useState<number[]>([]);
   // const [lastRequestTime, setLastRequestTime] = useState<number | null>(null);
   // const isPendingRequest = (requestId: number): boolean => {
@@ -858,9 +858,9 @@ useEffect(() => {
       <Link href="/level">Level  :</Link>
     </div>
   </button>
-  {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
+  <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
-</button> */}
+</button>
 
 
       {/* Display Camouflage Level */}
@@ -983,7 +983,7 @@ useEffect(() => {
     </Link>
 
      {/* <div className="absolute top-4 right-4 z-20"> */}
-              <Link href="/staking" passHref>
+              {/* <Link href="/staking" passHref>
                 <button
                   // onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
@@ -995,7 +995,7 @@ useEffect(() => {
           onClick={(e) => e.stopPropagation()}
         />
       </button>
-    </Link>
+    </Link> */}
   {/* </div> */}
 
   </div>

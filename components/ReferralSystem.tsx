@@ -175,15 +175,15 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
     <div className="referral-container">
       {/* Header Section */}
       <div className="referral-header">
-        <Link href="/">
+        <div><Link href="/">
           <img
             src="/images/info/left-arrow.png" 
             width={40}
             height={40}
             alt="back"
           />
-        </Link>
-        <h1 className="referral-title">Invite Friends & Earn</h1>
+        </Link></div>
+        <div><h1 className="referral-title">Invite Friends & Earn</h1></div>
         <p className="referral-subtitle">
           Earn {referralData.referralRate} Shells for each friend who joins using your link
         </p>
