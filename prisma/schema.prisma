@@ -79,20 +79,18 @@ model Task {
 
 
 model Referral {
-  id         String   @id @default(cuid()) @map("_id") @db.ObjectId
-  referrerId BigInt   // The user who made the referral
-  referredId BigInt   // The user who was referred
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  referrerId BigInt
+  referredId BigInt
   createdAt  DateTime @default(now())
   
-  // Relations - these names MUST match the relation names in User model
   referrer User @relation("Referrer", fields: [referrerId], references: [telegramId])
   referred User @relation("ReferredBy", fields: [referredId], references: [telegramId])
-  
-  // Ensure each user can only be referred once
+
   @@unique([referredId], name: "unique_referred_user")
   @@index([referrerId], name: "referrer_index")
-  
 }
+
 
 
 // GeneratedCode model
