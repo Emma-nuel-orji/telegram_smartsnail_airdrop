@@ -115,34 +115,59 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const telegramId = request.nextUrl.searchParams.get('telegramId');
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("telegramId");
 
-    if (!telegramId) {
-      return NextResponse.json({ error: 'Missing telegramId' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Missing telegramId" },
+        { status: 400 }
+      );
     }
 
-    const userId = BigInt(telegramId);
-
-    // Fetch referrer details
-    const referrer = await prisma.referral.findFirst({
-      where: { referredId: userId },
-      select: { referrerId: true },
-    });
-
-    // Fetch referrals made by this user
+    // 1. Get referrals including referred user details
     const referrals = await prisma.referral.findMany({
-      where: { referrerId: userId },
-      select: { referredId: true },
+      where: { referrerId: BigInt(userId) },
+      include: {
+        referred: true, // MUST have relation in Prisma schema
+      },
     });
 
-    return NextResponse.json({
-      referrals: referrals.map(r => r.referredId.toString()), // Convert BigInt to string
-      referrer: referrer?.referrerId?.toString() ?? null, // Convert BigInt to string
+    // 2. Get the referrer (who referred THIS user)
+    const referrer = await prisma.referral.findFirst({
+      where: { referredId: BigInt(userId) },
     });
+
+    let referrerUser = null;
+    if (referrer) {
+      referrerUser = await prisma.user.findUnique({
+        where: { telegramId: referrer.referrerId },
+      });
+    }
+
+    // 3. FINAL RETURN — place this EXACTLY here
+    return NextResponse.json({
+      referrals: referrals.map((r) => ({
+        telegramId: r.referred.telegramId.toString(),
+        username: r.referred.username || null,
+        createdAt: r.referred.createdAt || null,
+      })),
+      referrer: referrer
+        ? {
+            telegramId: referrer.referrerId.toString(),
+            username: referrerUser?.username || null,
+            createdAt: referrerUser?.createdAt || null,
+          }
+        : null,
+    });
+
   } catch (error) {
-    console.error('Error fetching referral data:', error);
-    return NextResponse.json({ error: 'Error fetching referral data' }, { status: 500 });
+    console.error("Error fetching referral data:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch referral data" },
+      { status: 500 }
+    );
   }
 }
