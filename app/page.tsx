@@ -859,7 +859,7 @@ useEffect(() => {
     </div>
   </button>
 
-  
+
   {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
 </button> */}
@@ -984,7 +984,7 @@ useEffect(() => {
       </button>
     </Link>
 
-     <div className="absolute top-4 right-4 z-20">
+     {/* <div className="absolute top-4 right-4 z-20"> */}
               <Link href="/marketplace" passHref>
                 <button
                   // onClick={handleFightClubClick}
@@ -998,7 +998,7 @@ useEffect(() => {
         />
       </button>
     </Link>
-  </div>
+  {/* </div> */}
 
   </div>
 

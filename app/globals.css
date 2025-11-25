@@ -1623,3 +1623,63 @@ html, body, #__next, [data-nextjs] {
     @apply bg-background text-foreground;
   }
 }
+
+
+/* --- Marketplace Base Layout --- */
+
+.marketplace-container {
+  @apply min-h-screen w-full px-4 py-6 bg-[#0e0e0e] text-white;
+}
+
+/* --- Collection Filter Dropdown --- */
+.marketplace-filter {
+  @apply w-full max-w-sm mb-6;
+}
+
+.marketplace-select {
+  @apply w-full bg-[#1b1b1b] text-white border border-gray-700 
+         rounded-xl px-4 py-3 outline-none;
+}
+
+/* --- NFT Grid --- */
+.nft-grid {
+  @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4;
+}
+
+/* --- NFT Card --- */
+.nft-card {
+  @apply relative bg-[#1a1a1a] p-3 rounded-2xl shadow-md
+         transition-all duration-300 hover:scale-[1.03]
+         hover:shadow-lg hover:bg-[#222];
+}
+
+.nft-card img {
+  @apply w-full h-40 object-cover rounded-xl;
+}
+
+/* --- NFT Card Title & Price --- */
+.nft-title {
+  @apply mt-2 text-sm font-semibold leading-tight;
+}
+
+.nft-price {
+  @apply mt-1 text-xs text-gray-400;
+}
+
+/* --- Load More Button --- */
+.load-more-btn {
+  @apply w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold 
+         py-3 rounded-xl transition-all;
+}
+
+/* --- Empty State --- */
+.nft-empty {
+  @apply text-center text-gray-400 mt-10;
+}
+
+/* --- Shop Button (Top Right) --- */
+.shop-btn {
+  @apply absolute top-4 right-4 bg-[#1b1b1b]/80 backdrop-blur-xl 
+         rounded-xl p-2 border border-white/10 shadow-lg
+         transition-all hover:bg-[#222];
+}
