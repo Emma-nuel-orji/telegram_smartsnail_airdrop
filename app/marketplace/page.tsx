@@ -6,21 +6,25 @@ import { fetchNFTs } from "@/lib/fetchNfts";
 import { NFTCard } from "@/components/marketplace/NFTCard";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, Grid3x3, Loader } from "lucide-react";
+import { Nft } from "@/lib/types";
 
-type Nft = {
-  id: string;
-  name: string;
-  imageUrl: string;
-  rarity?: string;
-  priceTon: number;
-  priceStars: number;
-  priceShells?: number;
-  indexNumber: number;
-  isSold: boolean;
-  collection: string;
-  ownerTelegramId?: string | null;
-  minted?: boolean;
-};
+type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
+
+// type Nft = {
+//   id: string;
+//   name: string;
+//   imageUrl: string;
+//   rarity?: Rarity;   // ← FIXED
+//   priceTon: number;
+//   priceStars: number;
+//   priceShells?: number;
+//   indexNumber: number;
+//   isSold: boolean;
+//   collection: string;          // KEEP THIS
+//   ownerTelegramId?: string;    // KEEP THIS (avoid null, use undefined)
+//   minted?: boolean;
+// };
+
 
 export default function Marketplace() {
   const router = useRouter();
@@ -32,24 +36,37 @@ export default function Marketplace() {
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
 
   async function loadMore() {
-    if (loading || !hasMore) return;
-    setLoading(true);
+  if (loading || !hasMore) return;
+  setLoading(true);
 
-    try {
-      const data = await fetchNFTs({ 
-        page, 
-        collection: selectedCollection 
-      });
+  try {
+    const data = await fetchNFTs({
+      page,
+      collection: selectedCollection ?? undefined
+    });
 
-      setItems(prev => [...prev, ...data.items]);
-      setPage(prev => prev + 1);
-      setHasMore(data.hasMore);
-    } catch (error) {
-      console.error("Failed to load NFTs:", error);
-    } finally {
-      setLoading(false);
-    }
+    // Normalize rarities to the union type
+    const normalized = data.items.map((nft: any) => ({
+      ...nft,
+      rarity: nft.rarity
+        ? (capitalize(nft.rarity) as Rarity)
+        : undefined,
+    }));
+
+    setItems(prev => [...prev, ...normalized]);
+    setPage(prev => prev + 1);
+    setHasMore(data.hasMore);
+  } catch (error) {
+    console.error("Failed to load NFTs:", error);
+  } finally {
+    setLoading(false);
   }
+}
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
 
   useEffect(() => {
     loadMore();
