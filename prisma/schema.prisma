@@ -431,16 +431,20 @@ enum TicketStatus {
 
 model Nft {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  collection      String   // "smartsnail" | "manchies"
   name            String
   imageUrl        String
-  rarity          String?  // common, rare, epic, legendary
-  priceTon        Float    // price in TON
-  priceStars      Int      // price in Telegram Stars
-  indexNumber     Int      // 1–6000 for SmartSnail, etc.
+  collection      String
+  rarity          String?
+  priceTon        Float
+  priceStars      Int
+  priceShells     Int?     // Add this if not present
+  indexNumber     Int
   isSold          Boolean  @default(false)
   ownerTelegramId String?
+  minted          Boolean  @default(false)
+  traits          Json?    // Store as JSON
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 
