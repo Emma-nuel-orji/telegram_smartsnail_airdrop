@@ -674,11 +674,11 @@ useEffect(() => {
     }
   }, []);
 
-  const resetAppSession = () => {
-    localStorage.clear();
-    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
-    // OR: window.location.reload(); // if you prefer reloading the app
-  };
+  // const resetAppSession = () => {
+  //   localStorage.clear();
+  //   window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
+  //   // OR: window.location.reload(); // if you prefer reloading the app
+  // };
   
 
   // Set first name effect
@@ -858,9 +858,11 @@ useEffect(() => {
       <Link href="/level">Level  :</Link>
     </div>
   </button>
-  <button onClick={resetAppSession} className="mt-4 text-red-600">
+
+  
+  {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
-</button>
+</button> */}
 
 
       {/* Display Camouflage Level */}
@@ -982,8 +984,8 @@ useEffect(() => {
       </button>
     </Link>
 
-     {/* <div className="absolute top-4 right-4 z-20"> */}
-              {/* <Link href="/staking" passHref>
+     <div className="absolute top-4 right-4 z-20">
+              <Link href="/marketplace" passHref>
                 <button
                   // onClick={handleFightClubClick}
                   className="glass-shimmer-button text-white font-semibold px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
@@ -995,8 +997,8 @@ useEffect(() => {
           onClick={(e) => e.stopPropagation()}
         />
       </button>
-    </Link> */}
-  {/* </div> */}
+    </Link>
+  </div>
 
   </div>
 
