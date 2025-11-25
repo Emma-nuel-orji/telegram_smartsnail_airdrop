@@ -6,7 +6,7 @@ interface Params {
 }
 
 export async function GET(_: Request, { params }: Params) {
-  const nft = await prisma.nFT.findUnique({
+  const nft = await prisma.nft.findUnique({
     where: { id: params.id }
   });
 
