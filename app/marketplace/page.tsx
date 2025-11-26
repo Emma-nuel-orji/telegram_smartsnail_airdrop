@@ -7,6 +7,7 @@ import { NFTCard } from "@/components/marketplace/NFTCard";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, Grid3x3, Loader } from "lucide-react";
 import { Nft } from "@/lib/types";
+import "@/public/styles/marketplace.css";
 
 type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
 

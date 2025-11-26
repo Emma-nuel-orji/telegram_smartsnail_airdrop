@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check, Loader } from "lucide-react";
+import "@/public/styles/marketplace.css";
 
 type Nft = {
   id: string;
