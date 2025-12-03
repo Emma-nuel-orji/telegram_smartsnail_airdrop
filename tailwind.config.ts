@@ -12,7 +12,7 @@ const config: Config = {
   ],
   theme: {
   	extend: {
-  		colors: {
+  colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			purple: '#6A0DAD',
@@ -56,37 +56,42 @@ const config: Config = {
   				'5': 'hsl(var(--chart-5))'
   			}
   		},
-  		textColor: {
-  			pointsPurple: 'var(--points-purple)'
-  		},
-  		fontFamily: {
-  			custom: [
-  				'Orbitron',
-  				'sans-serif'
-  			]
-  		},
-  		spacing: {
-  			'128': '32rem'
-  		},
-  		keyframes: {
-  			scroll: {
-  				'0%': {
-  					transform: 'translateY(0)'
-  				},
-  				'100%': {
-  					transform: 'translateY(-50%)'
-  				}
-  			}
-  		},
-  		animation: {
-  			scroll: 'scroll 20s linear infinite'
-  		},
-  		borderRadius: {
-  			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
-  		}
-  	}
+
+  textColor: {
+    pointsPurple: 'var(--points-purple)'
+  },
+
+  fontFamily: {
+    custom: ['Orbitron', 'sans-serif']
+  },
+
+  spacing: {
+    '128': '32rem'
+  },
+
+  keyframes: {
+    scroll: {
+      '0%': { transform: 'translateY(0)' },
+      '100%': { transform: 'translateY(-50%)' }
+    },
+    shimmer: {
+      "0%": { backgroundPosition: "-1000px 0" },
+      "100%": { backgroundPosition: "1000px 0" },
+    },
+  },
+
+  animation: {
+    scroll: "scroll 20s linear infinite",
+    shimmer: "shimmer 2s infinite linear",
+  },
+
+  borderRadius: {
+    lg: 'var(--radius)',
+    md: 'calc(var(--radius) - 2px)',
+    sm: 'calc(var(--radius) - 4px)'
+  }
+}
+
   },
   safelist: [
     'animate__animated',
