@@ -14,6 +14,12 @@ interface UserData {
   [key: string]: any;
 }
 
+// 👇 Auto-select correct API URL
+const API_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://telegram-smartsnail-airdrop.vercel.app/api/increase-points"
+    : "/api/increase-points";
+
 export class PointsQueue {
   private queue: QueueItem[] = [];
   private isProcessing: boolean = false;
@@ -30,24 +36,26 @@ export class PointsQueue {
   }
 
   private loadQueue(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
+
     const saved = localStorage.getItem(this.queueStorageKey);
     if (saved) {
       try {
         this.queue = JSON.parse(saved);
       } catch (error) {
-        console.error('Failed to load queue:', error);
+        console.error("🔥 Failed to load queue:", error);
         this.queue = [];
       }
     }
   }
 
   private saveQueue(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
+
     try {
       localStorage.setItem(this.queueStorageKey, JSON.stringify(this.queue));
     } catch (error) {
-      console.error('Failed to save queue:', error);
+      console.error("🔥 Failed to save queue:", error);
     }
   }
 
@@ -55,54 +63,76 @@ export class PointsQueue {
     this.queue.push({
       points,
       timestamp: Date.now(),
-      attempts: 0
+      attempts: 0,
     });
-    
+
     this.saveQueue();
     await this.processQueue();
   }
 
-   private async processQueue(): Promise<void> {
+  private async processQueue(): Promise<void> {
     if (this.isProcessing || this.queue.length === 0) return;
-    
+
     this.isProcessing = true;
     const batch = this.queue.slice(0, this.batchSize);
-    
+
     try {
       const totalPoints = batch.reduce((sum, item) => sum + item.points, 0);
-      
-      const response = await fetch('/api/increase-point', { // ← Changed from increase-points
-        method: 'POST',
+
+      const response = await fetch(API_URL, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           points: totalPoints,
           userId: this.userId,
-          batch: batch
+          batch: batch,
         }),
+      }).catch((err) => {
+        console.error("🔥 Network error calling API:", err);
+        throw err;
       });
 
+      // Handle non-OK responses
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Server error');
+        console.error("🔥 Server returned error status:", response.status);
+
+        let errorText = "";
+        try {
+          errorText = await response.text();
+        } catch {}
+
+        console.error("🔥 Response body:", errorText);
+
+        throw new Error(
+          `Server Error ${response.status}: ${errorText || "Unknown error"}`
+        );
       }
-      
-      const result = await response.json();
-      
+
+      let result: any = {};
+      try {
+        result = await response.json();
+      } catch (err) {
+        console.error("🔥 Failed to parse JSON:", err);
+        throw new Error("Invalid JSON response from server");
+      }
+
       if (result.success) {
+        // Remove processed items
         this.queue.splice(0, batch.length);
         this.saveQueue();
         this.retryTimeout = 1000;
-        
+
+        // Process next batch
         if (this.queue.length > 0) {
           setTimeout(() => this.processQueue(), 100);
         }
       } else {
-        throw new Error(result.error || 'Processing failed');
+        throw new Error(result.error || "Processing failed");
       }
     } catch (error) {
-      console.error('Queue processing error:', error);
+      console.error("🔥 Queue processing error:", error);
       await this.handleError(batch);
     } finally {
       this.isProcessing = false;
@@ -111,22 +141,27 @@ export class PointsQueue {
 
   private async handleError(batch: QueueItem[]): Promise<void> {
     const maxAttempts = 5;
-    
-    // Increment attempts for failed items
+
+    // Increase attempts
     this.queue = [
       ...batch
-        .filter(item => (item.attempts || 0) < maxAttempts)
-        .map(item => ({
+        .filter((item) => (item.attempts || 0) < maxAttempts)
+        .map((item) => ({
           ...item,
-          attempts: (item.attempts || 0) + 1
+          attempts: (item.attempts || 0) + 1,
         })),
-      ...this.queue.slice(batch.length)
+      ...this.queue.slice(batch.length),
     ];
-    
+
     this.saveQueue();
     this.retryTimeout = Math.min(this.retryTimeout * 2, this.maxRetryTimeout);
-    
-    // Retry after timeout
+
+    console.warn(
+      `⚠ Retrying in ${this.retryTimeout}ms (attempts: ${
+        batch[0]?.attempts || 1
+      })`
+    );
+
     setTimeout(() => this.processQueue(), this.retryTimeout);
   }
 
@@ -138,7 +173,7 @@ export class PointsQueue {
 export class UserSyncManager {
   private userId: string;
   private pointsQueue: PointsQueue;
-  private syncInterval: number = 5000; // Reduced frequency
+  private syncInterval: number = 5000;
   private syncTimer: NodeJS.Timeout | null = null;
   private localStorageKey: string;
 
@@ -151,56 +186,61 @@ export class UserSyncManager {
   public async syncWithServer(): Promise<void> {
     try {
       const response = await fetch(`/api/user/${this.userId}`);
-      if (!response.ok) throw new Error('Failed to sync with server');
-  
+
+      if (!response.ok) {
+        throw new Error(`Failed to sync with server: ${response.status}`);
+      }
+
       const serverData = await response.json();
-      
-      // Only sync if queue is empty (no pending updates)
+
       if (this.pointsQueue.getQueueLength() === 0) {
         const localData = JSON.parse(
-          localStorage.getItem(this.localStorageKey) || '{}'
+          localStorage.getItem(this.localStorageKey) || "{}"
         );
-  
-        // Keep higher points value
+
         const updatedData = {
           ...serverData,
           points: Math.max(serverData.points, localData.points || 0),
         };
-  
-        localStorage.setItem(this.localStorageKey, JSON.stringify(updatedData));
+
+        localStorage.setItem(
+          this.localStorageKey,
+          JSON.stringify(updatedData)
+        );
+
         this.broadcastUpdate(updatedData);
       }
     } catch (error) {
-      console.error('Sync failed:', error);
+      console.error("🔥 Sync failed:", error);
     }
   }
 
   private broadcastUpdate(data: UserData): void {
-    const event = new CustomEvent('userDataUpdate', { detail: data });
+    const event = new CustomEvent("userDataUpdate", { detail: data });
     window.dispatchEvent(event);
   }
 
   public async addPoints(points: number): Promise<void> {
     try {
-      // Update local storage immediately
       const currentData = JSON.parse(
-        localStorage.getItem(this.localStorageKey) || '{}'
+        localStorage.getItem(this.localStorageKey) || "{}"
       );
-      
+
       const updatedData = {
         ...currentData,
-        points: (currentData.points || 0) + points
+        points: (currentData.points || 0) + points,
       };
-      
-      localStorage.setItem(this.localStorageKey, JSON.stringify(updatedData));
-      
-      // Queue for server sync
+
+      localStorage.setItem(
+        this.localStorageKey,
+        JSON.stringify(updatedData)
+      );
+
       await this.pointsQueue.addPoints(points);
-      
-      // Broadcast update
+
       this.broadcastUpdate(updatedData);
     } catch (error) {
-      console.error('Failed to add points:', error);
+      console.error("🔥 Failed to add points:", error);
     }
   }
 
