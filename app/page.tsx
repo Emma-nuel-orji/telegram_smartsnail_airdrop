@@ -195,86 +195,123 @@ export default function Home() {
   const lastClickTime = useRef(0);
 
   const handleClick = async (e: React.MouseEvent) => {
-  if (!user?.telegramId || energy <= 0) return;
+    if (!user?.telegramId || energy <= 0) return;
 
-  const tappingRate = Number(user.tappingRate) || 1;
+     // Calculate new values first
+  const newPoints = (user.points || 0) + (user.tappingRate || 1);
+  const newEnergy = Math.max(0, energy - ENERGY_REDUCTION_RATE);
+
+  // Update state AND localStorage atomically
+  setUser(prev => {
+    const updatedUser = {
+      ...prev!,
+      points: newPoints
+    };
+    localStorage.setItem(`user_${user.telegramId}`, JSON.stringify(updatedUser));
+    return updatedUser;
+  });
   
-  // Update UI immediately
-  setUser((prevUser) => {
-    const updated = {
+  setEnergy(newEnergy);
+
+    const syncManager = new UserSyncManager(user.telegramId);
+  
+    setIsClicking(true);
+    setSpeed((prev) => Math.min(prev + 0.1, 5));
+  
+    // Get dimensions of clickable area and viewport
+    const rect = e.currentTarget.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+  
+    // Calculate safe boundaries (with 20px margin)
+    const safeLeft = Math.max(rect.left, 20);
+    const safeRight = Math.min(rect.right, viewportWidth - 20);
+    const safeTop = Math.max(rect.top, 20);
+    const safeBottom = Math.min(rect.bottom, viewportHeight - 20);
+  
+    // Calculate initial position with bounce-back logic
+    const calculateSafePosition = (clickPos: number, min: number, max: number) => {
+      if (clickPos < min) {
+        return min + (min - clickPos) * 0.3; // Bounce back from left/top edge
+      }
+      if (clickPos > max) {
+        return max - (clickPos - max) * 0.3; // Bounce back from right/bottom edge
+      }
+      return clickPos;
+    };
+  
+    const x = calculateSafePosition(e.clientX, safeLeft, safeRight);
+    const y = calculateSafePosition(e.clientY, safeTop, safeBottom);
+  
+    const newClick = {
+      id: Date.now(),
+      x,
+      y,
+      tappingRate: user.tappingRate || 1,
+      velocityY: -2, // Initial upward velocity
+      opacity: 1,
+    };
+  
+    setClicks((prev) => [...prev, newClick]);
+  
+    // Animation loop for floating effect
+    const animateClick = () => {
+      setClicks((prevClicks) =>
+        prevClicks.map((click) => {
+          if (click.id === newClick.id) {
+            const newY = click.y + click.velocityY;
+            const newVelocityY = click.velocityY - 0.05; // Gravity effect
+            const newOpacity = click.opacity - 0.02;
+  
+            // Remove if faded out or goes above viewport
+            if (newOpacity <= 0 || newY < -50) {
+              return { ...click, opacity: 0 };
+            }
+  
+            return {
+              ...click,
+              y: newY,
+              velocityY: newVelocityY,
+              opacity: newOpacity,
+            };
+          }
+          return click;
+        })
+      );
+    };
+  
+    // Start animation
+    const animationInterval = setInterval(animateClick, 16); // ~60fps
+  
+    // Update points and energy
+    const tappingRate = Number(user.tappingRate) || 1;
+    setUser((prevUser) => ({
       ...prevUser!,
       points: (prevUser?.points || 0) + tappingRate,
-    };
-    
-    // Save to localStorage
-    localStorage.setItem(`user_${user.telegramId}`, JSON.stringify(updated));
-    return updated;
-  });
-
-  setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
-
-  // Visual effects
-  setIsClicking(true);
-  setSpeed((prev) => Math.min(prev + 0.1, 5));
-
-  // Create floating number animation
-  const newClick = {
-    id: Date.now(),
-    x: e.clientX,
-    y: e.clientY,
-    tappingRate: tappingRate,
-    velocityY: -2,
-    opacity: 1,
-  };
+    }));
   
-  setClicks((prev) => [...prev, newClick]);
-
-  // Animate
-  const animateClick = () => {
-    setClicks((prevClicks) =>
-      prevClicks.map((click) => {
-        if (click.id === newClick.id) {
-          const newY = click.y + click.velocityY;
-          const newVelocityY = click.velocityY - 0.05;
-          const newOpacity = click.opacity - 0.02;
-
-          if (newOpacity <= 0 || newY < -50) {
-            return { ...click, opacity: 0 };
-          }
-
-          return {
-            ...click,
-            y: newY,
-            velocityY: newVelocityY,
-            opacity: newOpacity,
-          };
-        }
-        return click;
-      })
-    );
-  };
-
-  const animationInterval = setInterval(animateClick, 16);
-
-  setTimeout(() => {
-    clearInterval(animationInterval);
-    setClicks((prev) => prev.filter((c) => c.id !== newClick.id));
-  }, 2000);
-
-  // Sync with server (queued, won't block UI)
-  const syncManager = new UserSyncManager(user.telegramId);
-  await syncManager.addPoints(tappingRate);
-
-  // Reset click state - FIXED clearTimeout
-  if (inactivityTimeout.current) {
-    clearTimeout(inactivityTimeout.current);
-  }
+    const now = Date.now();
+    if (now - lastClickTime.current > 50) {
+      setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
+      lastClickTime.current = now;
+    }
   
-  inactivityTimeout.current = setTimeout(() => {
-    setIsClicking(false);
-    setSpeed((prev) => Math.max(1, prev - 0.2));
-  }, 1000);
-};
+    // Cleanup
+    setTimeout(() => {
+      clearInterval(animationInterval);
+      setClicks((prev) => prev.filter((c) => c.id !== newClick.id));
+    }, 2000); // Longer duration for floating animation
+  
+    // Sync with server
+    await syncManager.addPoints(tappingRate);
+    await syncManager.syncWithServer();
+  
+    // Reset click state
+    inactivityTimeout.current = setTimeout(() => {
+      setIsClicking(false);
+      setSpeed((prev) => Math.max(1, prev - 0.2));
+    }, 1000);
+  };
 
   useEffect(() => {
     let syncManager: UserSyncManager | null = null;
