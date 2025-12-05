@@ -194,63 +194,60 @@ export default function Home() {
   
   const lastClickTime = useRef(0);
 
+  // const syncManager = useRef<UserSyncManager | null>(null);
+
+useEffect(() => {
+  if (user?.telegramId && !syncManager.current) {
+    syncManager.current = new UserSyncManager(user.telegramId);
+  }
+}, [user?.telegramId]);
+
+
  const handleClick = async (e: React.MouseEvent) => {
   if (!user?.telegramId || energy <= 0) return;
 
   const tappingRate = Number(user.tappingRate) || 1;
-  
-  // Update UI immediately
-  setUser((prevUser) => {
+
+  // 1. Update UI + local storage immediately (single update)
+  setUser(prev => {
     const updated = {
-      ...prevUser!,
-      points: (prevUser?.points || 0) + tappingRate,
+      ...prev!,
+      points: (prev?.points || 0) + tappingRate,
     };
-    
-    // Save to localStorage
-    localStorage.setItem(`user_${user.telegramId}`, JSON.stringify(updated));
+    localStorage.setItem(`user_${prev!.telegramId}`, JSON.stringify(updated));
     return updated;
   });
 
-  setEnergy((prev) => Math.max(0, prev - ENERGY_REDUCTION_RATE));
+  // 2. Reduce energy
+  setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
 
-  // Visual effects
-  setIsClicking(true);
-  setSpeed((prev) => Math.min(prev + 0.1, 5));
+  // 3. Sync with server (QUEUED, not blocking UI)
+  await syncManager.current?.addPoints(tappingRate);
 
-  // Create floating number animation
+  // 4. Click animation
   const newClick = {
     id: Date.now(),
     x: e.clientX,
     y: e.clientY,
-    tappingRate: tappingRate,
+    tappingRate,
     velocityY: -2,
     opacity: 1,
   };
-  
-  setClicks((prev) => [...prev, newClick]);
 
-  // Animate
+  setClicks(prev => [...prev, newClick]);
+
   const animateClick = () => {
-    setClicks((prevClicks) =>
-      prevClicks.map((click) => {
-        if (click.id === newClick.id) {
-          const newY = click.y + click.velocityY;
-          const newVelocityY = click.velocityY - 0.05;
-          const newOpacity = click.opacity - 0.02;
-
-          if (newOpacity <= 0 || newY < -50) {
-            return { ...click, opacity: 0 };
-          }
-
-          return {
-            ...click,
-            y: newY,
-            velocityY: newVelocityY,
-            opacity: newOpacity,
-          };
-        }
-        return click;
-      })
+    setClicks(prev =>
+      prev.map(c => 
+        c.id === newClick.id
+          ? {
+              ...c,
+              y: c.y + c.velocityY,
+              velocityY: c.velocityY - 0.05,
+              opacity: c.opacity - 0.02,
+            }
+          : c
+      )
     );
   };
 
@@ -258,23 +255,21 @@ export default function Home() {
 
   setTimeout(() => {
     clearInterval(animationInterval);
-    setClicks((prev) => prev.filter((c) => c.id !== newClick.id));
+    setClicks(prev => prev.filter(c => c.id !== newClick.id));
   }, 2000);
 
-  // Sync with server (queued, won't block UI)
-  const syncManager = new UserSyncManager(user.telegramId);
-  await syncManager.addPoints(tappingRate);
+  // 5. Reset tapping state
+  if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
 
-  // Reset click state - FIXED clearTimeout
-  if (inactivityTimeout.current) {
-    clearTimeout(inactivityTimeout.current);
-  }
-  
   inactivityTimeout.current = setTimeout(() => {
     setIsClicking(false);
-    setSpeed((prev) => Math.max(1, prev - 0.2));
+    setSpeed(prev => Math.max(1, prev - 0.2));
   }, 1000);
+
+  setIsClicking(true);
+  setSpeed(prev => Math.min(prev + 0.1, 5));
 };
+
 
   useEffect(() => {
     let syncManager: UserSyncManager | null = null;
