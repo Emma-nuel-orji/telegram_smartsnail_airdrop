@@ -1,6 +1,5 @@
 // userSync.ts
 
-// Types
 interface QueueItem {
   points: number;
   timestamp: number;
@@ -15,7 +14,6 @@ interface UserData {
   [key: string]: any;
 }
 
-// PointsQueue class
 export class PointsQueue {
   private queue: QueueItem[] = [];
   private isProcessing: boolean = false;
@@ -32,14 +30,25 @@ export class PointsQueue {
   }
 
   private loadQueue(): void {
+    if (typeof window === 'undefined') return;
     const saved = localStorage.getItem(this.queueStorageKey);
     if (saved) {
-      this.queue = JSON.parse(saved);
+      try {
+        this.queue = JSON.parse(saved);
+      } catch (error) {
+        console.error('Failed to load queue:', error);
+        this.queue = [];
+      }
     }
   }
 
   private saveQueue(): void {
-    localStorage.setItem(this.queueStorageKey, JSON.stringify(this.queue));
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(this.queueStorageKey, JSON.stringify(this.queue));
+    } catch (error) {
+      console.error('Failed to save queue:', error);
+    }
   }
 
   public async addPoints(points: number): Promise<void> {
@@ -53,27 +62,31 @@ export class PointsQueue {
     await this.processQueue();
   }
 
-  private async processQueue(): Promise<void> {
+   private async processQueue(): Promise<void> {
     if (this.isProcessing || this.queue.length === 0) return;
     
     this.isProcessing = true;
     const batch = this.queue.slice(0, this.batchSize);
     
     try {
-      const response = await fetch('/api/increase-points', {
+      const totalPoints = batch.reduce((sum, item) => sum + item.points, 0);
+      
+      const response = await fetch('/api/increase-point', { // ← Changed from increase-points
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-ID': this.userId
         },
         body: JSON.stringify({
-          points: batch.reduce((sum, item) => sum + item.points, 0),
+          points: totalPoints,
           userId: this.userId,
           batch: batch
         }),
       });
 
-      if (!response.ok) throw new Error('Server error');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Server error');
+      }
       
       const result = await response.json();
       
@@ -86,7 +99,7 @@ export class PointsQueue {
           setTimeout(() => this.processQueue(), 100);
         }
       } else {
-        throw new Error(result.message || 'Processing failed');
+        throw new Error(result.error || 'Processing failed');
       }
     } catch (error) {
       console.error('Queue processing error:', error);
@@ -98,26 +111,34 @@ export class PointsQueue {
 
   private async handleError(batch: QueueItem[]): Promise<void> {
     const maxAttempts = 5;
+    
+    // Increment attempts for failed items
     this.queue = [
-      ...batch.filter(item => (item.attempts || 0) < maxAttempts).map(item => ({
-        ...item,
-        attempts: (item.attempts || 0) + 1
-      })),
+      ...batch
+        .filter(item => (item.attempts || 0) < maxAttempts)
+        .map(item => ({
+          ...item,
+          attempts: (item.attempts || 0) + 1
+        })),
       ...this.queue.slice(batch.length)
     ];
     
     this.saveQueue();
     this.retryTimeout = Math.min(this.retryTimeout * 2, this.maxRetryTimeout);
     
+    // Retry after timeout
     setTimeout(() => this.processQueue(), this.retryTimeout);
+  }
+
+  public getQueueLength(): number {
+    return this.queue.length;
   }
 }
 
-// UserSyncManager class
 export class UserSyncManager {
   private userId: string;
   private pointsQueue: PointsQueue;
-  private syncInterval: number = 1000;
+  private syncInterval: number = 5000; // Reduced frequency
   private syncTimer: NodeJS.Timeout | null = null;
   private localStorageKey: string;
 
@@ -125,23 +146,6 @@ export class UserSyncManager {
     this.userId = userId;
     this.localStorageKey = `user_${userId}`;
     this.pointsQueue = new PointsQueue(userId);
-    this.initialize();
-  }
-
-  private initialize(): UserData | null {
-    const savedData = localStorage.getItem(this.localStorageKey);
-    const initialState = savedData ? JSON.parse(savedData) : null;
-
-    this.startSync();
-    return initialState;
-  }
-
-  private startSync(): void {
-    if (this.syncTimer) clearInterval(this.syncTimer);
-    
-    this.syncTimer = setInterval(() => {
-      this.syncWithServer();
-    }, this.syncInterval);
   }
 
   public async syncWithServer(): Promise<void> {
@@ -150,24 +154,26 @@ export class UserSyncManager {
       if (!response.ok) throw new Error('Failed to sync with server');
   
       const serverData = await response.json();
+      
+      // Only sync if queue is empty (no pending updates)
+      if (this.pointsQueue.getQueueLength() === 0) {
+        const localData = JSON.parse(
+          localStorage.getItem(this.localStorageKey) || '{}'
+        );
   
-      // 🛠 Merge local updates before overwriting
-      const localData = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
+        // Keep higher points value
+        const updatedData = {
+          ...serverData,
+          points: Math.max(serverData.points, localData.points || 0),
+        };
   
-      const updatedData = {
-        ...serverData,
-        points: Math.max(serverData.points, localData.points || 0), // Keep the highest points
-      };
-  
-      localStorage.setItem(this.localStorageKey, JSON.stringify(updatedData));
-      this.broadcastUpdate(updatedData);
+        localStorage.setItem(this.localStorageKey, JSON.stringify(updatedData));
+        this.broadcastUpdate(updatedData);
+      }
     } catch (error) {
       console.error('Sync failed:', error);
     }
   }
-  
-  
-  
 
   private broadcastUpdate(data: UserData): void {
     const event = new CustomEvent('userDataUpdate', { detail: data });
@@ -176,14 +182,22 @@ export class UserSyncManager {
 
   public async addPoints(points: number): Promise<void> {
     try {
-      const currentData = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
+      // Update local storage immediately
+      const currentData = JSON.parse(
+        localStorage.getItem(this.localStorageKey) || '{}'
+      );
+      
       const updatedData = {
         ...currentData,
         points: (currentData.points || 0) + points
       };
       
       localStorage.setItem(this.localStorageKey, JSON.stringify(updatedData));
+      
+      // Queue for server sync
       await this.pointsQueue.addPoints(points);
+      
+      // Broadcast update
       this.broadcastUpdate(updatedData);
     } catch (error) {
       console.error('Failed to add points:', error);
