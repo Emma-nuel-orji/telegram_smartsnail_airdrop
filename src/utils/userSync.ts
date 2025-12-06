@@ -1,11 +1,3 @@
-// lib/userSync.ts
-
-interface QueueItem {
-  points: number;
-  timestamp: number;
-  attempts: number;
-}
-
 interface UserData {
   points: number;
   telegramId?: string;
@@ -26,7 +18,7 @@ export class UserSyncManager {
     this.telegramId = telegramId;
     this.localStorageKey = `user_${telegramId}`;
 
-    // Auto-sync every 3 seconds (reduced frequency)
+    // Auto-sync every 3 seconds
     this.interval = setInterval(() => this.flushQueue(), 3000);
   }
 
@@ -38,11 +30,16 @@ export class UserSyncManager {
       const current = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
       current.points = (current.points || 0) + amount;
       localStorage.setItem(this.localStorageKey, JSON.stringify(current));
+      
+      // Broadcast update immediately
+      window.dispatchEvent(
+        new CustomEvent("userDataUpdate", { detail: current })
+      );
     } catch (err) {
       console.error('Failed to update localStorage:', err);
     }
     
-    // Don't wait for sync - fire and forget
+    // Trigger sync
     this.flushQueue();
   }
 
@@ -56,41 +53,47 @@ export class UserSyncManager {
     try {
       this.abortController = new AbortController();
 
-      const res = await fetch("/api/increase-points", {
+      const res = await fetch("/api/increase-point", {
         method: "POST",
         body: JSON.stringify({
           telegramId: this.telegramId,
           points: amount,
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json"
+        },
         signal: this.abortController.signal,
       });
 
       if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
+        const errorText = await res.text();
+        throw new Error(`Server returned ${res.status}: ${errorText}`);
       }
 
       const serverData = await res.json();
 
-      // ✅ CRITICAL: Only update if server points are HIGHER
-      // This prevents overwriting local optimistic updates
+      if (!serverData.success) {
+        throw new Error(serverData.error || 'Sync failed');
+      }
+
+      // ✅ CRITICAL: Don't overwrite local points
       const localData = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
       const serverPoints = parseInt(serverData.points) || 0;
       const localPoints = localData.points || 0;
 
+      // Only update if server has MORE points (e.g., from another device)
       if (serverPoints > localPoints) {
-        // Server has more points (maybe from another device)
         localData.points = serverPoints;
         localStorage.setItem(this.localStorageKey, JSON.stringify(localData));
         
-        // Broadcast update
         window.dispatchEvent(
           new CustomEvent("userDataUpdate", { 
             detail: { ...localData, points: serverPoints } 
           })
         );
       }
-      // Otherwise keep local value (it's ahead of server due to queued taps)
+
+      console.log('✅ Synced:', amount, 'points. Server:', serverPoints, 'Local:', localPoints);
 
     } catch (err: any) {
       console.error("Sync error:", err);
