@@ -124,7 +124,7 @@ export default function Home() {
   // }, [telegramId]);
 
 useEffect(() => {
-  const init = async () => {
+  const loadUserData = async () => {
     const tg = window.Telegram?.WebApp;
     if (!tg?.initDataUnsafe?.user?.id) return;
 
@@ -175,7 +175,7 @@ useEffect(() => {
     syncManager.current = new UserSyncManager(telegramId);
   };
 
-  init();
+  loadUserData();
 
   return () => {
     syncManager.current?.cleanup();
