@@ -12,7 +12,7 @@ import { WalletProvider } from './context/walletContext';
 import { WalletSection } from '../components/WalletSection';
 import { ConnectButton } from './ConnectButton';
 import { UserSyncManager } from '@/src/utils/userSync';
-import { PointsQueue } from '@/src/utils/userSync';
+// import { PointsQueue } from '@/src/utils/userSync';
 import { ToastContainer } from 'react-toastify'
 
 
@@ -196,35 +196,67 @@ export default function Home() {
 
   // const syncManager = useRef<UserSyncManager | null>(null);
 
+// app/page.tsx
+
+// const syncManager = useRef<UserSyncManager | null>(null);
+
 useEffect(() => {
   if (user?.telegramId && !syncManager.current) {
     syncManager.current = new UserSyncManager(user.telegramId);
   }
+
+  return () => {
+    syncManager.current?.cleanup();
+    syncManager.current = undefined;
+  };
 }, [user?.telegramId]);
 
+// Listen for updates from sync manager
+useEffect(() => {
+  const handleUpdate = (event: CustomEvent<any>) => {
+    // Only update if server has newer data
+    setUser(prev => {
+      if (!prev) return event.detail;
+      
+      const serverPoints = event.detail.points || 0;
+      const localPoints = prev.points || 0;
+      
+      // Keep whichever is higher
+      return {
+        ...event.detail,
+        points: Math.max(serverPoints, localPoints)
+      };
+    });
+  };
+  
+  window.addEventListener('userDataUpdate', handleUpdate as EventListener);
+  
+  return () => {
+    window.removeEventListener('userDataUpdate', handleUpdate as EventListener);
+  };
+}, []);
 
- const handleClick = async (e: React.MouseEvent) => {
-  if (!user?.telegramId || energy <= 0) return;
+const handleClick = async (e: React.MouseEvent) => {
+  if (!user?.telegramId || energy <= 0 || !syncManager.current) return;
 
   const tappingRate = Number(user.tappingRate) || 1;
 
-  // 1. Update UI + local storage immediately (single update)
-  setUser(prev => {
-    const updated = {
-      ...prev!,
-      points: (prev?.points || 0) + tappingRate,
-    };
-    localStorage.setItem(`user_${prev!.telegramId}`, JSON.stringify(updated));
-    return updated;
-  });
+  // 1. Update UI immediately (optimistic update)
+  setUser(prev => ({
+    ...prev!,
+    points: (prev?.points || 0) + tappingRate,
+  }));
 
   // 2. Reduce energy
   setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
 
-  // 3. Sync with server (QUEUED, not blocking UI)
-  await syncManager.current?.addPoints(tappingRate);
+  // 3. Queue for server sync (non-blocking)
+  syncManager.current.addPoints(tappingRate);
 
-  // 4. Click animation
+  // 4. Visual effects
+  setIsClicking(true);
+  setSpeed(prev => Math.min(prev + 0.1, 5));
+
   const newClick = {
     id: Date.now(),
     x: e.clientX,
@@ -236,7 +268,8 @@ useEffect(() => {
 
   setClicks(prev => [...prev, newClick]);
 
-  const animateClick = () => {
+  // 5. Animate
+  const animationInterval = setInterval(() => {
     setClicks(prev =>
       prev.map(c => 
         c.id === newClick.id
@@ -244,51 +277,28 @@ useEffect(() => {
               ...c,
               y: c.y + c.velocityY,
               velocityY: c.velocityY - 0.05,
-              opacity: c.opacity - 0.02,
+              opacity: Math.max(0, c.opacity - 0.02),
             }
           : c
-      )
+      ).filter(c => c.opacity > 0)
     );
-  };
-
-  const animationInterval = setInterval(animateClick, 16);
+  }, 16);
 
   setTimeout(() => {
     clearInterval(animationInterval);
     setClicks(prev => prev.filter(c => c.id !== newClick.id));
   }, 2000);
 
-  // 5. Reset tapping state
-  if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
+  // 6. Reset click animation state
+  if (inactivityTimeout.current) {
+    clearTimeout(inactivityTimeout.current);
+  }
 
   inactivityTimeout.current = setTimeout(() => {
     setIsClicking(false);
     setSpeed(prev => Math.max(1, prev - 0.2));
   }, 1000);
-
-  setIsClicking(true);
-  setSpeed(prev => Math.min(prev + 0.1, 5));
 };
-
-
-  useEffect(() => {
-    let syncManager: UserSyncManager | null = null;
-    
-    if (user?.telegramId) {
-      syncManager = new UserSyncManager(user.telegramId);
-      
-      const handleUpdate = (event: CustomEvent<any>) => {
-        setUser(event.detail);
-      };
-      
-      window.addEventListener('userDataUpdate', handleUpdate as EventListener);
-      
-      return () => {
-        syncManager?.cleanup();
-        window.removeEventListener('userDataUpdate', handleUpdate as EventListener);
-      };
-    }
-  }, [user?.telegramId]);
   
   
   

@@ -1,4 +1,4 @@
-// userSync.ts
+// lib/userSync.ts
 
 interface QueueItem {
   points: number;
@@ -14,138 +14,35 @@ interface UserData {
   [key: string]: any;
 }
 
-// Correct API URL
-const API_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://telegram-smartsnail-airdrop.vercel.app/api/increase-points"
-    : "/api/increase-points";
-
-export class PointsQueue {
-  private queue: QueueItem[] = [];
-  private isProcessing = false;
-  private retryTimeout = 1000;
-  private maxRetryTimeout = 32000;
-  private batchSize = 10;
-  private queueStorageKey: string;
-
-  constructor(private userId: string) {
-    this.queueStorageKey = `points_queue_${userId}`;
-    this.loadQueue();
-  }
-
-  private loadQueue() {
-    if (typeof window === "undefined") return;
-    try {
-      const saved = localStorage.getItem(this.queueStorageKey);
-      this.queue = saved ? JSON.parse(saved) : [];
-    } catch (err) {
-      console.error("🔥 Failed to load queue:", err);
-      this.queue = [];
-    }
-  }
-
-  private saveQueue() {
-    if (typeof window === "undefined") return;
-    try {
-      localStorage.setItem(this.queueStorageKey, JSON.stringify(this.queue));
-    } catch (err) {
-      console.error("🔥 Failed to save queue:", err);
-    }
-  }
-
-  async addPoints(points: number) {
-    this.queue.push({
-      points,
-      timestamp: Date.now(),
-      attempts: 0,
-    });
-
-    this.saveQueue();
-    await this.processQueue();
-  }
-
-  private async processQueue() {
-    if (this.isProcessing || this.queue.length === 0) return;
-
-    this.isProcessing = true;
-    const batch = this.queue.slice(0, this.batchSize);
-
-    try {
-      const totalPoints = batch.reduce((sum, i) => sum + i.points, 0);
-
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          points: totalPoints,
-          userId: this.userId,
-          batch,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error("🔥 API returned:", response.status);
-        throw new Error(await response.text());
-      }
-
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error);
-
-      // Success → remove processed items
-      this.queue.splice(0, batch.length);
-      this.saveQueue();
-
-      this.retryTimeout = 1000;
-
-      if (this.queue.length > 0) {
-        setTimeout(() => this.processQueue(), 100);
-      }
-    } catch (err) {
-      console.error("🔥 Queue processing error:", err);
-      this.handleError(batch);
-    } finally {
-      this.isProcessing = false;
-    }
-  }
-
-  private handleError(batch: QueueItem[]) {
-    const maxAttempts = 5;
-
-    this.queue = [
-      ...batch
-        .filter(i => i.attempts < maxAttempts)
-        .map(i => ({ ...i, attempts: i.attempts + 1 })),
-      ...this.queue.slice(batch.length),
-    ];
-
-    this.saveQueue();
-
-    this.retryTimeout = Math.min(this.retryTimeout * 2, this.maxRetryTimeout);
-
-    setTimeout(() => this.processQueue(), this.retryTimeout);
-  }
-
-  getQueueLength() {
-    return this.queue.length;
-  }
-}
-
 export class UserSyncManager {
   private telegramId: string;
   private queue: number = 0;
   private isSyncing = false;
   private interval: NodeJS.Timeout | null = null;
   private abortController: AbortController | null = null;
+  private localStorageKey: string;
 
   constructor(telegramId: string) {
     this.telegramId = telegramId;
+    this.localStorageKey = `user_${telegramId}`;
 
-    // Auto-sync every 2 seconds
-    this.interval = setInterval(() => this.flushQueue(), 2000);
+    // Auto-sync every 3 seconds (reduced frequency)
+    this.interval = setInterval(() => this.flushQueue(), 3000);
   }
 
   async addPoints(amount: number) {
     this.queue += amount;
+    
+    // Update localStorage immediately
+    try {
+      const current = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
+      current.points = (current.points || 0) + amount;
+      localStorage.setItem(this.localStorageKey, JSON.stringify(current));
+    } catch (err) {
+      console.error('Failed to update localStorage:', err);
+    }
+    
+    // Don't wait for sync - fire and forget
     this.flushQueue();
   }
 
@@ -159,7 +56,7 @@ export class UserSyncManager {
     try {
       this.abortController = new AbortController();
 
-      const res = await fetch("/api/increase-points", {
+      const res = await fetch("/api/increase-point", {
         method: "POST",
         body: JSON.stringify({
           telegramId: this.telegramId,
@@ -169,21 +66,52 @@ export class UserSyncManager {
         signal: this.abortController.signal,
       });
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
 
-      // Broadcast update to window
-      window.dispatchEvent(new CustomEvent("userDataUpdate", { detail: data }));
-    } catch (err) {
-      console.error("Sync error →", err);
-      this.queue += amount; // requeue
+      const serverData = await res.json();
+
+      // ✅ CRITICAL: Only update if server points are HIGHER
+      // This prevents overwriting local optimistic updates
+      const localData = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
+      const serverPoints = parseInt(serverData.points) || 0;
+      const localPoints = localData.points || 0;
+
+      if (serverPoints > localPoints) {
+        // Server has more points (maybe from another device)
+        localData.points = serverPoints;
+        localStorage.setItem(this.localStorageKey, JSON.stringify(localData));
+        
+        // Broadcast update
+        window.dispatchEvent(
+          new CustomEvent("userDataUpdate", { 
+            detail: { ...localData, points: serverPoints } 
+          })
+        );
+      }
+      // Otherwise keep local value (it's ahead of server due to queued taps)
+
+    } catch (err: any) {
+      console.error("Sync error:", err);
+      
+      // Only requeue if not aborted
+      if (err.name !== 'AbortError') {
+        this.queue += amount;
+      }
+    } finally {
+      this.isSyncing = false;
     }
-
-    this.isSyncing = false;
   }
 
   cleanup() {
-    if (this.interval) clearInterval(this.interval);
-    if (this.abortController) this.abortController.abort();
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
   }
 }
-
