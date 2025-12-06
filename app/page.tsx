@@ -36,13 +36,6 @@ type Click = {
   // velocity: number;
 };
 
-interface UserData {
-  telegramId: string;
-  points: number;
-  energy?: number;
-  [key: string]: any; 
-}   
-
 export default function Home() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [user, setUser] = useState<null | {
@@ -54,55 +47,12 @@ export default function Home() {
     hasClaimedWelcome?: boolean;
   }>(null);
   
- const syncUserData = (server: UserData) => {
-  try {
-    const storageKey = `user_${server.telegramId}`;
-    const cached = localStorage.getItem(storageKey);
-
-    // Ensure tappingRate always exists
-    let finalUser = {
-      telegramId: server.telegramId,
-      points: server.points,
-      tappingRate: server.tappingRate ?? 1, // default if missing
-      first_name: server.first_name,
-      last_name: server.last_name,
-      hasClaimedWelcome: server.hasClaimedWelcome,
-    };
-
-    // Merge cached + server data
-    if (cached) {
-      try {
-        const local: UserData = JSON.parse(cached);
-
-        finalUser = {
-          ...finalUser,
-          points: Math.max(finalUser.points, local.points), // Keep highest points
-          tappingRate: local.tappingRate ?? finalUser.tappingRate, // prefer cached if exists
-        };
-
-        console.log("📦 Merging cached user with server:", finalUser);
-      } catch (err) {
-        console.error("⚠️ Cached user data was corrupt, clearing it.", err);
-        localStorage.removeItem(storageKey);
-      }
-    } else {
-      console.log("📨 No local cache found, using server data");
-    }
-
-    // Save final merged user data
-    localStorage.setItem(storageKey, JSON.stringify(finalUser));
-    localStorage.setItem(`lastSync_${server.telegramId}`, Date.now().toString());
-
-    // Update React state
-    setUser(finalUser);
-
-    console.log("✅ User synced and saved:", finalUser);
-  } catch (error) {
-    console.error("❌ syncUserData error:", error);
-  }
-};
-
-
+  const syncUserData = (userData: any) => {
+    const storageKey = `user_${userData.telegramId}`;
+    localStorage.setItem(storageKey, JSON.stringify(userData));
+    localStorage.setItem(`lastSync_${userData.telegramId}`, Date.now().toString());
+    setUser(userData);
+  };
 
   
   // useEffect(() => {
@@ -123,65 +73,47 @@ export default function Home() {
   //   fetchUserData();
   // }, [telegramId]);
 
-useEffect(() => {
-  const loadUserData = async () => {
-    const tg = window.Telegram?.WebApp;
-    if (!tg?.initDataUnsafe?.user?.id) return;
-
-    tg.ready();
-
-    const telegramId = tg.initDataUnsafe.user.id.toString();
-    setTelegramId(telegramId);
-
-    const storageKey = `user_${telegramId}`;
-    const lastSyncKey = `lastSync_${telegramId}`;
-    const SYNC_INTERVAL = 2 * 60 * 1000; // 2 mins
-
-    // 1️⃣ Load cached data instantly (fast UI load)
-    const cached = localStorage.getItem(storageKey);
-    const lastSync = localStorage.getItem(lastSyncKey);
-
-    if (cached) {
-      setUser(JSON.parse(cached));
-    }
-
-    // 2️⃣ Fetch server data ONLY if cache expired
-    if (!lastSync || Date.now() - Number(lastSync) > SYNC_INTERVAL) {
-      try {
-        const res = await axios.get(`/api/user/${telegramId}`);
-
-        if (res.status === 200) {
-          const serverUser = res.data;
-
-          // Keep the higher points
-          const finalUser = cached
-            ? {
-                ...serverUser,
-                points: Math.max(serverUser.points, JSON.parse(cached).points),
-              }
-            : serverUser;
-
-          localStorage.setItem(storageKey, JSON.stringify(finalUser));
-          localStorage.setItem(lastSyncKey, Date.now().toString());
-
-          setUser(finalUser);
+  useEffect(() => {
+    const loadUserData = async () => {
+      const tg = window.Telegram?.WebApp;
+      if (!tg?.initDataUnsafe?.user?.id) return;
+  
+      const telegramId = tg.initDataUnsafe.user.id.toString();
+      setTelegramId(telegramId); // Set this once here
+  
+      // 1. Check localStorage first
+      const storageKey = `user_${telegramId}`;
+      const cachedUser = localStorage.getItem(storageKey);
+      if (cachedUser) {
+        try {
+          const parsed = JSON.parse(cachedUser);
+          if (parsed.telegramId === telegramId) { // Validate cached data
+            setUser(parsed);
+          } else {
+            localStorage.removeItem(storageKey); // Clear invalid cache
+          }
+        } catch (e) {
+          localStorage.removeItem(storageKey); // Clear corrupt data
         }
-      } catch (err) {
-        console.warn("Server unreachable. Using cached.");
       }
-    }
-
-    // 3️⃣ Start sync manager
-    syncManager.current = new UserSyncManager(telegramId);
-  };
-
-  loadUserData();
-
-  return () => {
-    syncManager.current?.cleanup();
-  };
-}, []);
-
+  
+      // 2. Sync with server
+      try {
+        console.log("🔍 Fetching user data for:", telegramId);
+        const response = await axios.get(`/api/user/${telegramId}`);
+        if (response.data) {
+          console.log("✅ Received user data:", response.data);
+          localStorage.setItem(storageKey, JSON.stringify(response.data));
+          setUser(response.data);
+        }
+      } catch (error) {
+        console.error("⚠️ Sync failed, using cached data if available", error);
+      }
+    };
+  
+    loadUserData();
+  }, []); // Empty dependency array - runs once on mount
+  
 
   const [firstName, setFirstName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -268,16 +200,16 @@ useEffect(() => {
 
 // const syncManager = useRef<UserSyncManager | null>(null);
 
-// useEffect(() => {
-//   if (user?.telegramId && !syncManager.current) {
-//     syncManager.current = new UserSyncManager(user.telegramId);
-//   }
+useEffect(() => {
+  if (user?.telegramId && !syncManager.current) {
+    syncManager.current = new UserSyncManager(user.telegramId);
+  }
 
-//   return () => {
-//     syncManager.current?.cleanup();
-//     syncManager.current = undefined;
-//   };
-// }, [user?.telegramId]);
+  return () => {
+    syncManager.current?.cleanup();
+    syncManager.current = undefined;
+  };
+}, [user?.telegramId]);
 
 // Listen for updates from sync manager
 useEffect(() => {
@@ -304,20 +236,69 @@ useEffect(() => {
   };
 }, []);
 
-const handleClick = () => {
-  if (!user || !syncManager.current) return;
+const handleClick = async (e: React.MouseEvent) => {
+  if (!user?.telegramId || energy <= 0 || !syncManager.current) return;
 
-  const tappingRate = user.tappingRate || 1;
+  const tappingRate = Number(user.tappingRate) || 1;
 
-  // Optimistic UI
+  // 1. Update UI immediately (optimistic update)
   setUser(prev => ({
     ...prev!,
-    points: prev!.points + tappingRate
+    points: (prev?.points || 0) + tappingRate,
   }));
 
-  syncManager.current.addPoints(tappingRate);
-};
+  // 2. Reduce energy
+  setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
 
+  // 3. Queue for server sync (non-blocking)
+  syncManager.current.addPoints(tappingRate);
+
+  // 4. Visual effects
+  setIsClicking(true);
+  setSpeed(prev => Math.min(prev + 0.1, 5));
+
+  const newClick = {
+    id: Date.now(),
+    x: e.clientX,
+    y: e.clientY,
+    tappingRate,
+    velocityY: -2,
+    opacity: 1,
+  };
+
+  setClicks(prev => [...prev, newClick]);
+
+  // 5. Animate
+  const animationInterval = setInterval(() => {
+    setClicks(prev =>
+      prev.map(c => 
+        c.id === newClick.id
+          ? {
+              ...c,
+              y: c.y + c.velocityY,
+              velocityY: c.velocityY - 0.05,
+              opacity: Math.max(0, c.opacity - 0.02),
+            }
+          : c
+      ).filter(c => c.opacity > 0)
+    );
+  }, 16);
+
+  setTimeout(() => {
+    clearInterval(animationInterval);
+    setClicks(prev => prev.filter(c => c.id !== newClick.id));
+  }, 2000);
+
+  // 6. Reset click animation state
+  if (inactivityTimeout.current) {
+    clearTimeout(inactivityTimeout.current);
+  }
+
+  inactivityTimeout.current = setTimeout(() => {
+    setIsClicking(false);
+    setSpeed(prev => Math.max(1, prev - 0.2));
+  }, 1000);
+};
   
   
   
@@ -559,84 +540,84 @@ useEffect(() => {
   //   initializeTelegram();
   // }, []);
   
-  // useEffect(() => {
-  //   const initializeTelegram = async () => {
-  //     setLoading(true);
+  useEffect(() => {
+    const initializeTelegram = async () => {
+      setLoading(true);
   
-  //     try {
-  //       const tg = window.Telegram?.WebApp;
-  //       tg?.ready();
+      try {
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
   
-  //       const userData = tg?.initDataUnsafe?.user;
+        const userData = tg?.initDataUnsafe?.user;
   
-  //       if (!userData?.id) throw new Error("Telegram user data not found");
+        if (!userData?.id) throw new Error("Telegram user data not found");
   
-  //       const telegramId = userData.id.toString();
-  //       setTelegramId(telegramId);
+        const telegramId = userData.id.toString();
+        setTelegramId(telegramId);
   
-  //       const storageKey = `user_${telegramId}`;
-  //       const lastSyncKey = `lastSync_${telegramId}`;
+        const storageKey = `user_${telegramId}`;
+        const lastSyncKey = `lastSync_${telegramId}`;
   
-  //       const cachedUser = localStorage.getItem(storageKey) ? JSON.parse(localStorage.getItem(storageKey)!) : null;
-  //       const lastSync = localStorage.getItem(lastSyncKey);
-  //       const SYNC_INTERVAL = 5 * 60 * 1000;
+        const cachedUser = localStorage.getItem(storageKey) ? JSON.parse(localStorage.getItem(storageKey)!) : null;
+        const lastSync = localStorage.getItem(lastSyncKey);
+        const SYNC_INTERVAL = 5 * 60 * 1000;
   
-  //       if (cachedUser && lastSync && Date.now() - parseInt(lastSync, 10) < SYNC_INTERVAL) {
-  //         setUser(cachedUser);
-  //         setLoading(false);
-  //       } else {
-  //         const res = await fetch(`/api/user/${telegramId}`);
-  //         if (res.ok) {
-  //           const freshUser = await res.json();
-  //           localStorage.setItem(storageKey, JSON.stringify(freshUser));
-  //           localStorage.setItem(lastSyncKey, Date.now().toString());
-  //           setUser(freshUser);
-  //         } else if (!cachedUser) {
-  //           // If not found, create user
-  //           const newUserPayload = {
-  //             telegramId,
-  //             username: userData.username || "",
-  //             first_name: userData.first_name || "",
-  //             last_name: userData.last_name || "",
-  //             points: 0,
-  //             tappingRate: 1,
-  //             hasClaimedWelcome: false,
-  //             nft: false,
-  //           };
+        if (cachedUser && lastSync && Date.now() - parseInt(lastSync, 10) < SYNC_INTERVAL) {
+          setUser(cachedUser);
+          setLoading(false);
+        } else {
+          const res = await fetch(`/api/user/${telegramId}`);
+          if (res.ok) {
+            const freshUser = await res.json();
+            localStorage.setItem(storageKey, JSON.stringify(freshUser));
+            localStorage.setItem(lastSyncKey, Date.now().toString());
+            setUser(freshUser);
+          } else if (!cachedUser) {
+            // If not found, create user
+            const newUserPayload = {
+              telegramId,
+              username: userData.username || "",
+              first_name: userData.first_name || "",
+              last_name: userData.last_name || "",
+              points: 0,
+              tappingRate: 1,
+              hasClaimedWelcome: false,
+              nft: false,
+            };
   
-  //           const createRes = await fetch("/api/user", {
-  //             method: "POST",
-  //             headers: { "Content-Type": "application/json" },
-  //             body: JSON.stringify(newUserPayload),
-  //           });
+            const createRes = await fetch("/api/user", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(newUserPayload),
+            });
   
-  //           if (!createRes.ok) throw new Error("Failed to create user");
+            if (!createRes.ok) throw new Error("Failed to create user");
   
-  //           const newUser = await createRes.json();
-  //           localStorage.setItem(storageKey, JSON.stringify(newUser));
-  //           localStorage.setItem(lastSyncKey, Date.now().toString());
-  //           setUser(newUser);
-  //         }
-  //       }
-  //     } catch (err: any) {
-  //       console.error("Initialization error:", err.message);
-  //       setError(err.message);
+            const newUser = await createRes.json();
+            localStorage.setItem(storageKey, JSON.stringify(newUser));
+            localStorage.setItem(lastSyncKey, Date.now().toString());
+            setUser(newUser);
+          }
+        }
+      } catch (err: any) {
+        console.error("Initialization error:", err.message);
+        setError(err.message);
   
-  //       // fallback only if telegramId is known
-  //       const fallbackId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-  //       if (fallbackId) {
-  //         const fallbackUser = localStorage.getItem(`user_${fallbackId}`);
-  //         if (fallbackUser) {
-  //           setUser(JSON.parse(fallbackUser));
-  //         }
-  //       }
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
+        // fallback only if telegramId is known
+        const fallbackId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        if (fallbackId) {
+          const fallbackUser = localStorage.getItem(`user_${fallbackId}`);
+          if (fallbackUser) {
+            setUser(JSON.parse(fallbackUser));
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
   
-  //   initializeTelegram();
-  // }, []);
+    initializeTelegram();
+  }, []);
   
 
   // Load stored data effect
