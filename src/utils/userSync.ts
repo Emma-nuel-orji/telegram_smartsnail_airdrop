@@ -56,7 +56,7 @@ export class UserSyncManager {
     try {
       this.abortController = new AbortController();
 
-      const res = await fetch("/api/increase-point", {
+      const res = await fetch("/api/increase-points", {
         method: "POST",
         body: JSON.stringify({
           telegramId: this.telegramId,
