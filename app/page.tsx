@@ -36,6 +36,7 @@ type User = {
 };
 
 export default function Home() {
+   const [firstName, setFirstName] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
