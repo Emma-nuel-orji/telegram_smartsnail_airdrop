@@ -15,6 +15,15 @@ import { UserSyncManager } from '@/src/utils/userSync';
 // import { PointsQueue } from '@/src/utils/userSync';
 import { ToastContainer } from 'react-toastify'
 
+type Click = {
+  opacity: number;
+  velocityY: number;
+  id: number;
+  x: number;
+  y: number;
+  tappingRate: number;
+  // velocity: number;
+};
 
 
 type User = {
@@ -31,7 +40,7 @@ export default function Home() {
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [energy, setEnergy] = useState(1500);
-  const [setClicks] = useState<Click[]>([]);
+  const [clicks, setClicks] = useState<Click[]>([]);
   const [isClicking, setIsClicking] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
