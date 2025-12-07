@@ -31,7 +31,7 @@ export default function Home() {
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [energy, setEnergy] = useState(1500);
-  const [clicks, setClicks] = useState<Click[]>([]);
+  // const [clicks, setClicks] = useState<Click[]>([]);
   const [isClicking, setIsClicking] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
