@@ -46,7 +46,7 @@ export default function Home() {
   const [speed, setSpeed] = useState(1);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   
-  const syncManager = useRef<UserSyncManager>();
+  // const syncManager = useRef<UserSyncManager>();
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   
   const ENERGY_REDUCTION_RATE = 20;
