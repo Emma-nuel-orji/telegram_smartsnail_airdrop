@@ -66,6 +66,15 @@ export default function Home() {
   const [isClicked, setIsClicked] = useState(false);
   const syncManager = useRef<UserSyncManager>();
   const { isConnected, walletAddress } = useWallet();
+   const formatWalletAddress = (address: string | null) => {
+    if (!address) return '';
+    return `${address.slice(0, 3)}...${address.slice(-3)}`;
+  };
+
+
+  const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // ✅ SINGLE initialization - runs ONCE on mount
   useEffect(() => {
