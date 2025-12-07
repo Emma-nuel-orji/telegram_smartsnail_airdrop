@@ -44,7 +44,7 @@ export default function Home() {
   const [clicks, setClicks] = useState<Click[]>([]);
   const [isClicking, setIsClicking] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  // const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   
   // const syncManager = useRef<UserSyncManager>();
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -53,7 +53,7 @@ export default function Home() {
   const maxEnergy = 1500;
   //  const [speed, setSpeed] = useState(1);
   // const [clicks, setClicks] = useState<Click[]>([]);
-  const [energy, setEnergy] = useState(1500);
+  // const [energy, setEnergy] = useState(1500);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [isLoading, setLoading] = useState(true);
