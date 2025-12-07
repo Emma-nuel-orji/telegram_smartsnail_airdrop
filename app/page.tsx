@@ -273,7 +273,9 @@ export default function Home() {
     }, 1000);
   };
 
-  // ✅ Claim handler - updated to save properly
+const handleAnimationEnd = (id: number) => {
+    setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
+  };  // ✅ Claim handler - updated to save properly
   const handleClaim = async () => {
     try {
       if (!user?.telegramId || user.hasClaimedWelcome) return;
