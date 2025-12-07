@@ -38,7 +38,7 @@ type User = {
 export default function Home() {
    const [firstName, setFirstName] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setLoading] = useState(true);
+  // const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [energy, setEnergy] = useState(1500);
   const [clicks, setClicks] = useState<Click[]>([]);
@@ -51,6 +51,21 @@ export default function Home() {
   
   const ENERGY_REDUCTION_RATE = 20;
   const maxEnergy = 1500;
+  //  const [speed, setSpeed] = useState(1);
+  // const [clicks, setClicks] = useState<Click[]>([]);
+  const [energy, setEnergy] = useState(1500);
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
+  const [videoError, setVideoError] = useState(false);
+  const [isLoading, setLoading] = useState(true);
+  // const [isClicking, setIsClicking] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [tonWalletAddress, setTonWalletAddress] = useState<string | null>(null);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [ripplePosition, setRipplePosition] = useState({ x: 0, y: 0 });
+  const [isClicked, setIsClicked] = useState(false);
+  const syncManager = useRef<UserSyncManager>();
+  const { isConnected, walletAddress } = useWallet();
 
   // ✅ SINGLE initialization - runs ONCE on mount
   useEffect(() => {
