@@ -8,6 +8,7 @@ import { NFTCard } from "@/components/marketplace/NFTCard";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, Grid3x3, Loader } from "lucide-react";
 import { Nft } from "@/lib/types";
+import Link from 'next/link';
 
 type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
 
@@ -60,17 +61,18 @@ export default function Marketplace() {
   );
 
   return (
-    <div 
-      className="min-h-screen relative"
-      style={{
-        backgroundImage: 'url(/images/bk.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-sm" />
+    // <div 
+    //   className="min-h-screen relative"
+    //   style={{
+    //     backgroundImage: 'url(/images/bk.jpg)',
+    //     backgroundSize: 'cover',
+    //     backgroundPosition: 'center',
+    //     backgroundAttachment: 'fixed'
+    //   }}
+    // >
+    //   {/* Dark overlay for readability */}
+    //   <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-sm" />
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       
       {/* Content */}
       <div className="relative z-10">
@@ -78,6 +80,14 @@ export default function Marketplace() {
         <div className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
+              <Link href="/">
+                        <img
+                          src="/images/info/left-arrow.png" 
+                          width={40}
+                          height={40}
+                          alt="back"
+                        />
+                      </Link>
               <h1 className="text-2xl font-bold text-white">NFT Marketplace</h1>
               <button
                 onClick={() => router.push('/inventory')}
