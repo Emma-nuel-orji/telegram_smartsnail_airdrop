@@ -1198,3 +1198,15 @@ button:focus-visible {
     font-size: 1rem;
   }
 }
+
+/* body.staking-active {
+  overflow: hidden !important;
+  touch-action: none !important;
+} */
+
+body.staking-active {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  touch-action: none !important;
+}
