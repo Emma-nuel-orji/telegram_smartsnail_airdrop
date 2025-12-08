@@ -77,8 +77,11 @@ export default function Marketplace() {
       {/* Content */}
       <div className="relative z-10">
         {/* Header */}
-        <div className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
-          <div className="p-4">
+        <div className="sticky top-0 z-50 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-purple-600/40 via-blue-500/30 to-transparent backdrop-blur-xl border-b border-white/10">
+  <div className="p-4">
+
+
+
             <div className="flex items-center justify-between mb-4">
               <Link href="/">
                         <img
