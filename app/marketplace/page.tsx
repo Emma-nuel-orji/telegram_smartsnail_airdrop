@@ -77,8 +77,9 @@ export default function Marketplace() {
       {/* Content */}
       <div className="relative z-10">
         {/* Header */}
-        <div className="sticky top-0 z-50 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-purple-600/40 via-blue-500/30 to-transparent backdrop-blur-xl border-b border-white/10">
+        <div className="sticky top-0 z-50 bg-white/5 backdrop-blur-2xl border-b border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
   <div className="p-4">
+
 
 
 
