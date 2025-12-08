@@ -360,6 +360,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
         }
         return;
       }
+      
 
       // IN BAR MODE - prevent scroll immediately
       e.preventDefault();
