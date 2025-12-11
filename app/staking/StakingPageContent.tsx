@@ -224,7 +224,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   const decayRef = useRef<number | null>(null);
   const fighterRef = useRef<HTMLDivElement | null>(null);
 
-  
+
   const MAX_STARS = 100000;
   const MIN_POINTS_REQUIRED = 200000;
   const MAX_AMOUNT = stakeType === 'STARS' ? MAX_STARS : localUserPoints;
@@ -307,7 +307,7 @@ useEffect(() => {
   if (!canParticipate || isFighter) return;
   
   // ✅ PREVENT DEFAULT IMMEDIATELY - stops scroll from starting
-  e.preventDefault();
+  // e.preventDefault();
   
   const t = e.touches[0];
   if (!t) return;
@@ -430,10 +430,10 @@ const handleTouchMove = (e: TouchEvent) => {
     }
   };
 
-  el.addEventListener("touchstart", handleTouchStart, { passive: false });
-  el.addEventListener("touchmove", handleTouchMove, { passive: false });
-  el.addEventListener("touchend", handleTouchEnd, { passive: true });
-  el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+  el.addEventListener("touchstart", handleTouchStart, { passive: true }); // ✅ passive: true
+el.addEventListener("touchmove", handleTouchMove, { passive: false }); // ✅ passive: false
+el.addEventListener("touchend", handleTouchEnd, { passive: true });
+el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
   return () => {
     if (pressTimer) clearTimeout(pressTimer);
