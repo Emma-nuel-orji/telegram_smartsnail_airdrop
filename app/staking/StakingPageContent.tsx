@@ -219,7 +219,7 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   
   const touchStartYRef = useRef(0);
   const touchStartXRef = useRef(0);
-  const touchIntentRef = useRef<"idle" | "scroll" | "swipe" | "stake">("idle");
+  const touchIntentRef = useRef<"idle" | "scroll" | "swipe" | "stake" | "detecting">("idle");
   const barLockedRef = useRef<boolean>(barLocked);
   const decayRef = useRef<number | null>(null);
   const fighterRef = useRef<HTMLDivElement | null>(null);
@@ -303,103 +303,108 @@ useEffect(() => {
   let barRect: DOMRect | null = null;
 
   const handleTouchStart = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-    const t = e.touches[0];
-    if (!t) return;
+  if (!canParticipate || isFighter) return;
+  
+  // ✅ PREVENT DEFAULT IMMEDIATELY - stops scroll from starting
+  e.preventDefault();
+  
+  const t = e.touches[0];
+  if (!t) return;
 
-    // Store initial values IMMEDIATELY
-    touchStartXRef.current = t.clientX;
-    touchStartYRef.current = t.clientY;
-    startFingerY = t.clientY;
-    startFingerX = t.clientX;
-    startBarHeight = barHeight;
-    touchIntentRef.current = "idle";
-    isBarFillingMode = false;
+  touchStartXRef.current = t.clientX;
+  touchStartYRef.current = t.clientY;
+  startFingerY = t.clientY;
+  startFingerX = t.clientX;
+  startBarHeight = barHeight;
+  touchIntentRef.current = "detecting"; // New state
+  isBarFillingMode = false;
 
-    // Get bar dimensions
-    barRect = el.getBoundingClientRect();
+  barRect = el.getBoundingClientRect();
+  setTapping(true);
+  stopBarDecay();
+
+  // Clear any existing timer
+  if (pressTimer) clearTimeout(pressTimer);
+  pressTimer = null;
+};
+
+const handleTouchMove = (e: TouchEvent) => {
+  if (!canParticipate || isFighter || !barRect) return;
+  const touch = e.touches[0];
+  if (!touch) return;
+
+  const dx = touch.clientX - touchStartXRef.current;
+  const dy = touch.clientY - touchStartYRef.current;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  // ✅ DETECT INTENT on first significant movement
+  if (touchIntentRef.current === "detecting") {
     
-    // Show visual feedback immediately
-    setTapping(true);
-    stopBarDecay();
+    // Not enough movement yet - wait
+    if (absDx < 5 && absDy < 5) {
+      e.preventDefault(); // Keep blocking
+      return;
+    }
 
-    // ✅ Short timer - 80ms for responsive feel
-    pressTimer = setTimeout(() => {
-      isBarFillingMode = true;
-      touchIntentRef.current = "stake";
-      
-      // Lock body scroll
-      document.body.classList.add('staking-active');
-      
-      // Haptic feedback
-      try {
-        if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
-          window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-        }
-      } catch (error) {
-        console.log('Haptic not available');
-      }
-    }, 80); // ✅ 80ms - feels instant but prevents accidental triggers
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    if (!canParticipate || isFighter || !barRect) return;
-    const touch = e.touches[0];
-    if (!touch) return;
-
-    const dx = Math.abs(touch.clientX - touchStartXRef.current);
-    const dy = Math.abs(touch.clientY - touchStartYRef.current);
-
-    // ✅ If user moved before bar mode activated, cancel it
-    if (!isBarFillingMode && (dx > 8 || dy > 8)) {
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-      setTapping(false);
+    // ✅ User is scrolling DOWN - allow it
+    if (dy > 10 && absDy > absDx * 1.5) {
       touchIntentRef.current = "scroll";
-      return; // Allow scroll
+      setTapping(false);
+      // DON'T preventDefault - allow scroll
+      return;
     }
 
-    // If not in bar mode yet, wait
-    if (!isBarFillingMode) return;
-
-    // ✅ IN BAR MODE - prevent scroll and fill bar
-    e.preventDefault();
-    e.stopPropagation();
-
-    // ✅ Calculate movement in BOTH directions (combined)
-    const pixelsMovedY = startFingerY - touch.clientY; // Negative = down, Positive = up
-    const pixelsMovedX = touch.clientX - startFingerX; // Negative = left, Positive = right
+    // ✅ User is dragging UP or SIDEWAYS - enter bar mode
+    touchIntentRef.current = "stake";
+    isBarFillingMode = true;
     
-    // ✅ Combine vertical + horizontal movement (both increase bar)
-    // Vertical has more weight (70%), horizontal has less (30%)
-    const combinedMovement = (pixelsMovedY * 0.7) + (pixelsMovedX * 0.3);
+    // Lock body scroll
+    document.body.classList.add('staking-active');
     
-    const barHeightPx = barRect.height;
-    
-    // Convert combined movement to percentage
-    const percentageChange = (combinedMovement / barHeightPx) * 100;
-    
-    // Calculate new bar height
-    let newHeight = startBarHeight + percentageChange;
-    newHeight = Math.max(0, Math.min(100, newHeight));
-
-    setBarHeight(newHeight);
-    setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
-
-    // Visual feedback
-    const localX = touch.clientX - barRect.left;
-    const localY = touch.clientY - barRect.top;
-    
-    if (Math.random() < 0.12) {
-      createTapEffect(localX, localY);
+    // Haptic feedback
+    try {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+      }
+    } catch (error) {
+      console.log('Haptic not available');
     }
+  }
 
-    if (Math.random() < 0.06) {
-      showMotivationalMessage(touch.clientX, touch.clientY);
-    }
-  };
+  // ✅ If user chose to scroll, allow it
+  if (touchIntentRef.current === "scroll") {
+    return; // Don't preventDefault
+  }
+
+  // ✅ IN BAR MODE - prevent scroll and fill bar
+  e.preventDefault();
+  e.stopPropagation();
+
+  const pixelsMovedY = startFingerY - touch.clientY;
+  const pixelsMovedX = touch.clientX - startFingerX;
+  const combinedMovement = (pixelsMovedY * 0.7) + (pixelsMovedX * 0.3);
+  
+  const barHeightPx = barRect.height;
+  const percentageChange = (combinedMovement / barHeightPx) * 100;
+  
+  let newHeight = startBarHeight + percentageChange;
+  newHeight = Math.max(0, Math.min(100, newHeight));
+
+  setBarHeight(newHeight);
+  setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+
+  const localX = touch.clientX - barRect.left;
+  const localY = touch.clientY - barRect.top;
+  
+  if (Math.random() < 0.12) {
+    createTapEffect(localX, localY);
+  }
+
+  if (Math.random() < 0.06) {
+    showMotivationalMessage(touch.clientX, touch.clientY);
+  }
+};
 
   const handleTouchEnd = () => {
     if (pressTimer) {

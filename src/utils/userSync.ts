@@ -14,6 +14,9 @@ export class UserSyncManager {
   private abortController: AbortController | null = null;
   private localStorageKey: string;
 
+  // ✅ NEW: callback for successful syncs
+  public onSyncSuccess?: (serverPoints: number) => void;
+
   constructor(telegramId: string) {
     this.telegramId = telegramId;
     this.localStorageKey = `user_${telegramId}`;
@@ -41,6 +44,11 @@ export class UserSyncManager {
     
     // Trigger sync
     this.flushQueue();
+  }
+
+  // ✅ NEW: required method
+  hasPendingSync(): boolean {
+    return this.queue > 0;
   }
 
   private async flushQueue() {
@@ -76,29 +84,33 @@ export class UserSyncManager {
         throw new Error(serverData.error || 'Sync failed');
       }
 
-      // ✅ CRITICAL: Don't overwrite local points
       const localData = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
+
       const serverPoints = parseInt(serverData.points) || 0;
       const localPoints = localData.points || 0;
 
-      // Only update if server has MORE points (e.g., from another device)
+      // Only update if server has more points
       if (serverPoints > localPoints) {
         localData.points = serverPoints;
         localStorage.setItem(this.localStorageKey, JSON.stringify(localData));
-        
+
         window.dispatchEvent(
           new CustomEvent("userDataUpdate", { 
-            detail: { ...localData, points: serverPoints } 
+            detail: { ...localData, points: serverPoints }
           })
         );
       }
 
       console.log('✅ Synced:', amount, 'points. Server:', serverPoints, 'Local:', localPoints);
 
+      // ✅ Call the callback here
+      if (this.onSyncSuccess) {
+        this.onSyncSuccess(serverPoints);
+      }
+
     } catch (err: any) {
       console.error("Sync error:", err);
-      
-      // Only requeue if not aborted
+
       if (err.name !== 'AbortError') {
         this.queue += amount;
       }
