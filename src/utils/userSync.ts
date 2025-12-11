@@ -1,132 +1,214 @@
-interface UserData {
-  points: number;
-  telegramId?: string;
-  tappingRate?: number;
-  hasClaimedWelcome?: boolean;
-  [key: string]: any;
-}
+// UserSyncManager.ts - Complete implementation with proper persistence
 
-export class UserSyncManager {
+class UserSyncManager {
   private telegramId: string;
-  private queue: number = 0;
-  private isSyncing = false;
-  private interval: NodeJS.Timeout | null = null;
-  private abortController: AbortController | null = null;
-  private localStorageKey: string;
-
-  // ✅ NEW: callback for successful syncs
-  public onSyncSuccess?: (serverPoints: number) => void;
+  private pendingPoints: number = 0;
+  private syncTimer: NodeJS.Timeout | null = null;
+  private syncInProgress: boolean = false;
+  onSyncSuccess?: (serverPoints: number) => void;
+  
+  // Sync configuration
+  private readonly SYNC_INTERVAL = 2000; // Sync every 2 seconds
+  private readonly STORAGE_KEY_PREFIX = 'pending_points_';
 
   constructor(telegramId: string) {
     this.telegramId = telegramId;
-    this.localStorageKey = `user_${telegramId}`;
-
-    // Auto-sync every 3 seconds
-    this.interval = setInterval(() => this.flushQueue(), 3000);
+    
+    // Load any pending points from previous session
+    this.loadPendingPoints();
+    
+    // Start periodic sync
+    this.startPeriodicSync();
+    
+    // Setup beforeunload handler to sync before page closes
+    this.setupBeforeUnloadHandler();
   }
 
-  async addPoints(amount: number) {
-    this.queue += amount;
+  private loadPendingPoints(): void {
+    const storageKey = this.STORAGE_KEY_PREFIX + this.telegramId;
+    const stored = localStorage.getItem(storageKey);
     
-    // Update localStorage immediately
-    try {
-      const current = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
-      current.points = (current.points || 0) + amount;
-      localStorage.setItem(this.localStorageKey, JSON.stringify(current));
+    if (stored) {
+      this.pendingPoints = parseInt(stored, 10) || 0;
+      console.log('📦 Loaded pending points from storage:', this.pendingPoints);
       
-      // Broadcast update immediately
-      window.dispatchEvent(
-        new CustomEvent("userDataUpdate", { detail: current })
-      );
-    } catch (err) {
-      console.error('Failed to update localStorage:', err);
+      // Immediately try to sync if there are pending points
+      if (this.pendingPoints > 0) {
+        this.sync();
+      }
     }
+  }
+
+  private savePendingPoints(): void {
+    const storageKey = this.STORAGE_KEY_PREFIX + this.telegramId;
+    localStorage.setItem(storageKey, this.pendingPoints.toString());
+  }
+
+  private clearPendingPoints(): void {
+    const storageKey = this.STORAGE_KEY_PREFIX + this.telegramId;
+    localStorage.removeItem(storageKey);
+  }
+
+  addPoints(points: number): void {
+    this.pendingPoints += points;
     
-    // Trigger sync
-    this.flushQueue();
+    // Save pending points immediately to localStorage
+    this.savePendingPoints();
+    
+    console.log('➕ Added points:', points, '| Pending:', this.pendingPoints);
+    
+    // If we have a lot of pending points, sync immediately
+    if (this.pendingPoints >= 50) {
+      this.sync();
+    }
   }
 
-  // ✅ NEW: required method
-  hasPendingSync(): boolean {
-    return this.queue > 0;
+  private startPeriodicSync(): void {
+    this.syncTimer = setInterval(() => {
+      if (this.pendingPoints > 0 && !this.syncInProgress) {
+        this.sync();
+      }
+    }, this.SYNC_INTERVAL);
   }
 
-  private async flushQueue() {
-    if (this.isSyncing || this.queue === 0) return;
+  private async sync(): Promise<void> {
+    if (this.syncInProgress || this.pendingPoints === 0) {
+      return;
+    }
 
-    const amount = this.queue;
-    this.queue = 0;
-    this.isSyncing = true;
+    this.syncInProgress = true;
+    const pointsToSync = this.pendingPoints;
 
     try {
-      this.abortController = new AbortController();
+      console.log('🔄 Syncing', pointsToSync, 'points to server...');
 
-      const res = await fetch("/api/increase-point", {
-        method: "POST",
+      const response = await fetch('/api/sync-points', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           telegramId: this.telegramId,
-          points: amount,
+          pointsToAdd: pointsToSync,
         }),
-        headers: { 
-          "Content-Type": "application/json"
-        },
-        signal: this.abortController.signal,
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Server returned ${res.status}: ${errorText}`);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
       }
 
-      const serverData = await res.json();
-
-      if (!serverData.success) {
-        throw new Error(serverData.error || 'Sync failed');
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('✅ Sync successful! Server points:', data.points);
+        
+        // Clear the synced points
+        this.pendingPoints -= pointsToSync;
+        
+        if (this.pendingPoints <= 0) {
+          this.pendingPoints = 0;
+          this.clearPendingPoints();
+        } else {
+          this.savePendingPoints();
+        }
+        
+        // Notify the app of successful sync
+        if (this.onSyncSuccess) {
+          this.onSyncSuccess(data.points);
+        }
+        
+        // Dispatch custom event
+        window.dispatchEvent(new CustomEvent('userDataUpdate', {
+          detail: data.user || { points: data.points }
+        }));
+      } else {
+        throw new Error(data.message || 'Sync failed');
       }
 
-      const localData = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
-
-      const serverPoints = parseInt(serverData.points) || 0;
-      const localPoints = localData.points || 0;
-
-      // Only update if server has more points
-      if (serverPoints > localPoints) {
-        localData.points = serverPoints;
-        localStorage.setItem(this.localStorageKey, JSON.stringify(localData));
-
-        window.dispatchEvent(
-          new CustomEvent("userDataUpdate", { 
-            detail: { ...localData, points: serverPoints }
-          })
-        );
-      }
-
-      console.log('✅ Synced:', amount, 'points. Server:', serverPoints, 'Local:', localPoints);
-
-      // ✅ Call the callback here
-      if (this.onSyncSuccess) {
-        this.onSyncSuccess(serverPoints);
-      }
-
-    } catch (err: any) {
-      console.error("Sync error:", err);
-
-      if (err.name !== 'AbortError') {
-        this.queue += amount;
-      }
+    } catch (error) {
+      console.error('❌ Sync failed:', error);
+      // Keep points in pending queue for retry
+      console.log('🔄 Will retry sync later. Pending:', this.pendingPoints);
     } finally {
-      this.isSyncing = false;
+      this.syncInProgress = false;
     }
   }
 
-  cleanup() {
-    if (this.interval) {
-      clearInterval(this.interval);
-      this.interval = null;
+  private setupBeforeUnloadHandler(): void {
+    // Use synchronous XHR in beforeunload as last resort
+    window.addEventListener('beforeunload', () => {
+      if (this.pendingPoints > 0) {
+        console.log('⚠️ Page closing with', this.pendingPoints, 'pending points');
+        
+        // Try to sync synchronously (last resort)
+        this.syncBeforeUnload();
+      }
+    });
+
+    // Better: Use visibilitychange for earlier detection
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.pendingPoints > 0) {
+        console.log('👁️ Page hidden, forcing sync...');
+        this.sync();
+      }
+    });
+  }
+
+  private syncBeforeUnload(): void {
+    // Use sendBeacon API if available (better than sync XHR)
+    if (navigator.sendBeacon) {
+      const blob = new Blob(
+        [JSON.stringify({
+          telegramId: this.telegramId,
+          pointsToAdd: this.pendingPoints,
+        })],
+        { type: 'application/json' }
+      );
+      
+      const sent = navigator.sendBeacon('/api/sync-points', blob);
+      console.log('📡 sendBeacon:', sent ? 'sent' : 'failed');
+    } else {
+      // Fallback to synchronous XHR (blocks page unload)
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/sync-points', false); // false = synchronous
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({
+          telegramId: this.telegramId,
+          pointsToAdd: this.pendingPoints,
+        }));
+        
+        if (xhr.status === 200) {
+          this.clearPendingPoints();
+        }
+      } catch (error) {
+        console.error('Sync before unload failed:', error);
+      }
     }
-    if (this.abortController) {
-      this.abortController.abort();
-      this.abortController = null;
+  }
+
+  hasPendingSync(): boolean {
+    return this.pendingPoints > 0;
+  }
+
+  // Force immediate sync (useful for testing or manual triggers)
+  async forceSync(): Promise<void> {
+    if (this.pendingPoints > 0) {
+      await this.sync();
+    }
+  }
+
+  cleanup(): void {
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
+    }
+    
+    // Final sync attempt
+    if (this.pendingPoints > 0) {
+      this.sync();
     }
   }
 }
+
+export default UserSyncManager;

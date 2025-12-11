@@ -11,7 +11,7 @@ import { useWallet } from './context/walletContext';
 import { WalletProvider } from './context/walletContext';
 import { WalletSection } from '../components/WalletSection';
 import { ConnectButton } from './ConnectButton';
-import { UserSyncManager } from '@/src/utils/userSync';
+import  UserSyncManager  from '@/src/utils/userSync';
 // import { PointsQueue } from '@/src/utils/userSync';
 import { ToastContainer } from 'react-toastify'
 
@@ -79,111 +79,111 @@ export default function Home() {
   
 const STORAGE_KEY = (telegramId: string) => `user_${telegramId}`;
 
-// ✅ Initialize app - cleaned up
-useEffect(() => { 
-  const initApp = async () => {
-    setLoading(true);
+ // ✅ Initialize app
+  useEffect(() => { 
+    const initApp = async () => {
+      setLoading(true);
 
-    try {
-      const tg = window.Telegram?.WebApp;
-      if (!tg?.initDataUnsafe?.user?.id) {
-        throw new Error("Telegram not initialized");
-      }
-
-      tg.ready();
-      const telegramId = tg.initDataUnsafe.user.id.toString();
-      const storageKey = STORAGE_KEY(telegramId);
-
-      // 1. Load from localStorage FIRST (instant UI)
-      const cached = localStorage.getItem(storageKey);
-      if (cached) {
-        try {
-          const parsedUser = JSON.parse(cached);
-          console.log('📦 Loaded from cache:', parsedUser.points);
-          setUser(parsedUser);
-        } catch (e) {
-          console.error('Failed to parse cache:', e);
-          localStorage.removeItem(storageKey);
-        }
-      }
-
-      // 2. Fetch from server (source of truth)
       try {
-        const res = await axios.get(`/api/user/${telegramId}`);
-        const serverUser = res.data;
-
-        console.log('🔄 Server points:', serverUser.points);
-
-        // 3. ✅ FIXED: Use server as source of truth, but keep unsaved local taps
-        const finalUser = cached ? (() => {
-          const localUser = JSON.parse(cached);
-          // Only keep local points if they're higher AND we have pending syncs
-          const hasUnsyncedPoints = syncManager.current?.hasPendingSync() || false;
-          const localPoints = localUser.points || 0;
-          const serverPoints = serverUser.points || 0;
-          
-          return {
-            ...serverUser,
-            points: (hasUnsyncedPoints && localPoints > serverPoints) 
-              ? localPoints 
-              : serverPoints
-          };
-        })() : serverUser;
-
-        console.log('✅ Final points:', finalUser.points);
-
-        // 4. Save merged result
-        localStorage.setItem(storageKey, JSON.stringify(finalUser));
-        setUser(finalUser);
-
-      } catch (fetchError: any) {
-        console.error('⚠️ Server fetch failed:', fetchError);
-        
-        // If fetch fails and no cache, create new user
-        if (!cached) {
-          const newUser = {
-            telegramId,
-            username: tg.initDataUnsafe.user.username || "",
-            first_name: tg.initDataUnsafe.user.first_name || "",
-            last_name: tg.initDataUnsafe.user.last_name || "",
-            points: 0,
-            tappingRate: 1,
-            hasClaimedWelcome: false,
-          };
-
-          const createRes = await axios.post('/api/user', newUser);
-          const createdUser = createRes.data;
-          
-          localStorage.setItem(storageKey, JSON.stringify(createdUser));
-          setUser(createdUser);
+        const tg = window.Telegram?.WebApp;
+        if (!tg?.initDataUnsafe?.user?.id) {
+          throw new Error("Telegram not initialized");
         }
+
+        tg.ready();
+        const telegramId = tg.initDataUnsafe.user.id.toString();
+        const storageKey = STORAGE_KEY(telegramId);
+
+        // 1. Load from localStorage FIRST (instant UI)
+        const cached = localStorage.getItem(storageKey);
+        let cachedUser = null;
+        
+        if (cached) {
+          try {
+            cachedUser = JSON.parse(cached);
+            console.log('📦 Loaded from cache:', cachedUser.points);
+            setUser(cachedUser);
+          } catch (e) {
+            console.error('Failed to parse cache:', e);
+            localStorage.removeItem(storageKey);
+          }
+        }
+
+        // 2. Initialize sync manager early
+        if (!syncManager.current) {
+          syncManager.current = new UserSyncManager(telegramId);
+        }
+
+        // 3. Fetch from server (source of truth)
+        try {
+          const res = await axios.get(`/api/user/${telegramId}`);
+          const serverUser = res.data;
+
+          console.log('🔄 Server points:', serverUser.points);
+
+          // 4. Reconcile: Server + pending points
+          const hasPending = syncManager.current?.hasPendingSync() || false;
+          const pendingPoints = hasPending ? (cachedUser?.points || 0) - (serverUser.points || 0) : 0;
+          
+          const finalUser = {
+            ...serverUser,
+            points: serverUser.points + Math.max(0, pendingPoints) // Add any unsynced points
+          };
+
+          console.log('✅ Final points:', finalUser.points, '(Server:', serverUser.points, '+ Pending:', Math.max(0, pendingPoints), ')');
+
+          // 5. Save and update UI
+          localStorage.setItem(storageKey, JSON.stringify(finalUser));
+          setUser(finalUser);
+
+        } catch (fetchError: any) {
+          console.error('⚠️ Server fetch failed:', fetchError);
+          
+          // If fetch fails and no cache, create new user
+          if (!cachedUser) {
+            const newUser = {
+              telegramId,
+              username: tg.initDataUnsafe.user.username || "",
+              first_name: tg.initDataUnsafe.user.first_name || "",
+              last_name: tg.initDataUnsafe.user.last_name || "",
+              points: 0,
+              tappingRate: 1,
+              hasClaimedWelcome: false,
+            };
+
+            const createRes = await axios.post('/api/user', newUser);
+            const createdUser = createRes.data;
+            
+            localStorage.setItem(storageKey, JSON.stringify(createdUser));
+            setUser(createdUser);
+          }
+        }
+
+        // ✅ CLEANUP: Remove old localStorage keys
+        localStorage.removeItem('points');
+        localStorage.removeItem('hasClaimedWelcome');
+        localStorage.removeItem('tappingRate');
+        localStorage.removeItem('telegramId');
+
+      } catch (err: any) {
+        console.error('❌ Init failed:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // ✅ CLEANUP: Remove old localStorage keys
-      localStorage.removeItem('points');
-      localStorage.removeItem('hasClaimedWelcome');
-      localStorage.removeItem('tappingRate');
-      localStorage.removeItem('telegramId');
+    initApp();
+  }, []);
 
-    } catch (err: any) {
-      console.error('❌ Init failed:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ✅ Setup sync manager callbacks
+  useEffect(() => {
+    if (!syncManager.current || !user?.telegramId) return;
 
-  initApp();
-}, []);
-
-// ✅ Initialize sync manager
-useEffect(() => {
-  if (user?.telegramId && !syncManager.current) {
-    syncManager.current = new UserSyncManager(user.telegramId);
-    
-    // ✅ Add sync success handler to update from server
+    // Handle successful sync
     syncManager.current.onSyncSuccess = (serverPoints: number) => {
-      console.log('✅ Sync successful, server points:', serverPoints);
+      console.log('✅ Sync callback - Server points:', serverPoints);
+      
       setUser(prev => {
         if (!prev) return prev;
         
@@ -196,183 +196,188 @@ useEffect(() => {
         return updated;
       });
     };
-  }
 
-  return () => {
-    syncManager.current?.cleanup();
-    syncManager.current = undefined;
-  };
-}, [user?.telegramId]);
+    return () => {
+      syncManager.current?.cleanup();
+    };
+  }, [user?.telegramId]);
 
-// ✅ Listen for sync updates
-useEffect(() => {
-  const handleUpdate = (event: CustomEvent<any>) => {
-    setUser(prev => {
-      if (!prev) return event.detail;
+  // ✅ Listen for sync updates
+  useEffect(() => {
+    const handleUpdate = (event: CustomEvent<any>) => {
+      console.log('📡 Received sync update:', event.detail);
       
-      const merged = {
-        ...event.detail,
-        points: event.detail.points // Trust the synced data
-      };
+      setUser(prev => {
+        if (!prev) return event.detail;
+        
+        const merged = {
+          ...prev,
+          ...event.detail,
+          points: event.detail.points // Trust the synced data
+        };
 
-      localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(merged));
-      
-      return merged;
-    });
-  };
-  
-  window.addEventListener('userDataUpdate', handleUpdate as EventListener);
-  
-  return () => {
-    window.removeEventListener('userDataUpdate', handleUpdate as EventListener);
-  };
-}, []);
-
-// ✅ Show welcome popup check
-useEffect(() => {
-  if (user) {
-    setShowWelcomePopup(!user.hasClaimedWelcome);
-  }
-}, [user]);
-
-// ✅ Click handler - with better error handling
-const handleClick = async (e: React.MouseEvent) => {
-  if (!user?.telegramId || energy <= 0 || !syncManager.current) return;
-
-  const tappingRate = Number(user.tappingRate) || 1;
-
-  // Update UI optimistically
-  setUser(prev => {
-    if (!prev) return prev;
-    
-    const updated = {
-      ...prev,
-      points: (prev.points || 0) + tappingRate,
+        localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(merged));
+        
+        return merged;
+      });
     };
     
-    localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(updated));
+    window.addEventListener('userDataUpdate', handleUpdate as EventListener);
     
-    return updated;
-  });
+    return () => {
+      window.removeEventListener('userDataUpdate', handleUpdate as EventListener);
+    };
+  }, []);
 
-  setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
+  // ✅ Show welcome popup
+  useEffect(() => {
+    if (user) {
+      setShowWelcomePopup(!user.hasClaimedWelcome);
+    }
+  }, [user]);
 
-  // Queue for server sync
-  syncManager.current.addPoints(tappingRate);
+  // ✅ Click handler - SAVE IMMEDIATELY
+  const handleClick = async (e: React.MouseEvent) => {
+    if (!user?.telegramId || energy <= 0 || !syncManager.current) return;
 
-  // Visual effects
-  setIsClicking(true);
-  setSpeed(prev => Math.min(prev + 0.1, 5));
+    const tappingRate = Number(user.tappingRate) || 1;
 
-  const newClick = {
-    id: Date.now(),
-    x: e.clientX,
-    y: e.clientY,
-    tappingRate,
-    velocityY: -2,
-    opacity: 1,
-  };
-
-  setClicks(prev => [...prev, newClick]);
-
-  const animationInterval = setInterval(() => {
-    setClicks(prev =>
-      prev.map(c => 
-        c.id === newClick.id
-          ? {
-              ...c,
-              y: c.y + c.velocityY,
-              velocityY: c.velocityY - 0.05,
-              opacity: Math.max(0, c.opacity - 0.02),
-            }
-          : c
-      ).filter(c => c.opacity > 0)
-    );
-  }, 16);
-
-  setTimeout(() => {
-    clearInterval(animationInterval);
-    setClicks(prev => prev.filter(c => c.id !== newClick.id));
-  }, 2000);
-
-  if (inactivityTimeout.current) {
-    clearTimeout(inactivityTimeout.current);
-  }
-
-  inactivityTimeout.current = setTimeout(() => {
-    setIsClicking(false);
-    setSpeed(prev => Math.max(1, prev - 0.2));
-  }, 1000);
-};
-
-const handleAnimationEnd = (id: number) => {
-  setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
-};
-
-// ✅ Claim handler
-const handleClaim = async () => {
-  try {
-    if (!user?.telegramId || user.hasClaimedWelcome) return;
-
-    setLoading(true);
-
-    const res = await fetch("/api/claim-welcome", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        telegramId: user.telegramId,
-        timestamp: new Date().toISOString(),
-      }),
+    // 1. Update state optimistically
+    setUser(prev => {
+      if (!prev) return prev;
+      
+      const updated = {
+        ...prev,
+        points: (prev.points || 0) + tappingRate,
+      };
+      
+      // 2. Save to localStorage IMMEDIATELY
+      localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(updated));
+      console.log('💾 Saved to localStorage:', updated.points);
+      
+      return updated;
     });
 
-    const data = await res.json();
+    setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
 
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || "Failed to claim bonus");
+    // 3. Queue for server sync (this also saves to pending_points localStorage)
+    syncManager.current.addPoints(tappingRate);
+
+    // Visual effects
+    setIsClicking(true);
+    setSpeed(prev => Math.min(prev + 0.1, 5));
+
+    const newClick = {
+      id: Date.now(),
+      x: e.clientX,
+      y: e.clientY,
+      tappingRate,
+      velocityY: -2,
+      opacity: 1,
+    };
+
+    setClicks(prev => [...prev, newClick]);
+
+    const animationInterval = setInterval(() => {
+      setClicks(prev =>
+        prev.map(c => 
+          c.id === newClick.id
+            ? {
+                ...c,
+                y: c.y + c.velocityY,
+                velocityY: c.velocityY - 0.05,
+                opacity: Math.max(0, c.opacity - 0.02),
+              }
+            : c
+        ).filter(c => c.opacity > 0)
+      );
+    }, 16);
+
+    setTimeout(() => {
+      clearInterval(animationInterval);
+      setClicks(prev => prev.filter(c => c.id !== newClick.id));
+    }, 2000);
+
+    if (inactivityTimeout.current) {
+      clearTimeout(inactivityTimeout.current);
     }
 
-    const updatedUser = {
-      ...user,
-      points: data.points,
-      hasClaimedWelcome: true,
-    };
-
-    localStorage.setItem(STORAGE_KEY(user.telegramId), JSON.stringify(updatedUser));
-    setUser(updatedUser);
-    setShowWelcomePopup(false);
-
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { x: 0.5, y: 0.5 },
-    });
-
-  } catch (err: any) {
-    console.error("Claim error:", err);
-    setError(err.message);
-    setTimeout(() => setError(null), 3000);
-  } finally {
-    setLoading(false);
-  }
-};
-
-// ✅ Energy refill logic
-useEffect(() => {
-  if (!isClicking && energy >= maxEnergy) return;
-
-  let refillInterval: NodeJS.Timeout | null = null;
-
-  if (!isClicking && energy < maxEnergy) {
-    refillInterval = setInterval(() => {
-      setEnergy(prev => Math.min(maxEnergy, prev + 10));
-    }, 300);
-  }
-
-  return () => {
-    if (refillInterval) clearInterval(refillInterval);
+    inactivityTimeout.current = setTimeout(() => {
+      setIsClicking(false);
+      setSpeed(prev => Math.max(1, prev - 0.2));
+    }, 1000);
   };
-}, [isClicking, energy, maxEnergy]);
 
+  const handleAnimationEnd = (id: number) => {
+    setClicks((prevClicks) => prevClicks.filter((click) => click.id !== id));
+  };
+
+  // ✅ Claim handler
+  const handleClaim = async () => {
+    try {
+      if (!user?.telegramId || user.hasClaimedWelcome) return;
+
+      setLoading(true);
+
+      const res = await fetch("/api/claim-welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegramId: user.telegramId,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to claim bonus");
+      }
+
+      const updatedUser = {
+        ...user,
+        points: data.points,
+        hasClaimedWelcome: true,
+      };
+
+      localStorage.setItem(STORAGE_KEY(user.telegramId), JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      setShowWelcomePopup(false);
+
+      // Confetti effect
+      if (typeof confetti !== 'undefined') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { x: 0.5, y: 0.5 },
+        });
+      }
+
+    } catch (err: any) {
+      console.error("Claim error:", err);
+      setError(err.message);
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Energy refill logic
+  useEffect(() => {
+    if (!isClicking && energy >= maxEnergy) return;
+
+    let refillInterval: NodeJS.Timeout | null = null;
+
+    if (!isClicking && energy < maxEnergy) {
+      refillInterval = setInterval(() => {
+        setEnergy(prev => Math.min(maxEnergy, prev + 10));
+      }, 300);
+    }
+
+    return () => {
+      if (refillInterval) clearInterval(refillInterval);
+    };
+  }, [isClicking, energy, maxEnergy]);
 
 
   // const resetAppSession = () => {
