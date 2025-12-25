@@ -364,29 +364,44 @@ useEffect(() => {
   };
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (!isBarFillingModeRef.current || !barRect) return;
+  if (!isBarFillingModeRef.current || !barRect) return;
 
-    const touch = e.touches[0];
-    if (!touch) return;
+  const touch = e.touches[0];
+  if (!touch) return;
 
-    e.preventDefault();
-    e.stopPropagation();
+  e.preventDefault();
+  e.stopPropagation();
 
-    const deltaY = lastTouchY - touch.clientY;
-    const deltaX = touch.clientX - lastTouchX;
+  // Movement deltas
+  const deltaY = lastTouchY - touch.clientY; // up = +
+  const deltaX = touch.clientX - lastTouchX; // right = +
 
-    lastTouchY = touch.clientY;
-    lastTouchX = touch.clientX;
+  lastTouchY = touch.clientY;
+  lastTouchX = touch.clientX;
 
-    const combinedDelta = deltaY * 0.7 + Math.abs(deltaX) * 0.3;
-    const percentageChange = (combinedDelta / barRect.height) * 100 * 2.5;
+  // 🎛️ Sensitivity tuning
+  const VERTICAL_WEIGHT = 0.6;
+  const HORIZONTAL_WEIGHT = 0.4;
+  const SENSITIVITY = 1.1; // 🔽 lower = slower (0.7 – 1.3 is ideal)
 
-    setBarHeight(prev => {
-      const newHeight = Math.max(0, Math.min(100, prev + percentageChange));
-      setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
-      return newHeight;
-    });
-  };
+  // True 2D directional drag
+  const directionalDelta =
+    Math.sign(deltaY) * Math.abs(deltaY) * VERTICAL_WEIGHT +
+    Math.sign(deltaX) * Math.abs(deltaX) * HORIZONTAL_WEIGHT;
+
+  const percentageChange =
+    (directionalDelta / barRect.height) * 100 * SENSITIVITY;
+
+  // Ignore micro jitter
+  if (Math.abs(percentageChange) < 0.05) return;
+
+  setBarHeight(prev => {
+    const newHeight = Math.max(0, Math.min(100, prev + percentageChange));
+    setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+    return newHeight;
+  });
+};
+
 
   const handleTouchEnd = () => {
     document.body.classList.remove('staking-active');
