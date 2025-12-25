@@ -304,51 +304,55 @@ useEffect(() => {
   let barRect: DOMRect | null = null;
 
   const handleTouchStart = (e: TouchEvent) => {
-    if (!canParticipate || isFighter) return;
-    const t = e.touches[0];
-    if (!t) return;
+  if (!canParticipate || isFighter) return;
+  const t = e.touches[0];
+  if (!t) return;
 
-    // ✅ Check if touch started on the BAR specifically
-    const barBounds = barElement.getBoundingClientRect();
-    const touchX = t.clientX;
-    const touchY = t.clientY;
-    
-    const touchedBar = (
-      touchX >= barBounds.left &&
-      touchX <= barBounds.right &&
-      touchY >= barBounds.top &&
-      touchY <= barBounds.bottom
-    );
+  // ✅ Check if touch started on the BAR specifically
+  const barBounds = barElement.getBoundingClientRect();
+  const touchX = t.clientX;
+  const touchY = t.clientY;
+  
+  const touchedBar = (
+    touchX >= barBounds.left &&
+    touchX <= barBounds.right &&
+    touchY >= barBounds.top &&
+    touchY <= barBounds.bottom
+  );
 
-    // ✅ Only activate if touched the bar
-    if (!touchedBar) return;
+  // ✅ Only activate if touched the bar
+  if (!touchedBar) return;
 
-    // Store initial values
-    startFingerY = t.clientY;
-    startFingerX = t.clientX;
-    startBarHeight = barHeight;
-    barRect = el.getBoundingClientRect(); // Use full card for dragging area
+  // 🔥 PREVENT THE JUMP - Stop the event immediately
+  e.preventDefault();
+  e.stopPropagation();
 
-    // ✅ Activate IMMEDIATELY
-    isBarFillingMode = true;
-    touchIntentRef.current = "stake";
-    
-    // Visual feedback
-    setTapping(true);
-    stopBarDecay();
-    
-    // Lock scroll
-    document.body.classList.add('staking-active');
-    
-    // Haptic
-    try {
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-      }
-    } catch (error) {
-      console.log('Haptic not available');
+  // Store initial values
+  startFingerY = t.clientY;
+  startFingerX = t.clientX;
+  startBarHeight = barHeight;
+  barRect = el.getBoundingClientRect();
+
+  // ✅ Activate IMMEDIATELY
+  isBarFillingMode = true;
+  touchIntentRef.current = "stake";
+  
+  // Visual feedback
+  setTapping(true);
+  stopBarDecay();
+  
+  // Lock scroll
+  document.body.classList.add('staking-active');
+  
+  // Haptic
+  try {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
     }
-  };
+  } catch (error) {
+    console.log('Haptic not available');
+  }
+};
 
   const handleTouchMove = (e: TouchEvent) => {
     // ✅ Only process if bar mode active
