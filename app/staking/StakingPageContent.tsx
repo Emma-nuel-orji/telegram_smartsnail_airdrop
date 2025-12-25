@@ -376,7 +376,7 @@ useEffect(() => {
   const combinedMovement = (pixelsMovedY * 0.7) + (Math.abs(pixelsMovedX) * 0.3);
   
   // 🔥 MORE SENSITIVE - multiply by 2 or adjust to your preference
-  const sensitivityMultiplier = 2.0;
+  const sensitivityMultiplier = 5.0;
   const barHeightPx = barRect.height;
   const percentageChange = (combinedMovement / barHeightPx) * 100 * sensitivityMultiplier;
   
