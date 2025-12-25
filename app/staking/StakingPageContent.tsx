@@ -303,8 +303,9 @@ useEffect(() => {
   let startBarHeight = 0;
   let barRect: DOMRect | null = null;
 
-  const handleTouchStart = (e: TouchEvent) => {
+ const handleTouchStart = (e: TouchEvent) => {
   if (!canParticipate || isFighter) return;
+  
   const t = e.touches[0];
   if (!t) return;
 
@@ -323,9 +324,17 @@ useEffect(() => {
   // ✅ Only activate if touched the bar
   if (!touchedBar) return;
 
-  // 🔥 PREVENT THE JUMP - Stop the event immediately
+  // 🔥 PREVENT THE JUMP - Stop ALL default behavior
   e.preventDefault();
   e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  // 🔥 Lock body position immediately
+  const scrollY = window.scrollY;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${scrollY}px`;
+  document.body.style.width = '100%';
+  document.body.classList.add('staking-active');
 
   // Store initial values
   startFingerY = t.clientY;
@@ -340,9 +349,6 @@ useEffect(() => {
   // Visual feedback
   setTapping(true);
   stopBarDecay();
-  
-  // Lock scroll
-  document.body.classList.add('staking-active');
   
   // Haptic
   try {

@@ -219,6 +219,7 @@
   border-radius: 15px;
   padding: 20px;
   position: relative;
+  overscroll-behavior: contain;
   min-height: 500px;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -231,13 +232,13 @@
   overflow: hidden;
 }
 
-.fighter-staking * {
+/* .fighter-staking * {
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   -webkit-touch-callout: none;
-}
+} */
 
 .fighter-staking:hover:not(.inactive):not(.is-fighter) {
   background: rgba(255,255,255,0.08);
@@ -539,6 +540,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid rgba(255,255,255,0.2);
   overflow: hidden;
+  touch-action: none !important;
 }
 
 .tapping-bar-container:hover:not(.disabled) {
@@ -576,6 +578,7 @@
 .tapping-bar-track {
   width: 100%;
   height: 100%;
+   touch-action: none !important;
   position: relative;
   touch-action: none;
   border-radius: 28px;
@@ -652,12 +655,12 @@
           drop-shadow(0 0 40px rgba(139, 92, 246, 0.5));
 }
 
-.tapping-bar-track {
+/* .tapping-bar-track {
   transition: all 0.2s ease;
   position: relative;
   border-radius: 16px;
   overflow: visible;
-}
+} */
 
 
 /* Pulsing border glow */
@@ -930,10 +933,10 @@
     margin: 10px 0;
   }
   
-  .fighter-staking {
+  /* .fighter-staking {
     width: 100%;
     min-height: 400px;
-  }
+  } */
   
   .fighter-staking.left {
     order: 0;
