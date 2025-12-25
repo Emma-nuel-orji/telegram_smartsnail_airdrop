@@ -400,6 +400,7 @@ useEffect(() => {
   }
 };
 
+
   const handleTouchEnd = () => {
   // Reset - simple approach
   document.body.classList.remove('staking-active');
