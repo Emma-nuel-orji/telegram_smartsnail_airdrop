@@ -308,7 +308,7 @@ useEffect(() => {
   
   const t = e.touches[0];
   if (!t) return;
-  
+
 
   // ✅ Check if touch started on the BAR specifically
   const barBounds = barElement.getBoundingClientRect();
@@ -358,46 +358,47 @@ useEffect(() => {
 };
 
   const handleTouchMove = (e: TouchEvent) => {
-    // ✅ Only process if bar mode active
-    if (!isBarFillingMode || !barRect) return;
+  // ✅ Only process if bar mode active
+  if (!isBarFillingMode || !barRect) return;
 
-    const touch = e.touches[0];
-    if (!touch) return;
+  const touch = e.touches[0];
+  if (!touch) return;
 
-    // Prevent scroll
-    e.preventDefault();
-    e.stopPropagation();
+  // Prevent scroll
+  e.preventDefault();
+  e.stopPropagation();
 
-    // ✅ Calculate combined movement (vertical + horizontal)
-    const pixelsMovedY = startFingerY - touch.clientY; // Up = positive
-    const pixelsMovedX = touch.clientX - startFingerX; // Right = positive
-    
-    // Combine movements (both directions increase bar)
-    // Vertical 70%, Horizontal 30%
-    const combinedMovement = (pixelsMovedY * 0.7) + (pixelsMovedX * 0.3);
-    
-    const barHeightPx = barRect.height;
-    const percentageChange = (combinedMovement / barHeightPx) * 100;
-    
-    // Calculate new height
-    let newHeight = startBarHeight + percentageChange;
-    newHeight = Math.max(0, Math.min(100, newHeight));
+  // ✅ Calculate movement from START position
+  const pixelsMovedY = startFingerY - touch.clientY; // Up = positive
+  const pixelsMovedX = touch.clientX - startFingerX; // Right = positive
+  
+  // Combine movements (both directions increase bar)
+  const combinedMovement = (pixelsMovedY * 0.7) + (Math.abs(pixelsMovedX) * 0.3);
+  
+  // 🔥 MORE SENSITIVE - multiply by 2 or adjust to your preference
+  const sensitivityMultiplier = 2.0;
+  const barHeightPx = barRect.height;
+  const percentageChange = (combinedMovement / barHeightPx) * 100 * sensitivityMultiplier;
+  
+  // Calculate new height from the STARTING height
+  let newHeight = startBarHeight + percentageChange;
+  newHeight = Math.max(0, Math.min(100, newHeight));
 
-    setBarHeight(newHeight);
-    setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+  setBarHeight(newHeight);
+  setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
 
-    // Visual feedback
-    const localX = touch.clientX - barRect.left;
-    const localY = touch.clientY - barRect.top;
-    
-    if (Math.random() < 0.15) {
-      createTapEffect(localX, localY);
-    }
+  // Visual feedback
+  const localX = touch.clientX - barRect.left;
+  const localY = touch.clientY - barRect.top;
+  
+  if (Math.random() < 0.15) {
+    createTapEffect(localX, localY);
+  }
 
-    if (Math.random() < 0.08) {
-      showMotivationalMessage(touch.clientX, touch.clientY);
-    }
-  };
+  if (Math.random() < 0.08) {
+    showMotivationalMessage(touch.clientX, touch.clientY);
+  }
+};
 
   const handleTouchEnd = () => {
   // Reset - simple approach
