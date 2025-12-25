@@ -411,7 +411,7 @@ useEffect(() => {
     }
   };
 
-  el.addEventListener("touchstart", handleTouchStart, { passive: true });
+  el.addEventListener("touchstart", handleTouchStart, { passive: false });
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
   el.addEventListener("touchend", handleTouchEnd, { passive: true });
   el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
