@@ -308,6 +308,7 @@ useEffect(() => {
   
   const t = e.touches[0];
   if (!t) return;
+  
 
   // ✅ Check if touch started on the BAR specifically
   const barBounds = barElement.getBoundingClientRect();
