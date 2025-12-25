@@ -229,6 +229,7 @@
   -ms-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
   overflow: hidden;
 }
 
@@ -584,9 +585,16 @@
   border-radius: 28px;
   overflow: hidden;
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   background: rgba(0,0,0,0.3);
   border: 1px solid rgba(255,255,255,0.1);
   transition: all 0.3s ease;
+}
+
+html, body {
+  overscroll-behavior-y: none;
 }
 
 .tapping-bar-track:hover {
@@ -1384,8 +1392,8 @@ button:focus-visible {
 
 body.staking-active {
   overflow: hidden !important;
-  position: fixed;
+  /* position: fixed;
   width: 100%;
-  height: 100vh;
+  height: 100vh; */
   touch-action: none !important;
 }

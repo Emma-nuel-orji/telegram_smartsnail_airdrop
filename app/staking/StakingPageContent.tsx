@@ -329,13 +329,6 @@ useEffect(() => {
   e.stopPropagation();
   e.stopImmediatePropagation();
 
-  // 🔥 Lock body position immediately
-  const scrollY = window.scrollY;
-  document.body.style.position = 'fixed';
-  document.body.style.top = `-${scrollY}px`;
-  document.body.style.width = '100%';
-  document.body.classList.add('staking-active');
-
   // Store initial values
   startFingerY = t.clientY;
   startFingerX = t.clientX;
@@ -349,6 +342,9 @@ useEffect(() => {
   // Visual feedback
   setTapping(true);
   stopBarDecay();
+  
+  // Lock scroll (simple approach)
+  document.body.classList.add('staking-active');
   
   // Haptic
   try {
@@ -403,23 +399,23 @@ useEffect(() => {
   };
 
   const handleTouchEnd = () => {
-    // Reset
-    document.body.classList.remove('staking-active');
-    
-    setTapping(false);
-    isBarFillingMode = false;
-    touchIntentRef.current = "idle";
-    barRect = null;
+  // Reset - simple approach
+  document.body.classList.remove('staking-active');
+  
+  setTapping(false);
+  isBarFillingMode = false;
+  touchIntentRef.current = "idle";
+  barRect = null;
 
-    // Start decay
-    if (!barLockedRef.current && barHeight > 0) {
-      setTimeout(() => {
-        if (!barLockedRef.current) {
-          startBarDecay();
-        }
-      }, 500);
-    }
-  };
+  // Start decay
+  if (!barLockedRef.current && barHeight > 0) {
+    setTimeout(() => {
+      if (!barLockedRef.current) {
+        startBarDecay();
+      }
+    }, 500);
+  }
+};
 
   el.addEventListener("touchstart", handleTouchStart, { passive: false });
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
