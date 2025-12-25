@@ -76,16 +76,19 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
     new Date(fight.fightDate).getTime() > Date.now();
   
   const isConcluded = !!fight && (
-    fight.status === "COMPLETED" ||
-    fight.status === "DRAW" ||
-    fight.status === "CANCELLED" ||
-    fight.status === "EXPIRED" ||
-    new Date(fight.fightDate).getTime() <= Date.now()
-  );
+  fight.status === "COMPLETED" ||
+  fight.status === "DRAW" ||
+  fight.status === "CANCELLED"
+);
+
+const isExpiredByTime =
+  !!fight && new Date(fight.fightDate).getTime() <= Date.now();
+
   
   const [timer, setTimer] = useState<string>("");
 
-  const isDraw = isConcluded && fight && !fight.winnerId && fight.status !== "CANCELLED" && fight.status !== "EXPIRED";
+  const isDraw = fight?.status === "DRAW";
+
   const winner = isConcluded && fight?.winnerId 
     ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
     : null;
