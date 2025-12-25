@@ -202,9 +202,10 @@ function FightCard({ fight, userPoints, telegramId }: FightCardProps) {
   );
 }
 
+
 function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConcluded = false, telegramId, position }: FighterStakingProps) {
   type StakeTypeOption = 'STARS' | 'POINTS';
-  
+  const isBarFillingModeRef = useRef(false);
   const [stakeType, setStakeType] = useState<StakeTypeOption>('STARS');
   const [stakeAmount, setStakeAmount] = useState<number>(0);
   const [tapping, setTapping] = useState<boolean>(false);
@@ -256,32 +257,61 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
     };
   }, []);
 
-  const startBarDecay = () => {
-    if (decayRef.current) {
-      cancelAnimationFrame(decayRef.current);
-      decayRef.current = null;
+  // const startBarDecay = () => {
+  //   if (decayRef.current) {
+  //     cancelAnimationFrame(decayRef.current);
+  //     decayRef.current = null;
+  //   }
+
+  //   let lastTime = 0;
+  //   const smoothDecay = (timestamp: number) => {
+  //     if (!lastTime) lastTime = timestamp;
+  //     const delta = (timestamp - lastTime) / 1000;
+  //     lastTime = timestamp;
+
+  //     setBarHeight(prev => {
+  //       if (barLockedRef.current || prev <= 0) return prev;
+  //       const newHeight = Math.max(0, prev - delta * 20);
+  //       setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+  //       return newHeight;
+  //     });
+
+  //     if (!barLockedRef.current && barHeight > 0) {
+  //       decayRef.current = requestAnimationFrame(smoothDecay);
+  //     }
+  //   };
+
+  //   decayRef.current = requestAnimationFrame(smoothDecay);
+  // };
+const startBarDecay = () => {
+  if (decayRef.current) {
+    cancelAnimationFrame(decayRef.current);
+    decayRef.current = null;
+  }
+
+  let lastTime = 0;
+
+  const smoothDecay = (timestamp: number) => {
+    if (!lastTime) lastTime = timestamp;
+    const delta = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    setBarHeight(prev => {
+      if (barLockedRef.current || prev <= 0) return prev;
+
+      const newHeight = Math.max(0, prev - delta * 20);
+      setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
+      return newHeight;
+    });
+
+    if (!barLockedRef.current) {
+      decayRef.current = requestAnimationFrame(smoothDecay);
     }
-
-    let lastTime = 0;
-    const smoothDecay = (timestamp: number) => {
-      if (!lastTime) lastTime = timestamp;
-      const delta = (timestamp - lastTime) / 1000;
-      lastTime = timestamp;
-
-      setBarHeight(prev => {
-        if (barLockedRef.current || prev <= 0) return prev;
-        const newHeight = Math.max(0, prev - delta * 20);
-        setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
-        return newHeight;
-      });
-
-      if (!barLockedRef.current && barHeight > 0) {
-        decayRef.current = requestAnimationFrame(smoothDecay);
-      }
-    };
-
-    decayRef.current = requestAnimationFrame(smoothDecay);
   };
+
+  decayRef.current = requestAnimationFrame(smoothDecay);
+};
+
 
   const stopBarDecay = () => {
     if (decayRef.current) {
@@ -294,145 +324,97 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
 useEffect(() => {
   const el = fighterRef.current;
   const barElement = el?.querySelector('.tapping-bar-track');
-  
+
   if (!el || !barElement) return;
 
-  let isBarFillingMode = false;
   let lastTouchY = 0;
   let lastTouchX = 0;
   let barRect: DOMRect | null = null;
 
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
-    
+
     const t = e.touches[0];
     if (!t) return;
 
-    // ✅ Check if touch started on the BAR specifically
     const barBounds = barElement.getBoundingClientRect();
     const touchX = t.clientX;
     const touchY = t.clientY;
-    
-    const touchedBar = (
+
+    const touchedBar =
       touchX >= barBounds.left &&
       touchX <= barBounds.right &&
       touchY >= barBounds.top &&
-      touchY <= barBounds.bottom
-    );
+      touchY <= barBounds.bottom;
 
-    // ✅ Only activate if touched the bar
     if (!touchedBar) return;
 
-    // 🔥 PREVENT THE JUMP - Stop ALL default behavior
     e.preventDefault();
     e.stopPropagation();
-    e.stopImmediatePropagation();
 
-    // Store initial values
     lastTouchY = t.clientY;
     lastTouchX = t.clientX;
-    barRect = el.getBoundingClientRect();
+    barRect = barBounds;
 
-    // ✅ Activate IMMEDIATELY
-    isBarFillingMode = true;
-    touchIntentRef.current = "stake";
-    
-    // Visual feedback
+    isBarFillingModeRef.current = true;
     setTapping(true);
     stopBarDecay();
-    
-    // Lock scroll
+
     document.body.classList.add('staking-active');
-    
-    // Haptic
-    try {
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-      }
-    } catch (error) {
-      console.log('Haptic not available');
-    }
   };
 
   const handleTouchMove = (e: TouchEvent) => {
-    // ✅ Only process if bar mode active
-    if (!isBarFillingMode || !barRect) return;
+    if (!isBarFillingModeRef.current || !barRect) return;
 
     const touch = e.touches[0];
     if (!touch) return;
 
-    // Prevent scroll
     e.preventDefault();
     e.stopPropagation();
 
-    // 🔥 Calculate movement from LAST position (not start!)
-    const deltaY = lastTouchY - touch.clientY; // Up = positive
-    const deltaX = touch.clientX - lastTouchX; // Right = positive
-    
-    // Update last position for next frame
+    const deltaY = lastTouchY - touch.clientY;
+    const deltaX = touch.clientX - lastTouchX;
+
     lastTouchY = touch.clientY;
     lastTouchX = touch.clientX;
-    
-    // Combine movements (both directions increase bar)
-    const combinedDelta = (deltaY * 0.7) + (Math.abs(deltaX) * 0.3);
-    
-    // Convert to percentage (more sensitive)
-    const barHeightPx = barRect.height;
-    const percentageChange = (combinedDelta / barHeightPx) * 100 * 2.5; // 2.5x sensitivity
-    
-    // Update bar height incrementally
+
+    const combinedDelta = deltaY * 0.7 + Math.abs(deltaX) * 0.3;
+    const percentageChange = (combinedDelta / barRect.height) * 100 * 2.5;
+
     setBarHeight(prev => {
       const newHeight = Math.max(0, Math.min(100, prev + percentageChange));
       setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
       return newHeight;
     });
-
-    // Visual feedback
-    const localX = touch.clientX - barRect.left;
-    const localY = touch.clientY - barRect.top;
-    
-    if (Math.random() < 0.15) {
-      createTapEffect(localX, localY);
-    }
-
-    if (Math.random() < 0.08) {
-      showMotivationalMessage(touch.clientX, touch.clientY);
-    }
   };
 
   const handleTouchEnd = () => {
-    // Reset
     document.body.classList.remove('staking-active');
-    
+
     setTapping(false);
-    isBarFillingMode = false;
-    touchIntentRef.current = "idle";
+    isBarFillingModeRef.current = false;
     barRect = null;
 
-    // Start decay
-    if (!barLockedRef.current && barHeight > 0) {
-      setTimeout(() => {
-        if (!barLockedRef.current) {
-          startBarDecay();
-        }
-      }, 500);
+    if (!barLockedRef.current) {
+      setTimeout(startBarDecay, 400);
     }
   };
 
   el.addEventListener("touchstart", handleTouchStart, { passive: false });
   el.addEventListener("touchmove", handleTouchMove, { passive: false });
-  el.addEventListener("touchend", handleTouchEnd, { passive: true });
-  el.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+  el.addEventListener("touchend", handleTouchEnd);
+  el.addEventListener("touchcancel", handleTouchEnd);
 
   return () => {
     document.body.classList.remove('staking-active');
-    
+
     el.removeEventListener("touchstart", handleTouchStart);
     el.removeEventListener("touchmove", handleTouchMove);
     el.removeEventListener("touchend", handleTouchEnd);
     el.removeEventListener("touchcancel", handleTouchEnd);
   };
-}, [canParticipate, isFighter, barHeight, MAX_AMOUNT]);
+}, [canParticipate, isFighter, MAX_AMOUNT]);
+
 
   const fetchTotalSupport = async () => {
     try {
