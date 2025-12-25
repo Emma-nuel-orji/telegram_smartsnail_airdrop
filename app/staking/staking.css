@@ -1,0 +1,665 @@
+.fight-card {
+  background-color: #fff;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.fight-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.fight-header {
+  padding: 16px;
+  background-color: #f3ecf4;
+  color: white;
+  text-align: center;
+}
+
+.fight-header h2 {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fight-date {
+  font-size: 1.1rem;
+  color: #777;
+  font-style: italic;
+}
+
+.inactive-fight {
+  opacity: 0.7;
+  background-color: #9b5593
+}
+
+.inactive-fight:hover {
+  transform: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.vs-text {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: #ff6b6b;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3);
+}
+
+
+.fighters-container {
+  display: flex;
+  /* justify-content: space-between; */
+  /* width: 90%; */
+  margin-top: 20px;
+  gap: 5px;
+  align-items: center;
+}
+.vs-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 10px;
+}
+
+.fighter-staking {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 5%;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background-color: #fff;
+}
+
+
+.fighter-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.fighter-image {
+  width: 150px;
+  height: 150px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fighter-portrait {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.fighter-placeholder {
+  font-size: 64px;
+  color: #ccc;
+}
+
+.fighter-name {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 8px 0;
+  text-align: center;
+}
+
+.social-button {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 5px;
+  text-decoration: none;
+}
+
+/* .staking-controls {
+  width: 100%;
+  margin-top: 20px;
+} */
+
+.staking-controls {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  /* align-items: center; */
+  gap: 20px;
+}
+
+.stake-type-selector {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 4px;
+  border-radius: 7px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  
+  width: calc(100% + 40px); /* Expand beyond parent width */
+  max-width: 500px; /* Adjust as needed */
+  margin-left: -20px; /* Move it outside the parent */
+  margin-right: -20px;
+  text-align: center;
+}
+
+
+.stake-type-selector::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 70%;
+  background: linear-gradient(
+    to bottom, 
+    transparent, 
+    rgba(138, 79, 255, 0.3), 
+    transparent
+  );}
+
+/* .stake-type-button {
+  padding: 3px 6px;
+  border: none;
+  border-radius: 5px;
+  background-color: #800080; 
+  color: #fff; 
+  cursor: pointer;
+  transition: background-color 0.3s ease; 
+} */
+
+.stake-type-button {
+  position: relative;
+  padding: 3px 3px;
+  font-weight: bold;
+  font-size:small;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1;
+  overflow: hidden;
+  background-color: rgba(138, 79, 255, 0.2);
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.stake-type-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.1), 
+    transparent
+  );
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+
+.stake-type-button:hover {
+  background-color: #6a0dad; 
+}
+
+/* .stake-type-button.active {
+  background-color: #4b0082;
+} */
+
+
+.stake-type-button.active {
+  background-color: rgba(138, 79, 255, 0.5);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  transform: translateY(2px);
+}
+
+.stake-type-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.stake-type-button.btn-pulse {
+  animation: pulse 0.5s ease-in-out;
+}
+
+
+.staking-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.icon:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .stake-info {
+    padding: 12px;
+  }
+  .text {
+    font-size: 12px;
+  }
+}
+
+/* .tapping-bar-container {
+  width: 100%;
+  padding: 16px 0;
+  cursor: pointer;
+  position: relative; */
+
+
+.tapping-bar-container {
+  width: 20px;
+  height: 200px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.tapping-bar-container.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tapping-bar-container.locked .tapping-bar-fill {
+  background: linear-gradient(90deg, #28a745, #5cb85c);
+}
+
+/* .tapping-bar-track {
+  height: 24px;
+  background-color: #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative; */
+
+
+.tapping-bar-track {
+  width: 100%;
+  height: 100%;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+
+/* .tapping-bar-fill {
+  width: 100%;
+  background-color: #800080; /* Purple color */
+  /* transition: height 0.1s; */
+
+
+.tapping-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0088cc, #00c3ff);
+  border-radius: 12px;
+  transition: width 0.1s ease-out;
+  position: relative;
+}
+
+/* .tapping-bar-pulse {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(128, 0, 128, 0.5); /* Semi-transparent purple */
+  /* animation: pulse 1s infinite; */
+ 
+  .tapping-bar-pulse {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.6);
+    animation: pulse 1s infinite;
+  }
+
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { opacity: 1; }
+}
+
+.motivation-message {
+  margin-top: 10px;
+  text-align: center;
+  color: #800080; /* Purple color */
+}
+
+.stake-amount {
+  margin-bottom: 10px;
+  font-size: 1.2em;
+  color: #800080; /* Purple color */
+}
+
+.insufficient-balance, .no-fight-message {
+  color: #ff0000;
+  text-align: center;
+}
+
+.staking-container {
+  background-image: url('/images/tyson.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.stake-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #800080; /* Purple color */
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.stake-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.stake-info {
+  text-align: center;
+  margin-top: 10px;
+  color: #666;
+}
+
+.error-container {
+  text-align: center;
+  color: #ff0000;
+  margin-top: 20px;
+}
+
+.back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  cursor: pointer;
+}
+
+.staking-title {
+  font-size: 2.5rem;
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  background: linear-gradient(90deg, #ff7e5f, #feb47b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+
+.staking-title::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(138, 79, 255, 0.2), transparent);
+  opacity: 0.7;
+  z-index: -1;
+}
+
+.staking-title::after {
+  content: 'SUPPORT YOUR FIGHTER';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(138, 79, 255, 0.3);
+  z-index: -2;
+}
+
+
+/* .points-balance {
+  display: inline-flex;
+  align-items: center;
+  background-color: #fff;
+  padding: 10px 20px;
+  border-radius: 25px;
+  text-align: center;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+} */
+
+.points-balance {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #4caf50;  /* Bright green for points */
+  font-weight:300;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+  text-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+
+.points-label {
+  font-size: 1.1rem;
+  color: #666;
+  margin-right: 10px;
+}
+
+.points-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+/* .points-balance {
+  text-align: center;
+  margin-bottom: 20px;
+} */
+
+/* .staking-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 4px;
+  /* font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; */
+
+.staking-container {
+      background-color: #1a1a2e;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+    }
+
+.stake-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #faf2fa;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.instruction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon {
+  font-size: 24px;
+  animation: bounce 1.5s infinite;
+}
+
+.text {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+
+/* new for slide */
+
+/* Slider styles */
+/* Slider styles */
+.fight-slider-container {
+  width: 100%;
+  position: relative;
+  margin: 20px 0;
+}
+
+.fight-slider {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  gap: 0;
+  padding-bottom: 20px;
+  cursor: grab;
+}
+
+.fight-slider:active {
+  cursor: grabbing;
+}
+
+.fight-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  min-width: 100%;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.slider-dots {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+  margin-top: 20px;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ccc;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.dot.active {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+/* Past fight styles */
+.fight-card.concluded {
+  opacity: 0.8;
+  border: 2px solid #6c757d;
+}
+
+.fighter-staking.loser {
+  opacity: 0.4;
+  filter: grayscale(100%);
+  position: relative;
+}
+
+.fighter-staking.winner {
+  position: relative;
+}
+
+.winner-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #28a745;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-weight: bold;
+  font-size: 12px;
+  z-index: 10;
+}
+
+.concluded-fight-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  z-index: 5;
+}
+
+/* Timer styles */
+.fight-timer {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ff6b6b;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.fight-timer.concluded {
+  color: #6c757d;
+}

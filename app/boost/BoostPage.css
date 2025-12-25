@@ -1,0 +1,286 @@
+.boost-page {
+  /* font-family: Inter, Arial, sans-serif; */
+  background-color: #2b2529;
+  padding: 20px;
+  color: #333;
+  max-width: 600px;
+  flex-direction: column;
+  margin: 0 auto;
+}
+
+h1 {
+  font-weight: bold;
+  font-size: 30px;
+  text-align: center;
+  color: #f8daf7;
+}
+
+h3 {
+  font-size: 15px;
+  text-align: center;
+  color: #c0bcc0;
+
+}
+
+.tests {
+  color: #ffffff;
+}
+
+.books-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.book-card {
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  position: relative;
+}
+
+.book-card h2 {
+  /* font-size: 18px; */
+  color: #333;
+}
+
+.book-card input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.book-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-icon {
+  /* font-size: 1.2rem; */
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.info-popup {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.summary-container {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #e4e3e3;
+  border-radius: 5px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.summary-container input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.payment-buttons {
+  display: flex;
+  margin-top: 20px;
+  gap: 10px;
+  justify-content: center;
+}
+
+.payment-buttons button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  background-color: #4b324a;
+  color: #c7bcc8;
+  cursor: pointer;
+}
+
+.payment-buttons button:hover {
+  background-color: #d45ed8;
+}
+
+.code-section {
+  margin-top: 30px;
+  padding: 15px;
+}
+
+button:disabled {
+  background-color: #ccc; /* Gray background */
+  color: #666; /* Darker text for better contrast */
+  cursor: not-allowed; /* Show "not allowed" cursor */
+  opacity: 0.7; /* Reduce opacity */
+}
+
+
+
+.or-divider {
+  position: relative;
+  text-align: center;
+  margin-top: 50px;
+  color: #e5dde4;
+}
+
+.counter-text {
+  font-size: 14px;
+  color: #666;
+  white-space: nowrap;
+  display: inline-block;
+  min-width: 100px; /* Prevents layout shift */
+  font-feature-settings: "tnum"; /* Monospace numbers */
+  transition: all 0.2s ease;
+}
+
+/* Animation classes */
+.counter-text.updating {
+  color: #4CAF50; /* Highlight color */
+  transform: scale(1.05);
+}
+
+.counter-text.error {
+  color: #F44336;
+  animation: shake 0.5s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+.or-divider:before, .or-divider:after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  border-top: 1px solid #9d9898;
+}
+
+.or-divider:before {
+  left: 0;
+}
+
+.or-divider:after {
+  right: 0;
+}
+
+/* .code-section h3 {
+  font-size: 16px;
+  color: #333;
+} */
+
+.code-section input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.loader {
+  display: block;
+  margin: auto;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fontss {
+  font-weight: bold;
+  padding-left: 8px;
+}
+
+.spann {
+  color: #f9f9f9;
+}
+
+.pp {
+  color: #757474;
+}
+
+input[type='number']::placeholder {
+  color: #ccc;
+  opacity: 1; /* Fully visible */
+  transition: opacity 0.3s ease-in-out; /* Fade-out effect */
+  font-size: 13px;
+}
+
+input[type='number']:not(:placeholder-shown)::placeholder {
+  opacity: 0; /* Fades out once typing begins */
+  
+}
+
+.ticket-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: white;
+}
+
+/* BoostPage.css */
+.spinner-gear {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid transparent;
+  border-top: 3px solid #ffffff; /* Spinning gear color */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ::placeholder {
+  color: red !important;
+  opacity: 1 !important;
+} */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.section-separator {
+  display: flex;
+  align-items: center;
+  margin: 50px 0 30px;
+  gap: 20px;
+}
+
+.separator-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+.separator-title {
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  white-space: nowrap;
+}

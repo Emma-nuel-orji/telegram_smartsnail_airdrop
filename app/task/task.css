@@ -1,0 +1,490 @@
+/* Container and basic layout */
+.task-container {
+  padding: 5px;
+}
+.task-header {
+  display: flex;
+  align-items: center; /* Center items vertically */
+}
+.task-header img {
+  margin-right: 10px; /* Space between the image and text */
+}
+
+/* Stylish header */
+.task-container h2 {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1c0f2c;
+  margin: 1rem 0;
+  /* padding: 1rem; */
+}
+
+.task-card.inactive {
+  opacity: 0.6; /* Make the task card look faded */
+  pointer-events: none; /* Disable interactions */
+}
+
+.inactive-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.task-buttons {
+  display: flex; /* Align buttons horizontally */
+  flex-direction: row; /* Ensure horizontal alignment */
+  border: 1px solid #ddd; /* Border around the container for a "box" effect */
+  padding: 10px;
+  border-radius: 8px; /* Slightly rounded corners for modern look */
+  background-color: #f4f0ff; /* Light purple background for the box */
+  box-shadow: inset 0 0 5px rgba(128, 0, 128, 0.1); /* Subtle purple impressed effect */
+  gap: 10px; /* Space between buttons */
+}
+
+/* Buttons styling */
+.task-buttons button {
+  flex: 1; /* Make buttons equal width */
+  padding: 12px 18px;
+  border: 1px solid #d6b3ff; /* Purple border */
+  border-radius: 5px; /* Rounded corners for the buttons */
+  background-color: white; /* Default button background */
+  font-size: 14px;
+  color: #5c3a91; /* Dark purple text color */
+  cursor: pointer;
+  transition: all 0.2s ease; /* Smooth transitions for hover and active effects */
+}
+
+/* Hover effect */
+.task-buttons button:hover {
+  background-color: #f0e6ff; /* Light purple hover background */
+  box-shadow: 0 0 8px rgba(128, 0, 128, 0.2); /* Slight purple elevation effect on hover */
+}
+
+/* Active button styling */
+.task-buttons button.active {
+  background-color: #7e57c2; /* Purple active background */
+  color: white; /* White text for active button */
+  border-color: #6a2c98; /* Darker purple border for active state */
+  box-shadow: 0 0 12px rgba(126, 87, 194, 0.5); /* Purple glow effect for active button */
+}
+
+/* Click effect */
+.task-buttons button:active {
+  transform: scale(0.95); /* Click effect: shrink slightly */
+}
+
+
+
+/* .task-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin: 2rem auto;
+  padding: 5px;
+  width: fit-content;
+}
+
+
+.task-buttons button {
+  padding: 12px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #666;
+  background: white;
+  border: 2px solid #8a2be2;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(89, 47, 147, 0.1);
+}
+
+
+.task-buttons button.active {
+  color: white;
+  border: none;
+  background: linear-gradient(45deg, #8a2be2, #9932cc);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(89, 47, 147, 0.2);
+}
+
+
+.task-buttons button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(89, 47, 147, 0.2);
+  color: #8a2be2;
+} */
+
+
+.tasks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+  padding: 2px;
+}
+
+/* Task card styling */
+/* .task-card {
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+} */
+
+
+.task-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+}
+
+.task-card.completed {
+  opacity: 0.7;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Task image styling */
+.task-image {
+  background-color: #dd9acd;
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+
+/* .task-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+} */
+
+/* Task information styling */
+.task-info {
+  background-color: rgb(219, 217, 217);
+  position: relative;
+}
+
+/* .task-description {
+  margin: 0 0 8px 0;
+  font-weight: 500;
+} */
+
+.task-description {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.task-reward {
+  color: #666;
+  margin: 0;
+}
+
+/* Completion badge */
+.completed-badge {
+  position: absolute;
+  top: -140px;
+  right: 10px;
+  background: #4CAF50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Checkmark overlay */
+/* .checkmark-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #4CAF50;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+} */
+
+.checkmark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+
+.checkmark {
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Task popup styling */
+.task-popup1 {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  z-index: 1000;
+  width: 300px;
+  text-align: center;
+}
+
+.task-popup1 input {
+  margin-top: 10px;
+  padding: 8px;
+  width: 80%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.task-popup1 button {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.task-popup1 button:hover {
+  background-color: #45a049;
+}
+
+/* Falling shells animation */
+.falling-shells-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.shell {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background-image: url('/public/images/shell.png');
+  background-size: cover;
+  animation: fall linear;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100vh - 50px)) rotate(360deg);
+    opacity: 0.9;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .task-buttons {
+    flex-direction: row; /* Stay horizontal on phones */
+    gap: 8px; /* Adjust spacing for smaller screens */
+    padding: 8px; /* Reduce padding slightly */
+  }
+
+  .task-buttons button {
+    font-size: 12px; /* Smaller font size for limited screen space */
+    padding: 10px 12px; /* Adjust padding for smaller buttons */
+  }
+}
+.task-image-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* background-color: rgb(212, 212, 212); */
+}
+
+/* Popup overlay */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(45, 24, 70, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Popup container */
+.task-popup {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(89, 47, 147, 0.2);
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+/* Close button */
+.popup-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #f0e6ff;
+  border: none;
+  color: #8a2be2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.popup-close:hover {
+  background: #8a2be2;
+  color: white;
+  transform: rotate(90deg);
+}
+
+/* Task description */
+.popup-description {
+  font-size: 1.2rem;
+  color: #2d1846;
+  margin: 16px 0 24px 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Input field */
+.popup-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0d0ff;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+}
+
+.popup-input:focus {
+  border-color: #8a2be2;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
+}
+
+.popup-input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* Action buttons */
+.popup-button {
+  width: 100%;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: linear-gradient(45deg, #8a2be2, #9932cc);
+  color: white;
+  margin: 8px 0;
+}
+
+.popup-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(138, 43, 226, 0.2);
+}
+
+.popup-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Success message */
+.popup-message {
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.popup-message.success {
+  background: #e6ffe6;
+  color: #00802b;
+}
+
+.popup-message.reward {
+  background: #fff0e6;
+  color: #cc5500;
+  font-size: 1.1rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
