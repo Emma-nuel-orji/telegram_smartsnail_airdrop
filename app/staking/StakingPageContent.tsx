@@ -291,132 +291,117 @@ function FighterStaking({ fighter, opponent, fight, userPoints, isActive, isConc
   };
 
   // Touch handlers
-
 useEffect(() => {
   const el = fighterRef.current;
-  if (!el) return;
+  const barElement = el?.querySelector('.tapping-bar-track');
+  
+  if (!el || !barElement) return;
 
   let isBarFillingMode = false;
   let startFingerY = 0;
   let startFingerX = 0;
   let startBarHeight = 0;
   let barRect: DOMRect | null = null;
-  let hasMovedSignificantly = false;
 
   const handleTouchStart = (e: TouchEvent) => {
     if (!canParticipate || isFighter) return;
     const t = e.touches[0];
     if (!t) return;
 
+    // ✅ Check if touch started on the BAR specifically
+    const barBounds = barElement.getBoundingClientRect();
+    const touchX = t.clientX;
+    const touchY = t.clientY;
+    
+    const touchedBar = (
+      touchX >= barBounds.left &&
+      touchX <= barBounds.right &&
+      touchY >= barBounds.top &&
+      touchY <= barBounds.bottom
+    );
+
+    // ✅ Only activate if touched the bar
+    if (!touchedBar) return;
+
     // Store initial values
-    touchStartXRef.current = t.clientX;
-    touchStartYRef.current = t.clientY;
     startFingerY = t.clientY;
     startFingerX = t.clientX;
     startBarHeight = barHeight;
-    touchIntentRef.current = "detecting";
-    isBarFillingMode = false;
-    hasMovedSignificantly = false;
+    barRect = el.getBoundingClientRect(); // Use full card for dragging area
 
-    // Get bar dimensions
-    barRect = el.getBoundingClientRect();
+    // ✅ Activate IMMEDIATELY
+    isBarFillingMode = true;
+    touchIntentRef.current = "stake";
     
+    // Visual feedback
     setTapping(true);
     stopBarDecay();
+    
+    // Lock scroll
+    document.body.classList.add('staking-active');
+    
+    // Haptic
+    try {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+      }
+    } catch (error) {
+      console.log('Haptic not available');
+    }
   };
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (!canParticipate || isFighter || !barRect) return;
+    // ✅ Only process if bar mode active
+    if (!isBarFillingMode || !barRect) return;
+
     const touch = e.touches[0];
     if (!touch) return;
 
-    const dx = touch.clientX - touchStartXRef.current;
-    const dy = touch.clientY - touchStartYRef.current;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    // ✅ ALWAYS preventDefault to block scroll
+    // Prevent scroll
     e.preventDefault();
     e.stopPropagation();
 
-    // Detect intent on first significant movement
-    if (touchIntentRef.current === "detecting" && !hasMovedSignificantly) {
-      
-      // Not enough movement yet
-      if (absDx < 5 && absDy < 5) {
-        return;
-      }
-
-      hasMovedSignificantly = true;
-
-      // User is scrolling DOWN strongly - exit early
-      if (dy > 15 && absDy > absDx * 2) {
-        touchIntentRef.current = "scroll";
-        setTapping(false);
-        handleTouchEnd(); // Clean up
-        return;
-      }
-
-      // User is dragging UP or SIDEWAYS - enter bar mode
-      touchIntentRef.current = "stake";
-      isBarFillingMode = true;
-      
-      // Lock body scroll
-      document.body.classList.add('staking-active');
-      
-      // Haptic feedback
-      try {
-        if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
-          window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-        }
-      } catch (error) {
-        console.log('Haptic not available');
-      }
-    }
-
-    // If scroll intent detected, do nothing
-    if (touchIntentRef.current === "scroll") {
-      return;
-    }
-
-    // IN BAR MODE - fill bar
-    if (!isBarFillingMode) return;
-
-    const pixelsMovedY = startFingerY - touch.clientY;
-    const pixelsMovedX = touch.clientX - startFingerX;
+    // ✅ Calculate combined movement (vertical + horizontal)
+    const pixelsMovedY = startFingerY - touch.clientY; // Up = positive
+    const pixelsMovedX = touch.clientX - startFingerX; // Right = positive
+    
+    // Combine movements (both directions increase bar)
+    // Vertical 70%, Horizontal 30%
     const combinedMovement = (pixelsMovedY * 0.7) + (pixelsMovedX * 0.3);
     
     const barHeightPx = barRect.height;
     const percentageChange = (combinedMovement / barHeightPx) * 100;
     
+    // Calculate new height
     let newHeight = startBarHeight + percentageChange;
     newHeight = Math.max(0, Math.min(100, newHeight));
 
     setBarHeight(newHeight);
     setStakeAmount(Math.floor((newHeight / 100) * MAX_AMOUNT));
 
+    // Visual feedback
     const localX = touch.clientX - barRect.left;
     const localY = touch.clientY - barRect.top;
     
-    if (Math.random() < 0.12) {
+    if (Math.random() < 0.15) {
       createTapEffect(localX, localY);
     }
 
-    if (Math.random() < 0.06) {
+    if (Math.random() < 0.08) {
       showMotivationalMessage(touch.clientX, touch.clientY);
     }
   };
 
   const handleTouchEnd = () => {
-    // Unlock body scroll
+    // Reset
     document.body.classList.remove('staking-active');
-
+    
     setTapping(false);
     isBarFillingMode = false;
     touchIntentRef.current = "idle";
     barRect = null;
-    hasMovedSignificantly = false;
 
+    // Start decay
     if (!barLockedRef.current && barHeight > 0) {
       setTimeout(() => {
         if (!barLockedRef.current) {
