@@ -108,19 +108,36 @@ const isExpiredByTime =
   fighter2: fight?.fighter2?.id,
 });
 
-  useEffect(() => {
-    if (!fight) return;
-    const interval = setInterval(() => {
-      const remaining = getTimeRemaining(fight.fightDate);
-      if (remaining.total <= 0) {
-        clearInterval(interval);
-        setTimer("Fight Concluded");
+ useEffect(() => {
+  if (!fight) return;
+
+  const interval = setInterval(() => {
+    const remaining = getTimeRemaining(fight.fightDate);
+
+    if (remaining.total <= 0) {
+      clearInterval(interval);
+
+      if (fight.status === "DRAW") {
+        setTimer("Fight ended in a draw");
+      } else if (fight.status === "CANCELLED") {
+        setTimer("Fight cancelled");
+      } else if (fight.status === "EXPIRED") {
+        setTimer("Awaiting results");
+      } else if (fight.status === "COMPLETED") {
+        setTimer("Fight completed");
       } else {
-        setTimer(`${remaining.days}d ${remaining.hours}h ${remaining.minutes}m ${remaining.seconds}s`);
+        setTimer("Fight concluded");
       }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [fight]);
+    } else {
+      setTimer(
+        `${remaining.days}d ${remaining.hours}h ${remaining.minutes}m ${remaining.seconds}s`
+      );
+    }
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [fight]);
+
   
   return (
     <div className={`fight-card ${isConcluded ? 'concluded' : ''} ${!isActive && !isConcluded ? 'inactive-fight' : ''}`}>
