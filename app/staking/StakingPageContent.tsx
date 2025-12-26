@@ -89,9 +89,24 @@ const isExpiredByTime =
 
   const isDraw = fight?.status === "DRAW";
 
-  const winner = isConcluded && fight?.winnerId 
-    ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
+  const winner =
+  isConcluded
+    ? fight?.winner ??
+      (fight?.winnerId
+        ? fight.fighter1?.id === fight.winnerId
+          ? fight.fighter1
+          : fight.fighter2
+        : null)
     : null;
+
+    console.log("WINNER DEBUG", {
+  fightId: fight?.id,
+  status: fight?.status,
+  winnerId: fight?.winnerId,
+  winner: fight?.winner,
+  fighter1: fight?.fighter1?.id,
+  fighter2: fight?.fighter2?.id,
+});
 
   useEffect(() => {
     if (!fight) return;
