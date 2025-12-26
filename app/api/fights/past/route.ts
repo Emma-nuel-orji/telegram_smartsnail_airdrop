@@ -30,30 +30,33 @@ export async function GET() {
       id: fight.id.toString(),
       title: fight.title,
       fightDate: fight.fightDate.toISOString(),
-      status:
-        fight.status === "SCHEDULED" && fight.fightDate < now
-          ? "EXPIRED"
-          : fight.status,
+      status: fight.status,
       winnerId: fight.winnerId?.toString() || undefined,
       winner: fight.winner
         ? {
-            id: fight.winner.id,
+            id: fight.winner.id.toString(),
             name: fight.winner.name,
             imageUrl: fight.winner.imageUrl || null,
+            telegramId: fight.winner.telegramId || null,
+            socialMedia: fight.winner.socialMedia || null,
           }
         : null,
       fighter1: fight.fighter1
         ? {
-            id: fight.fighter1.id,
+            id: fight.fighter1.id.toString(),
             name: fight.fighter1.name,
             imageUrl: fight.fighter1.imageUrl || null,
+            telegramId: fight.fighter1.telegramId || null,
+            socialMedia: fight.fighter1.socialMedia || null,
           }
         : null,
       fighter2: fight.fighter2
         ? {
-            id: fight.fighter2.id,
+            id: fight.fighter2.id.toString(),
             name: fight.fighter2.name,
             imageUrl: fight.fighter2.imageUrl || null,
+            telegramId: fight.fighter2.telegramId || null,
+            socialMedia: fight.fighter2.socialMedia || null,
           }
         : null,
     }));
