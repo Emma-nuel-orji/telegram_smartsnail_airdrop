@@ -14,17 +14,20 @@ export async function GET() {
     const now = new Date();
 
     const pastFights = await prisma.fight.findMany({
-      where: {
-        fightDate: { lt: now },
-        status: { in: ["COMPLETED", "CANCELLED", "DRAW", "EXPIRED"] },
-      },
-      orderBy: { fightDate: "desc" },
-      include: {
-        fighter1: true,
-        fighter2: true,
-        winner: true,
-      },
-    });
+  where: {
+    fightDate: { lt: now },
+    OR: [
+      { status: { in: ["COMPLETED", "CANCELLED", "DRAW", "EXPIRED"] } },
+      { status: "SCHEDULED" }, // ⬅️ THIS IS THE KEY
+    ],
+  },
+  orderBy: { fightDate: "desc" },
+  include: {
+    fighter1: true,
+    fighter2: true,
+    winner: true,
+  },
+});
 
     const transformedFights = pastFights.map((fight) => ({
       id: fight.id.toString(),
