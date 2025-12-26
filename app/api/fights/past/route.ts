@@ -21,6 +21,7 @@ export async function GET() {
       { status: "SCHEDULED" }, // ⬅️ THIS IS THE KEY
     ],
   },
+  
   orderBy: { fightDate: "desc" },
   include: {
     fighter1: true,
