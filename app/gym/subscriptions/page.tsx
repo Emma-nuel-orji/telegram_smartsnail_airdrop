@@ -18,8 +18,11 @@ export default function GymSubscriptionsPage() {
   return (
     <div className="space-y-8">
       <Suspense fallback={<Loader />}>
-        <SageCombat />
         <GymSubscriptions />
+      </Suspense>
+
+      <Suspense fallback={<Loader />}>
+        <SageCombat />
       </Suspense>
     </div>
   );

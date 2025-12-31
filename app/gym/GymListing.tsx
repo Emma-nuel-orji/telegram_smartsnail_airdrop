@@ -106,7 +106,7 @@ export default function GymListing() {
   const handleGymClick = (gym: Gym) => {
     if (gym.type === 'COMBAT_SPORTS') {
       // Navigate to combat sports training page
-      window.location.href = `/gym/combat-training?gymId=${gym.id}&gymName=${encodeURIComponent(gym.name)}`;
+      window.location.href = `/gym/sagecombat?gymId=${gym.id}&gymName=${encodeURIComponent(gym.name)}`;
     } else {
       // Navigate to regular gym subscriptions
       window.location.href = `/gym/subscriptions?gymId=${gym.id}&gymName=${encodeURIComponent(gym.name)}`;
