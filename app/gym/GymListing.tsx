@@ -1,9 +1,7 @@
-// app/gym/GymListing.tsx
 "use client";
 
-import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { Dumbbell, MapPin, Star, Users, Clock, ChevronRight } from "lucide-react";
+import { Dumbbell, MapPin, Star, Users, Clock, ChevronRight, Flame, Target } from "lucide-react";
 
 const GYM_BACKGROUND = "/images/gymfit2.jpg";
 
@@ -18,9 +16,9 @@ interface Gym {
   amenities: string[];
   image: string;
   description: string;
+  type: 'GYM' | 'COMBAT_SPORTS'; // Distinguish gym types
 }
 
-// Mock data for partner gyms - replace with actual API call
 const PARTNER_GYMS: Gym[] = [
   {
     id: 1,
@@ -32,7 +30,8 @@ const PARTNER_GYMS: Gym[] = [
     closeTime: "8:00 PM",
     amenities: ["Free Weights", "Cardio Equipment", "Group Classes", "Pool", "Sauna"],
     image: "/images/gyms/gymfit.jpg",
-    description: "Premium fitness facility with state-of-the-art equipment and expert trainers."
+    description: "Premium fitness facility with state-of-the-art equipment and expert trainers.",
+    type: 'GYM'
   },
   {
     id: 2,
@@ -40,11 +39,12 @@ const PARTNER_GYMS: Gym[] = [
     location: "Lilburn Gym",
     rating: 7.6,
     members: 20,
-    openTime: "8am",
-    closeTime: "10am",
-    amenities: ["Boxing Fundamentals", "Self-defense Techniques", "Combat conditioning", "Private sessions for serious athletes"],
+    openTime: "8:00 AM",
+    closeTime: "10:00 PM",
+    amenities: ["Boxing Fundamentals", "Self-defense Techniques", "Combat conditioning", "Private sessions"],
     image: "/images/gyms/powerhouse-gym.jpg",
-    description: "Urban warrior meets mental discipline."
+    description: "Urban warrior meets mental discipline. Professional boxing and combat sports training for all ages.",
+    type: 'COMBAT_SPORTS'
   },
   {
     id: 3,
@@ -56,7 +56,8 @@ const PARTNER_GYMS: Gym[] = [
     closeTime: "10:00 PM",
     amenities: ["Yoga Studio", "Pilates", "Spin Classes", "Nutrition Counseling"],
     image: "/images/gyms/elite-fitness.jpg",
-    description: "Boutique fitness studio focusing on holistic wellness and personalized training."
+    description: "Boutique fitness studio focusing on holistic wellness and personalized training.",
+    type: 'GYM'
   },
   {
     id: 4,
@@ -68,7 +69,8 @@ const PARTNER_GYMS: Gym[] = [
     closeTime: "11:30 PM",
     amenities: ["Olympic Lifting", "Powerlifting", "MMA Training", "Recovery Center"],
     image: "/images/gyms/iron-temple.jpg",
-    description: "Hardcore training facility for serious athletes and fitness enthusiasts."
+    description: "Hardcore training facility for serious athletes and fitness enthusiasts.",
+    type: 'GYM'
   }
 ];
 
@@ -96,16 +98,21 @@ export default function GymListing() {
 
     setTelegramId(userId);
     
-    // Simulate loading time for better UX
     setTimeout(() => {
       setLoading(false);
     }, 1000);
-
-    // TODO: Replace with actual API call to fetch partner gyms
-    // fetchPartnerGyms();
   }, []);
 
-  // Error state
+  const handleGymClick = (gym: Gym) => {
+    if (gym.type === 'COMBAT_SPORTS') {
+      // Navigate to combat sports training page
+      window.location.href = `/gym/combat-training?gymId=${gym.id}&gymName=${encodeURIComponent(gym.name)}`;
+    } else {
+      // Navigate to regular gym subscriptions
+      window.location.href = `/gym/subscriptions?gymId=${gym.id}&gymName=${encodeURIComponent(gym.name)}`;
+    }
+  };
+
   if (error) {
     return (
       <div className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
@@ -129,19 +136,9 @@ export default function GymListing() {
     );
   }
 
-  // Loading state
   if (loading) {
     return (
       <div className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
-        <Link href="/" className="absolute top-6 left-6 z-20">
-          <img
-            src="/images/info/left-arrow.png" 
-            width={40}
-            height={40}
-            alt="back"
-            className="back-button"
-          />
-        </Link>
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
           style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
@@ -156,14 +153,12 @@ export default function GymListing() {
 
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden">
-      {/* Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
       />
       <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-black/80" />
       
-      {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(15)].map((_, i) => (
           <div
@@ -180,16 +175,18 @@ export default function GymListing() {
       </div>
 
       <div className="relative z-10 container mx-auto px-6 py-8">
-        {/* Header */}
         <div className="text-center mb-12 pt-12">
-          <Link href="/" className="absolute top-6 left-6">
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="absolute top-6 left-6"
+          >
             <img
               src="/images/info/output-onlinepngtools (6).png"
               width={24}
               height={24}
               alt="back"
             />
-          </Link>
+          </button>
           
           <div className="flex items-center justify-center mb-6">
             <Dumbbell className="w-12 h-12 text-yellow-400 mr-4" />
@@ -203,31 +200,55 @@ export default function GymListing() {
           </p>
         </div>
 
-        {/* Gym Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {gyms.map((gym) => (
-            <Link 
-              key={gym.id} 
-              href={`/gym/subscriptions?gymId=${gym.id}&gymName=${encodeURIComponent(gym.name)}`}
-              className="group"
+            <button
+              key={gym.id}
+              onClick={() => handleGymClick(gym)}
+              className="group text-left w-full"
             >
-              <div className="relative bg-gradient-to-br from-gray-900/80 to-black/80 backdrop-blur-sm border border-gray-700/50 rounded-3xl p-6 transition-all duration-300 transform hover:scale-105 hover:border-yellow-400/50 overflow-hidden">
-                {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl" />
+              <div className={`relative backdrop-blur-sm border rounded-3xl p-6 transition-all duration-300 transform hover:scale-105 overflow-hidden ${
+                gym.type === 'COMBAT_SPORTS'
+                  ? 'bg-gradient-to-br from-red-900/80 to-orange-900/80 border-red-500/50 hover:border-red-400/80'
+                  : 'bg-gradient-to-br from-gray-900/80 to-black/80 border-gray-700/50 hover:border-yellow-400/50'
+              }`}>
+                {/* Combat Sports Badge */}
+                {gym.type === 'COMBAT_SPORTS' && (
+                  <div className="absolute top-4 right-4 z-20">
+                    <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                      <Flame className="w-3 h-3" />
+                      COMBAT SPORTS
+                    </div>
+                  </div>
+                )}
+
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl ${
+                  gym.type === 'COMBAT_SPORTS'
+                    ? 'bg-gradient-to-r from-red-400/10 to-orange-500/10'
+                    : 'bg-gradient-to-r from-yellow-400/10 to-red-500/10'
+                }`} />
                 
                 <div className="relative z-10">
-                  {/* Gym Image Placeholder */}
-                  <div className="w-full h-48 bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl mb-6 flex items-center justify-center overflow-hidden">
-                    <Dumbbell className="w-16 h-16 text-gray-500" />
-                    {/* Replace with actual image when available */}
-                    {/* <img src={gym.image} alt={gym.name} className="w-full h-full object-cover" /> */}
+                  <div className={`w-full h-48 rounded-2xl mb-6 flex items-center justify-center overflow-hidden ${
+                    gym.type === 'COMBAT_SPORTS'
+                      ? 'bg-gradient-to-br from-red-800 to-orange-800'
+                      : 'bg-gradient-to-br from-gray-700 to-gray-800'
+                  }`}>
+                    {gym.type === 'COMBAT_SPORTS' ? (
+                      <Target className="w-16 h-16 text-red-300" />
+                    ) : (
+                      <Dumbbell className="w-16 h-16 text-gray-500" />
+                    )}
                   </div>
 
-                  {/* Gym Info */}
                   <div className="space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="text-2xl font-bold text-white group-hover:text-yellow-400 transition-colors">
+                        <h3 className={`text-2xl font-bold transition-colors ${
+                          gym.type === 'COMBAT_SPORTS'
+                            ? 'text-white group-hover:text-red-400'
+                            : 'text-white group-hover:text-yellow-400'
+                        }`}>
                           {gym.name}
                         </h3>
                         <div className="flex items-center text-gray-400 mt-1">
@@ -235,13 +256,16 @@ export default function GymListing() {
                           <span className="text-sm">{gym.location}</span>
                         </div>
                       </div>
-                      <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-yellow-400 transition-colors" />
+                      <ChevronRight className={`w-6 h-6 text-gray-400 transition-colors ${
+                        gym.type === 'COMBAT_SPORTS'
+                          ? 'group-hover:text-red-400'
+                          : 'group-hover:text-yellow-400'
+                      }`} />
                     </div>
 
-                    {/* Rating and Members */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <Star className="w-5 h-5 text-yellow-400 mr-1" />
+                        <Star className={gym.type === 'COMBAT_SPORTS' ? 'w-5 h-5 text-red-400 mr-1' : 'w-5 h-5 text-yellow-400 mr-1'} />
                         <span className="text-white font-semibold">{gym.rating}</span>
                         <span className="text-gray-400 text-sm ml-1">rating</span>
                       </div>
@@ -251,7 +275,6 @@ export default function GymListing() {
                       </div>
                     </div>
 
-                    {/* Hours */}
                     <div className="flex items-center text-gray-400">
                       <Clock className="w-4 h-4 mr-2" />
                       <span className="text-sm">
@@ -259,17 +282,19 @@ export default function GymListing() {
                       </span>
                     </div>
 
-                    {/* Description */}
                     <p className="text-gray-300 text-sm leading-relaxed">
                       {gym.description}
                     </p>
 
-                    {/* Amenities */}
                     <div className="flex flex-wrap gap-2 pt-2">
                       {gym.amenities.slice(0, 3).map((amenity, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 border border-yellow-400/30 rounded-full text-xs text-yellow-300"
+                          className={`px-3 py-1 border rounded-full text-xs ${
+                            gym.type === 'COMBAT_SPORTS'
+                              ? 'bg-gradient-to-r from-red-600/20 to-orange-400/20 border-red-400/30 text-red-300'
+                              : 'bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 border-yellow-400/30 text-yellow-300'
+                          }`}
                         >
                           {amenity}
                         </span>
@@ -281,20 +306,22 @@ export default function GymListing() {
                       )}
                     </div>
 
-                    {/* CTA */}
                     <div className="pt-4">
-                      <div className="w-full bg-gradient-to-r from-yellow-600 to-red-600 text-white py-3 px-6 rounded-xl font-bold text-center group-hover:from-yellow-500 group-hover:to-red-500 transition-all duration-300">
-                        View Memberships
+                      <div className={`w-full text-white py-3 px-6 rounded-xl font-bold text-center transition-all duration-300 ${
+                        gym.type === 'COMBAT_SPORTS'
+                          ? 'bg-gradient-to-r from-red-600 to-orange-600 group-hover:from-red-500 group-hover:to-orange-500'
+                          : 'bg-gradient-to-r from-yellow-600 to-red-600 group-hover:from-yellow-500 group-hover:to-red-500'
+                      }`}>
+                        {gym.type === 'COMBAT_SPORTS' ? 'View Training Programs' : 'View Memberships'}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </Link>
+            </button>
           ))}
         </div>
 
-        {/* Footer Info */}
         <div className="text-center mt-16">
           <div className="inline-flex items-center bg-gradient-to-r from-gray-800/50 to-gray-700/50 backdrop-blur-sm border border-gray-600/50 rounded-2xl px-6 py-4">
             <Dumbbell className="w-6 h-6 text-yellow-400 mr-3" />
