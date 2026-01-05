@@ -12,7 +12,7 @@ const MOTIVATIONAL_MESSAGES = [
   "Show your support!", "Back your champion!", "Great choice!", "Let's go!"
 ];
 
-export default function StakingArena({ fights, userPoints, telegramId }: any) {
+export default function StakingPageContent({ fights, userPoints, telegramId }: any) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
 
