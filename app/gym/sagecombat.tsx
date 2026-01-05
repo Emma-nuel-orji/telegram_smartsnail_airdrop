@@ -1,138 +1,200 @@
-"use client";
-import { useState } from "react";
-import { CheckCircle, Flame, User, Calendar } from "lucide-react";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
+
+/* ---------------- TYPES ---------------- */
+
+type TrainingPlan = {
+  title: string;
+  frequency: string;
+  duration: string;
+  totalSessions: number;
+  price: number;
+};
+
+/* ---------------- MOCK DATA (replace with API later) ---------------- */
+
+// Example: someone already paid
+const USER_PLAN = {
+  totalSessions: 48,
+  usedSessions: 8,
+  nextSessionAt: new Date(Date.now() + 1000 * 60 * 60 * 26), // 26 hours from now
+};
+
+// If user has NOT paid, show plans
+const PLANS: TrainingPlan[] = [
+  {
+    title: 'Group Classes',
+    frequency: 'Mon • Wed • Fri (8–10am)',
+    duration: '6 Months',
+    totalSessions: 72,
+    price: 100000,
+  },
+  {
+    title: '1 on 1 Coaching',
+    frequency: 'Custom Schedule',
+    duration: '6 Months',
+    totalSessions: 48,
+    price: 200000,
+  },
+  {
+    title: 'Custom Plan',
+    frequency: 'Personalized Deal',
+    duration: 'Flexible',
+    totalSessions: 48,
+    price: 100000,
+  },
+];
+
+/* ---------------- HELPERS ---------------- */
+
+const getTimeRemaining = (date: Date) => {
+  const diff = +date - +new Date();
+  if (diff <= 0) return null;
+
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  };
+};
+
+/* ---------------- COMPONENT ---------------- */
 
 export default function sagecombat() {
-  const [showPayment, setShowPayment] = useState(false);
+  const [timer, setTimer] = useState<string>('Calculating...');
+  const { usedSessions, totalSessions, nextSessionAt } = USER_PLAN;
+  const remainingSessions = totalSessions - usedSessions;
+
+  /* Countdown logic */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const remaining = getTimeRemaining(nextSessionAt);
+      if (!remaining) {
+        setTimer('Session ongoing or completed');
+        clearInterval(interval);
+      } else {
+        setTimer(
+          `${remaining.days}d ${remaining.hours}h ${remaining.minutes}m ${remaining.seconds}s`
+        );
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const hasActivePlan = totalSessions > 0;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6 space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Combat Sports Training</h1>
-        <p className="text-gray-400">Structured boxing programs inside Telegram</p>
-      </div>
+    <div className="min-h-screen bg-black text-white px-4 py-6 space-y-6">
 
-      {/* Age Groups */}
-      <div className="flex justify-center gap-3 flex-wrap">
-        {['Adults (18+)', 'Youths (13–17)', 'Children (5–12)'].map(tab => (
-          <button
-            key={tab}
-            className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 transition"
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      {/* HEADER */}
+      <h1 className="text-2xl font-black uppercase tracking-tight">
+        Boxing Classes
+      </h1>
 
-      {/* Training Type */}
-      <div className="flex justify-center gap-4">
-        <button className="px-6 py-3 rounded-2xl bg-blue-600 font-semibold">Group</button>
-        <button className="px-6 py-3 rounded-2xl bg-gray-800 hover:bg-gray-700">1‑on‑1</button>
-      </div>
-
-      {/* Training Intensity */}
-      <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-          <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
-            <CheckCircle className="text-green-400" /> Regular Training
-          </h2>
-          <p className="text-gray-400 mb-4">
-            Boxing routines, pads, bags, footwork and controlled conditioning.
+      {/* COUNTDOWN */}
+      {hasActivePlan && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center">
+          <p className="text-xs uppercase text-zinc-500 font-bold mb-2">
+            Next Session Starts In
           </p>
-          <ul className="text-sm text-gray-300 space-y-1">
-            <li>• Technical foundation</li>
-            <li>• Moderate cardio</li>
-            <li>• Skill-focused</li>
-          </ul>
-        </div>
-
-        <div className="bg-gradient-to-br from-red-600/20 to-orange-600/10 rounded-2xl p-6 border border-red-600/30">
-          <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
-            <Flame className="text-red-400" /> Intensive Training
-          </h2>
-          <p className="text-gray-300 mb-4">
-            HIIT, roadwork, advanced cardio, weight loss and mental conditioning.
+          <p className="text-3xl font-black text-yellow-400 tabular-nums">
+            {timer}
           </p>
-          <ul className="text-sm text-gray-200 space-y-1">
-            <li>• Fat‑burn & stamina</li>
-            <li>• High‑intensity drills</li>
-            <li>• Athlete‑level training</li>
-          </ul>
         </div>
-      </div>
+      )}
 
-      {/* Plans */}
-      <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {[{
-          title: 'Walk‑In',
-          price: '25,000 Shells / 135 Stars',
-          sessions: '1 session'
-        }, {
-          title: '3 Months',
-          price: '250,000 Shells / 1,350 Stars',
-          sessions: '36 sessions'
-        }, {
-          title: '6 Months',
-          price: '500,000 Shells / 13,500 Stars',
-          sessions: '72 sessions'
-        }].map(plan => (
-          <div key={plan.title} className="bg-gray-900 rounded-2xl p-6 text-center border border-gray-800">
-            <h3 className="text-xl font-bold mb-2">{plan.title}</h3>
-            <p className="text-2xl font-extrabold mb-1">{plan.price}</p>
-            <p className="text-gray-400 mb-4">{plan.sessions}</p>
-            <button
-              onClick={() => setShowPayment(true)}
-              className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 font-semibold"
-            >
-              Enroll
-            </button>
+      {/* SESSION TRACKER */}
+      {hasActivePlan && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+          <div className="flex justify-between items-end mb-4">
+            <h3 className="text-zinc-400 uppercase text-xs font-bold tracking-widest">
+              Training Progress
+            </h3>
+            <span className="text-2xl font-black">
+              {usedSessions}
+              <span className="text-zinc-600 text-sm">/{totalSessions}</span>
+            </span>
           </div>
-        ))}
-      </div>
 
-      {/* Attendance Section */}
-      <div className="max-w-4xl mx-auto bg-gray-900 rounded-2xl p-6 border border-gray-800">
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <Calendar className="text-yellow-400" /> My Attendance
-        </h2>
-        <div className="grid grid-cols-6 gap-2">
-          {[...Array(18)].map((_, i) => (
-            <div
-              key={i}
-              className="h-10 rounded-lg flex items-center justify-center bg-green-600/80 text-xs font-bold"
-            >
-              ✓
-            </div>
-          ))}
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="h-10 rounded-lg flex items-center justify-center bg-gray-700 text-xs"
-            >
-              —
-            </div>
-          ))}
-        </div>
-        <p className="text-sm text-gray-400 mt-4">18 of 24 sessions completed</p>
-      </div>
-
-      {/* Payment Modal */}
-      {showPayment && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-sm border border-gray-700">
-            <h3 className="text-xl font-bold mb-4">Choose Payment Method</h3>
-            <div className="space-y-3">
-              <button className="w-full py-3 rounded-xl bg-yellow-600 font-semibold">🐚 Pay with Shells</button>
-              <button className="w-full py-3 rounded-xl bg-blue-600 font-semibold">⭐ Pay with Telegram Stars</button>
-              <button
-                onClick={() => setShowPayment(false)}
-                className="w-full py-2 text-sm text-gray-400"
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: totalSessions }).map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ scale: 0.85 }}
+                animate={{ scale: 1 }}
+                className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                  i < usedSessions
+                    ? 'bg-yellow-400 text-black'
+                    : 'bg-zinc-800 border border-zinc-700'
+                }`}
               >
-                Cancel
+                {i < usedSessions && <Check size={14} strokeWidth={3} />}
+              </motion.div>
+            ))}
+          </div>
+
+          <p className="mt-4 text-xs text-zinc-500 italic">
+            Used: {usedSessions} sessions • Remaining: {remainingSessions}
+          </p>
+        </div>
+      )}
+
+      {/* PLANS (only if no active plan) */}
+      {!hasActivePlan && (
+        <div className="space-y-4">
+          {PLANS.map((plan, i) => (
+            <div
+              key={i}
+              className={`p-6 rounded-3xl border-2 ${
+                plan.title === 'Group Classes'
+                  ? 'border-yellow-400 bg-zinc-900'
+                  : 'border-zinc-800 bg-zinc-900/60'
+              }`}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  {plan.title === 'Group Classes' && (
+                    <span className="text-yellow-400 text-[10px] font-bold uppercase">
+                      Recommended
+                    </span>
+                  )}
+                  <h2 className="text-2xl font-black uppercase italic">
+                    {plan.title}
+                  </h2>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-bold">
+                    ₦{plan.price.toLocaleString()}
+                  </p>
+                  <p className="text-zinc-500 text-xs">Total</p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-zinc-800 p-2 rounded-lg">
+                  🥊 {plan.frequency}
+                </div>
+                <div className="bg-zinc-800 p-2 rounded-lg">
+                  📅 {plan.duration}
+                </div>
+              </div>
+
+              {plan.title === 'Custom Plan' && (
+                <p className="mt-3 text-xs text-zinc-500">
+                  Personalized schedules, exclusive availability & extended timelines.
+                </p>
+              )}
+
+              <button className="w-full mt-6 py-3 bg-white text-black font-black uppercase rounded-xl active:scale-95 transition-transform">
+                Select Plan
               </button>
             </div>
-          </div>
+          ))}
         </div>
       )}
     </div>
