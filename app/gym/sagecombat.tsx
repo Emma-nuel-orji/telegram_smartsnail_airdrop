@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from 'react';
 import { ShieldCheck, Zap, Target, Star, Wallet } from 'lucide-react';
 
