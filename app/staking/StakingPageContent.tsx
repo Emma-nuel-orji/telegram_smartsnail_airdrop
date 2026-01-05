@@ -3,7 +3,7 @@ import { Lock, Zap, Star, Wallet, ChevronLeft, ChevronRight } from 'lucide-react
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Loader from "@/loader";
-import "./stakingg.css";
+import "./staking.css";
 
 
 const MOTIVATIONAL_MESSAGES = [
