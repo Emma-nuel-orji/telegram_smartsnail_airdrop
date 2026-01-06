@@ -290,11 +290,17 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
         {barLocked && <div className="absolute inset-0 bg-yellow-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center"><Lock size={24} className="text-yellow-400" /></div>}
       </div>
 
-      <div className="flex gap-1 mb-4 bg-zinc-900/50 p-1 rounded-full border border-zinc-800">
-        <button onClick={() => setStakeType('POINTS')} className={`p-2 rounded-full transition-all ${stakeType === 'POINTS' ? 'bg-zinc-700' : 'opacity-30'}`}><Wallet size={12} className="text-yellow-500" /></button>
-        <button onClick={() => setStakeType('STARS')} className={`p-2 rounded-full transition-all ${stakeType === 'STARS' ? 'bg-zinc-700' : 'opacity-30'}`}><Star size={12} className="text-blue-400" /></button>
+     {/* Currency Switcher */}
+      <div className="flex bg-black/60 p-1 rounded-full border border-zinc-800 mb-4">
+        <button onClick={() => setStakeType('POINTS')} className={`px-2 py-1 rounded-full flex items-center gap-1 transition-all ${stakeType === 'POINTS' ? 'bg-zinc-700 scale-105' : 'opacity-40'}`}>
+          <Wallet size={10} className="text-yellow-500" />
+          <span className="text-[8px] font-bold">POINTS</span>
+        </button>
+        <button onClick={() => setStakeType('STARS')} className={`px-2 py-1 rounded-full flex items-center gap-1 transition-all ${stakeType === 'STARS' ? 'bg-zinc-700 scale-105' : 'opacity-40'}`}>
+          <Star size={10} className="text-blue-400" />
+          <span className="text-[8px] font-bold">STARS</span>
+        </button>
       </div>
-
       {/* GAUGE */}
       <div 
         className={`w-14 flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
