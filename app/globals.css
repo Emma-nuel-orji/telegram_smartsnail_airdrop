@@ -1716,3 +1716,14 @@ html, body, #__next, [data-nextjs] {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 92, 246, 0.8);
 }
+
+.bg-gradient-main {
+  background: radial-gradient(circle at center, #1a0b2e 0%, #0f021a 100%);
+}
+
+/* For the glow behind the points */
+.points-glow {
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+}
+
+/* Make sure your loader also follows the purple theme */
