@@ -232,6 +232,10 @@ export default function Home() {
         </Link>
       </div>
 
+      <button onClick={resetAppSession} className="mt-4 text-red-600">
+  Reset & Switch Account
+</button>
+
       {/* Center Clicker Section */}
       <div className="relative flex-grow flex items-center justify-center w-full max-w-md mt-4">
         {/* Particle Layer (Absolute to screen) */}
@@ -314,9 +318,7 @@ export default function Home() {
       </div>
 
       
-  <button onClick={resetAppSession} className="mt-4 text-red-600">
-  Reset & Switch Account
-</button>
+  
 
 
       {/* Welcome Popup */}
