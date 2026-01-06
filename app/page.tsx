@@ -318,6 +318,7 @@ export default function Home() {
   Reset & Switch Account
 </button>
 
+
       {/* Welcome Popup */}
       <AnimatePresence>
         {showWelcomePopup && (
