@@ -236,6 +236,7 @@ export default function Home() {
   Reset & Switch Account
 </button>
 
+
       {/* Center Clicker Section */}
       <div className="relative flex-grow flex items-center justify-center w-full max-w-md mt-4">
         {/* Particle Layer (Absolute to screen) */}
