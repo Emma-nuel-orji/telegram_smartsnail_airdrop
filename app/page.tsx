@@ -14,12 +14,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // --- TYPES ---
 type Click = {
-  opacity: number;
-  velocityY: number;
   id: number;
   x: number;
   y: number;
   tappingRate: number;
+  rotate: number;
 };
 
 type User = {
@@ -32,34 +31,34 @@ type User = {
 };
 
 export default function Home() {
-  // --- STATE ---
   const [firstName, setFirstName] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [energy, setEnergy] = useState(1500);
   const [clicks, setClicks] = useState<Click[]>([]);
   const [isClicking, setIsClicking] = useState(false);
-  const [speed, setSpeed] = useState(1);
   const [isLoading, setLoading] = useState(true);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
-  
+
   const syncManager = useRef<UserSyncManager>();
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const { isConnected, walletAddress } = useWallet();
 
   const maxEnergy = 1500;
-  const ENERGY_REDUCTION_RATE = 20;
+  const ENERGY_REDUCTION_PER_TAP = 1; // Standard tap cost
   const STORAGE_KEY = (telegramId: string) => `user_${telegramId}`;
 
-  const formatWalletAddress = (address: string | null) => {
-    if (!address) return '';
-    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  // --- HELPER: LEVELS ---
+  const getLevel = (pts: number) => {
+    if (pts < 1000000) return 'Camouflage';
+    if (pts <= 3000000) return 'Speedy';
+    if (pts <= 6000000) return 'Strong';
+    if (pts <= 10000000) return 'Sensory';
+    return 'African Giant Snail/god NFT';
   };
 
-  const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
 
   // --- LOGIC: INITIALIZATION ---
   useEffect(() => {
@@ -67,73 +66,45 @@ export default function Home() {
       setLoading(true);
       try {
         const tg = (window as any).Telegram?.WebApp;
-        if (!tg?.initDataUnsafe?.user?.id) {
-          throw new Error("Telegram not initialized");
-        }
+        if (!tg?.initDataUnsafe?.user?.id) throw new Error("Telegram not initialized");
 
         tg.ready();
         tg.expand();
         const telegramId = tg.initDataUnsafe.user.id.toString();
         setFirstName(tg.initDataUnsafe.user.first_name || "Snail");
 
+        if (!syncManager.current) syncManager.current = new UserSyncManager(telegramId);
+
         const storageKey = STORAGE_KEY(telegramId);
         const cached = localStorage.getItem(storageKey);
-        let cachedUser = null;
+        if (cached) setUser(JSON.parse(cached));
 
-        if (cached) {
-          try {
-            cachedUser = JSON.parse(cached);
-            setUser(cachedUser);
-          } catch (e) {
-            localStorage.removeItem(storageKey);
-          }
-        }
+        const res = await axios.get(`/api/user/${telegramId}`);
+        const serverUser = res.data;
+        
+        // Reconcile points with sync manager
+        const hasPending = syncManager.current?.hasPendingSync() || false;
+        const cachedPoints = cached ? JSON.parse(cached).points : 0;
+        const pendingPoints = hasPending ? cachedPoints - serverUser.points : 0;
+        
+        const finalUser = {
+          ...serverUser,
+          points: serverUser.points + Math.max(0, pendingPoints)
+        };
 
-        if (!syncManager.current) {
-          syncManager.current = new UserSyncManager(telegramId);
-        }
-
-        try {
-          const res = await axios.get(`/api/user/${telegramId}`);
-          const serverUser = res.data;
-          const hasPending = syncManager.current?.hasPendingSync() || false;
-          const pendingPoints = hasPending ? (cachedUser?.points || 0) - (serverUser.points || 0) : 0;
-          
-          const finalUser = {
-            ...serverUser,
-            points: serverUser.points + Math.max(0, pendingPoints)
-          };
-
-          localStorage.setItem(storageKey, JSON.stringify(finalUser));
-          setUser(finalUser);
-          setShowWelcomePopup(!finalUser.hasClaimedWelcome);
-
-        } catch (fetchError) {
-          if (!cachedUser) {
-            const newUser = {
-              telegramId,
-              username: tg.initDataUnsafe.user.username || "",
-              first_name: tg.initDataUnsafe.user.first_name || "",
-              last_name: tg.initDataUnsafe.user.last_name || "",
-              points: 0,
-              tappingRate: 1,
-              hasClaimedWelcome: false,
-            };
-            const createRes = await axios.post('/api/user', newUser);
-            setUser(createRes.data);
-          }
-        }
+        localStorage.setItem(storageKey, JSON.stringify(finalUser));
+        setUser(finalUser);
+        setShowWelcomePopup(!finalUser.hasClaimedWelcome);
       } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
     initApp();
   }, []);
 
-  // --- LOGIC: SYNC CALLBACKS ---
+  // --- LOGIC: SYNC ---
   useEffect(() => {
     if (!syncManager.current || !user?.telegramId) return;
     syncManager.current.onSyncSuccess = (serverPoints: number) => {
@@ -148,248 +119,221 @@ export default function Home() {
   }, [user?.telegramId]);
 
   // --- LOGIC: CLICK HANDLER ---
-  const handleClick = async (e: React.MouseEvent) => {
-    if (!user?.telegramId || energy <= 0 || !syncManager.current) return;
+  const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!user || energy <= 0) return;
 
-    const tappingRate = Number(user.tappingRate) || 1;
+    // Support both mouse and touch
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
 
-    setUser(prev => {
-      if (!prev) return prev;
-      const updated = { ...prev, points: (prev.points || 0) + tappingRate };
-      localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(updated));
-      return updated;
-    });
+    const rate = Number(user.tappingRate) || 1;
 
-    setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
-    syncManager.current.addPoints(tappingRate);
+    // 1. Update State
+    setUser(prev => prev ? { ...prev, points: prev.points + rate } : null);
+    setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_PER_TAP));
+    
+    // 2. Sync
+    syncManager.current?.addPoints(rate);
+
+    // 3. Visuals
     setIsClicking(true);
-
-    const newClick = {
+    const newClick: Click = {
       id: Date.now(),
-      x: e.clientX,
-      y: e.clientY,
-      tappingRate,
-      velocityY: -2,
-      opacity: 1,
+      x: clientX,
+      y: clientY,
+      tappingRate: rate,
+      rotate: Math.random() * 40 - 20, // Random tilt for variety
     };
-
     setClicks(prev => [...prev, newClick]);
+
+    // Cleanup clicks
+    setTimeout(() => {
+      setClicks(prev => prev.filter(c => c.id !== newClick.id));
+    }, 800);
 
     if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
     inactivityTimeout.current = setTimeout(() => setIsClicking(false), 1000);
   };
 
-  const handleAnimationEnd = (id: number) => {
-    setClicks(prev => prev.filter(click => click.id !== id));
-  };
+  // --- LOGIC: ENERGY REFILL ---
+  useEffect(() => {
+    const refillInterval = setInterval(() => {
+      setEnergy(prev => {
+        if (prev < maxEnergy && !isClicking) return Math.min(maxEnergy, prev + 5);
+        return prev;
+      });
+    }, 500);
+    return () => clearInterval(refillInterval);
+  }, [isClicking]);
 
   // --- LOGIC: CLAIM ---
   const handleClaim = async () => {
+    if (!user || user.hasClaimedWelcome) return;
     try {
-      if (!user?.telegramId || user.hasClaimedWelcome) return;
       setLoading(true);
-      const res = await fetch("/api/claim-welcome", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramId: user.telegramId, timestamp: new Date().toISOString() }),
+      const res = await axios.post("/api/claim-welcome", {
+        telegramId: user.telegramId,
+        timestamp: new Date().toISOString(),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.message || "Failed to claim");
-
-      const updatedUser = { ...user, points: data.points, hasClaimedWelcome: true };
-      localStorage.setItem(STORAGE_KEY(user.telegramId), JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      setShowWelcomePopup(false);
-      confetti({ particleCount: 150, spread: 70, origin: { x: 0.5, y: 0.5 } });
+      if (res.data.success) {
+        const updated = { ...user, points: res.data.points, hasClaimedWelcome: true };
+        setUser(updated);
+        localStorage.setItem(STORAGE_KEY(user.telegramId), JSON.stringify(updated));
+        setShowWelcomePopup(false);
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError("Failed to claim bonus");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- LOGIC: ENERGY REFILL ---
-  useEffect(() => {
-    if (!isClicking && energy < maxEnergy) {
-      const refillInterval = setInterval(() => {
-        setEnergy(prev => Math.min(maxEnergy, prev + 10));
-      }, 300);
-      return () => clearInterval(refillInterval);
-    }
-  }, [isClicking, energy]);
-
   if (isLoading) return <div className="h-screen bg-[#0f021a] flex items-center justify-center"><Loader /></div>;
+   const resetAppSession = () => {
+    localStorage.clear();
+    window.Telegram?.WebApp?.close();
+  };
 
   return (
-    <div className="min-h-screen bg-[#0f021a] text-white flex flex-col items-center relative overflow-hidden pb-32">
+    <div className="min-h-screen bg-[#0f021a] text-white flex flex-col items-center relative overflow-hidden select-none">
       <ToastContainer theme="dark" />
       
-      {/* Background Decor */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[50%] bg-purple-900/20 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[50%] bg-indigo-900/20 blur-[120px] rounded-full" />
+      {/* Background Glows */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[60%] bg-purple-900/10 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[60%] bg-indigo-900/10 blur-[120px]" />
       </div>
 
-      {/* --- TOP BAR --- */}
-      <div className="relative z-20 w-full px-6 pt-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-black tracking-tight text-purple-400">SMARTSNAIL</h1>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Marketplace</p>
+      {/* Header */}
+      <div className="relative z-20 w-full px-6 pt-6 flex justify-between items-start">
+        <div className="flex flex-col">
+          <span className="text-2xl font-black text-purple-400 italic tracking-tighter">SMARTSNAIL</span>
+          <span className="text-[10px] text-zinc-500 font-bold uppercase">Web3 Marketplace</span>
         </div>
-        
-        <div className="flex items-center gap-3 bg-white/5 backdrop-blur-lg p-1.5 rounded-2xl border border-white/10">
-          <Link href="/Leaderboard">
-            <img src="/images/info/output-onlinepngtools (4).png" className="w-6 h-6 p-1" alt="rank" />
-          </Link>
+        <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl">
+          <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" className="w-5 h-5 mx-1" alt="rank" /></Link>
           <ConnectButton />
-          <Link href="/info">
-            <img src="/images/info/output-onlinepngtools (1).png" className="w-6 h-6 p-1" alt="info" />
-          </Link>
+          <Link href="/info"><img src="/images/info/output-onlinepngtools (1).png" className="w-5 h-5 mx-1" alt="info" /></Link>
         </div>
       </div>
-      
-      {isConnected && walletAddress && (
-        <div className="z-20 mt-2 px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300">
-          Connected: {formatWalletAddress(walletAddress)}
-        </div>
-      )}
 
-      {/* --- SCORE & LEVEL --- */}
-      <div className="relative z-10 flex flex-col items-center mt-10">
+      {/* Points & Level */}
+      <div className="z-10 mt-8 flex flex-col items-center">
         <div className="flex items-center gap-3">
-          <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
-          <span className="text-5xl font-black italic tracking-tighter shadow-purple-500/50">
-            {user?.points.toLocaleString()}
-          </span>
+          <img src="/images/shell.png" className="w-10 h-10 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" alt="shell" />
+          <span className="text-5xl font-black italic tracking-tighter">{user?.points.toLocaleString()}</span>
         </div>
-        
-        <Link href="/level" className="mt-4 flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-4 py-2 rounded-xl">
-          <img src="/images/trophy.png" className="w-5 h-5" alt="trophy" />
-          <span className="text-xs font-bold uppercase tracking-widest text-purple-300">
-            {user?.points! < 1000000 ? 'Camouflage' : 'Speedy'} Level
+        <Link href="/level" className="mt-3 flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 px-4 py-1.5 rounded-full hover:bg-purple-500/20 transition-all">
+          <img src="/images/trophy.png" className="w-4 h-4" alt="trophy" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-purple-300">
+            {getLevel(user?.points || 0)}
           </span>
         </Link>
       </div>
 
-      {/* --- CENTRAL CLICKER --- */}
-      <div className="relative flex-grow flex items-center justify-center w-full max-w-sm mt-8 px-6">
-        {/* ACTION BUTTONS (Floating Left) */}
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-30">
-          {[
-            { href: "/staking", img: "/images/boxing-gloves.png" },
-            { href: "/gym", img: "/images/gym.png" },
-            { href: "/register", img: "/images/register.png" },
-            { href: "/marketplace", img: "/images/shop.png" }
-          ].map((item, idx) => (
-            <Link key={idx} href={item.href}>
-              <div className="w-12 h-12 bg-purple-900/40 backdrop-blur-xl border border-purple-500/30 rounded-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl">
-                <img src={item.img} className="w-6 h-6" alt="nav" />
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* CLICKER VIDEO */}
-        <div 
-          onClick={handleClick}
-          className={`relative w-full aspect-square rounded-full border-[10px] border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)] active:scale-95 transition-transform ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
-        >
-          <video src="/images/snails.mp4" autoPlay muted loop playsInline className="w-full h-full object-cover scale-110" />
-          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
-        </div>
-
-        {/* CLICK PARTICLES */}
+      {/* Center Clicker Section */}
+      <div className="relative flex-grow flex items-center justify-center w-full max-w-md mt-4">
+        {/* Particle Layer (Absolute to screen) */}
         <AnimatePresence>
           {clicks.map((click) => (
             <motion.div
               key={click.id}
-              initial={{ y: click.y - 120, x: click.x - 50, opacity: 1 }}
-              animate={{ y: click.y - 300, opacity: 0 }}
-              className="absolute pointer-events-none text-4xl font-black text-purple-300 z-50"
-              onAnimationEnd={() => handleAnimationEnd(click.id)}
+              initial={{ opacity: 1, y: click.y - 50, x: click.x - 20, scale: 0.8 }}
+              animate={{ opacity: 0, y: click.y - 180, x: click.x + (Math.random() * 60 - 30), scale: 1.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="fixed pointer-events-none text-4xl font-black text-purple-400 z-[100] drop-shadow-[0_0_10px_purple]"
+              style={{ rotate: `${click.rotate}deg` }}
             >
               +{click.tappingRate}
             </motion.div>
           ))}
         </AnimatePresence>
-      </div>
 
-      {/* --- BOTTOM HUD --- */}
-      <div className="fixed bottom-0 left-0 w-full z-40 p-6">
-        <div className="max-w-md mx-auto">
-          {/* Energy HUD */}
-          <div className="flex items-end justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <img src="/images/turbosnail-1.png" className="w-10 h-10" alt="turbo" />
-              <div>
-                <p className="text-xl font-black leading-none">{energy}</p>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">/ {maxEnergy} Energy</p>
+        {/* Side Menu */}
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-30">
+          {[
+            { href: "/staking", img: "/images/boxing-gloves.png" },
+            { href: "/gym", img: "/images/gym.png" },
+            { href: "/register", img: "/images/register.png" },
+            { href: "/marketplace", img: "/images/shop.png" }
+          ].map((btn, i) => (
+            <Link key={i} href={btn.href}>
+              <div className="w-12 h-12 bg-purple-900/40 backdrop-blur-xl border border-purple-500/30 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all">
+                <img src={btn.img} className="w-6 h-6 object-contain" alt="icon" />
               </div>
-            </div>
-          </div>
-          
-          <div className="w-full h-3 bg-zinc-900/80 rounded-full border border-white/5 overflow-hidden">
-            <motion.div 
-              className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
-              animate={{ width: `${(energy / maxEnergy) * 100}%` }}
-            />
-          </div>
+            </Link>
+          ))}
+        </div>
 
-          {/* MAIN NAV */}
-          <nav className="mt-6 bg-[#1a0b2e]/90 backdrop-blur-2xl border border-purple-500/20 rounded-[2.5rem] flex items-center justify-around p-2 shadow-2xl">
-            <Link href="/referralsystem" className="flex flex-col items-center py-2 px-6 rounded-3xl hover:bg-white/5 transition-all">
-              <img src="/images/SNAILNEW.png" className="w-8 h-8" alt="frens" />
-              <span className="text-[9px] font-black mt-1 text-zinc-400">FRENS</span>
-            </Link>
-            <div className="h-8 w-[1px] bg-white/10" />
-            <Link href="/task" className="flex flex-col items-center py-2 px-6 rounded-3xl hover:bg-white/5 transition-all">
-              <img src="/images/shell.png" className="w-7 h-7" alt="earn" />
-              <span className="text-[9px] font-black mt-1 text-zinc-400">EARN</span>
-            </Link>
-            <div className="h-8 w-[1px] bg-white/10" />
-            <Link href="/boost" className="flex flex-col items-center py-2 px-6 rounded-3xl hover:bg-white/5 transition-all">
-              <img src="/images/startup.png" className="w-7 h-7" alt="boost" />
-              <span className="text-[9px] font-black mt-1 text-zinc-400">BOOST</span>
-            </Link>
-          </nav>
+        {/* Video Clicker */}
+        <div 
+          onPointerDown={handleClick}
+          className={`relative w-[80%] aspect-square rounded-full border-[10px] border-purple-900/20 shadow-[0_0_80px_rgba(147,51,234,0.2)] overflow-hidden transition-transform active:scale-95 cursor-pointer ${energy <= 0 ? 'grayscale opacity-30' : ''}`}
+        >
+          <video 
+            src="/images/snails.mp4" 
+            autoPlay muted loop playsInline 
+            className={`w-full h-full object-cover scale-110 pointer-events-none ${isClicking ? 'animate-pulse' : 'animate-[slow-zoom_10s_infinite_alternate]'}`} 
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent pointer-events-none" />
         </div>
       </div>
 
-      {/* --- WELCOME POPUP --- */}
+      {/* Bottom HUD */}
+      <div className="fixed bottom-0 left-0 w-full z-40 p-6 flex flex-col items-center">
+        <div className="w-full max-w-sm mb-4">
+          <div className="flex justify-between items-end px-2 mb-2">
+            <div className="flex items-center gap-2">
+              <img src="/images/turbosnail-1.png" className="w-8 h-8" alt="energy" />
+              <div>
+                <span className="text-xl font-black block leading-none">{energy}</span>
+                <span className="text-[9px] text-zinc-500 font-bold">/ {maxEnergy} ENERGY</span>
+              </div>
+            </div>
+            {isClicking && <span className="text-[10px] text-purple-400 font-black animate-bounce uppercase">Tapping...</span>}
+          </div>
+          <div className="h-2.5 w-full bg-zinc-900 rounded-full border border-white/5 overflow-hidden">
+            <motion.div 
+              initial={false}
+              animate={{ width: `${(energy / maxEnergy) * 100}%` }}
+              className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]"
+            />
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="w-full max-w-sm bg-[#1a0b2e]/90 backdrop-blur-2xl border border-purple-500/20 p-2 rounded-[2.5rem] flex items-center justify-around shadow-2xl">
+          <Link href="/referralsystem" className="flex flex-col items-center py-2 px-5"><img src="/images/SNAILNEW.png" className="w-7 h-7" alt="frens" /><span className="text-[9px] font-bold text-zinc-400 mt-1">FRENS</span></Link>
+          <div className="w-[1px] h-8 bg-white/10" />
+          <Link href="/task" className="flex flex-col items-center py-2 px-5"><img src="/images/shell.png" className="w-6 h-6" alt="earn" /><span className="text-[9px] font-bold text-zinc-400 mt-1">EARN</span></Link>
+          <div className="w-[1px] h-8 bg-white/10" />
+          <Link href="/boost" className="flex flex-col items-center py-2 px-5"><img src="/images/startup.png" className="w-6 h-6" alt="boost" /><span className="text-[9px] font-bold text-zinc-400 mt-1">BOOST</span></Link>
+        </nav>
+      </div>
+
+      
+  <button onClick={resetAppSession} className="mt-4 text-red-600">
+  Reset & Switch Account
+</button>
+
+      {/* Welcome Popup */}
       <AnimatePresence>
         {showWelcomePopup && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }}
-              className="bg-[#1a0b2e] border border-purple-500/30 p-8 rounded-[3rem] w-full max-w-sm text-center shadow-[0_0_80px_rgba(168,85,247,0.2)]"
-            >
-              <h2 className="text-2xl font-black mb-2 uppercase">Welcome, {firstName}!</h2>
-              <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/5 mb-6 relative">
-                {isVideoLoading && <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">LOADING...</div>}
-                <video 
-                  autoPlay loop muted playsInline 
-                  onLoadedData={() => setIsVideoLoading(false)}
-                  className="w-full h-full object-cover"
-                >
-                  <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
-                </video>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6">
+            <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} className="bg-[#1a0b2e] border border-purple-500/30 p-8 rounded-[3rem] w-full max-w-sm text-center">
+              <h2 className="text-2xl font-black mb-1 uppercase tracking-tighter">Welcome, {firstName}!</h2>
+              <p className="text-zinc-500 text-[10px] mb-6 font-bold uppercase tracking-widest">Snail Army Awaits</p>
+              <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/40 mb-6">
+                <video autoPlay loop muted playsInline className="w-full aspect-video object-cover"><source src="/videos/speedsnail-optimized.mp4" type="video/mp4" /></video>
               </div>
               <ScrollingText />
-              <button 
-                onClick={handleClaim}
-                className="w-full mt-6 bg-gradient-to-r from-purple-600 to-indigo-600 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-purple-500/20 active:scale-95 transition-transform"
-              >
-                Claim Bonus
-              </button>
+              <button onClick={handleClaim} className="w-full mt-6 bg-gradient-to-r from-purple-600 to-indigo-600 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform">Claim Bonus</button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {error && <div className="fixed bottom-32 bg-red-600/80 px-4 py-2 rounded-lg text-xs z-50 backdrop-blur-md">{error}</div>}
     </div>
   );
 }
