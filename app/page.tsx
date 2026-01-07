@@ -53,6 +53,7 @@ export default function Home() {
   const maxEnergy = 1500;
   const ENERGY_REDUCTION_RATE = 20;
   const STORAGE_KEY = (telegramId: string) => `user_${telegramId}`;
+const [isPressing, setIsPressing] = useState(false);
 
   const formatWalletAddress = (address: string | null) => {
     if (!address) return '';
@@ -60,6 +61,18 @@ export default function Home() {
   };
 
   const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
+const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
+
+  
+  // --- LEVELS LOGIC ---
+  const getLevel = (pts: number) => {
+    if (pts < 1000000) return 'Camouflage';
+    if (pts <= 3000000) return 'Speedy';
+    if (pts <= 6000000) return 'Strong';
+    if (pts <= 10000000) return 'Sensory';
+    return 'African Giant Snail/god NFT';
+  };
+
 
   // --- LOGIC: INITIALIZATION ---
   useEffect(() => {
@@ -266,7 +279,7 @@ export default function Home() {
         <Link href="/level" className="mt-4 flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-4 py-2 rounded-xl">
           <img src="/images/trophy.png" className="w-5 h-5" alt="trophy" />
           <span className="text-xs font-bold uppercase tracking-widest text-purple-300">
-            {user?.points! < 1000000 ? 'Camouflage' : 'Speedy'} Level
+             {getLevel(user?.points || 0)} Level
           </span>
         </Link>
       </div>
@@ -290,28 +303,72 @@ export default function Home() {
         </div>
 
         {/* CLICKER VIDEO */}
-        <div 
-          onClick={handleClick}
-          className={`relative w-full aspect-square rounded-full border-[10px] border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)] active:scale-95 transition-transform ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
-        >
-          <video src="/images/snails.mp4" autoPlay muted loop playsInline className="w-full h-full object-cover scale-110" />
-          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
-        </div>
+        <motion.div
+  onPointerDown={(e) => {
+    if (showWelcomePopup || energy <= 0) return;
+    setIsPressing(true);
+    handleClick(e as any);
+  }}
+  onPointerUp={() => setIsPressing(false)}
+  onPointerLeave={() => setIsPressing(false)}
+  onPointerCancel={() => setIsPressing(false)}
+  animate={{
+    scale: isPressing ? 1.06 : 1,
+    x: isPressing ? [0, -shake, shake, -shake, 0] : 0,
+    y: isPressing ? [0, shake, -shake, shake, 0] : 0,
+  }}
+  transition={{
+    duration: 0.12,
+    repeat: isPressing ? Infinity : 0,
+    ease: "linear",
+  }}
+  className={`relative w-full aspect-square rounded-full border-[10px] 
+    border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)]
+    cursor-pointer ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
+>
+
+        <video
+  src="/images/snails.mp4"
+  autoPlay
+  muted
+  loop
+  playsInline
+  className="w-full h-full object-cover scale-110 pointer-events-none"
+/>
+<div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
+</motion.div>
 
         {/* CLICK PARTICLES */}
         <AnimatePresence>
-          {clicks.map((click) => (
-            <motion.div
-              key={click.id}
-              initial={{ y: click.y - 120, x: click.x - 50, opacity: 1 }}
-              animate={{ y: click.y - 300, opacity: 0 }}
-              className="absolute pointer-events-none text-4xl font-black text-purple-300 z-50"
-              onAnimationEnd={() => handleAnimationEnd(click.id)}
-            >
-              +{click.tappingRate}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+  {clicks.map((click) => {
+    const spawnY = click.y - 90; // ALWAYS above finger
+    const floatY = spawnY - 120; // Float further up
+
+    return (
+      <motion.div
+        key={click.id}
+        initial={{
+          opacity: 1,
+          y: spawnY,
+          x: click.x - 20,
+          scale: 0.9,
+        }}
+        animate={{
+          opacity: 0,
+          y: floatY,
+          x: click.x + (Math.random() * 60 - 30),
+          scale: 1.5,
+        }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        onAnimationComplete={() => handleAnimationEnd(click.id)}
+        className="fixed pointer-events-none text-4xl font-black text-purple-400 z-[100] drop-shadow-[0_0_15px_rgba(168,85,247,0.9)]"
+      >
+        +{click.tappingRate}
+      </motion.div>
+    );
+  })}
+</AnimatePresence>
+
       </div>
 
       {/* --- BOTTOM HUD --- */}
