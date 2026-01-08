@@ -1727,3 +1727,11 @@ html, body, #__next, [data-nextjs] {
 }
 
 /* Make sure your loader also follows the purple theme */
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
