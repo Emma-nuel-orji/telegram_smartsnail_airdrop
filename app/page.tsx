@@ -45,15 +45,16 @@ export default function Home() {
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [isPressing, setIsPressing] = useState(false);
   
   const syncManager = useRef<UserSyncManager>();
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { isConnected, walletAddress } = useWallet();
 
   const maxEnergy = 1500;
   const ENERGY_REDUCTION_RATE = 20;
   const STORAGE_KEY = (telegramId: string) => `user_${telegramId}`;
-const [isPressing, setIsPressing] = useState(false);
 
   const formatWalletAddress = (address: string | null) => {
     if (!address) return '';
@@ -61,7 +62,7 @@ const [isPressing, setIsPressing] = useState(false);
   };
 
   const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
-const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
+  const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
 
   
   // --- LEVELS LOGIC ---
@@ -73,6 +74,13 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
     return 'African Giant Snail/god NFT';
   };
 
+  // --- PRELOAD VIDEO ---
+  useEffect(() => {
+    const video = document.createElement('video');
+    video.src = '/images/snails.mp4';
+    video.preload = 'auto';
+    video.load();
+  }, []);
 
   // --- LOGIC: INITIALIZATION ---
   useEffect(() => {
@@ -175,7 +183,7 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
 
     setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
     syncManager.current.addPoints(tappingRate);
-    // setIsClicking(true);
+    setIsClicking(true);
 
     const newClick = {
       id: Date.now(),
@@ -191,26 +199,6 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
     if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
     inactivityTimeout.current = setTimeout(() => setIsClicking(false), 1000);
   };
-
-// useEffect(() => {
-//   if (!isPressing) {
-//     setShake(0);
-//   }
-// }, [isPressing]);
-
-
-useEffect(() => {
-  const stop = () => setIsPressing(false);
-  window.addEventListener("pointerup", stop);
-  window.addEventListener("touchend", stop);
-
-  return () => {
-    window.removeEventListener("pointerup", stop);
-    window.removeEventListener("touchend", stop);
-  };
-}, []);
-
-
 
   const handleAnimationEnd = (id: number) => {
     setClicks(prev => prev.filter(click => click.id !== id));
@@ -322,70 +310,74 @@ useEffect(() => {
           ))}
         </div>
 
-        {/* CLICKER VIDEO */}
+        {/* CLICKER VIDEO - FIXED VIBRATION */}
         <motion.div
-  onPointerDown={(e) => {
-    if (showWelcomePopup || energy <= 0) return;
-    setIsPressing(true);
-    handleClick(e as any);
-  }}
-  onPointerUp={() => setIsPressing(false)}
-  onPointerLeave={() => setIsPressing(false)}
-  onPointerCancel={() => setIsPressing(false)}
-  animate={{
-    scale: isPressing ? 1.06 : 1,
-    x: isPressing ? [0, -shake, shake, -shake, 0] : 0,
-    y: isPressing ? [0, shake, -shake, shake, 0] : 0,
-  }}
-  transition={{
-    duration: 0.12,
-    repeat: isPressing ? Infinity : 0,
-    ease: "linear",
-  }}
-  className="relative w-[80%] aspect-square rounded-full border-[10px] border-purple-900/20 shadow-[0_0_80px_rgba(147,51,234,0.3)] overflow-hidden cursor-pointer"
->
-
-  <video
-    src="/images/snails.mp4"
-    autoPlay
-    muted
-    loop
-    playsInline
-    className="w-full h-full object-cover scale-110 pointer-events-none"
-  />
-  <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
-</motion.div>
+          onPointerDown={(e) => {
+            if (showWelcomePopup || energy <= 0) return;
+            setIsPressing(true);
+            handleClick(e as any);
+          }}
+          onPointerUp={() => setIsPressing(false)}
+          onPointerLeave={() => setIsPressing(false)}
+          onPointerCancel={() => setIsPressing(false)}
+          animate={{
+            scale: isPressing ? 1.06 : 1,
+            x: isPressing ? [0, -shake, shake, -shake, 0] : 0,
+            y: isPressing ? [0, shake, -shake, shake, 0] : 0,
+          }}
+          transition={{
+            scale: { duration: 0.1 },
+            x: { duration: 0.12, repeat: isPressing ? Infinity : 0, ease: "linear" },
+            y: { duration: 0.12, repeat: isPressing ? Infinity : 0, ease: "linear" },
+          }}
+          className={`relative w-full aspect-square rounded-full border-[10px] 
+            border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)]
+            cursor-pointer ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
+        >
+          <video
+            ref={videoRef}
+            src="/images/snails.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            onLoadedData={() => setIsVideoLoading(false)}
+            className="w-full h-full object-cover scale-110 pointer-events-none"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
+        </motion.div>
 
         {/* CLICK PARTICLES */}
         <AnimatePresence>
-  {clicks.map((click) => {
-    const spawnY = click.y - 90; // ALWAYS above finger
-    const floatY = spawnY - 120; // Float further up
+          {clicks.map((click) => {
+            const spawnY = click.y - 90;
+            const floatY = spawnY - 120;
 
-    return (
-      <motion.div
-        key={click.id}
-        initial={{
-          opacity: 1,
-          y: spawnY,
-          x: click.x - 20,
-          scale: 0.9,
-        }}
-        animate={{
-          opacity: 0,
-          y: floatY,
-          x: click.x + (Math.random() * 60 - 30),
-          scale: 1.5,
-        }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        onAnimationComplete={() => handleAnimationEnd(click.id)}
-        className="fixed pointer-events-none text-4xl font-black text-purple-400 z-[100] drop-shadow-[0_0_15px_rgba(168,85,247,0.9)]"
-      >
-        +{click.tappingRate}
-      </motion.div>
-    );
-  })}
-</AnimatePresence>
+            return (
+              <motion.div
+                key={click.id}
+                initial={{
+                  opacity: 1,
+                  y: spawnY,
+                  x: click.x - 20,
+                  scale: 0.9,
+                }}
+                animate={{
+                  opacity: 0,
+                  y: floatY,
+                  x: click.x + (Math.random() * 60 - 30),
+                  scale: 1.5,
+                }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                onAnimationComplete={() => handleAnimationEnd(click.id)}
+                className="fixed pointer-events-none text-4xl font-black text-purple-400 z-[100] drop-shadow-[0_0_15px_rgba(168,85,247,0.9)]"
+              >
+                +{click.tappingRate}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
       </div>
 
@@ -403,11 +395,19 @@ useEffect(() => {
             </div>
           </div>
           
-          <div className="w-full h-3 bg-zinc-900/80 rounded-full border border-white/5 overflow-hidden">
+          {/* IMPROVED ENERGY BAR */}
+          <div className="relative w-full h-3 bg-zinc-900/80 rounded-full border border-white/10 overflow-hidden">
             <motion.div 
-              className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+              className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 shadow-[0_0_15px_rgba(168,85,247,0.8)] relative"
               animate={{ width: `${(energy / maxEnergy) * 100}%` }}
-            />
+              transition={{ 
+                type: "spring",
+                stiffness: 100,
+                damping: 15
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_ease-in-out_infinite]" />
+            </motion.div>
           </div>
 
           {/* MAIN NAV */}
@@ -446,6 +446,7 @@ useEffect(() => {
                 {isVideoLoading && <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">LOADING...</div>}
                 <video 
                   autoPlay loop muted playsInline 
+                  preload="auto"
                   onLoadedData={() => setIsVideoLoading(false)}
                   className="w-full h-full object-cover"
                 >
@@ -465,6 +466,13 @@ useEffect(() => {
       </AnimatePresence>
 
       {error && <div className="fixed bottom-32 bg-red-600/80 px-4 py-2 rounded-lg text-xs z-50 backdrop-blur-md">{error}</div>}
+
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 }
