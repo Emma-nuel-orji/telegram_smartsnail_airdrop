@@ -175,7 +175,7 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
 
     setEnergy(prev => Math.max(0, prev - ENERGY_REDUCTION_RATE));
     syncManager.current.addPoints(tappingRate);
-    setIsClicking(true);
+    // setIsClicking(true);
 
     const newClick = {
       id: Date.now(),
@@ -191,6 +191,26 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
     if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
     inactivityTimeout.current = setTimeout(() => setIsClicking(false), 1000);
   };
+
+// useEffect(() => {
+//   if (!isPressing) {
+//     setShake(0);
+//   }
+// }, [isPressing]);
+
+
+useEffect(() => {
+  const stop = () => setIsPressing(false);
+  window.addEventListener("pointerup", stop);
+  window.addEventListener("touchend", stop);
+
+  return () => {
+    window.removeEventListener("pointerup", stop);
+    window.removeEventListener("touchend", stop);
+  };
+}, []);
+
+
 
   const handleAnimationEnd = (id: number) => {
     setClicks(prev => prev.filter(click => click.id !== id));
@@ -312,21 +332,19 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
   onPointerUp={() => setIsPressing(false)}
   onPointerLeave={() => setIsPressing(false)}
   onPointerCancel={() => setIsPressing(false)}
-  initial={false}
   animate={{
     scale: isPressing ? 1.06 : 1,
     x: isPressing ? [0, -shake, shake, -shake, 0] : 0,
     y: isPressing ? [0, shake, -shake, shake, 0] : 0,
   }}
   transition={{
-    duration: isPressing ? 0.12 : 0.05, // Faster return to normal
+    duration: 0.12,
     repeat: isPressing ? Infinity : 0,
     ease: "linear",
   }}
-  className={`relative w-full aspect-square rounded-full border-[10px] 
-    border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)]
-    cursor-pointer ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
+  className="relative w-[80%] aspect-square rounded-full border-[10px] border-purple-900/20 shadow-[0_0_80px_rgba(147,51,234,0.3)] overflow-hidden cursor-pointer"
 >
+
   <video
     src="/images/snails.mp4"
     autoPlay
