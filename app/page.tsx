@@ -312,13 +312,14 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
   onPointerUp={() => setIsPressing(false)}
   onPointerLeave={() => setIsPressing(false)}
   onPointerCancel={() => setIsPressing(false)}
+  initial={false}
   animate={{
     scale: isPressing ? 1.06 : 1,
     x: isPressing ? [0, -shake, shake, -shake, 0] : 0,
     y: isPressing ? [0, shake, -shake, shake, 0] : 0,
   }}
   transition={{
-    duration: 0.12,
+    duration: isPressing ? 0.12 : 0.05, // Faster return to normal
     repeat: isPressing ? Infinity : 0,
     ease: "linear",
   }}
@@ -326,16 +327,15 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
     border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)]
     cursor-pointer ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
 >
-
-        <video
-  src="/images/snails.mp4"
-  autoPlay
-  muted
-  loop
-  playsInline
-  className="w-full h-full object-cover scale-110 pointer-events-none"
-/>
-<div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
+  <video
+    src="/images/snails.mp4"
+    autoPlay
+    muted
+    loop
+    playsInline
+    className="w-full h-full object-cover scale-110 pointer-events-none"
+  />
+  <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
 </motion.div>
 
         {/* CLICK PARTICLES */}
