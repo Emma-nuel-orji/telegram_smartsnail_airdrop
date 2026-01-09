@@ -316,15 +316,17 @@ export default function Home() {
           onPointerCancel={() => setIsPressing(false)}
           initial={false}
           animate={{
-            scale: isPressing ? 1.06 : 1,
-            x: isPressing ? [0, -shake, shake, -shake, 0] : 0,
-            y: isPressing ? [0, shake, -shake, shake, 0] : 0,
-          }}
-          transition={{
-            duration: isPressing ? 0.1 : 0.15,
-            repeat: isPressing ? Infinity : 0,
-            ease: "linear",
-          }}
+                scale: isPressing ? 1.06 : 1,
+                x: isPressing ? [-shake, shake] : 0,
+                y: isPressing ? [shake, -shake] : 0,
+              }}
+              transition={{
+                duration: 0.08,
+                repeat: isPressing ? 1 : 0,
+                repeatType: "reverse",
+                ease: "linear",
+              }}
+
           className={`relative w-full aspect-square rounded-full border-[10px] 
             border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)]
             cursor-pointer ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
