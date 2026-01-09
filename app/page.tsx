@@ -407,8 +407,8 @@ export default function Home() {
 
         <AnimatePresence>
           {clicks.map((click) => {
-            const spawnY = click.y - 90;
-            const floatY = spawnY - 120;
+            const spawnY = click.y - 150;
+            const floatY = spawnY - 200;
 
             return (
               <motion.div

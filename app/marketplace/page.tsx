@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader, SlidersHorizontal, LayoutGrid, Package } from "lucide-react";
 import { Nft } from "@/lib/types";
 import Link from 'next/link';
-
+import { Lock, Zap, Star, Wallet, ChevronLeft } from 'lucide-react';
 type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
 
 export default function Marketplace() {
@@ -71,6 +71,7 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-[#0f021a] text-white">
+      <Link href="/"><ChevronLeft size={28} /></Link>
       {/* Background Decor */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[40%] bg-purple-900/20 blur-[120px]" />

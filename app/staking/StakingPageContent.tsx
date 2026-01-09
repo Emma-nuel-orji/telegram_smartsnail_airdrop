@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Zap, Star, Wallet, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-
+import Loader from '@/loader';
 // --- INTERFACES ---
 interface Fighter { id: string; name: string; imageUrl?: string; }
 interface Fight { 
@@ -64,7 +64,7 @@ export default function StakingPageContent() {
     }
   };
 
-  if (loading) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic">LOADING...</div>;
+  if (loading) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic"> <Loader /> </div>;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col overflow-hidden select-none" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>

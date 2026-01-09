@@ -3,13 +3,13 @@
 import dynamic from 'next/dynamic';
 import { Loader2, RefreshCcw, UserX } from "lucide-react";
 import { useEffect, useState } from 'react';
-
+import Loader from '@/loader';
 const ReferralSystemComponent = dynamic(() => import('@/components/ReferralSystem'), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen bg-[#0f021a] flex flex-col items-center justify-center">
       <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
-      <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Syncing Data...</p>
+       <Loader />
     </div>
   ),
 });
