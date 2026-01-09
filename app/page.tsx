@@ -41,7 +41,7 @@ export default function Home() {
   const [isClicking, setIsClicking] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [isLoading, setLoading] = useState(true);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);

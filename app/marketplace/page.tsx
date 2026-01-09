@@ -88,7 +88,7 @@ export default function Marketplace() {
                 </Link>
                 <div>
                   <h1 className="text-xl font-black italic tracking-tighter">MARKETPLACE</h1>
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Snails & Items</p>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em]">NFTs</p>
                 </div>
               </div>
               
@@ -106,7 +106,7 @@ export default function Marketplace() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
               <input
                 type="text"
-                placeholder="Search unique snails..."
+                placeholder="Search unique NFTs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all"
@@ -119,7 +119,7 @@ export default function Marketplace() {
             {/* Collection Row */}
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
               {[
-                { id: null, label: 'All Snails', icon: <LayoutGrid className="w-3 h-3"/> },
+                { id: null, label: 'All NFTs', icon: <LayoutGrid className="w-3 h-3"/> },
                 { id: 'smartsnail', label: 'SmartSnail', icon: null },
                 { id: 'manchies', label: 'Manchies', icon: null }
               ].map((col) => (
@@ -193,7 +193,7 @@ export default function Marketplace() {
               <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5">
                 <Search className="w-8 h-8 text-zinc-700" />
               </div>
-              <h3 className="text-lg font-black italic text-zinc-400">NO SNAILS FOUND</h3>
+              <h3 className="text-lg font-black italic text-zinc-400">NO NFTs FOUND</h3>
               <p className="text-xs text-zinc-600 mt-2 max-w-[200px]">We couldn't find any assets matching your filters.</p>
               <button 
                 onClick={() => {setActiveRarity("All"); resetMarketplace(null)}}
