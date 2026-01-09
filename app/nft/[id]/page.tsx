@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Check, Loader } from "lucide-react";
+import { Check, Loader, ChevronLeft, ShieldCheck, Zap } from "lucide-react";
 import "@/public/styles/marketplace.css";
 
 type Nft = {
@@ -49,10 +49,7 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentMethod: method })
       });
-
-      if (response.ok) {
-        router.push('/inventory');
-      }
+      if (response.ok) router.push('/inventory');
     } catch (error) {
       console.error("Purchase failed:", error);
     } finally {
@@ -60,90 +57,89 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <Loader className="w-8 h-8 text-white animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-[#0f021a] flex items-center justify-center">
+      <Loader className="w-10 h-10 text-purple-500 animate-spin" />
+    </div>
+  );
 
-  if (!nft) {
-    return <div className="text-white">NFT not found</div>;
-  }
+  if (!nft) return <div className="text-white text-center mt-20">NFT not found</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10 p-4">
-        <button onClick={() => router.back()} className="text-white">
-          ← Back
-        </button>
+    <div className="min-h-screen bg-[#0f021a] pb-32">
+      {/* Background Glow */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[40%] bg-purple-600/10 blur-[120px]" />
       </div>
 
-      <div className="p-4">
-        {/* Image */}
-        <div className="relative aspect-square rounded-3xl overflow-hidden mb-4">
-          <img
-            src={nft.imageUrl}
-            alt={nft.name}
-            className="w-full h-full object-cover"
-          />
-          {nft.minted && (
-            <div className="absolute top-4 left-4 bg-green-500 px-3 py-2 rounded-xl text-white font-bold flex items-center gap-2">
-              <Check className="w-4 h-4" /> On-Chain
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/5 px-4 py-4 flex items-center justify-between">
+        <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-white active:scale-90 transition-transform">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <span className="text-white/60 font-black tracking-widest text-[10px] uppercase">Details</span>
+        <div className="w-10" /> 
+      </div>
+
+      <div className="p-5 max-w-md mx-auto">
+        {/* Main Image Container */}
+        <div className="relative group rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 p-2 mb-8">
+          <div className="relative aspect-square rounded-[2rem] overflow-hidden shadow-2xl">
+            <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-cover" />
+            
+            {/* Rarity & Status Overlays */}
+            <div className="absolute top-4 left-4 flex gap-2">
+              {nft.minted && (
+                <div className="bg-emerald-500/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-white text-[10px] font-black flex items-center gap-1.5 shadow-lg border border-emerald-400/50 uppercase tracking-tighter">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Info Card */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-6 border border-white/20 mb-4">
-          <h1 className="text-3xl font-bold text-white mb-2">{nft.name}</h1>
-          <p className="text-white/60 mb-4">{nft.collection} Collection</p>
+        {/* Info & Title */}
+        <div className="mb-8">
+          <h2 className="text-purple-400 text-xs font-black uppercase tracking-[0.2em] mb-2">{nft.collection}</h2>
+          <h1 className="text-4xl font-black text-white italic tracking-tighter leading-none mb-4">{nft.name}</h1>
+          <p className="text-zinc-400 text-sm leading-relaxed">Exclusive digital asset from the {nft.collection} series. Limited edition with unique traits.</p>
+        </div>
 
-          {/* Prices */}
-          <div className="space-y-3">
-            {/* {nft.priceShells && (
-              <Button
-                onClick={() => handlePurchase('shells')}
-                disabled={purchasing}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 py-4 text-lg"
-              >
-                Buy for {nft.priceShells} Shells 🐚
-              </Button>
-            )} */}
-            
+        {/* Traits Grid */}
+        {nft.traits && nft.traits.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            {nft.traits.map((trait, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 transition-colors hover:bg-white/10">
+                <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">{trait.type}</span>
+                <span className="block text-white font-bold">{trait.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Floating Sticky Purchase Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0f021a] via-[#0f021a] to-transparent z-[100]">
+        <div className="max-w-md mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-4 shadow-2xl flex flex-col gap-3">
+          <div className="flex gap-2">
             <Button
               onClick={() => handlePurchase('stars')}
               disabled={purchasing}
-              className="w-full bg-white/10 hover:bg-white/20 py-4"
+              className="flex-1 h-14 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-2xl flex flex-col leading-tight items-center justify-center gap-0"
             >
-              Buy for {nft.priceStars} Stars ⭐
+              <span className="text-xs font-black uppercase opacity-60">Buy for</span>
+              <span className="font-black text-lg">{nft.priceStars} Stars ⭐</span>
             </Button>
 
             <Button
               onClick={() => handlePurchase('ton')}
               disabled={purchasing}
-              className="w-full bg-white/10 hover:bg-white/20 py-4"
+              className="flex-1 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex flex-col leading-tight items-center justify-center gap-0 shadow-[0_0_20px_rgba(37,99,235,0.4)]"
             >
-              Buy for {nft.priceTon} TON 💎
+              <span className="text-xs font-black uppercase opacity-60 text-white/80">Buy for</span>
+              <span className="font-black text-lg">{nft.priceTon} TON 💎</span>
             </Button>
           </div>
-
-          {/* Traits */}
-          {nft.traits && nft.traits.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-white font-bold mb-3">Traits</h3>
-              <div className="space-y-2">
-                {nft.traits.map((trait, i) => (
-                  <div key={i} className="bg-black/30 rounded-xl p-3 flex justify-between">
-                    <span className="text-white/60">{trait.type}</span>
-                    <span className="text-white font-semibold">{trait.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

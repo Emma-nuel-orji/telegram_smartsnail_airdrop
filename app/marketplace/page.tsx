@@ -1,4 +1,3 @@
-// app/marketplace/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { fetchNFTs } from "@/lib/fetchNfts";
 import { NFTCard } from "@/components/marketplace/NFTCard";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Grid3x3, Loader } from "lucide-react";
+import { Search, Loader, SlidersHorizontal, LayoutGrid, Package } from "lucide-react";
 import { Nft } from "@/lib/types";
 import Link from 'next/link';
 
@@ -20,6 +19,7 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
+  const [activeRarity, setActiveRarity] = useState<string>("All");
 
   async function loadMore() {
     if (loading || !hasMore) return;
@@ -54,122 +54,111 @@ export default function Marketplace() {
 
   useEffect(() => {
     loadMore();
-  }, []);
+  }, [selectedCollection]); // Reload when collection changes
 
-  const filteredItems = items.filter(nft =>
-    nft.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = items.filter(nft => {
+    const matchesSearch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRarity = activeRarity === "All" || nft.rarity === activeRarity;
+    return matchesSearch && matchesRarity;
+  });
+
+  const resetMarketplace = (collection: string | null) => {
+    setSelectedCollection(collection);
+    setItems([]);
+    setPage(1);
+    setHasMore(true);
+  };
 
   return (
-    // <div 
-    //   className="min-h-screen relative"
-    //   style={{
-    //     backgroundImage: 'url(/images/bk.jpg)',
-    //     backgroundSize: 'cover',
-    //     backgroundPosition: 'center',
-    //     backgroundAttachment: 'fixed'
-    //   }}
-    // >
-    //   {/* Dark overlay for readability */}
-    //   <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-sm" />
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      
-      {/* Content */}
+    <div className="min-h-screen bg-[#0f021a] text-white">
+      {/* Background Decor */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[40%] bg-purple-900/20 blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[-10%] w-[60%] h-[40%] bg-blue-900/10 blur-[120px]" />
+      </div>
+
       <div className="relative z-10">
-        {/* Header */}
-        <div className="sticky top-0 z-50 bg-gradient-to-r from-[#0f0c29]/70 via-[#302b63]/70 to-[#24243e]/70 backdrop-blur-xl border-b border-white/10">
-  <div className="p-4">
-
-
-
-
-
-            <div className="flex items-center justify-between mb-4">
-              <Link href="/">
-                        <img
-                          src="/images/info/left-arrow.png" 
-                          width={40}
-                          height={40}
-                          alt="back"
-                        />
-                      </Link>
-              <h1 className="text-2xl font-bold text-white">NFT Marketplace</h1>
+        {/* HEADER AREA */}
+        <div className="sticky top-0 z-50 bg-[#0f021a]/80 backdrop-blur-xl border-b border-white/5">
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Link href="/" className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center active:scale-90 transition-transform">
+                   <img src="/images/info/left-arrow.png" className="w-5 h-5" alt="back" />
+                </Link>
+                <div>
+                  <h1 className="text-xl font-black italic tracking-tighter">MARKETPLACE</h1>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Snails & Items</p>
+                </div>
+              </div>
+              
               <button
                 onClick={() => router.push('/inventory')}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-2 rounded-xl text-white font-semibold hover:shadow-lg transition-all"
+                className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
               >
-                My NFTs
+                <Package className="w-3 h-3 text-purple-400" />
+                My Assets
               </button>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" />
+            {/* Modern Search */}
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
               <input
                 type="text"
-                placeholder="Search NFTs..."
+                placeholder="Search unique snails..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-purple-500 transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all"
               />
+            </div>
+          </div>
+
+          {/* DUAL FILTER TABS */}
+          <div className="px-4 pb-4 space-y-3">
+            {/* Collection Row */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {[
+                { id: null, label: 'All Snails', icon: <LayoutGrid className="w-3 h-3"/> },
+                { id: 'smartsnail', label: 'SmartSnail', icon: null },
+                { id: 'manchies', label: 'Manchies', icon: null }
+              ].map((col) => (
+                <button
+                  key={col.id}
+                  onClick={() => resetMarketplace(col.id)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all border ${
+                    selectedCollection === col.id
+                      ? 'bg-purple-600 border-purple-400 text-white shadow-[0_0_15px_rgba(147,51,234,0.3)]'
+                      : 'bg-white/5 border-white/5 text-zinc-500 hover:border-white/20'
+                  }`}
+                >
+                  {col.icon} {col.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Rarity Row (The better UI you asked for) */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1">
+              {["All", "Common", "Uncommon", "Rare", "Epic", "Legendary"].map((rarity) => (
+                <button
+                  key={rarity}
+                  onClick={() => setActiveRarity(rarity)}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-[9px] font-black uppercase tracking-tighter transition-all ${
+                    activeRarity === rarity
+                      ? 'text-purple-400 bg-purple-500/10 border border-purple-500/30'
+                      : 'text-zinc-600 border border-transparent hover:text-zinc-400'
+                  }`}
+                >
+                  {rarity}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Collection Filter Tabs */}
-        <div className="sticky top-[140px] z-40 bg-black/40 backdrop-blur-xl border-b border-white/10 p-4">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <button
-              onClick={() => {
-                setSelectedCollection(null);
-                setItems([]);
-                setPage(1);
-                setHasMore(true);
-              }}
-              className={`px-4 py-2 rounded-xl whitespace-nowrap font-semibold transition-all ${
-                !selectedCollection
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-            >
-              All Collections
-            </button>
-            <button
-              onClick={() => {
-                setSelectedCollection('smartsnail');
-                setItems([]);
-                setPage(1);
-                setHasMore(true);
-              }}
-              className={`px-4 py-2 rounded-xl whitespace-nowrap font-semibold transition-all ${
-                selectedCollection === 'smartsnail'
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-            >
-              SmartSnail
-            </button>
-            <button
-              onClick={() => {
-                setSelectedCollection('manchies');
-                setItems([]);
-                setPage(1);
-                setHasMore(true);
-              }}
-              className={`px-4 py-2 rounded-xl whitespace-nowrap font-semibold transition-all ${
-                selectedCollection === 'manchies'
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-            >
-              Manchies
-            </button>
-          </div>
-        </div>
-
-        {/* NFT Grid */}
+        {/* NFT GRID */}
         <div className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {filteredItems.map(nft => (
               <NFTCard
                 key={nft.id}
@@ -181,39 +170,46 @@ export default function Marketplace() {
 
           {/* Loading Skeleton */}
           {loading && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                <div key={i} className="animate-pulse">
-                  <div className="aspect-square bg-white/10 rounded-2xl mb-2 backdrop-blur-lg" />
-                  <div className="h-4 bg-white/10 rounded w-3/4 mb-1 backdrop-blur-lg" />
-                  <div className="h-3 bg-white/10 rounded w-1/2 backdrop-blur-lg" />
-                </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="animate-pulse bg-white/5 rounded-3xl aspect-[3/4] border border-white/5" />
               ))}
             </div>
           )}
 
-          {/* Load More Button */}
+          {/* Load More */}
           {hasMore && !loading && filteredItems.length > 0 && (
-            <Button
+            <button
               onClick={loadMore}
-              className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-lg text-white py-4 font-bold text-lg rounded-xl transition-all"
+              className="w-full mt-10 mb-10 bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-400 py-4 font-black uppercase tracking-[0.3em] text-[10px] rounded-2xl transition-all"
             >
-              Load More NFTs
-            </Button>
+              Discover More
+            </button>
           )}
 
           {/* Empty State */}
           {!loading && filteredItems.length === 0 && (
-            <div className="text-center py-20">
-              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-12 max-w-md mx-auto border border-white/20">
-                <div className="text-6xl mb-4">🔍</div>
-                <p className="text-white/80 text-xl font-semibold mb-2">No NFTs found</p>
-                <p className="text-white/60">Try adjusting your search or filters</p>
+            <div className="flex flex-col items-center justify-center py-32 text-center">
+              <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5">
+                <Search className="w-8 h-8 text-zinc-700" />
               </div>
+              <h3 className="text-lg font-black italic text-zinc-400">NO SNAILS FOUND</h3>
+              <p className="text-xs text-zinc-600 mt-2 max-w-[200px]">We couldn't find any assets matching your filters.</p>
+              <button 
+                onClick={() => {setActiveRarity("All"); resetMarketplace(null)}}
+                className="mt-6 text-purple-500 text-[10px] font-black uppercase tracking-widest"
+              >
+                Clear All Filters
+              </button>
             </div>
           )}
         </div>
       </div>
+
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 }
