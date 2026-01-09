@@ -1,12 +1,17 @@
-'use client';
+"use client";
 
 import dynamic from 'next/dynamic';
-import Loader from '@/loader';
+import { Loader2, RefreshCcw, UserX } from "lucide-react";
 import { useEffect, useState } from 'react';
 
 const ReferralSystemComponent = dynamic(() => import('@/components/ReferralSystem'), {
   ssr: false,
-  loading: () => <Loader />,
+  loading: () => (
+    <div className="min-h-screen bg-[#0f021a] flex flex-col items-center justify-center">
+      <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
+      <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Syncing Data...</p>
+    </div>
+  ),
 });
 
 export default function ReferralSystemPage() {
@@ -22,28 +27,15 @@ export default function ReferralSystemPage() {
           WebApp.ready();
           const userIdFromTelegram = WebApp.initDataUnsafe?.user?.id?.toString() || null;
 
-          console.log("Telegram WebApp initialized. User ID:", userIdFromTelegram);
-
-          if (!userIdFromTelegram) {
-            throw new Error('User ID not found in Telegram init data');
-          }
+          if (!userIdFromTelegram) throw new Error('User ID not found');
 
           setUserId(userIdFromTelegram);
 
-          // Extract referrer ID from URL
           const urlParams = new URLSearchParams(window.location.search);
           const referrerTelegramId = urlParams.get("start");
 
-          console.log("URL params - start:", referrerTelegramId);
-
           if (referrerTelegramId && userIdFromTelegram !== referrerTelegramId) {
-            console.log("Processing referral:", {
-              userTelegramId: userIdFromTelegram,
-              referrerTelegramId
-            });
-
-            // Save referral to backend
-            const response = await fetch("/api/referrals", {
+            await fetch("/api/referrals", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -51,59 +43,34 @@ export default function ReferralSystemPage() {
                 referrerTelegramId,
               }),
             });
-
-            const result = await response.json();
-            console.log("Referral API response:", result);
-
-            if (!response.ok) {
-              console.error("Referral creation failed:", result);
-              // Don't throw error here - user can still use the app
-            }
           }
-
         } catch (err) {
-          console.error('Failed to initialize Telegram WebApp:', err);
-          setError('Failed to initialize Telegram WebApp. Please try again.');
+          setError('Telegram initialization failed');
         } finally {
           setIsLoading(false);
         }
       }
     };
-
     initWebApp();
   }, []);
 
-  if (isLoading) {
-    return <Loader />;
-  }
+  if (isLoading) return null; // Handled by dynamic loading
 
-  if (error) {
-    return (
-      <div className="text-center p-4 text-red-500">
-        <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Retry
-        </button>
+  if (error || !userId) return (
+    <div className="min-h-screen bg-[#0f021a] flex flex-col items-center justify-center p-6 text-center">
+      <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mb-6">
+        <UserX className="w-10 h-10 text-red-500" />
       </div>
-    );
-  }
-
-  if (!userId) {
-    return (
-      <div className="text-center p-4 text-purple-600">
-        <p>User ID not found. Please reload the app.</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="mt-4 px-4 py-2 bg-purple-500 text-white rounded"
-        >
-          Reload
-        </button>
-      </div>
-    );
-  }
+      <h2 className="text-white font-black italic text-2xl mb-2 uppercase tracking-tighter">Connection Error</h2>
+      <p className="text-zinc-500 text-sm mb-8">We couldn't verify your Telegram session. Please relaunch the app.</p>
+      <button 
+        onClick={() => window.location.reload()} 
+        className="flex items-center gap-2 bg-white text-black px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest"
+      >
+        <RefreshCcw className="w-4 h-4" /> Retry Connection
+      </button>
+    </div>
+  );
 
   return <ReferralSystemComponent userId={userId} />;
 }

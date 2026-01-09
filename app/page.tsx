@@ -39,12 +39,13 @@ export default function Home() {
   const [energy, setEnergy] = useState(1500);
   const [clicks, setClicks] = useState<Click[]>([]);
   const [isClicking, setIsClicking] = useState(false);
-  const [speed, setSpeed] = useState(1);
+  const [speed] = useState(1); // (kept, harmless)
   const [isLoading, setLoading] = useState(true);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false); // ✅ FIX: default false
   const [isVideoLoading, setIsVideoLoading] = useState(true);
-  const [videoError, setVideoError] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [videoError] = useState(false); // kept, unused but harmless
+  const [notification] = useState<string | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const syncManager = useRef<UserSyncManager>();
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -60,7 +61,6 @@ export default function Home() {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
-  const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
   const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
 
   // --- LEVELS LOGIC ---
@@ -72,7 +72,7 @@ export default function Home() {
     return 'African Giant Snail/god NFT';
   };
 
-  // --- LOGIC: INITIALIZATION ---
+  // --- INIT ---
   useEffect(() => {
     const initApp = async () => {
       setLoading(true);
@@ -84,18 +84,20 @@ export default function Home() {
 
         tg.ready();
         tg.expand();
+
         const telegramId = tg.initDataUnsafe.user.id.toString();
         setFirstName(tg.initDataUnsafe.user.first_name || "Snail");
 
         const storageKey = STORAGE_KEY(telegramId);
         const cached = localStorage.getItem(storageKey);
-        let cachedUser = null;
+        let cachedUser: User | null = null;
 
         if (cached) {
           try {
             cachedUser = JSON.parse(cached);
             setUser(cachedUser);
-          } catch (e) {
+            setShowWelcomePopup(!cachedUser!.hasClaimedWelcome); 
+          } catch {
             localStorage.removeItem(storageKey);
           }
         }
@@ -107,20 +109,25 @@ export default function Home() {
         try {
           const res = await axios.get(`/api/user/${telegramId}`);
           const serverUser = res.data;
+
           const hasPending = syncManager.current?.hasPendingSync() || false;
-          const pendingPoints = hasPending ? (cachedUser?.points || 0) - (serverUser.points || 0) : 0;
-          
+          const pendingPoints =
+            hasPending && cachedUser
+              ? cachedUser.points - serverUser.points
+              : 0;
+
           const finalUser = {
             ...serverUser,
-            points: serverUser.points + Math.max(0, pendingPoints)
+            points: serverUser.points + Math.max(0, pendingPoints),
           };
 
           localStorage.setItem(storageKey, JSON.stringify(finalUser));
           setUser(finalUser);
-          setShowWelcomePopup(!finalUser.hasClaimedWelcome);
+          setShowWelcomePopup(!finalUser.hasClaimedWelcome); // ✅ FIX
 
-        } catch (fetchError) {
-          if (!cachedUser) {
+        } catch (fetchError: any) {
+          // --- NEW USER FALLBACK ---
+          if (!cachedUser && fetchError?.response?.status === 404) {
             const newUser = {
               telegramId,
               username: tg.initDataUnsafe.user.username || "",
@@ -130,13 +137,24 @@ export default function Home() {
               tappingRate: 1,
               hasClaimedWelcome: false,
             };
+
             const createRes = await axios.post('/api/user', newUser);
-            setUser(createRes.data);
+            const createdUser = createRes.data;
+
+            localStorage.setItem(storageKey, JSON.stringify(createdUser)); // ✅ FIX
+            setUser(createdUser);
+            setShowWelcomePopup(true); // ✅ FIX
           }
         }
       } catch (err: any) {
         setError(err.message);
       } finally {
+        // ✅ FIX: clean legacy keys
+        localStorage.removeItem('points');
+        localStorage.removeItem('telegramId');
+        localStorage.removeItem('tappingRate');
+        localStorage.removeItem('hasClaimedWelcome');
+
         setLoading(false);
       }
     };
@@ -144,9 +162,36 @@ export default function Home() {
     initApp();
   }, []);
 
-  // --- LOGIC: SYNC CALLBACKS ---
+  // --- GLOBAL USER UPDATE LISTENER (CRITICAL FIX) ---
+  useEffect(() => {
+    const handler = (event: CustomEvent<User>) => {
+      setUser(prev => {
+        if (!prev) return event.detail;
+
+        const merged = {
+          ...prev,
+          ...event.detail,
+          points: event.detail.points,
+        };
+
+        localStorage.setItem(
+          STORAGE_KEY(prev.telegramId),
+          JSON.stringify(merged)
+        );
+
+        return merged;
+      });
+    };
+
+    window.addEventListener('userDataUpdate', handler as EventListener);
+    return () =>
+      window.removeEventListener('userDataUpdate', handler as EventListener);
+  }, []);
+
+  // --- SYNC CALLBACK ---
   useEffect(() => {
     if (!syncManager.current || !user?.telegramId) return;
+
     syncManager.current.onSyncSuccess = (serverPoints: number) => {
       setUser(prev => {
         if (!prev) return prev;
@@ -155,17 +200,16 @@ export default function Home() {
         return updated;
       });
     };
+
     return () => syncManager.current?.cleanup();
   }, [user?.telegramId]);
 
-  // Ensure Video Plays Immediately
+  // --- VIDEO PLAY SAFETY ---
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => console.log("Autoplay blocked"));
-    }
+    videoRef.current?.play().catch(() => {});
   }, [isLoading]);
 
-  // --- LOGIC: CLICK HANDLER ---
+  // --- CLICK HANDLER ---
   const handleClick = async (e: React.MouseEvent) => {
     if (!user?.telegramId || energy <= 0 || !syncManager.current) return;
 
@@ -173,7 +217,7 @@ export default function Home() {
 
     setUser(prev => {
       if (!prev) return prev;
-      const updated = { ...prev, points: (prev.points || 0) + tappingRate };
+      const updated = { ...prev, points: prev.points + tappingRate };
       localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(updated));
       return updated;
     });
@@ -194,33 +238,43 @@ export default function Home() {
     setClicks(prev => [...prev, newClick]);
 
     if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
-    inactivityTimeout.current = setTimeout(() => {
-      setIsClicking(false);
-    }, 100);
+    inactivityTimeout.current = setTimeout(() => setIsClicking(false), 100);
   };
 
   const handleAnimationEnd = (id: number) => {
     setClicks(prev => prev.filter(click => click.id !== id));
   };
 
-  // --- LOGIC: CLAIM ---
+  // --- CLAIM ---
   const handleClaim = async () => {
     try {
       if (!user?.telegramId || user.hasClaimedWelcome) return;
+
       setLoading(true);
+
       const res = await fetch("/api/claim-welcome", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramId: user.telegramId, timestamp: new Date().toISOString() }),
+        body: JSON.stringify({
+          telegramId: user.telegramId,
+          timestamp: new Date().toISOString(),
+        }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.message || "Failed to claim");
 
-      const updatedUser = { ...user, points: data.points, hasClaimedWelcome: true };
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message);
+
+      const updatedUser = {
+        ...user,
+        points: data.points,
+        hasClaimedWelcome: true,
+      };
+
       localStorage.setItem(STORAGE_KEY(user.telegramId), JSON.stringify(updatedUser));
       setUser(updatedUser);
       setShowWelcomePopup(false);
-      confetti({ particleCount: 150, spread: 70, origin: { x: 0.5, y: 0.5 } });
+
+      confetti({ particleCount: 150, spread: 70 });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -228,17 +282,24 @@ export default function Home() {
     }
   };
 
-  // --- LOGIC: ENERGY REFILL ---
+  // --- ENERGY REFILL (SAFE) ---
   useEffect(() => {
-    if (!isClicking && energy < maxEnergy) {
-      const refillInterval = setInterval(() => {
-        setEnergy(prev => Math.min(maxEnergy, prev + 10));
-      }, 300);
-      return () => clearInterval(refillInterval);
-    }
+    if (isClicking || energy >= maxEnergy) return;
+
+    const interval = setInterval(() => {
+      setEnergy(prev => Math.min(maxEnergy, prev + 10));
+    }, 300);
+
+    return () => clearInterval(interval);
   }, [isClicking, energy]);
 
-  if (isLoading) return <div className="h-screen bg-[#0f021a] flex items-center justify-center"><Loader /></div>;
+  if (isLoading)
+    return (
+      <div className="h-screen bg-[#0f021a] flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+
 
   return (
     <div className="min-h-screen bg-[#0f021a] text-white flex flex-col items-center relative overflow-hidden pb-32">
