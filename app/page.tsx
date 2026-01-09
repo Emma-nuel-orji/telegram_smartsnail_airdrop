@@ -53,7 +53,7 @@ export default function Home() {
   const maxEnergy = 1500;
   const ENERGY_REDUCTION_RATE = 20;
   const STORAGE_KEY = (telegramId: string) => `user_${telegramId}`;
-const [isPressing, setIsPressing] = useState(false);
+  const [isPressing, setIsPressing] = useState(false);
 
   const formatWalletAddress = (address: string | null) => {
     if (!address) return '';
@@ -61,9 +61,8 @@ const [isPressing, setIsPressing] = useState(false);
   };
 
   const sanitizedNotification = notification?.replace(/https?:\/\/[^\s]+/g, '');
-const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
+  const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
 
-  
   // --- LEVELS LOGIC ---
   const getLevel = (pts: number) => {
     if (pts < 1000000) return 'Camouflage';
@@ -72,7 +71,6 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
     if (pts <= 10000000) return 'Sensory';
     return 'African Giant Snail/god NFT';
   };
-
 
   // --- LOGIC: INITIALIZATION ---
   useEffect(() => {
@@ -160,13 +158,12 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
     return () => syncManager.current?.cleanup();
   }, [user?.telegramId]);
 
-    // Ensure Video Plays Immediately
+  // Ensure Video Plays Immediately
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.play().catch(() => console.log("Autoplay blocked"));
     }
   }, [isLoading]);
-
 
   // --- LOGIC: CLICK HANDLER ---
   const handleClick = async (e: React.MouseEvent) => {
@@ -197,7 +194,9 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
     setClicks(prev => [...prev, newClick]);
 
     if (inactivityTimeout.current) clearTimeout(inactivityTimeout.current);
-    inactivityTimeout.current = setTimeout(() => setIsClicking(false), 100);
+    inactivityTimeout.current = setTimeout(() => {
+      setIsClicking(false);
+    }, 100);
   };
 
   const handleAnimationEnd = (id: number) => {
@@ -245,13 +244,11 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
     <div className="min-h-screen bg-[#0f021a] text-white flex flex-col items-center relative overflow-hidden pb-32">
       <ToastContainer theme="dark" />
       
-      {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[50%] bg-purple-900/20 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[50%] bg-indigo-900/20 blur-[120px] rounded-full" />
       </div>
 
-      {/* --- TOP BAR --- */}
       <div className="relative z-20 w-full px-6 pt-6 flex justify-between items-center">
         <div>
           <h1 className="text-xl font-black tracking-tight text-purple-400">SMARTSNAIL</h1>
@@ -275,7 +272,6 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
         </div>
       )}
 
-      {/* --- SCORE & LEVEL --- */}
       <div className="relative z-10 flex flex-col items-center mt-10">
         <div className="flex items-center gap-3">
           <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
@@ -292,9 +288,7 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
         </Link>
       </div>
 
-      {/* --- CENTRAL CLICKER --- */}
-      <div className="relative flex-grow flex items-center justify-center w-full max-w-sm mt-8 px-6">
-        {/* ACTION BUTTONS (Floating Left) */}
+      <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">
         <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-30">
           {[
             { href: "/staking", img: "/images/boxing-gloves.png" },
@@ -310,79 +304,68 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
           ))}
         </div>
 
-        {/* CLICKER VIDEO */}
+        {/* CLICKER VIDEO WITH REPAIRED VIBRATION */}
         <motion.div
-  onPointerDown={(e) => {
-    if (showWelcomePopup || energy <= 0) return;
-    setIsPressing(true);
-    handleClick(e as any);
-  }}
-  onPointerUp={() => setIsPressing(false)}
-  onPointerLeave={() => setIsPressing(false)}
-  onPointerCancel={() => setIsPressing(false)}
-  initial={false}
-  animate={{
-    scale: isPressing ? 1.06 : 1,
-    x: isPressing ? [0, -shake, shake, -shake, 0] : 0,
-    y: isPressing ? [0, shake, -shake, shake, 0] : 0,
-  }}
-  transition={{
-    duration: isPressing ? 0.12 : 0.05, // Faster return to normal
-    repeat: isPressing ? Infinity : 0,
-    ease: "linear",
-  }}
-  className={`relative w-full aspect-square rounded-full border-[10px] 
-    border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)]
-    cursor-pointer ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
->
-  <video
-    src="/images/snails.mp4"
-    autoPlay
-    muted
-    loop
-    playsInline
-    className="w-full h-full object-cover scale-110 pointer-events-none"
-  />
-  <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
-</motion.div>
+          onPointerDown={(e) => {
+            if (showWelcomePopup || energy <= 0) return;
+            setIsPressing(true);
+            handleClick(e as any);
+          }}
+          onPointerUp={() => setIsPressing(false)}
+          onPointerLeave={() => setIsPressing(false)}
+          onPointerCancel={() => setIsPressing(false)}
+          initial={false}
+          animate={{
+            scale: isPressing ? 1.06 : 1,
+            x: isPressing ? [0, -shake, shake, -shake, 0] : 0,
+            y: isPressing ? [0, shake, -shake, shake, 0] : 0,
+          }}
+          transition={{
+            duration: isPressing ? 0.1 : 0.15,
+            repeat: isPressing ? Infinity : 0,
+            ease: "linear",
+          }}
+          className={`relative w-full aspect-square rounded-full border-[10px] 
+            border-purple-900/20 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)]
+            cursor-pointer ${energy <= 0 ? 'grayscale opacity-40' : ''}`}
+        >
+          <video
+            ref={videoRef}
+            src="/images/snails.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="w-full h-full object-cover scale-110 pointer-events-none"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent" />
+        </motion.div>
 
-        {/* CLICK PARTICLES */}
         <AnimatePresence>
-  {clicks.map((click) => {
-    const spawnY = click.y - 90; // ALWAYS above finger
-    const floatY = spawnY - 120; // Float further up
+          {clicks.map((click) => {
+            const spawnY = click.y - 90;
+            const floatY = spawnY - 120;
 
-    return (
-      <motion.div
-        key={click.id}
-        initial={{
-          opacity: 1,
-          y: spawnY,
-          x: click.x - 20,
-          scale: 0.9,
-        }}
-        animate={{
-          opacity: 0,
-          y: floatY,
-          x: click.x + (Math.random() * 60 - 30),
-          scale: 1.5,
-        }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        onAnimationComplete={() => handleAnimationEnd(click.id)}
-        className="fixed pointer-events-none text-4xl font-black text-purple-400 z-[100] drop-shadow-[0_0_15px_rgba(168,85,247,0.9)]"
-      >
-        +{click.tappingRate}
-      </motion.div>
-    );
-  })}
-</AnimatePresence>
-
+            return (
+              <motion.div
+                key={click.id}
+                initial={{ opacity: 1, y: spawnY, x: click.x - 20, scale: 0.9 }}
+                animate={{ opacity: 0, y: floatY, x: click.x + (Math.random() * 60 - 30), scale: 1.5 }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                onAnimationComplete={() => handleAnimationEnd(click.id)}
+                className="fixed pointer-events-none text-4xl font-black text-purple-400 z-[100] drop-shadow-[0_0_15px_rgba(168,85,247,0.9)]"
+              >
+                +{click.tappingRate}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
-      {/* BOTTOM HUD */}
       <div className="fixed bottom-0 left-0 w-full z-40 p-6 pb-8 bg-gradient-to-t from-[#0f021a] via-[#0f021a]/90 to-transparent">
         <div className="max-w-md mx-auto">
-          {/* Neon Energy Bar */}
+          {/* HIGH VISIBILITY ROCKET FIRE ENERGY BAR */}
           <div className="flex justify-between items-end mb-2 px-1">
             <div className="flex items-center gap-2">
               <img src="/images/turbosnail-1.png" className="w-8 h-8" alt="bolt" />
@@ -390,14 +373,17 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
             </div>
           </div>
           
-          <div className="w-full h-3.5 bg-zinc-900/50 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-inner">
+          <div className="w-full h-4 bg-black/50 rounded-full border border-white/10 p-0.5 overflow-hidden shadow-[0_0_15px_rgba(234,179,8,0.1)]">
             <motion.div 
-              className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+              className="h-full rounded-full bg-gradient-to-r from-orange-600 via-yellow-400 to-white shadow-[0_0_20px_rgba(251,191,36,0.8)] relative"
               animate={{ width: `${(energy / maxEnergy) * 100}%` }}
-            />
+              transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+            >
+              {/* Glowing shimmer effect for visibility */}
+              <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.4)_50%,transparent_100%)] animate-[shimmer_1.5s_infinite]" />
+            </motion.div>
           </div>
 
-          {/* MAIN NAV */}
           <nav className="mt-6 bg-[#1a0b2e]/90 backdrop-blur-2xl border border-purple-500/20 rounded-[2.5rem] flex items-center justify-around p-2 shadow-2xl">
             <Link href="/referralsystem" className="flex flex-col items-center py-2 px-6 rounded-3xl hover:bg-white/5 transition-all">
               <img src="/images/SNAILNEW.png" className="w-8 h-8" alt="frens" />
@@ -417,7 +403,6 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
         </div>
       </div>
 
-      {/* --- WELCOME POPUP --- */}
       <AnimatePresence>
         {showWelcomePopup && (
           <motion.div 
@@ -452,6 +437,13 @@ const shake = Math.min(user?.tappingRate ? user.tappingRate * 0.8 : 2, 10);
       </AnimatePresence>
 
       {error && <div className="fixed bottom-32 bg-red-600/80 px-4 py-2 rounded-lg text-xs z-50 backdrop-blur-md">{error}</div>}
+      
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 }
