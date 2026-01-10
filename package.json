@@ -41,6 +41,7 @@
     "flutterwave-node-v3": "^1.1.12",
     "framer-motion": "^12.23.27",
     "grammy": "^1.35.0",
+    "html-to-image": "^1.11.13",
     "json-bigint": "^1.0.0",
     "lucide-react": "^0.515.0",
     "mongodb": "^6.15.0",
