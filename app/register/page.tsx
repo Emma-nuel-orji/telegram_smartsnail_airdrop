@@ -15,6 +15,7 @@ const WEIGHT_CLASSES = [
 
 // --- TYPES ---
 type PaymentMethod = "stars" | "shells";
+type HeightUnit = "cm" | "ft";
 
 interface FighterFormData {
   name: string; age: string; gender: string; height: string; weight: string;
@@ -42,6 +43,9 @@ export default function FighterRegistration() {
   const [success, setSuccess] = useState(false);
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [userShells, setUserShells] = useState(0);
+  const [heightUnit, setHeightUnit] = useState<HeightUnit>("cm");
+  const [ftValue, setFtValue] = useState('');
+  const [inValue, setInValue] = useState('');
 
   const [formData, setFormData] = useState<FighterFormData>({
     name: '', age: '', gender: '', height: '', weight: '',
@@ -53,7 +57,7 @@ export default function FighterRegistration() {
     { title: 'Ring Name', icon: User, field: 'name', placeholder: 'e.g., IRON MIKE', validation: (val: string) => val.length >= 3, errorMsg: 'Name must be at least 3 characters' },
     { title: 'Fighter Age', icon: Hash, field: 'age', type: 'number', placeholder: '18-60', validation: (val: any) => Number(val) >= 18 && Number(val) <= 60, errorMsg: 'Age must be between 18 and 60' },
     { title: 'Gender', icon: User, field: 'gender', type: 'select', options: ['Male', 'Female'], validation: (val: any) => val !== '', errorMsg: 'Please select a gender' },
-    { title: 'Height (cm)', icon: Ruler, field: 'height', type: 'number', placeholder: '140-230', validation: (val: any) => Number(val) >= 140 && Number(val) <= 230, errorMsg: 'Height must be 140-230cm' },
+    { title: `Height`, icon: Ruler, field: 'height', type: 'height', placeholder: '140-230', validation: (val: any) => Number(val) >= 140 && Number(val) <= 230, errorMsg: 'Height must be 140-230cm' },
     { title: 'Weight (kg)', icon: Weight, field: 'weight', type: 'number', placeholder: '40-200', validation: (val: any) => Number(val) >= 40 && Number(val) <= 200, errorMsg: 'Weight must be 40-200kg' },
     { title: 'Weight Class', icon: Trophy, field: 'weightClass', type: 'select', options: WEIGHT_CLASSES, validation: (val: any) => val !== '', errorMsg: 'Select weight class' },
     { title: 'Battle Entry Photo', icon: Camera, field: 'photo', type: 'file', validation: () => formData.photo !== null, errorMsg: 'A photo is required' },
@@ -83,6 +87,20 @@ export default function FighterRegistration() {
       }
     }
   }, []);
+
+  // --- HEIGHT CONVERSION ---
+  const convertFtInToCm = (ft: string, inches: string): number => {
+    const feet = Number(ft) || 0;
+    const inch = Number(inches) || 0;
+    return Math.round((feet * 30.48) + (inch * 2.54));
+  };
+
+  useEffect(() => {
+    if (heightUnit === 'ft' && (ftValue || inValue)) {
+      const cm = convertFtInToCm(ftValue, inValue);
+      setFormData(prev => ({ ...prev, height: cm.toString() }));
+    }
+  }, [ftValue, inValue, heightUnit]);
 
   // --- HANDLERS ---
   const handleCancel = () => {
@@ -188,18 +206,18 @@ export default function FighterRegistration() {
   if (success) return (
     <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center space-y-6">
       <div className="text-center">
-        <ShieldCheck className="w-12 h-12 text-green-400 mx-auto mb-2" />
+        <ShieldCheck className="w-12 h-12 text-purple-400 mx-auto mb-2" />
         <h2 className="text-2xl font-black uppercase italic tracking-tighter">Verified Fighter</h2>
-        <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">+{REWARD_SHELLS.toLocaleString()} Shells Credited</p>
+        <p className="text-[12px] text-purple-400 font-bold uppercase tracking-widest animate-pulse">+{REWARD_SHELLS.toLocaleString()} Shells Credited</p>
       </div>
-      <div ref={cardRef} className="relative w-72 h-[440px] bg-[#050505] border border-purple-600/30 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,_#8b5cf6_0%,_transparent_70%)]" />
+      <div ref={cardRef} className="relative w-72 h-[440px] bg-[#050505] border-2 border-purple-600 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,_#a855f7_0%,_transparent_70%)]" />
         <div className="absolute top-4 right-4 z-20">
           {formData.team ? <div className="bg-white text-black text-[9px] font-black px-2 py-1 uppercase italic rounded-sm border-l-4 border-purple-600">{formData.team}</div> : <div className="text-[7px] text-zinc-500 font-bold uppercase tracking-widest bg-black/50 px-2 py-1 rounded-full border border-white/10 backdrop-blur-md">Pending...</div>}
         </div>
         <div className="relative z-10 p-4 flex justify-between items-center">
-          <div className="bg-purple-600 text-white text-[8px] font-black px-2 py-0.5 italic uppercase skew-x-[-10deg]">POLYCOMBAT PRO</div>
-          <Zap className="w-4 h-4 text-purple-500 fill-current" />
+          <div className="bg-purple-600 text-white text-[8px] font-black px-2 py-0.5 italic uppercase skew-x-[-10deg]">POLYCOMBAT</div>
+           <Zap className="w-4 h-4 text-purple-400 fill-current" />
         </div>
         <div className="h-52 w-full bg-zinc-900 mt-2 overflow-hidden relative">
           {formData.photoPreview && <img src={formData.photoPreview} className="w-full h-full object-cover grayscale contrast-125" />}
@@ -223,23 +241,23 @@ export default function FighterRegistration() {
 
   // --- RENDER FORM ---
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 p-4 selection:bg-purple-500">
-      <div className="relative z-10 max-w-xl mx-auto pt-6 pb-20">
-        <Link href="/"><ChevronLeft size={28} /></Link>
+     <div className="min-h-screen bg-[#070707] text-zinc-100 p-4 selection:bg-purple-500">
+      <div className="relative z-10 max-w-xl mx-auto pt-4 pb-20">
+        {/* <Link href="/"><ChevronLeft size={28} /></Link> */}
         {/* Top Navigation */}
         <div className="flex justify-between items-center mb-8">
-            <button onClick={handleCancel} className="p-2 hover:bg-zinc-900 rounded-full transition-colors text-zinc-500">
-                <X className="w-6 h-6" />
-            </button>
-            <div className="bg-purple-600/10 border border-purple-500/20 px-3 py-1 rounded-full">
-                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Bonus: {REWARD_SHELLS.toLocaleString()} Shells</span>
+             <Link href="/"><ChevronLeft size={28} /></Link>
+            <div className="bg-purple-600/20 border border-purple-500/40 px-4 py-2 rounded-full animate-pulse">
+                <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest">Refistration Reward: {REWARD_SHELLS.toLocaleString()} Shells</span>
             </div>
         </div>
 
         <div className="mb-10 flex justify-between items-end">
           <div>
-            <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Registration</h1>
-            <p className="text-purple-500 text-[10px] font-bold uppercase tracking-[0.4em] mt-2 flex items-center gap-2"><Zap className="w-3 h-3 fill-current" /> Become a Polycombat fighter</p>
+            <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none text-white">Registration</h1>
+          <p className="text-purple-500 text-[11px] font-bold uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
+            <Zap className="w-4 h-4 fill-current" /> Become a Polycombat fighter
+          </p>
           </div>
           <div className="text-right">
             <span className="text-xl font-black italic text-zinc-300 tracking-tighter">{Math.round(progressPercentage)}%</span>
@@ -261,27 +279,53 @@ export default function FighterRegistration() {
         )}
 
         {step < steps.length ? (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center gap-3 mb-2">
-              <currentStepData.icon className="w-5 h-5 text-purple-500" />
-              <h2 className="text-lg font-black uppercase tracking-widest italic text-zinc-400">{currentStepData.title}</h2>
+              <div className="p-2 bg-purple-600 rounded-lg">
+                <currentStepData.icon className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-xl font-black uppercase italic text-zinc-200">{currentStepData.title}</h2>
             </div>
             {currentStepData.type === 'select' ? (
               <div className="grid grid-cols-2 gap-3 mt-4">
                 {currentStepData.options?.map((opt) => (
-                  <button key={opt} onClick={() => setFormData(p => ({...p, [currentStepData.field]: opt}))} className={`py-4 px-2 text-xs font-black uppercase tracking-widest border transition-all ${formData[currentStepData.field] === opt ? 'bg-purple-600 border-purple-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'bg-zinc-900 border-white/5 text-zinc-500'}`}>{opt}</button>
+                  <button key={opt} onClick={() => setFormData(p => ({...p, [currentStepData.field]: opt}))} className={`py-5 px-2 text-xs font-black uppercase tracking-widest border-2 transition-all rounded-xl ${formData[currentStepData.field] === opt ? 'bg-purple-600 border-purple-400 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)]' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}>{opt}</button>
                 ))}
               </div>
             ) : currentStepData.type === 'file' ? (
-              <label className="mt-4 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-zinc-800 rounded-3xl bg-zinc-900/50 cursor-pointer overflow-hidden group hover:border-purple-500/50 transition-colors">
+               <label className="mt-4 flex flex-col items-center justify-center w-full h-72 border-2 border-dashed border-purple-900/50 rounded-3xl bg-zinc-900/30 cursor-pointer overflow-hidden group">
                 <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-                {formData.photoPreview ? <img src={formData.photoPreview} className="h-full w-full object-cover" /> : <Camera className="w-12 h-12 text-zinc-700 group-hover:text-purple-500 transition-colors" />}
+                {formData.photoPreview ? <img src={formData.photoPreview} className="h-full w-full object-cover" /> : <Camera className="w-16 h-16 text-purple-600 group-hover:scale-110 transition-transform" />}
               </label>
+            ) : currentStepData.type === 'height' ? (
+              <div className="space-y-4">
+                <div className="flex gap-2 mb-4">
+                  <button onClick={() => setHeightUnit('cm')} className={`px-6 py-2 rounded-xl font-black uppercase text-xs transition-all ${heightUnit === 'cm' ? 'bg-purple-600 text-white' : 'bg-zinc-900 text-zinc-500'}`}>CM</button>
+                  <button onClick={() => setHeightUnit('ft')} className={`px-6 py-2 rounded-xl font-black uppercase text-xs transition-all ${heightUnit === 'ft' ? 'bg-purple-600 text-white' : 'bg-zinc-900 text-zinc-500'}`}>FT/IN</button>
+                </div>
+                {heightUnit === 'cm' ? (
+                  <input autoFocus type="number" name="height" value={formData.height} onChange={handleInputChange} placeholder="e.g., 175" className="w-full bg-transparent border-b-4 border-zinc-800 p-4 text-3xl font-black italic uppercase focus:border-purple-600 outline-none transition-all placeholder:text-zinc-900 text-white" />
+                ) : (
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="text-xs text-zinc-500 font-black uppercase mb-2 block">Feet</label>
+                      <input autoFocus type="number" value={ftValue} onChange={(e) => setFtValue(e.target.value)} placeholder="6" className="w-full bg-transparent border-b-4 border-zinc-800 p-4 text-3xl font-black italic uppercase focus:border-purple-600 outline-none transition-all placeholder:text-zinc-900 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-zinc-500 font-black uppercase mb-2 block">Inches</label>
+                      <input type="number" value={inValue} onChange={(e) => setInValue(e.target.value)} placeholder="5" className="w-full bg-transparent border-b-4 border-zinc-800 p-4 text-3xl font-black italic uppercase focus:border-purple-600 outline-none transition-all placeholder:text-zinc-900 text-white" />
+                    </div>
+                  </div>
+                )}
+                {heightUnit === 'ft' && formData.height && (
+                  <p className="text-xs text-purple-400 font-bold">≈ {formData.height} cm</p>
+                )}
+              </div>
             ) : (
-              <input autoFocus type={currentStepData.type || 'text'} name={currentStepData.field} value={(formData[currentStepData.field] as string) || ''} onChange={handleInputChange} placeholder={currentStepData.placeholder} className="w-full bg-zinc-900 border-b-2 border-zinc-800 p-6 text-2xl font-black italic uppercase focus:border-purple-600 outline-none transition-all placeholder:text-zinc-800" />
+               <input autoFocus type={currentStepData.type || 'text'} name={currentStepData.field} value={(formData[currentStepData.field] as string) || ''} onChange={handleInputChange} placeholder={currentStepData.placeholder} className="w-full bg-transparent border-b-4 border-zinc-800 p-4 text-3xl font-black italic uppercase focus:border-purple-600 outline-none transition-all placeholder:text-zinc-900 text-white" />
             )}
             
-            {error && <div className="text-red-500 text-[10px] font-black uppercase flex items-center gap-2 animate-pulse"><AlertCircle className="w-4 h-4" /> {error}</div>}
+            {error && <div className="text-red-500 text-[11px] font-black uppercase flex items-center gap-2 animate-bounce"><AlertCircle className="w-4 h-4" /> {error}</div>}
             
             <div className="flex gap-4 pt-10">
               {step > 0 && (
@@ -289,33 +333,33 @@ export default function FighterRegistration() {
                   <ChevronLeft className="w-6 h-6" />
                 </button>
               )}
-              <button onClick={handleNext} className="flex-1 bg-white text-black font-black uppercase italic text-xl p-5 flex justify-between items-center group active:scale-95 transition-transform">
-                {step === steps.length - 1 ? 'Finalize' : 'Next Phase'} <Zap className="w-5 h-5 fill-black group-hover:animate-bounce" />
-              </button>
+              <button onClick={handleNext} className="w-full bg-white text-black font-black uppercase italic text-xl p-6 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-xl">
+                {step === steps.length - 1 ? 'Finalize Profile' : 'Next Phase'} <Zap className="w-6 h-6 fill-purple-600 text-purple-600" />
+            </button>
             </div>
           </div>
         ) : (
           /* Payment Screen with Reward Reminder */
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom">
-            <div className="text-center">
-                <h2 className="text-3xl font-black italic uppercase mb-2">Sanctioning Fee</h2>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-6">Complete payment to receive {REWARD_SHELLS.toLocaleString()} Shells</p>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom duration-500">
+            <div className="text-center p-6 bg-purple-950/20 border border-purple-500/30 rounded-3xl">
+                <h2 className="text-3xl font-black italic uppercase text-white mb-2">Sanctioning Fee</h2>
+                <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Pay to unlock your {REWARD_SHELLS.toLocaleString()} shells reward</p>
             </div>
             
             <div className="grid gap-4">
-              <button onClick={() => setPaymentMethod('stars')} className={`flex items-center justify-between p-6 rounded-3xl border-2 transition-all ${paymentMethod === 'stars' ? 'border-purple-500 bg-purple-500/5' : 'border-zinc-800 bg-zinc-900/50'}`}>
-                <div className="flex items-center gap-4"><div className="text-2xl">⭐</div><div className="text-left leading-none"><span className="block font-black italic uppercase text-xl">{REGISTRATION_COST_STARS} Stars</span><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Immediate Approval</span></div></div>
-                {paymentMethod === 'stars' && <Check className="w-6 h-6 text-purple-500" />}
-              </button>
+               <button onClick={() => setPaymentMethod('stars')} className={`w-full flex items-center justify-between p-7 rounded-3xl border-2 transition-all ${paymentMethod === 'stars' ? 'border-purple-500 bg-purple-600/10 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-zinc-800 bg-zinc-900/50'}`}>
+                <div className="flex items-center gap-4"><div className="text-3xl">⭐</div><div className="text-left"><span className="block font-black italic uppercase text-2xl text-white">{REGISTRATION_COST_STARS} Stars</span><span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Immediate Approval</span></div></div>
+                {paymentMethod === 'stars' && <Check className="w-8 h-8 text-purple-500" strokeWidth={4} />}
+            </button>
             </div>
 
             <div className="flex gap-4 pt-10">
                 <button onClick={() => setStep(steps.length - 1)} className="p-5 bg-zinc-900 text-zinc-500 rounded-2xl">
                     <ChevronLeft className="w-6 h-6" />
                 </button>
-                <button onClick={handleSubmit} disabled={isSubmitting || !paymentMethod} className="flex-1 bg-purple-600 text-white font-black uppercase italic text-xl p-5 disabled:grayscale shadow-lg active:scale-95 transition-all">
+                <button onClick={handleSubmit} disabled={isSubmitting || !paymentMethod} className="w-full bg-purple-600 text-white font-black uppercase italic text-2xl p-6 rounded-2xl disabled:opacity-50 shadow-2xl active:scale-95 transition-all">
                 {isSubmitting ? 'Verifying...' : 'Authorize & Join'}
-                </button>
+            </button>
             </div>
           </div>
         )}
