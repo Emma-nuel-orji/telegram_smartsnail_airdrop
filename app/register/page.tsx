@@ -37,7 +37,7 @@ interface Step {
 export default function FighterRegistration() {
   const cardRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stars");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -243,12 +243,11 @@ export default function FighterRegistration() {
   return (
      <div className="min-h-screen bg-[#070707] text-zinc-100 p-4 selection:bg-purple-500">
       <div className="relative z-10 max-w-xl mx-auto pt-4 pb-20">
-        {/* <Link href="/"><ChevronLeft size={28} /></Link> */}
         {/* Top Navigation */}
         <div className="flex justify-between items-center mb-8">
-             <Link href="/"><ChevronLeft size={28} /></Link>
+             <Link href="/"><ChevronLeft size={28} className="text-white" /></Link>
             <div className="bg-purple-600/20 border border-purple-500/40 px-4 py-2 rounded-full animate-pulse">
-                <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest">Refistration Reward: {REWARD_SHELLS.toLocaleString()} Shells</span>
+                <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest">Registration Reward: {REWARD_SHELLS.toLocaleString()} Shells</span>
             </div>
         </div>
 
@@ -256,7 +255,7 @@ export default function FighterRegistration() {
           <div>
             <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none text-white">Registration</h1>
           <p className="text-purple-500 text-[11px] font-bold uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 fill-current" /> Become a Polycombat fighter
+            <Zap className="w-4 h-4 fill-current text-purple-500" /> Join Polycombat
           </p>
           </div>
           <div className="text-right">
@@ -271,7 +270,7 @@ export default function FighterRegistration() {
                 {formData.photoPreview ? <img src={formData.photoPreview} className="object-cover h-full w-full" /> : <User className="text-zinc-600 w-5 h-5" />}
               </div>
               <div>
-                <h4 className="font-black italic uppercase tracking-tighter text-sm">{formData.name}</h4>
+                <h4 className="font-black italic uppercase tracking-tighter text-sm text-white">{formData.name}</h4>
                 <p className="text-[10px] font-bold text-zinc-500 uppercase">{formData.weightClass || 'Awaiting Specs...'}</p>
               </div>
             </div>
@@ -342,7 +341,7 @@ export default function FighterRegistration() {
           /* Payment Screen with Reward Reminder */
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom duration-500">
             <div className="text-center p-6 bg-purple-950/20 border border-purple-500/30 rounded-3xl">
-                <h2 className="text-3xl font-black italic uppercase text-white mb-2">Sanctioning Fee</h2>
+                <h2 className="text-3xl font-black italic uppercase text-white mb-2">Fee</h2>
                 <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Pay to unlock your {REWARD_SHELLS.toLocaleString()} shells reward</p>
             </div>
             
@@ -354,7 +353,7 @@ export default function FighterRegistration() {
             </div>
 
             <div className="flex gap-4 pt-10">
-                <button onClick={() => setStep(steps.length - 1)} className="p-5 bg-zinc-900 text-zinc-500 rounded-2xl">
+                <button onClick={() => setStep(steps.length - 1)} className="p-5 bg-zinc-900 text-zinc-500 rounded-2xl hover:text-white transition-colors">
                     <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button onClick={handleSubmit} disabled={isSubmitting || !paymentMethod} className="w-full bg-purple-600 text-white font-black uppercase italic text-2xl p-6 rounded-2xl disabled:opacity-50 shadow-2xl active:scale-95 transition-all">
