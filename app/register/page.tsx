@@ -20,7 +20,8 @@ type HeightUnit = "cm" | "ft";
 interface FighterFormData {
   name: string; age: string; gender: string; height: string; weight: string;
   weightClass: string; telegramId: string; photo: File | null; photoPreview: string | null;
-  team?: string;
+  nft?: string;      
+  nftLogo?: string;  
 }
 
 interface Step {
@@ -67,26 +68,37 @@ export default function FighterRegistration() {
   const progressPercentage = ((step + 1) / (steps.length + 1)) * 100;
 
   // --- INITIALIZATION ---
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-      const webApp = (window as any).Telegram.WebApp;
-      webApp.ready();
-      webApp.expand();
-      if (webApp.initDataUnsafe?.user?.id) {
-        const tgId = webApp.initDataUnsafe.user.id.toString();
-        setTelegramId(tgId);
-        setFormData(prev => ({ ...prev, telegramId: tgId }));
-        
-        fetch(`/api/user/${tgId}`)
-          .then(res => res.json())
-          .then(data => {
-            setUserShells(data.points || 0);
-            if (data.fighter?.team) setFormData(p => ({...p, team: data.fighter.team}));
-          })
-          .catch(() => {});
-      }
+ useEffect(() => {
+  if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+    const webApp = (window as any).Telegram.WebApp;
+    webApp.ready();
+    webApp.expand();
+    
+    if (webApp.initDataUnsafe?.user?.id) {
+      const tgId = webApp.initDataUnsafe.user.id.toString();
+      setTelegramId(tgId);
+      setFormData(prev => ({ ...prev, telegramId: tgId }));
+      
+      fetch(`/api/user/${tgId}`)
+        .then(res => res.json())
+        .then(data => {
+          // 1. Update Shells
+          setUserShells(data.points || 0);
+          
+          // 2. Check if user already has a Fighter profile AND an NFT Team assigned
+          if (data.fighter) {
+            setFormData(prev => ({
+              ...prev,
+              // Check if the admin has linked an NFT object to this fighter
+              nft: data.fighter.nft?.name || '', 
+              nftLogo: data.fighter.nft?.imageUrl || ''
+            }));
+          }
+        })
+        .catch((err) => console.error("Data fetch error:", err));
     }
-  }, []);
+  }
+}, []);
 
   // --- HEIGHT CONVERSION ---
   const convertFtInToCm = (ft: string, inches: string): number => {
@@ -175,7 +187,7 @@ export default function FighterRegistration() {
     setIsSubmitting(true);
     try {
       const cardImageBase64 = cardRef.current ? await toJpeg(cardRef.current, { quality: 0.7 }) : null;
-      const endpoint = paymentMethod === 'stars' ? '/api/telegram/stars' : '/api/fighter/register/shells';
+      const endpoint = paymentMethod === 'stars' ? '/api/fighter/register/stars' : '/api/fighter/register/shells';
       
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -212,9 +224,29 @@ export default function FighterRegistration() {
       </div>
       <div ref={cardRef} className="relative w-72 h-[440px] bg-[#050505] border-2 border-purple-600 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(168,85,247,0.4)]">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_0%,_#a855f7_0%,_transparent_70%)]" />
-        <div className="absolute top-4 right-4 z-20">
-          {formData.team ? <div className="bg-white text-black text-[9px] font-black px-2 py-1 uppercase italic rounded-sm border-l-4 border-purple-600">{formData.team}</div> : <div className="text-[7px] text-zinc-500 font-bold uppercase tracking-widest bg-black/50 px-2 py-1 rounded-full border border-white/10 backdrop-blur-md">Pending...</div>}
-        </div>
+        {/* NFT Collection Badge */}
+<div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1">
+  {formData.nft ? (
+    <div className="flex items-center gap-2 bg-white text-black p-1 pr-3 rounded-lg border-l-4 border-purple-600 shadow-[0_5px_15px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in">
+      {/* Small NFT Image alongside the name */}
+      <div className="w-7 h-7 bg-zinc-200 rounded-md overflow-hidden flex-shrink-0 border border-zinc-300">
+        <img 
+          src={formData.nftLogo || `https://api.dicebear.com/7.x/identicon/svg?seed=${formData.nft}`} 
+          alt="NFT Logo" 
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <div className="flex flex-col">
+        <span className="text-[5px] text-zinc-500 font-black uppercase leading-none tracking-tighter">Verified NFT</span>
+        <span className="text-[10px] font-black italic uppercase leading-none">{formData.nft}</span>
+      </div>
+    </div>
+  ) : (
+    <div className="text-[7px] text-zinc-400 font-bold uppercase tracking-widest bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+      Unsigned Free Agent
+    </div>
+  )}
+</div>
         <div className="relative z-10 p-4 flex justify-between items-center">
           <div className="bg-purple-600 text-white text-[8px] font-black px-2 py-0.5 italic uppercase skew-x-[-10deg]">POLYCOMBAT</div>
            <Zap className="w-4 h-4 text-purple-400 fill-current" />
@@ -251,14 +283,14 @@ export default function FighterRegistration() {
             </div>
         </div>
 
-        <div className="mb-10 flex justify-between items-end">
-          <div>
+        <div className="mb-10 flex justify-between items-end gap-2">
+          <div className="flex-1">
             <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none text-white">Registration</h1>
-          <p className="text-purple-500 text-[11px] font-bold uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 fill-current text-purple-500" /> Join Polycombat
-          </p>
+            <p className="text-purple-500 text-[11px] font-bold uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
+              <Zap className="w-4 h-4 fill-current text-purple-500" /> Join Polycombat
+            </p>
           </div>
-          <div className="text-right">
+          <div className="text-right flex-shrink-0">
             <span className="text-xl font-black italic text-zinc-300 tracking-tighter">{Math.round(progressPercentage)}%</span>
           </div>
         </div>
@@ -339,18 +371,46 @@ export default function FighterRegistration() {
           </div>
         ) : (
           /* Payment Screen with Reward Reminder */
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom duration-500">
-            <div className="text-center p-6 bg-purple-950/20 border border-purple-500/30 rounded-3xl">
-                <h2 className="text-3xl font-black italic uppercase text-white mb-2">Fee</h2>
-                <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Pay to unlock your {REWARD_SHELLS.toLocaleString()} shells reward</p>
-            </div>
-            
-            <div className="grid gap-4">
-               <button onClick={() => setPaymentMethod('stars')} className={`w-full flex items-center justify-between p-7 rounded-3xl border-2 transition-all ${paymentMethod === 'stars' ? 'border-purple-500 bg-purple-600/10 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-zinc-800 bg-zinc-900/50'}`}>
-                <div className="flex items-center gap-4"><div className="text-3xl">⭐</div><div className="text-left"><span className="block font-black italic uppercase text-2xl text-white">{REGISTRATION_COST_STARS} Stars</span><span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Immediate Approval</span></div></div>
-                {paymentMethod === 'stars' && <Check className="w-8 h-8 text-purple-500" strokeWidth={4} />}
-            </button>
-            </div>
+          /* Payment Screen with Reward Reminder */
+<div className="space-y-8 animate-in fade-in slide-in-from-bottom duration-500">
+  <div className="text-center p-6 bg-purple-950/20 border border-purple-500/30 rounded-3xl">
+    <h2 className="text-3xl font-black italic uppercase text-white mb-2">Sanctioning Fee</h2>
+    <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Pay to unlock your {REWARD_SHELLS.toLocaleString()} shells reward</p>
+  </div>
+  
+  <div className="grid gap-4">
+    <button onClick={() => setPaymentMethod('stars')} className={`w-full flex items-center justify-between p-7 rounded-3xl border-2 transition-all ${paymentMethod === 'stars' ? 'border-purple-500 bg-purple-600/10 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-zinc-800 bg-zinc-900/50'}`}>
+      <div className="flex items-center gap-4">
+        <div className="text-3xl">⭐</div>
+        <div className="text-left">
+          <span className="block font-black italic uppercase text-2xl text-white">{REGISTRATION_COST_STARS} Stars</span>
+          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Immediate Approval</span>
+        </div>
+      </div>
+      {paymentMethod === 'stars' && <Check className="w-8 h-8 text-purple-500" strokeWidth={4} />}
+    </button>
+
+    <button onClick={() => setPaymentMethod('shells')} className={`w-full flex items-center justify-between p-7 rounded-3xl border-2 transition-all ${paymentMethod === 'shells' ? 'border-purple-500 bg-purple-600/10 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-zinc-800 bg-zinc-900/50'}`}>
+      <div className="flex items-center gap-4">
+        <div className="text-3xl">🐚</div>
+        <div className="text-left">
+          <span className="block font-black italic uppercase text-2xl text-white">{REGISTRATION_COST_SHELLS.toLocaleString()} Shells</span>
+          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Use Your Balance</span>
+        </div>
+      </div>
+      {paymentMethod === 'shells' && <Check className="w-8 h-8 text-purple-500" strokeWidth={4} />}
+    </button>
+  </div>
+
+  <div className="flex gap-4 pt-10">
+    <button onClick={() => setStep(steps.length - 1)} className="p-5 bg-zinc-900 text-zinc-500 rounded-2xl hover:text-white transition-colors">
+      <ChevronLeft className="w-6 h-6" />
+    </button>
+    <button onClick={handleSubmit} disabled={isSubmitting || !paymentMethod} className="w-full bg-purple-600 text-white font-black uppercase italic text-2xl p-6 rounded-2xl disabled:opacity-50 shadow-2xl active:scale-95 transition-all">
+      {isSubmitting ? 'Verifying...' : 'Authorize & Join'}
+    </button>
+  </div>
+
 
             <div className="flex gap-4 pt-10">
                 <button onClick={() => setStep(steps.length - 1)} className="p-5 bg-zinc-900 text-zinc-500 rounded-2xl hover:text-white transition-colors">

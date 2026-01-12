@@ -22,6 +22,22 @@ type Click = {
   tappingRate: number;
 };
 
+interface NftData {
+  id: string;
+  name: string;
+  imageUrl: string;
+  collection: string;
+}
+
+interface FighterData {
+  id: string;
+  name: string;
+  height: number;
+  weight: number;
+  weightClass: string;
+  nft?: NftData | null; 
+}
+
 type User = {
   telegramId: string;
   points: number;
@@ -29,6 +45,7 @@ type User = {
   first_name?: string;
   last_name?: string;
   hasClaimedWelcome?: boolean;
+  fighter?: FighterData | null;
 };
 
 export default function Home() {
@@ -347,6 +364,17 @@ export default function Home() {
              {getLevel(user?.points || 0)} Level
           </span>
         </Link>
+        {user?.fighter && (
+      <div className="flex items-center gap-2 bg-gradient-to-r from-red-600/20 to-purple-600/20 border border-red-500/40 px-3 py-2 rounded-xl backdrop-blur-md animate-in slide-in-from-left-4">
+        <div className="relative">
+           <img src="/images/boxing-gloves.png" className="w-4 h-4 brightness-125" alt="fighter icon" />
+           <div className="absolute inset-0 bg-red-500 blur-sm opacity-50 animate-pulse" />
+        </div>
+        <span className="text-[10px] font-black uppercase italic tracking-tighter text-red-400">
+          Pro Fighter
+        </span>
+      </div>
+    )}
       </div>
 
       <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">

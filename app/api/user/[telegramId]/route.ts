@@ -8,7 +8,22 @@ function serializeUser(user: any) {
     id: user.id.toString(),
     telegramId: user.telegramId.toString(),
     points: Number(user.points),
-    hasClaimedWelcome: user.hasClaimedWelcome ?? false,
+    // 1. Serialize the Fighter profile
+    fighter: user.fighter ? {
+      ...user.fighter,
+      id: user.fighter.id.toString(),
+      telegramId: user.fighter.telegramId?.toString(),
+      points: Number(user.fighter.points),
+      height: Number(user.fighter.height),
+      weight: Number(user.fighter.weight),
+      // 2. Serialize the nested NFT team data assigned by admin
+      nft: user.fighter.nft ? {
+        ...user.fighter.nft,
+        id: user.fighter.nft.id.toString(),
+        priceTon: Number(user.fighter.nft.priceTon),
+        priceStars: Number(user.fighter.nft.priceStars),
+      } : null
+    } : null,
     createdAt: user.createdAt?.toISOString(),
     updatedAt: user.updatedAt?.toISOString(),
   };
@@ -27,6 +42,12 @@ export async function GET(
 
     const user = await prisma.user.findFirst({
       where: { telegramId: BigInt(params.telegramId) },
+      include: { 
+        fighter: {
+          include: { nft: true } 
+        }
+        
+      }
     });
 
     if (!user) {

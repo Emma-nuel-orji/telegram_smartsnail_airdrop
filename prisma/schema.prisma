@@ -19,10 +19,11 @@ model User {
   email          String?         
   points         BigInt          @default(0)
   tappingRate    Int             @default(1)
+  fighter           Fighter?
+  ownedNfts        Nft[]     @relation("NftOwner")
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   hasClaimedWelcome Boolean  @default(false)
-  nft            Int           @default(0)
   referralsMade     Referral[] @relation("Referrer")     // Users this user referred
   referralReceived  Referral[] @relation("ReferredBy")   // How this user was referred
   purchases      Purchase[]
@@ -254,6 +255,9 @@ model Fighter {
   telegramId     BigInt?   @unique
   socialMedia    String?
   points         BigInt    @default(0)
+  user            User?     @relation(fields: [telegramId], references: [telegramId])
+  nftId           String?   @db.ObjectId
+  nft             Nft?      @relation(fields: [nftId], references: [id])
   status         FighterStatus  @default(PENDING)
   fightsAsF1     Fight[]   @relation("Fighter1Fights")
   fightsAsF2     Fight[]   @relation("Fighter2Fights")
@@ -441,10 +445,12 @@ model Nft {
   indexNumber     Int
   isSold          Boolean  @default(false)
   ownerTelegramId String?
+  owner            User?     @relation("NftOwner", fields: [ownerTelegramId], references: [id])
   minted          Boolean  @default(false)
   traits          Json?    // Store as JSON
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  fighters        Fighter[]
 }
 
 
