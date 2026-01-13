@@ -277,17 +277,21 @@ export default function FighterRegistration() {
             </div>
         </div>
 
-        <div className="mb-10 flex justify-between items-end ">
-          <div >
-            <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none text-white">Registration</h1>
-            <p className="text-purple-500 text-[11px] font-bold uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
-              <Zap className="w-4 h-4 fill-current text-purple-500" /> Join Polycombat
-            </p>
-          </div>
-          <div className="text-right flex-shrink-0 ml-4">
-            <span className="text-xl font-black italic text-zinc-300 tracking-tighter">{Math.round(progressPercentage)}%</span>
-          </div>
-        </div>
+        <div className="mb-10 flex justify-between items-baseline gap-4 border-b border-zinc-800 pb-6">
+  <div className="flex-1 min-w-0"> {/* flex-1 allows title to shrink if needed */}
+    <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none text-white break-words">
+      Registration
+    </h1>
+    <p className="text-purple-500 text-[11px] font-bold uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
+      <Zap className="w-4 h-4 fill-purple-500 text-purple-500" /> Join Polycombat
+    </p>
+  </div>
+  <div className="flex-shrink-0 bg-zinc-900 px-3 py-1 rounded-lg border border-zinc-800">
+    <span className="text-2xl font-black italic text-purple-500 tracking-tighter">
+      {Math.round(progressPercentage)}%
+    </span>
+  </div>
+</div>
 
         {formData.name && step < steps.length && (
           <div className="mb-8 p-4 bg-zinc-900 border-l-4 border-purple-600 rounded-r-xl animate-in slide-in-from-right">
@@ -314,8 +318,17 @@ export default function FighterRegistration() {
             {currentStepData.type === 'select' ? (
               <div className="grid grid-cols-2 gap-3 mt-4">
                 {currentStepData.options?.map((opt) => (
-                  <button key={opt} onClick={() => setFormData(p => ({...p, [currentStepData.field]: opt}))} className={`py-5 px-2 text-xs font-black uppercase tracking-widest border-2 transition-all rounded-xl ${formData[currentStepData.field] === opt ? 'bg-purple-600 border-purple-400 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)]' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}>{opt}</button>
-                ))}
+  <button 
+    key={opt} 
+    onClick={() => setFormData(p => ({...p, [currentStepData.field]: opt}))} 
+    className={`py-5 px-2 text-xs font-black uppercase tracking-widest border-2 transition-all rounded-xl shadow-lg 
+      ${formData[currentStepData.field] === opt 
+        ? 'bg-purple-600 border-purple-400 text-white shadow-[0_0_20px_rgba(168,85,247,0.6)] scale-105' 
+        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
+  >
+    {opt}
+  </button>
+))}
               </div>
             ) : currentStepData.type === 'file' ? (
                <label className="mt-4 flex flex-col items-center justify-center w-full h-72 border-2 border-dashed border-purple-900/50 rounded-3xl bg-zinc-900/30 cursor-pointer overflow-hidden group">
@@ -358,9 +371,15 @@ export default function FighterRegistration() {
                   <ChevronLeft className="w-6 h-6" />
                 </button>
               )}
-              <button onClick={handleNext} className="w-full bg-white text-black font-black uppercase italic text-xl p-6 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-xl">
-                {step === steps.length - 1 ? 'Finalize Profile' : 'Next Phase'} <Zap className="w-6 h-6 fill-purple-600 text-purple-600" />
-            </button>
+              <button 
+  onClick={handleNext} 
+  className="w-full bg-white text-black font-black uppercase italic text-xl p-6 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+>
+  {step === steps.length - 1 ? 'Finalize Profile' : 'Next Phase'} 
+  <div className="bg-purple-600 p-2 rounded-lg">
+    <Zap className="w-6 h-6 fill-white text-white" />
+  </div>
+</button>
             </div>
           </div>
         ) : (
