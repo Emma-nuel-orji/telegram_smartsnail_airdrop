@@ -671,203 +671,184 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
   }
 
   return (
-    <>
+  <>
     {showConfetti && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            pointerEvents: 'none',
-            zIndex: 9999,
-          }}
-        >
-          <Confetti width={width} height={height} />
-        </div>
-      )}
-    <div className="boost-page">
-      {/* {loading && <Loader />} */}
+      <div className="fixed inset-0 pointer-events-none z-[9999]">
+        <Confetti width={width} height={height} />
+      </div>
+    )}
 
-    <div className="boost-header">  
-      <Link href="/">
+    <div className="min-h-screen bg-[#070707] text-zinc-100 p-4 pb-24 selection:bg-purple-500">
+      <div className="max-w-xl mx-auto space-y-8">
         
-          <img
-            src="/images/info/output-onlinepngtools (6).png"
-            width={24}
-            height={24}
-            alt="back"
-          />
-        
-      </Link>
-
-    <h1>Ahh. I see you want some boost!</h1>
-  </div>
-      <h3>Easy peasy! Buy one of the listed books in SmartSnail marketplace </h3>
-      
-      <div className="books-container">
-        {/* Fxcked Up Bags */}
-        <div className="book-card">
-          <div className="book-header">
-            <img src="/images/fuckedup.jpg" alt="fxckedupbags" />
-            <h2>FxckedUpBags</h2>
-            <span
-              className="info-icon"
-              onClick={() => setShowFuckedUpInfo(!showFuckedUpInfo)}
-            >
-              ℹ️
-            </span>
-            {showFuckedUpInfo && (
-              <div className="info-popup">
-                <button onClick={() => setShowFuckedUpInfo(false)}>X</button>
-                <p>FxckedUpBags by <b>AlexanderTheSage</b> explores personal transformation and self-discipline, focusing on how mindset and choices shape success. It challenges readers to confront ways they may be sabotaging their goals or "messing up their bags" by missing opportunities or wealth. Through practical strategies, the book emphasizes shifting language from "I will" to "I am going to," helping readers take control and align actions with long-term goals. It also critiques hustle culture and encourages a balanced approach to ambition, empowering readers to unlock their true potential.</p>
-              </div>
-            )}
+        {/* HEADER SECTION */}
+        <header className="flex flex-col gap-2 pt-4">
+          <Link href="/" className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-xl border border-zinc-800 active:scale-90 transition-transform">
+            <img src="/images/info/output-onlinepngtools (6).png" className="w-6 h-6 invert" alt="back" />
+          </Link>
+          <div className="mt-4">
+            <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
+              Boost <span className="text-purple-500">Center</span>
+            </h1>
+            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">
+              Purchase books to upgrade your tapping rate
+            </p>
           </div>
-          <p>+5 Tapping Rate</p>
-          <p>+100,000 Shells per Copy</p>
-          <input
-              type="number"
-              value={fxckedUpBagsQty || ''} // Show placeholder when 0
-              onChange={(e) => setFxckedUpBagsQty(Number(e.target.value) || 0)}
-              placeholder={`${(
-                stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed +
-                stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed
-              )} more sales until launch`}
-              max={stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed}
-            />
-            <span className="counter-text" key={`fub-counter-${stockLimit.fxckedUpBagsUsed}`}
-               id="fub-counter">
-              {stockLimit.fxckedUpBagsUsed}/{stockLimit.fxckedUpBagsLimit} sold
-            </span>
-        </div>
+        </header>
 
-        {/* Human Relations */}
-        <div className="book-card">
-          <div className="book-header">
-            <img src="/images/human.jpg" alt="humanrelations" />
-            <h2>Human Relations</h2>
-            <span
-              className="info-icon"
-              onClick={() => setShowHumanRelationsInfo(!showHumanRelationsInfo)}
-            >
-              ℹ️
-            </span>
-            {showHumanRelationsInfo && (
-              <div className="info-popup">
-                <button onClick={() => setShowHumanRelationsInfo(false)}>X</button>
-                <p>The book Human Relations by <b>Kennedy E. O.</b> was inspired by the need to properly educate individuals about the nature of life and its existence using the principles of human relations. The book which is in fourteen chapters discusses in detail the process of human relations as a tool for a better life and the best tool to deal with all individuals you meet in life, while using the principles of human relations as basis for achieving greatness. It also explores many solutions to the challenges we face as humans in making ourselves sociable and accepted</p>
+        {/* BOOKS GRID */}
+        <div className="grid gap-4">
+          {[
+            {
+              id: 'fub',
+              title: 'FxckedUpBags',
+              img: '/images/fuckedup.jpg',
+              rate: '+5',
+              shells: '100,000',
+              qty: fxckedUpBagsQty,
+              setQty: setFxckedUpBagsQty,
+              used: stockLimit.fxckedUpBagsUsed,
+              limit: stockLimit.fxckedUpBagsLimit,
+              info: () => setShowFuckedUpInfo(true)
+            },
+            {
+              id: 'hr',
+              title: 'Human Relations',
+              img: '/images/human.jpg',
+              rate: '+7',
+              shells: '30,000',
+              qty: humanRelationsQty,
+              setQty: setHumanRelationsQty,
+              used: stockLimit.humanRelationsUsed,
+              limit: stockLimit.humanRelationsLimit,
+              info: () => setShowHumanRelationsInfo(true)
+            }
+          ].map((book) => (
+            <div key={book.id} className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-4 flex flex-col gap-4 relative overflow-hidden group">
+              <div className="flex gap-4">
+                <div className="relative w-24 h-32 flex-shrink-0">
+                  <img src={book.img} className="w-full h-full object-cover rounded-xl shadow-2xl" alt={book.title} />
+                  <button onClick={book.info} className="absolute -top-2 -right-2 bg-purple-600 rounded-full p-1 border-2 border-[#070707]">
+                    <Sparkles size={14} className="text-white" />
+                  </button>
+                </div>
+                
+                <div className="flex-1 flex flex-col justify-between py-1">
+                  <div>
+                    <h2 className="text-xl font-black italic uppercase tracking-tight">{book.title}</h2>
+                    <div className="flex gap-2 mt-1">
+                      <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded font-bold uppercase">{book.rate} Rate</span>
+                      <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded font-bold uppercase">{book.shells} Shells</span>
+                    </div>
+                  </div>
+
+                  {/* CUSTOM STEPPER INPUT */}
+                  <div className="flex items-center gap-4 bg-black/40 w-fit rounded-2xl p-1 border border-zinc-800">
+                    <button 
+                      onClick={() => book.setQty(Math.max(0, book.qty - 1))}
+                      className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-purple-500 transition-colors"
+                    >–</button>
+                    <span className="font-black italic text-lg w-4 text-center">{book.qty}</span>
+                    <button 
+                      onClick={() => book.setQty(book.qty + 1)}
+                      className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-purple-500 transition-colors"
+                    >+</button>
+                  </div>
+                </div>
               </div>
-            )}
-          </div> 
-          <p>+7 Tapping Rate</p>
-          <p>+30,000 Shells per Copy</p>
-          <input
-            type="number"
-            value={humanRelationsQty || ''} // Show placeholder when 0
-            onChange={(e) => setHumanRelationsQty(Number(e.target.value) || 0)}
-            placeholder={`${(
-              stockLimit.fxckedUpBagsLimit - stockLimit.fxckedUpBagsUsed +
-              stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed
-            )} more sales until launch`}
-            max={stockLimit.humanRelationsLimit - stockLimit.humanRelationsUsed}
-          />
-            <span 
-              className="counter-text"
-              key={`hr-counter-${stockLimit.humanRelationsUsed}`}
-               id="hr-counter"
+
+              {/* PROGRESS BAR */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter text-zinc-500">
+                  <span>Supply Status</span>
+                  <span>{book.used.toLocaleString()} / {book.limit.toLocaleString()}</span>
+                </div>
+                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-600 to-fuchsia-500 transition-all duration-1000"
+                    style={{ width: `${(book.used / book.limit) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* SUMMARY & CHECKOUT */}
+        <div className="bg-purple-600/10 border-2 border-purple-500/30 rounded-[2.5rem] p-6 space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-black/40 p-3 rounded-2xl border border-white/5">
+              <p className="text-[10px] text-zinc-500 font-bold uppercase">Tap Boost</p>
+              <p className="text-xl font-black italic text-purple-400">+{tappingRate}</p>
+            </div>
+            <div className="bg-black/40 p-3 rounded-2xl border border-white/5">
+              <p className="text-[10px] text-zinc-500 font-bold uppercase">Coin Reward</p>
+              <p className="text-xl font-black italic text-yellow-500">{points.toLocaleString()}</p>
+            </div>
+          </div>
+
+          <div className="relative">
+            <input
+              type="email"
+              value={purchaseEmail}
+              onChange={(e) => setPurchaseEmail(e.target.value)}
+              placeholder="Confirm your email..."
+              className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-4 outline-none focus:border-purple-600 transition-all font-bold italic"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={() => handlePurchase("TON")} 
+              disabled={isProcessing}
+              className="w-full bg-[#0088cc] text-white font-black italic text-xl p-5 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-xl disabled:opacity-50"
             >
-              {stockLimit.humanRelationsUsed}/{stockLimit.humanRelationsLimit} sold
-            </span>
+              PAY WITH TON <div className="bg-white/20 p-1 rounded-lg"><Check size={20}/></div>
+            </button>
+
+            <button 
+              onClick={() => handlePaymentViaStars("Stars")} 
+              disabled={isProcessing}
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-black italic text-xl p-5 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-xl disabled:opacity-50"
+            >
+              PAY WITH STARS <Star className="fill-black" size={24}/>
+            </button>
+          </div>
+        </div>
+
+        {/* REDEMPTION SECTION */}
+        <div className="border-t border-zinc-800 pt-8 space-y-4">
+          <h3 className="text-center font-black italic uppercase tracking-widest text-zinc-500 text-sm">Have a secret code?</h3>
+          <div className="bg-zinc-900/30 p-4 rounded-3xl border border-zinc-800 space-y-3">
+             <input type="text" value={uniqueCode} onChange={(e) => setUniqueCode(e.target.value)} placeholder="Enter Code" className="w-full bg-transparent border-b border-zinc-800 p-3 outline-none focus:border-purple-500 font-bold italic text-center text-xl"/>
+             <button onClick={handleCodeRedemption} className="w-full py-4 text-purple-500 font-black italic uppercase tracking-tighter">Activate Code</button>
+          </div>
+        </div>
+
+        {/* TICKET SECTION */}
+        <div className="pt-10">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-px flex-1 bg-zinc-800"></div>
+            <h2 className="font-black italic uppercase text-zinc-500">Event Tickets</h2>
+            <div className="h-px flex-1 bg-zinc-800"></div>
+          </div>
+          <Suspense fallback={<div className="text-center p-10 animate-pulse text-zinc-600 font-black italic uppercase">Loading Marketplace...</div>}>
+            <TicketPurchaseSystem />
+          </Suspense>
         </div>
       </div>
-
-       {/* Summary Section */}
-       <div className="summary-container">
-        <p>Total Tapping Rate: {tappingRate}</p>
-        <p>Total Coins: {points}</p>
-        <p>Total TON: {priceTon}</p>
-        <p>Total Stars: {priceStars}</p>
-        
-        <input
-          type="email"
-          value={purchaseEmail}
-          onChange={(e) => setPurchaseEmail(e.target.value)}
-          placeholder="Enter your email"
-        />
-      </div>
-
-      {/* Payment Buttons */}
-      <div className="payment-buttons">
-        <button onClick={() => handlePurchase("TON")} disabled={isProcessing}>
-
-          {isProcessing ? <span className="spinner-gear"></span> : "Pay with TON"}
-        </button>
-        <button
-      onClick={() => handlePurchase("Card")}
-      disabled={true} // Permanently disabled
-    >
-      Pay with Card
-    </button>
-        <button onClick={() => handlePaymentViaStars("Stars")} disabled={isProcessing}>
-          {isProcessing ? <span className="spinner-gear"></span> : "Pay with Stars"}
-        </button>
-      </div>
-
-       {/* Divider with "OR" */}
-        <div className="or-divider">
-          <span>OR</span>
-        </div>
-
-      {/* Code Redemption Section */}
-      <div className="code-section">
-        <h3>Redeem with Unique Code</h3>
-        <input
-          type="text"
-          value={uniqueCode}
-          onChange={(e) => setUniqueCode(e.target.value)}
-          placeholder="Unique Code"
-        />
-        <input
-          type="text"
-          value={referralLink}
-          onChange={(e) => setReferralLink(e.target.value)}
-          placeholder="Referral Link/ID"
-        />
-        <input
-          type="email"
-          value={redemptionEmail}
-          onChange={(e) => setRedemptionEmail(e.target.value)}
-          placeholder="Your Email"
-        />
-        <div className="payment-buttons">
-          <button onClick={handleCodeRedemption} disabled={isProcessing}>
-            {isProcessing ? <span className="spinner-gear"></span> : "Redeem Code"}
-          </button>
-        </div></div>
-
-      {/* Message Display */}
-      {message && <p className="message">{message}</p>}
-
-         {/* Section Separator */}
-        <div className="section-separator">
-          <div className="separator-line"></div>
-          <h2 className="separator-title">🎟️ Event Tickets</h2>
-          <div className="separator-line"></div>
-        </div>
-
-        <Suspense fallback={
-        <div className="ticket-loading">
-          <span className="spinner-gear"></span> Loading tickets...
-        </div>
-      }>
-        <TicketPurchaseSystem />
-      </Suspense>
-      
     </div>
 
-    
-    </>
-  );
+    {/* Info Popups - Repositioned to be center screen modals */}
+    {showFuckedUpInfo && (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div className="bg-zinc-900 border border-purple-500/50 p-8 rounded-[2rem] max-w-sm relative">
+          <button onClick={() => setShowFuckedUpInfo(false)} className="absolute top-4 right-4 text-zinc-500 font-black">CLOSE</button>
+          <h2 className="text-2xl font-black italic uppercase mb-4 text-purple-500">About the Book</h2>
+          <p className="text-zinc-400 text-sm leading-relaxed italic">FxckedUpBags by AlexanderTheSage explores personal transformation...</p>
+        </div>
+      </div>
+    )}
+  </>
+);
 }

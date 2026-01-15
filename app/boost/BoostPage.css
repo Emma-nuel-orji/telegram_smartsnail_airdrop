@@ -1,286 +1,187 @@
+/* Core Page Styling */
 .boost-page {
-  /* font-family: Inter, Arial, sans-serif; */
-  background-color: #2b2529;
-  padding: 20px;
-  color: #333;
+  background-color: #070707; /* True deep black */
+  padding: 20px 16px;
+  color: #f4f4f5; /* zinc-100 */
   max-width: 600px;
-  flex-direction: column;
   margin: 0 auto;
+  min-height: 100vh;
 }
 
 h1 {
-  font-weight: bold;
-  font-size: 30px;
-  text-align: center;
-  color: #f8daf7;
+  font-weight: 900;
+  font-size: 32px;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  text-align: left; /* Better for mobile */
+  color: #ffffff;
+  margin-top: 1rem;
 }
 
 h3 {
-  font-size: 15px;
-  text-align: center;
-  color: #c0bcc0;
-
+  font-size: 11px;
+  text-align: left;
+  color: #a1a1aa; /* zinc-400 */
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin-bottom: 2rem;
 }
 
-.tests {
-  color: #ffffff;
-}
-
+/* Book Cards */
 .books-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .book-card {
-  border: 1px solid #ccc;
-  padding: 15px;
-  border-radius: 5px;
-  background-color: #f9f9f9;
+  border: 1px solid rgba(168, 85, 247, 0.2); /* Subtle purple border */
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(24, 24, 27, 0.6); /* Zinc-900 with transparency */
+  backdrop-filter: blur(10px);
   position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.book-card:hover {
+  border-color: rgba(168, 85, 247, 0.5);
 }
 
 .book-card h2 {
-  /* font-size: 18px; */
-  color: #333;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #ffffff;
+  font-size: 20px;
 }
 
+/* Stepper Input Styling */
 .book-card input {
   width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 14px;
+  margin-top: 15px;
+  background-color: #000000;
+  border: 2px solid #27272a;
+  border-radius: 12px;
+  color: #a855f7; /* Purple text */
+  font-weight: 900;
+  font-style: italic;
+  outline: none;
 }
 
-.book-header {
+.book-card input:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+}
+
+/* Summary Section (The Glow Box) */
+.summary-container {
+  margin-top: 30px;
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.1), rgba(0, 0, 0, 0));
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  border-radius: 32px;
+  text-align: left;
+}
+
+.summary-container p {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-style: italic;
+  margin-bottom: 8px;
+  color: #e4e4e7;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.info-icon {
-  /* font-size: 1.2rem; */
-  cursor: pointer;
-  margin-left: 8px;
-}
-
-.info-popup {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  padding: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-}
-
-.summary-container {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #e4e3e3;
-  border-radius: 5px;
-  text-align: center;
-  font-size: 1.1rem;
 }
 
 .summary-container input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
+  background: #000;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  color: white;
   margin-top: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
 }
 
+/* Modernized Buttons */
 .payment-buttons {
   display: flex;
+  flex-direction: column; /* Better for mobile thumbs */
   margin-top: 20px;
-  gap: 10px;
-  justify-content: center;
+  gap: 12px;
 }
 
 .payment-buttons button {
-  padding: 10px 15px;
+  width: 100%;
+  padding: 18px;
   border: none;
-  border-radius: 5px;
-  background-color: #4b324a;
-  color: #c7bcc8;
+  border-radius: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-style: italic;
+  font-size: 16px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.payment-buttons button:hover {
-  background-color: #d45ed8;
+/* Specific button colors */
+.payment-buttons button:nth-child(1) { background-color: #0088cc; color: white; } /* TON Blue */
+.payment-buttons button:nth-child(2) { background-color: #27272a; color: #52525b; } /* Disabled Card */
+.payment-buttons button:nth-child(3) { background-color: #facc15; color: #000; } /* Stars Gold */
+
+.payment-buttons button:active {
+  transform: scale(0.96);
 }
 
-.code-section {
-  margin-top: 30px;
-  padding: 15px;
-}
-
-button:disabled {
-  background-color: #ccc; /* Gray background */
-  color: #666; /* Darker text for better contrast */
-  cursor: not-allowed; /* Show "not allowed" cursor */
-  opacity: 0.7; /* Reduce opacity */
-}
-
-
-
-.or-divider {
-  position: relative;
-  text-align: center;
-  margin-top: 50px;
-  color: #e5dde4;
-}
-
+/* Counter & Info */
 .counter-text {
-  font-size: 14px;
-  color: #666;
-  white-space: nowrap;
-  display: inline-block;
-  min-width: 100px; /* Prevents layout shift */
-  font-feature-settings: "tnum"; /* Monospace numbers */
-  transition: all 0.2s ease;
+  font-size: 11px;
+  font-weight: 800;
+  color: #a855f7; /* Purple */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 8px;
 }
 
-/* Animation classes */
-.counter-text.updating {
-  color: #4CAF50; /* Highlight color */
-  transform: scale(1.05);
+.info-icon {
+  background: #a855f7;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  color: white;
 }
 
-.counter-text.error {
-  color: #F44336;
-  animation: shake 0.5s;
+/* Redemption Section */
+.code-section {
+  background: rgba(39, 39, 42, 0.3);
+  border-radius: 24px;
+  margin-top: 40px;
+  padding: 20px;
+  border: 1px dashed #3f3f46;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
+.code-section h3 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+/* Utilities */
+.or-divider {
+  margin: 40px 0;
+  font-weight: 900;
+  font-style: italic;
+  color: #3f3f46;
 }
 
 .or-divider:before, .or-divider:after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 40%;
-  border-top: 1px solid #9d9898;
-}
-
-.or-divider:before {
-  left: 0;
-}
-
-.or-divider:after {
-  right: 0;
-}
-
-/* .code-section h3 {
-  font-size: 16px;
-  color: #333;
-} */
-
-.code-section input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-.loader {
-  display: block;
-  margin: auto;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.fontss {
-  font-weight: bold;
-  padding-left: 8px;
-}
-
-.spann {
-  color: #f9f9f9;
-}
-
-.pp {
-  color: #757474;
-}
-
-input[type='number']::placeholder {
-  color: #ccc;
-  opacity: 1; /* Fully visible */
-  transition: opacity 0.3s ease-in-out; /* Fade-out effect */
-  font-size: 13px;
-}
-
-input[type='number']:not(:placeholder-shown)::placeholder {
-  opacity: 0; /* Fades out once typing begins */
-  
-}
-
-.ticket-loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  font-size: 1.2rem;
-  color: white;
-}
-
-/* BoostPage.css */
-.spinner-gear {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  border: 3px solid transparent;
-  border-top: 3px solid #ffffff; /* Spinning gear color */
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-/* ::placeholder {
-  color: red !important;
-  opacity: 1 !important;
-} */
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.section-separator {
-  display: flex;
-  align-items: center;
-  margin: 50px 0 30px;
-  gap: 20px;
-}
-
-.separator-line {
-  flex: 1;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-}
-
-.separator-title {
-  color: white;
-  font-size: 24px;
-  font-weight: bold;
-  white-space: nowrap;
+  border-top: 1px solid #27272a;
 }
