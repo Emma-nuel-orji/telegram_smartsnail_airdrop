@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Zap, Star, Wallet, ChevronLeft, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-
+import "./staking.css";
 // --- INTERFACES ---
 interface Fighter {
   id: string;
@@ -310,17 +310,26 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
   return (
     <div className="flex flex-col items-center h-full relative">
       {/* Popups */}
-      <div className="absolute top-[-50px] w-full pointer-events-none h-20 overflow-hidden">
-        <AnimatePresence>
-          {messages.map(m => (
-            <motion.div key={m.id} initial={{ y: 20, opacity: 0 }} animate={{ y: -40, opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute w-full text-center text-[10px] font-black text-yellow-500 italic uppercase">
-              {m.text}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
+      {/* Popups */}
+<div className="absolute top-[-80px] w-full pointer-events-none h-40 overflow-visible">
+  <AnimatePresence>
+    {messages.map(m => (
+      <motion.div 
+        key={m.id} 
+        initial={{ y: 20, opacity: 0, scale: 0.5 }} 
+        animate={{ y: -60, opacity: 1, scale: 1.2 }} 
+        exit={{ opacity: 0, scale: 0.8 }}
+        style={{ 
+          left: `${m.xPos}%`, // This uses the random X position
+          translateX: '-50%'   // This ensures the text is centered on that X point
+        }}
+        className="absolute text-[12px] font-black text-yellow-500 italic uppercase whitespace-nowrap drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]"
+      >
+        {m.text}
+      </motion.div>
+    ))}
+  </AnimatePresence>
+</div>
       <div className="relative mb-4">
         <div className={`w-20 h-20 rounded-full border-2 overflow-hidden ${color === 'red' ? 'border-red-600' : 'border-blue-600'}`}>
           <img src={fighter?.imageUrl} className="w-full h-full object-cover grayscale-[0.5]" />

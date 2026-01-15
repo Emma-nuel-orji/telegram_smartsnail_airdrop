@@ -2,3 +2,35 @@
 .staking-active { overflow: hidden; touch-action: none; }
 .bar-glow-red { box-shadow: 0 0 15px rgba(220, 38, 38, 0.5); }
 .bar-glow-blue { box-shadow: 0 0 15px rgba(37, 99, 235, 0.5); }
+
+.floating-msg {
+  position: fixed;
+  bottom: 20%; /* Start point */
+  transform: translateX(-50%);
+  color: #a855f7; /* Purple to match your theme */
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+  font-size: 1.2rem;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5);
+  
+  /* The Animation */
+  animation: floatUpAndFade 1s ease-out forwards;
+}
+
+@keyframes floatUpAndFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -150px); /* Moves up 150px */
+  }
+}

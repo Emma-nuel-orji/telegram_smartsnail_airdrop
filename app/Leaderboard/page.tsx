@@ -107,111 +107,113 @@ const Leaderboard = () => {
   if (error) return <ErrorState message={error} />;
   if (!leaderboard.length) return <EmptyState />;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white dark:from-purple-900 dark:to-black">
-      <div className="container mx-auto p-4 max-w-4xl">
-        <div className="flex items-center mb-6">
-        <Link href="/">
-        
-        <img
-          src="/images/info/output-onlinepngtools (6).png"
-          width={24}
-          height={24}
-          alt="back"
-        />
+ return (
+  <div className="min-h-screen bg-[#070707] text-white font-sans selection:bg-purple-500/30">
+    <div className="container mx-auto p-4 max-w-2xl">
       
-    </Link>
-          <h1 className="text-3xl font-bold text-center text-purple-800 dark:text-purple-100 flex-1">
-            Leaderboard
-          </h1>
-        </div>
+      {/* Header with Back Button */}
+      <div className="flex items-center justify-between mb-8 pt-4">
+        <Link href="/" className="p-2 hover:bg-white/5 rounded-full transition-colors">
+          <img src="/images/info/output-onlinepngtools (6).png" width={24} height={24} alt="back" className="opacity-70" />
+        </Link>
+        <h1 className="text-2xl font-black italic uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-500">
+          Global Rankings
+        </h1>
+        <div className="w-8" /> {/* Spacer for symmetry */}
+      </div>
 
-        {leaderboard.map((levelData, index) => (
-          <div
-            key={levelData.level || index}
-            className="mb-8 rounded-xl overflow-hidden shadow-lg transition-transform hover:scale-[1.01] duration-300"
-            style={{
-              borderColor: `${levelData.levelColor}70`,
-              backgroundColor: `${levelData.levelColor}10`,
-            }}
-          >
-            <div
-              className="p-4 text-white flex items-center justify-between dark:text-gray-100"
-              style={{ backgroundColor: levelData.levelColor }}
-            >
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                ⭐ {levelData.level}
-              </h2>
-              <div className="flex items-center gap-2">
-                👥 <span className="font-medium">
-                  {levelData.totalUsersInLevel} users
-                </span>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-purple-100 dark:bg-purple-700 text-purple-800 dark:text-purple-300">
-                    <th className="p-4 text-left font-semibold">Rank</th>
-                    <th className="p-4 text-left font-semibold">Username</th>
-                    <th className="p-4 text-right font-semibold">Points</th>
-                    <th className="p-4 text-right font-semibold">Referrals</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {levelData.users?.map((user, userIndex) => (
-                    <tr
-                      key={user.telegramId || userIndex}
-                      className="border-t hover:bg-white/50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <td className="p-4 font-bold flex items-center gap-2">
-                        {getRankBadge(user.rank)}
-                        <span style={{ color: levelData.levelColor }} className="text-white dark:text-gray-300">
-                          #{user.rank}
-                        </span>
-                      </td>
-                      <td className="p-4 font-medium dark:text-gray-300">{user.username || 'Anonymous'}</td>
-                      <td className="p-4 text-right font-medium dark:text-gray-300">
-                        {user.points.toLocaleString()}
-                      </td>
-                      <td className="p-4 text-right font-medium dark:text-gray-300">{user.referrals}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {(!levelData.users || levelData.users.length === 0) && (
-                <div className="text-center p-6 text-purple-600 dark:text-purple-400 font-medium">
-                  No users in this level yet
-                </div>
-              )}
-            </div>
+      {leaderboard.map((levelData, index) => (
+        <div key={levelData.level || index} className="mb-10">
+          
+          {/* Level Header Badge */}
+          <div className="flex items-center gap-3 mb-4">
+             <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent to-white/10" />
+             <div 
+               className="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+               style={{ borderColor: levelData.levelColor, color: levelData.levelColor, backgroundColor: `${levelData.levelColor}10` }}
+             >
+               {levelData.level} Division
+             </div>
+             <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent to-white/10" />
           </div>
-        ))}
 
-        <div className="flex justify-center gap-4 mt-6 mb-8">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-6 py-2 bg-purple-700 text-white rounded-full disabled:opacity-50 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-500 transition-all duration-300 hover:shadow-lg disabled:hover:shadow-none font-medium"
-          >
-            Previous
-          </button>
-          <span className="px-6 py-2 bg-purple-100 dark:bg-purple-800 rounded-full text-purple-800 dark:text-purple-200 font-medium">
-            Page {page}
-          </span>
-          <button
-            onClick={() => setPage((p) => p + 1)}
-            disabled={leaderboard.every((level) => level.users.length < limit)}
-            className="px-6 py-2 bg-purple-700 text-white rounded-full disabled:opacity-50 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-500 transition-all duration-300 hover:shadow-lg disabled:hover:shadow-none font-medium"
-          >
-            Next
-          </button>
+          {/* User List */}
+          <div className="space-y-3">
+            {levelData.users?.map((user) => (
+              <div 
+                key={user.telegramId} 
+                className="relative group overflow-hidden bg-zinc-900/40 border border-white/5 rounded-2xl p-4 transition-all hover:bg-zinc-900/60 hover:border-purple-500/30"
+              >
+                {/* Glow Background for Top 3 */}
+                {user.rank <= 3 && (
+                   <div className="absolute -right-4 -top-4 w-20 h-20 bg-purple-600/10 blur-2xl rounded-full" />
+                )}
+
+                <div className="flex items-center gap-4 relative z-10">
+                  {/* Rank & Avatar */}
+                  <div className="relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center text-lg font-bold">
+                      {user.username?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                    <div className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg
+                      ${user.rank === 1 ? 'bg-yellow-500 text-black' : 
+                        user.rank === 2 ? 'bg-zinc-300 text-black' : 
+                        user.rank === 3 ? 'bg-amber-600 text-white' : 'bg-zinc-700 text-zinc-300'}`}
+                    >
+                      {user.rank}
+                    </div>
+                  </div>
+
+                  {/* Name & Stats */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-white truncate uppercase italic tracking-tight">
+                      {user.username || 'Anonymous User'}
+                    </h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-[10px] text-zinc-500 font-bold flex items-center gap-1 uppercase">
+                        <img src="/images/info/referral-icon.png" className="w-2.5 h-2.5 opacity-50" alt="" />
+                        {user.referrals} Ref
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Points Display */}
+                  <div className="text-right">
+                    <p className="text-xs font-black text-purple-400 leading-none">
+                      {user.points.toLocaleString()}
+                    </p>
+                    <p className="text-[8px] text-zinc-600 font-bold uppercase mt-1">Points</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+      ))}
+
+      {/* Modern Pagination */}
+      <div className="flex items-center justify-between mt-10 p-2 bg-zinc-900/50 rounded-2xl border border-white/5">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className="p-3 disabled:opacity-20 hover:bg-white/5 rounded-xl transition-all"
+        >
+          <img src="/images/info/left-arrow.png" width={20} height={20} alt="prev" className="invert" />
+        </button>
+        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+          Page <span className="text-white">{page}</span>
+        </span>
+        <button
+          onClick={() => setPage((p) => p + 1)}
+          disabled={leaderboard.every((level) => level.users.length < limit)}
+          className="p-3 disabled:opacity-20 hover:bg-white/5 rounded-xl transition-all rotate-180"
+        >
+          <img src="/images/info/left-arrow.png" width={20} height={20} alt="next" className="invert" />
+        </button>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Leaderboard;
