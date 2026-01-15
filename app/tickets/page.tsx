@@ -441,15 +441,31 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
                 <span className="text-white">{(ticketTypes.find(t => t.id === selectedTicket)!.priceShells * quantity).toLocaleString()}</span>
               </div>
             </div>
+<div className="grid grid-cols-1 gap-3">
+  <button 
+    onClick={() => handleTicketPurchase('stars')}
+    disabled={isProcessing}
+    className="w-full bg-white text-black font-black italic py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-purple-400 transition-colors disabled:opacity-50"
+  >
+    {isProcessing ? (
+      <span className="animate-spin text-black">⚙️</span>
+    ) : (
+      <>PURCHASE WITH STARS</>
+    )}
+  </button>
 
-            <div className="grid grid-cols-1 gap-3">
-              <button className="w-full bg-white text-black font-black italic py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-purple-400 transition-colors">
-                PURCHASE WITH STARS
-              </button>
-              <button className="w-full bg-zinc-800 text-white font-black italic py-4 rounded-2xl flex items-center justify-center gap-2">
-                PURCHASE WITH SHELLS
-              </button>
-            </div>
+  <button 
+    onClick={() => handleTicketPurchase('shells')}
+    disabled={isProcessing}
+    className="w-full bg-zinc-800 text-white font-black italic py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+  >
+    {isProcessing ? (
+      <span className="animate-spin text-white">⚙️</span>
+    ) : (
+      <>PURCHASE WITH SHELLS</>
+    )}
+  </button>
+</div>
           </div>
         </div>
       )}
@@ -504,15 +520,21 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
               </div>
 
               <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="detail-group">
-                  <span>HOLDER</span>
-                  <p className="text-white font-bold text-sm uppercase">@User</p>
-                </div>
-                <div className="detail-group">
-                  <span>QUANTITY</span>
-                  <p className="text-white font-bold text-sm">x{purchase.quantity}</p>
-                </div>
-              </div>
+  <div className="detail-group">
+    <span>HOLDER</span>
+    {/* Use the userName state here */}
+    <p className="text-white font-bold text-sm uppercase truncate">
+      {userName || 'Player'} 
+    </p>
+  </div>
+  <div className="detail-group">
+    <span>QUANTITY</span>
+    {/* Use purchase.quantity from the map iteration */}
+    <p className="text-white font-bold text-sm">
+      x{purchase.quantity}
+    </p>
+  </div>
+</div>
 
               <div className="mt-auto pt-3 border-t border-white/5 flex justify-between items-end">
                  <p className="text-[10px] text-zinc-500 font-bold">
@@ -521,7 +543,7 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
                  <div className="text-right">
                     <p className="text-[8px] text-zinc-500 font-black uppercase">Total Paid</p>
                     <p className="text-white font-black italic text-lg leading-none">
-                       {purchase.totalCost.toLocaleString()} <span className="text-xs text-purple-500">SHEL</span>
+                       {purchase.totalCost.toLocaleString()} <span className="text-xs text-purple-500">Shells</span>
                     </p>
                  </div>
               </div>

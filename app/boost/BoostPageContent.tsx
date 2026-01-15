@@ -845,7 +845,17 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         <div className="bg-zinc-900 border border-purple-500/50 p-8 rounded-[2rem] max-w-sm relative">
           <button onClick={() => setShowFuckedUpInfo(false)} className="absolute top-4 right-4 text-zinc-500 font-black">CLOSE</button>
           <h2 className="text-2xl font-black italic uppercase mb-4 text-purple-500">About the Book</h2>
-          <p className="text-zinc-400 text-sm leading-relaxed italic">FxckedUpBags by AlexanderTheSage explores personal transformation...</p>
+          <p className="text-zinc-400 text-sm leading-relaxed italic">FxckedUpBags by <b>AlexanderTheSage</b> explores personal transformation and self-discipline, focusing on how mindset and choices shape success. It challenges readers to confront ways they may be sabotaging their goals or "messing up their bags" by missing opportunities or wealth. Through practical strategies, the book emphasizes shifting language from "I will" to "I am going to," helping readers take control and align actions with long-term goals. It also critiques hustle culture and encourages a balanced approach to ambition, empowering readers to unlock their true potential.</p>
+        </div>
+      </div>
+    )}
+
+    {showHumanRelationsInfo && (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div className="bg-zinc-900 border border-purple-500/50 p-8 rounded-[2rem] max-w-sm relative">
+          <button onClick={() => setShowHumanRelationsInfo(false)} className="absolute top-4 right-4 text-zinc-500 font-black">CLOSE</button>
+          <h2 className="text-2xl font-black italic uppercase mb-4 text-purple-500">About the Book</h2>
+          <p className="text-zinc-400 text-sm leading-relaxed italic">The book Human Relations by <b>Kennedy E. O.</b> was inspired by the need to properly educate individuals about the nature of life and its existence using the principles of human relations. The book which is in fourteen chapters discusses in detail the process of human relations as a tool for a better life and the best tool to deal with all individuals you meet in life, while using the principles of human relations as basis for achieving greatness. It also explores many solutions to the challenges we face as humans in making ourselves sociable and accepted</p>
         </div>
       </div>
     )}
