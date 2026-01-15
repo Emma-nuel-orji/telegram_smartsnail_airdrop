@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Check, Ticket, Star, Coins, Crown, Sparkles, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import confetti from "canvas-confetti";
-
+import "./tickets.css"
 interface TicketType {
   id: string;
   name: string;
@@ -340,145 +340,114 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
       )}
 
       {/* Ticket Selection */}
-      <div className="max-w-6xl mx-auto mb-8">
-        <h2 className="text-2xl font-bold text-white mb-4">Select Ticket Type</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {ticketTypes.map((ticket) => {
-            const Icon = ticket.icon;
-            return (
-              <div
-                key={ticket.id}
-                onClick={() => setSelectedTicket(ticket.id)}
-                className={`relative cursor-pointer transition-all duration-300 transform hover:scale-105 ${
-                  selectedTicket === ticket.id ? 'scale-105' : ''
-                }`}
-              >
-                <div className={`bg-gradient-to-br ${ticket.color} rounded-2xl p-6 border-2 ${
-                  selectedTicket === ticket.id ? ticket.borderColor : 'border-transparent'
-                } shadow-xl`}>
-                  {selectedTicket === ticket.id && (
-                    <div className="absolute -top-3 -right-3 bg-green-500 rounded-full p-2">
-                      <Check className="w-5 h-5 text-white" />
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center gap-3 mb-4">
-                    <Icon className="w-8 h-8 text-white" />
-                    <h3 className="text-2xl font-bold text-white">{ticket.name}</h3>
-                  </div>
+      <div className="grid grid-cols-1 gap-6">
+        {ticketTypes.map((ticket) => {
+          const Icon = ticket.icon;
+          const isSelected = selectedTicket === ticket.id;
+          
+          return (
+            <div
+              key={ticket.id}
+              onClick={() => setSelectedTicket(ticket.id)}
+              className={`relative group transition-all duration-500 active:scale-[0.98] cursor-pointer`}
+            >
+              {/* Ticket Background with "Perforated Edge" feel */}
+              <div className={`
+                relative overflow-hidden rounded-3xl p-6 
+                bg-gradient-to-br ${ticket.color} 
+                border-2 transition-all
+                ${isSelected ? 'border-white scale-[1.02] shadow-[0_0_25px_rgba(255,255,255,0.2)]' : 'border-transparent opacity-80'}
+              `}>
+                
+                {/* Decorative Circles for the "Ticket" look */}
+                <div className="absolute top-1/2 -left-3 w-6 h-6 bg-gray-900 rounded-full -translate-y-1/2" />
+                <div className="absolute top-1/2 -right-3 w-6 h-6 bg-gray-900 rounded-full -translate-y-1/2" />
 
-                  <div className="space-y-2 mb-4">
-                    {ticket.features.map((feature, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-white/90">
-                        <Check className="w-4 h-4" />
-                        <span className="text-sm">{feature}</span>
-                      </div>
-                    ))}
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                      <Icon className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black uppercase italic text-white tracking-tighter">
+                        {ticket.name}
+                      </h3>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+                        Admission Pass
+                      </span>
+                    </div>
                   </div>
+                  {isSelected && <Check className="w-6 h-6 text-white bg-green-500 rounded-full p-1" />}
+                </div>
 
-                  <div className="border-t border-white/20 pt-4 space-y-2">
-                    <div className="flex items-center justify-between text-white">
-                      <span className="flex items-center gap-1">
-                        <Star className="w-4 h-4" />
-                        Stars
+                {/* Feature Badges */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {ticket.features.map((feature, idx) => (
+                    <span key={idx} className="bg-black/20 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded-lg text-white/90 border border-white/10 uppercase">
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Pricing Row */}
+                <div className="flex items-center justify-between border-t border-dashed border-white/30 pt-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-white/50 uppercase">Price</p>
+                    <div className="flex gap-4">
+                      <span className="flex items-center gap-1 font-black text-white">
+                        <Star size={14} className="fill-yellow-400 text-yellow-400" /> {ticket.priceStars}
                       </span>
-                      <span className="font-bold">{ticket.priceStars.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-white">
-                      <span className="flex items-center gap-1">
-                        <Coins className="w-4 h-4" />
-                        Shells
+                      <span className="flex items-center gap-1 font-black text-white">
+                        <Coins size={14} className="text-purple-300" /> {ticket.priceShells}
                       </span>
-                      <span className="font-bold">{ticket.priceShells.toLocaleString()}</span>
                     </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-white/50 uppercase">Status</p>
+                    <p className="text-xs font-black text-white italic">AVAILABLE</p>
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Purchase Section */}
-      {selectedTicket && (
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-            <h2 className="text-2xl font-bold text-white mb-6">Complete Your Purchase</h2>
+          {selectedTicket && (
+        <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-zinc-900 border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
+            {/* Background Glow */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 blur-[100px]" />
             
-            {/* Quantity Selector */}
-            <div className="mb-6">
-              <label className="block text-white mb-2 font-semibold">Number of Tickets</label>
+            <h2 className="text-xl font-black italic uppercase text-white mb-6">Checkout</h2>
+            
+            <div className="flex items-center justify-between bg-black/40 p-4 rounded-2xl mb-6">
+              <span className="text-zinc-400 font-bold uppercase text-xs">Quantity</span>
               <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="bg-white/20 hover:bg-white/30 text-white w-12 h-12 rounded-xl font-bold text-xl"
-                  disabled={isProcessing}
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="bg-white/10 text-white text-center text-2xl font-bold w-24 h-12 rounded-xl border border-white/20 focus:outline-none focus:border-purple-400"
-                  min="1"
-                  disabled={isProcessing}
-                />
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="bg-white/20 hover:bg-white/30 text-white w-12 h-12 rounded-xl font-bold text-xl"
-                  disabled={isProcessing}
-                >
-                  +
-                </button>
+                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-8 h-8 rounded-full border border-zinc-700 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">-</button>
+                <span className="text-xl font-bold text-white italic">{quantity}</span>
+                <button onClick={() => setQuantity(quantity + 1)} className="w-8 h-8 rounded-full border border-zinc-700 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">+</button>
               </div>
             </div>
 
-            {/* Total Cost */}
-            <div className="bg-white/5 rounded-xl p-4 mb-6">
-              <div className="flex justify-between items-center text-white mb-2">
-                <span>Total (Stars):</span>
-                <span className="text-2xl font-bold">
-                  {(ticketTypes.find(t => t.id === selectedTicket)!.priceStars * quantity).toLocaleString()}
-                </span>
+            <div className="space-y-3 mb-8">
+              <div className="flex justify-between text-zinc-400 text-sm font-bold uppercase">
+                <span>Total stars</span>
+                <span className="text-white">{(ticketTypes.find(t => t.id === selectedTicket)!.priceStars * quantity).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center text-white">
-                <span>Total (Shells):</span>
-                <span className="text-2xl font-bold">
-                  {(ticketTypes.find(t => t.id === selectedTicket)!.priceShells * quantity).toLocaleString()}
-                </span>
+              <div className="flex justify-between text-zinc-400 text-sm font-bold uppercase">
+                <span>Total shells</span>
+                <span className="text-white">{(ticketTypes.find(t => t.id === selectedTicket)!.priceShells * quantity).toLocaleString()}</span>
               </div>
             </div>
 
-            {/* Payment Buttons */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <button
-                onClick={() => handleTicketPurchase('stars')}
-                disabled={isProcessing}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isProcessing ? (
-                  <span className="animate-spin">⚙️</span>
-                ) : (
-                  <>
-                    <Star className="w-5 h-5" />
-                    Pay with Stars
-                  </>
-                )}
+            <div className="grid grid-cols-1 gap-3">
+              <button className="w-full bg-white text-black font-black italic py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-purple-400 transition-colors">
+                PURCHASE WITH STARS
               </button>
-              <button
-                onClick={() => handleTicketPurchase('shells')}
-                disabled={isProcessing}
-                className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isProcessing ? (
-                  <span className="animate-spin">⚙️</span>
-                ) : (
-                  <>
-                    <Coins className="w-5 h-5" />
-                    Pay with Shells
-                  </>
-                )}
+              <button className="w-full bg-zinc-800 text-white font-black italic py-4 rounded-2xl flex items-center justify-center gap-2">
+                PURCHASE WITH SHELLS
               </button>
             </div>
           </div>
@@ -486,67 +455,94 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
       )}
 
       {/* Purchased Tickets */}
-      {purchasedTickets.length > 0 && (
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold text-white mb-4">Your Tickets</h2>
-          <div className="space-y-4">
-            {purchasedTickets.map((purchase) => (
-              <div key={purchase.id} className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-1">{purchase.ticketType} Ticket</h3>
-                    <p className="text-white/60 text-sm">{new Date(purchase.purchaseDate).toLocaleString()}</p>
-                  </div>
-                  <div className={`px-4 py-2 rounded-full font-semibold ${
-                    purchase.status === 'approved' 
-                      ? 'bg-green-500/20 text-green-400 border border-green-400' 
-                      : 'bg-yellow-500/20 text-yellow-400 border border-yellow-400'
-                  }`}>
-                    {purchase.status === 'approved' ? (
-                        <span className="flex items-center gap-2">
-                            <Check className="w-4 h-4" /> Approved
-                        </span>
-                        ) : purchase.status === 'pending' ? (
-                        'Pending Verification'
-                        ) : (
-                        'Not Presented'
-                        )}
+      {/* Purchased Tickets Section */}
+{purchasedTickets.length > 0 && (
+  <div className="max-w-6xl mx-auto mt-12 px-4">
+    <h2 className="text-2xl font-black italic text-white uppercase mb-6 tracking-tighter">
+      Your Collection
+    </h2>
+    
+    <div className="flex flex-col gap-6">
+      {purchasedTickets.map((purchase) => (
+        <div key={purchase.id} className="relative group">
+          
+          {/* Use the new Ticket Design here */}
+          <div className="ticket-container">
+            {/* Left Stub: The "Scan" Area */}
+            <div className="ticket-stub-left">
+               {purchase.status === 'approved' ? (
+                 <div className="bg-white p-2 rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                   {/* You can replace this with a real QRCode component later */}
+                   <div className="w-12 h-12 bg-black flex items-center justify-center text-[8px] text-white font-bold">QR</div>
+                 </div>
+               ) : (
+                 <div className="flex flex-col items-center">
+                    <span className="animate-spin text-purple-500 mb-2">⚙️</span>
+                    <span className="text-[10px] font-bold text-zinc-500">VERIFYING</span>
+                 </div>
+               )}
+               <p className="mt-2 text-[9px] font-black text-zinc-400 tracking-widest uppercase">
+                 Stub #0{purchase.id.toString().slice(-3)}
+               </p>
+            </div>
 
-                  </div>
+            {/* The Perforated Divider Line */}
+            <div className="ticket-divider"></div>
+
+            {/* Right Stub: The Event Info */}
+            <div className="ticket-stub-right">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-black italic text-white uppercase leading-none">
+                    {purchase.ticketType} PASS
+                  </h3>
+                  <p className="text-[10px] text-purple-400 font-bold mt-1">POLYCOMBAT GLOBAL EVENT</p>
                 </div>
-
-                <div className="grid md:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-white/5 rounded-lg p-3">
-                    <p className="text-white/60 text-sm">Quantity</p>
-                    <p className="text-white font-bold">{purchase.quantity} ticket(s)</p>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-3">
-                    <p className="text-white/60 text-sm">Payment Method</p>
-                    <p className="text-white font-bold capitalize">{purchase.paymentMethod}</p>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-3">
-                    <p className="text-white/60 text-sm">Total Cost</p>
-                    <p className="text-white font-bold">{purchase.totalCost.toLocaleString()}</p>
-                  </div>
+                <div className={`status-badge ${purchase.status}`}>
+                  {purchase.status}
                 </div>
-
-                <button
-                  onClick={() => handlePresentTicket(purchase.ticketId)}
-                  disabled={isProcessing}
-                  className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    purchase.status === 'approved'
-                      ? 'bg-green-500 hover:bg-green-600 text-white'
-                      : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-                  }`}
-                >
-                  <Ticket className="w-5 h-5" />
-                  {purchase.status === 'approved' ? 'Show Verified Ticket' : 'Present for Verification'}
-                </button>
               </div>
-            ))}
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="detail-group">
+                  <span>HOLDER</span>
+                  <p className="text-white font-bold text-sm uppercase">@User</p>
+                </div>
+                <div className="detail-group">
+                  <span>QUANTITY</span>
+                  <p className="text-white font-bold text-sm">x{purchase.quantity}</p>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-3 border-t border-white/5 flex justify-between items-end">
+                 <p className="text-[10px] text-zinc-500 font-bold">
+                   ISSUED: {new Date(purchase.purchaseDate).toLocaleDateString()}
+                 </p>
+                 <div className="text-right">
+                    <p className="text-[8px] text-zinc-500 font-black uppercase">Total Paid</p>
+                    <p className="text-white font-black italic text-lg leading-none">
+                       {purchase.totalCost.toLocaleString()} <span className="text-xs text-purple-500">SHEL</span>
+                    </p>
+                 </div>
+              </div>
+            </div>
           </div>
+
+          {/* Action Button: Hovering over the ticket shows the button */}
+          <button
+            onClick={() => handlePresentTicket(purchase.ticketId)}
+            className="w-full mt-2 py-3 rounded-xl font-black italic uppercase text-xs tracking-widest bg-zinc-800 text-zinc-400 hover:bg-white hover:text-black transition-all"
+          >
+            {purchase.status === 'approved' ? 'Open Digital Pass' : 'View Transaction Details'}
+          </button>
         </div>
-      )}
+      ))}
     </div>
+  </div>
+)}
+
+      
+    </div>
+    
   );
 }
