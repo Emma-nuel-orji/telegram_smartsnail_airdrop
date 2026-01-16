@@ -110,7 +110,7 @@ if (fightsRes.ok && pastRes.ok) {
   
   // Combine them: Upcoming first, then Past
   setFights([...upcomingData, ...pastData]);
-          console.log('Loaded fights:', combined.length); // Debug log
+          console.log('Loaded fights:', upcomingData.length); // Debug log
         }
       } catch (err) { 
         console.error('Fetch error:', err);
