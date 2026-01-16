@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { ShieldCheck, Zap, Target, Star, Wallet } from 'lucide-react';
+import { ShieldCheck, Zap, Target, Star, Wallet,ChevronLeft  } from 'lucide-react';
 
 // Types for our plans
 type AgeGroup = 'Adult' | 'Youth' | 'Kids';
@@ -47,8 +47,9 @@ const sagecombat = () => {
     <div className="min-h-screen bg-black text-white p-4 font-sans">
       {/* Header */}
       <header className="mb-6 flex justify-between items-center">
+        <Link href="/"><ChevronLeft size={28} /></Link>
         <div>
-          <h1 className="text-3xl font-black italic uppercase tracking-tighter">GloveBox</h1>
+          <h1 className="text-3xl font-black italic uppercase tracking-tighter">SageCombat</h1>
           <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Training Selection</p>
         </div>
         <div className="bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800 text-[10px] text-yellow-400 font-bold">

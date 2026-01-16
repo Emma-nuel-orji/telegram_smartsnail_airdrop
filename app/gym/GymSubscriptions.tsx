@@ -4,7 +4,7 @@ import WebApp from "@twa-dev/sdk";
 import Link from "next/link";
 
 import React, { useEffect, useState } from "react";
-import { Clock, Zap, Star, Trophy, Crown, Dumbbell, MapPin } from "lucide-react";
+import { Clock, Zap, Star, Trophy, Crown, Dumbbell, MapPin,ChevronLeft  } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -345,6 +345,7 @@ export default function GymSubscriptions() {
   if (error) {
     return (
       <div className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
+       <Link href="/"><ChevronLeft size={28} /></Link>
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
           style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
