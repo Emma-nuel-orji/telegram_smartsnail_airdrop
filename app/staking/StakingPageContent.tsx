@@ -101,10 +101,15 @@ export default function StakingPageContent() {
         }
         
         // Fetch ALL fights, not just upcoming
-        const fightsRes = await fetch('/api/fights'); // Change this endpoint to get all fights
-        if (fightsRes.ok) {
-          const fightsData = await fightsRes.json();
-          setFights(fightsData);
+        const fightsRes = await fetch('/api/fights'); 
+const pastRes = await fetch('/api/fights/past'); // Fetch the past ones too
+
+if (fightsRes.ok && pastRes.ok) {
+  const upcomingData = await fightsRes.json();
+  const pastData = await pastRes.json();
+  
+  // Combine them: Upcoming first, then Past
+  setFights([...upcomingData, ...pastData]);
           console.log('Loaded fights:', fightsData.length); // Debug log
         }
       } catch (err) { 
@@ -118,26 +123,29 @@ export default function StakingPageContent() {
 
   // Touch handlers for screen sliding (Fights Slider)
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const handleTouchStart = (e: React.TouchEvent) => { 
     touchStartX.current = e.touches[0].clientX; 
+    touchStartY.current = e.touches[0].clientY; // Add this line
+  setTapping(true);
   };
   
   const handleTouchEnd = (e: React.TouchEvent) => {
     const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX.current - touchEndX;
+  const touchEndY = e.changedTouches[0].clientY; 
+  
+  const diffX = touchStartX.current - touchEndX;
+  const diffY = Math.abs(touchStartY.current - touchEndY);
     
     console.log('Swipe diff:', diff, 'Current index:', currentIndex, 'Total fights:', fights.length);
     
-    if (Math.abs(diff) > 50) {
-      if (diff > 0 && currentIndex < fights.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-        console.log('Swiping to next');
-      }
-      if (diff < 0 && currentIndex > 0) {
-        setCurrentIndex(prev => prev - 1);
-        console.log('Swiping to previous');
-      }
+    if (Math.abs(diffX) > 50 && Math.abs(diffX) > diffY) {
+    if (diffX > 0 && currentIndex < fights.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else if (diffX < 0 && currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
     }
+  }
   };
 
   if (loading) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic">LOADING ARENA...</div>;
@@ -161,20 +169,23 @@ export default function StakingPageContent() {
       </nav>
 
       {/* FIXED SLIDER CONTAINER */}
-      <div className="flex-1 relative overflow-hidden">
-        <div 
-          className="flex h-full transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(-${currentIndex * 100}vw)` }}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          {fights.map((fight) => (
-            <div key={fight.id} className="w-screen flex-shrink-0 px-4 flex flex-col">
-              <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} />
-            </div>
-          ))}
-        </div>
+<div 
+  className="flex-1 relative overflow-hidden"
+  onTouchStart={handleTouchStart} 
+  onTouchEnd={handleTouchEnd}
+>
+  {/* 2. This is the div that actually slides left/right */}
+  <div 
+    className="flex h-full transition-transform duration-500 ease-out"
+    style={{ transform: `translateX(-${currentIndex * 100}vw)` }}
+  >
+    {fights.map((fight) => (
+      <div key={fight.id} className="w-screen flex-shrink-0 px-4 flex flex-col">
+        <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} />
       </div>
+    ))}
+  </div>
+</div>
 
       {/* Pagination Dots */}
       <div className="flex justify-center gap-2 p-8 relative z-50">
@@ -199,12 +210,50 @@ function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints
   const [timer, setTimer] = useState("");
   const isActive = fight.status === "SCHEDULED" && new Date(fight.fightDate).getTime() > Date.now();
 
+   const isDraw = isConcluded && fight && !fight.winnerId && fight.status !== "CANCELLED" && fight.status !== "EXPIRED";
+  const winner = isConcluded && fight?.winnerId 
+    ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
+    : null;
+
+    // Inside FightCard
+const [isClaimed, setIsClaimed] = useState(false);
+
+// Logic to check if user deserves a reward
+// Assuming you have 'userStakes' data available
+const userStakeOnWinner = userStakes?.find(s => s.fighterId === fight.winnerId);
+const canClaim = isConcluded && userStakeOnWinner && !isClaimed && fight.status === "COMPLETED";
+
+const handleClaim = async () => {
+  try {
+    // Call your API to process the reward
+    const res = await fetch('/api/stakes/claim', {
+      method: 'POST',
+      body: JSON.stringify({ fightId: fight.id, telegramId })
+    });
+    
+    if (res.ok) {
+      setIsClaimed(true);
+      webApp?.HapticFeedback?.notificationOccurred("success");
+      // Trigger a special confetti explosion here if you like!
+    }
+  } catch (err) {
+    console.error("Claim failed", err);
+  }
+};
+
+
   useEffect(() => {
-    const int = setInterval(() => {
+    if (!fight) return;
+    const interval = setInterval(() => {
       const remaining = getTimeRemaining(fight.fightDate);
-      setTimer(remaining.total <= 0 ? "ARENA OPEN" : `${remaining.days}d ${remaining.hours}h ${remaining.minutes}m ${remaining.seconds}s`);
+      if (remaining.total <= 0) {
+        clearInterval(interval);
+        setTimer("Fight Concluded");
+      } else {
+        setTimer(`${remaining.days}d ${remaining.hours}h ${remaining.minutes}m ${remaining.seconds}s`);
+      }
     }, 1000);
-    return () => clearInterval(int);
+    return () => clearInterval(interval);
   }, [fight]);
 
   return (
@@ -223,13 +272,14 @@ function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints
         {/* Fighter 1 Column */}
         <div className="flex flex-col items-center">
           <FighterStaking 
-            fighter={fight.fighter1} 
-            opponent={fight.fighter2} 
-            fight={fight} 
-            userPoints={userPoints} 
-            isActive={isActive} 
-            telegramId={telegramId} 
-            position="left" 
+             fighter={fight?.fighter1 || undefined}
+          opponent={fight?.fighter2 || undefined}
+          fight={fight}
+          userPoints={userPoints}
+          isActive={isActive}
+          isConcluded={isConcluded}
+          telegramId={telegramId}
+          position="left"
             color="red" 
           />
           <p className="mt-2 text-white font-bold italic uppercase text-xs tracking-tight leading-none">
@@ -245,6 +295,7 @@ function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints
             fight={fight} 
             userPoints={userPoints} 
             isActive={isActive} 
+            isConcluded={isConcluded}
             telegramId={telegramId} 
             position="right" 
             color="blue" 
@@ -253,6 +304,81 @@ function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints
             {fight.fighter2.name}
           </p>
         </div>
+         {/* Enhanced Winner/Draw Overlay */}
+      {isConcluded && (
+  <div className="fight-result-overlay">
+    {/* Animated background glow */}
+    <div className={`result-glow ${isDraw ? 'draw-glow' : 'winner-glow'}`}></div>
+    
+    <div className="result-card-glass">
+      {/* Top Badge */}
+      <div className="result-badge">
+        {fight.status === "CANCELLED" ? "VOID" : 
+         fight.status === "EXPIRED" ? "PENDING" : "FINAL RESULT"}
+      </div>
+
+      <div className="result-main-content">
+        {winner ? (
+          <>
+            <div className="winner-presentation">
+              <div className="portrait-frame">
+                <img src={winner.imageUrl} alt={winner.name} className="winner-img" />
+                <div className="crown-icon">👑</div>
+              </div>
+              <h2 className="winner-text-name">{winner.name}</h2>
+              <p className="winner-subtitle">DOMINANT VICTORY</p>
+            </div>
+            
+            {/* Minimal Confetti */}
+            <div className="confetti-wrapper">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="dot-confetti" style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 2}s`
+                }}></div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="status-display">
+            <div className="status-icon">
+              {fight.status === "CANCELLED" ? "🚫" : isDraw ? "🤝" : "⏰"}
+            </div>
+            <h2 className="status-title">
+              {isDraw ? "STALEMATE" : fight.status === "CANCELLED" ? "CANCELLED" : "VERIFYING"}
+            </h2>
+            <p className="status-desc">
+              {isDraw ? "Split Decision" : "Official scores are being processed"}
+            </p>
+          </div>
+        )}
+      </div>
+
+     <div className="claim-section">
+  {canClaim ? (
+    <button className="claim-button-premium" onClick={handleClaim}>
+      <span className="button-glow"></span>
+      <div className="button-content">
+        <span className="claim-icon">💰</span>
+        <div className="claim-text">
+          <span className="claim-label">COLLECT REWARDS</span>
+          <span className="claim-amount">
+            +{ (userStakeOnWinner.amount * 1.8).toLocaleString() } Shells
+          </span>
+        </div>
+      </div>
+    </button>
+  ) : isClaimed ? (
+    <div className="claimed-status">
+      <span className="check-icon">✓</span> REWARDS COLLECTED
+    </div>
+  ) : userStakeOnWinner === undefined && isConcluded ? (
+     <p className="no-stake-msg">Better luck next time!</p>
+  ) : null}
+</div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );
@@ -273,33 +399,54 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
   const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
 
   const MAX_STARS = 100000;
+  const MIN_POINTS_REQUIRED = 200000;
   const MAX_AMOUNT = stakeType === 'STARS' ? MAX_STARS : userPoints;
+const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcluded;
+  const isFighter = fighter?.telegramId === telegramId;
+  
+  const isWinner = isConcluded && fight?.winnerId === fighter?.id;
+  const isLoser = isConcluded && fight?.winnerId !== fighter?.id && fight?.winnerId;
 
   useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
 
   // --- REFINED DRAGGING LOGIC ---
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (barLocked || !isActive || !barRef.current) return;
-    
-    const rect = barRef.current.getBoundingClientRect();
-    const touchY = e.touches[0].clientY;
-    
-    let pct = ((rect.bottom - touchY) / rect.height) * 100;
-    pct = Math.max(0, Math.min(100, pct));
-    
-    setBarHeight(pct);
-    setStakeAmount(Math.floor((pct / 100) * MAX_AMOUNT));
+ const handleTouchMove = (e: React.TouchEvent) => {
+  if (barLocked || !isActive || !barRef.current) return;
 
-    if (Math.random() > 0.94) {
-      const id = Math.random();
-      const text = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
-      const xPos = Math.floor(Math.random() * 80) + 10;
+  const touch = e.touches[0];
+  
+  // 1. DIRECTION CHECK
+  const deltaX = Math.abs(touch.clientX - touchStartX.current);
+  const deltaY = Math.abs(touch.clientY - touchStartY.current);
 
-      setPopups(prev => [...prev, { id, text, xPos }]);
-      setTimeout(() => setPopups(p => p.filter(x => x.id !== id)), 1000);
-      webApp?.HapticFeedback?.impactOccurred("light");
-    }
-  };
+  // If the user is swiping LEFT or RIGHT, we return immediately.
+  // This allows the touch event to "bubble up" to your slider.
+  if (deltaX > deltaY && deltaX > 10) {
+    return; 
+  }
+
+  // 2. STAKING LOGIC
+  // If we reach here, the user is moving UP/DOWN. 
+  // We prevent the page from moving so the gauge fills smoothly.
+  if (e.cancelable) e.preventDefault();
+
+  const rect = barRef.current.getBoundingClientRect();
+  let pct = ((rect.bottom - touch.clientY) / rect.height) * 100;
+  pct = Math.max(0, Math.min(100, pct));
+  
+  setBarHeight(pct);
+  setStakeAmount(Math.floor((pct / 100) * MAX_AMOUNT));
+
+  // 3. YOUR POPUP LOGIC (Keep this!)
+  if (Math.random() > 0.94) {
+    const id = Math.random();
+    const text = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
+    const xPos = Math.floor(Math.random() * 80) + 10;
+    setPopups(prev => [...prev, { id, text, xPos }]);
+    setTimeout(() => setPopups(p => p.filter(x => x.id !== id)), 1000);
+    webApp?.HapticFeedback?.impactOccurred("light");
+  }
+};
 
   // DECAY LOGIC
   useEffect(() => {
@@ -316,6 +463,20 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
     }
     return () => { if (decayRef.current) clearInterval(decayRef.current); };
   }, [barLocked, barHeight, tapping, MAX_AMOUNT]);
+const fetchTotalSupport = async () => {
+    try {
+      const response = await fetch(`/api/stakes/total/${fighter?.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTotalSupport(data);
+      } else {
+        setTotalSupport({ stars: 0, points: 0 });
+      }
+    } catch (error) {
+      console.error("Error fetching total support:", error);
+      setTotalSupport({ stars: 0, points: 0 });
+    }
+  };
 
   const toggleLock = () => {
     const newLocked = !barLocked;
