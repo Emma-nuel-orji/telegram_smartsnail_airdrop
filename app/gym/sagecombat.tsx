@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { ShieldCheck, Zap, Target, Star, Wallet,ChevronLeft  } from 'lucide-react';
-
+import Link from "next/link";
 // Types for our plans
 type AgeGroup = 'Adult' | 'Youth' | 'Kids';
 type TrainingType = 'Regular' | 'Intensive';
