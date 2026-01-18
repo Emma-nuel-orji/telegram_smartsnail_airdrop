@@ -89,37 +89,42 @@ export default function StakingPageContent() {
   }, []);
 
   // Fetch Data - MODIFIED TO GET ALL FIGHTS (not just upcoming)
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!telegramId) return;
-      try {
-        setLoading(true);
-        const userRes = await fetch(`/api/user/${telegramId}`);
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          setUserPoints(userData.points);
-        }
-        
-        // Fetch ALL fights, not just upcoming
-        const fightsRes = await fetch('/api/fights'); 
-const pastRes = await fetch('/api/fights/past'); // Fetch the past ones too
-
-if (fightsRes.ok && pastRes.ok) {
-  const upcomingData = await fightsRes.json();
-  const pastData = await pastRes.json();
-  
-  // Combine them: Upcoming first, then Past
-  setFights([...upcomingData, ...pastData]);
-          console.log('Loaded fights:', upcomingData.length); // Debug log
-        }
-      } catch (err) { 
-        console.error('Fetch error:', err);
-        setError("Failed to load arena"); 
+ useEffect(() => {
+  const fetchData = async () => {
+    if (!telegramId) return;
+    try {
+      setLoading(true);
+      
+      // Fetch user data
+      const userRes = await fetch(`/api/user/${telegramId}`);
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        setUserPoints(userData.points);
       }
-      finally { setLoading(false); }
-    };
-    fetchData();
-  }, [telegramId]);
+      
+      // ✅ IMPROVED: Fetch both fight types with proper error handling
+      const [upcomingRes, pastRes] = await Promise.all([
+        fetch('/api/fights'),
+        fetch('/api/fights/past')
+      ]);
+      
+      const upcomingData = upcomingRes.ok ? await upcomingRes.json() : [];
+      const pastData = pastRes.ok ? await pastRes.json() : [];
+      
+      // Combine them: Upcoming first, then Past
+      const allFights = [...upcomingData, ...pastData];
+      setFights(allFights);
+      console.log('Loaded fights:', allFights.length);
+      
+    } catch (err) { 
+      console.error('Fetch error:', err);
+      setError("Failed to load arena"); 
+    } finally { 
+      setLoading(false); 
+    }
+  };
+  fetchData();
+}, [telegramId]);
 
   // Touch handlers for screen sliding (Fights Slider)
   const touchStartX = useRef(0);
@@ -127,7 +132,7 @@ if (fightsRes.ok && pastRes.ok) {
   const handleTouchStart = (e: React.TouchEvent) => { 
     touchStartX.current = e.touches[0].clientX; 
     touchStartY.current = e.touches[0].clientY; // Add this line
-  setTapping(true);
+  // setTapping(true);
   };
   
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -137,7 +142,7 @@ if (fightsRes.ok && pastRes.ok) {
   const diffX = touchStartX.current - touchEndX;
   const diffY = Math.abs(touchStartY.current - touchEndY);
     
-    console.log('Swipe diff:', diff, 'Current index:', currentIndex, 'Total fights:', fights.length);
+    console.log('Swipe diff:', diffX, 'Current index:', currentIndex, 'Total fights:', fights.length);
     
     if (Math.abs(diffX) > 50 && Math.abs(diffX) > diffY) {
     if (diffX > 0 && currentIndex < fights.length - 1) {
@@ -207,8 +212,22 @@ if (fightsRes.ok && pastRes.ok) {
 }
 
 function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints: number, telegramId: string | null }) {
-  const [timer, setTimer] = useState("");
-  const isActive = fight.status === "SCHEDULED" && new Date(fight.fightDate).getTime() > Date.now();
+ const [timer, setTimer] = useState<string>("");
+ const [userStakes, setUserStakes] = useState<any[]>([]);
+ const [loadingStakes, setLoadingStakes] = useState(true);
+const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+   const isActive = !!fight && 
+    fight.status === "SCHEDULED" && 
+    new Date(fight.fightDate).getTime() > Date.now();
+  
+  const isConcluded = !!fight && (
+    fight.status === "COMPLETED" ||
+    fight.status === "DRAW" ||
+    fight.status === "CANCELLED" ||
+    fight.status === "EXPIRED" ||
+    new Date(fight.fightDate).getTime() <= Date.now()
+  );
+  
 
    const isDraw = isConcluded && fight && !fight.winnerId && fight.status !== "CANCELLED" && fight.status !== "EXPIRED";
   const winner = isConcluded && fight?.winnerId 
@@ -217,6 +236,29 @@ function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints
 
     // Inside FightCard
 const [isClaimed, setIsClaimed] = useState(false);
+
+// FETCH USER'S STAKE FOR THIS SPECIFIC FIGHT
+  useEffect(() => {
+    const fetchMyStakes = async () => {
+      if (!telegramId || !fight.id) return;
+      try {
+        setLoadingStakes(true);
+        // This endpoint should return all stakes made by this user for this fight
+        const res = await fetch(`/api/stakes/user/${telegramId}/${fight.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setUserStakes(data.stakes || []);
+          setIsClaimed(data.claimed || false);
+        }
+      } catch (err) {
+        console.error("Error fetching user stakes:", err);
+      } finally {
+        setLoadingStakes(false);
+      }
+    };
+
+    fetchMyStakes();
+  }, [fight.id, telegramId]);
 
 // Logic to check if user deserves a reward
 // Assuming you have 'userStakes' data available
@@ -384,7 +426,7 @@ const handleClaim = async () => {
   );
 }
 
-function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, color }: FighterStakingProps) {
+function FighterStaking({ fighter, fight, userPoints, isActive, isConcluded = false, telegramId, color, position  }: FighterStakingProps) {
   const [stakeType, setStakeType] = useState<'STARS' | 'POINTS'>('POINTS');
   const [barHeight, setBarHeight] = useState(0);
   const [stakeAmount, setStakeAmount] = useState(0);
@@ -406,9 +448,15 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
   
   const isWinner = isConcluded && fight?.winnerId === fighter?.id;
   const isLoser = isConcluded && fight?.winnerId !== fighter?.id && fight?.winnerId;
-
+ const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+  touchStartX.current = e.touches[0].clientX;
+  touchStartY.current = e.touches[0].clientY;
+  setTapping(true);
+};
   // --- REFINED DRAGGING LOGIC ---
  const handleTouchMove = (e: React.TouchEvent) => {
   if (barLocked || !isActive || !barRef.current) return;
@@ -463,20 +511,6 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
     }
     return () => { if (decayRef.current) clearInterval(decayRef.current); };
   }, [barLocked, barHeight, tapping, MAX_AMOUNT]);
-const fetchTotalSupport = async () => {
-    try {
-      const response = await fetch(`/api/stakes/total/${fighter?.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTotalSupport(data);
-      } else {
-        setTotalSupport({ stars: 0, points: 0 });
-      }
-    } catch (error) {
-      console.error("Error fetching total support:", error);
-      setTotalSupport({ stars: 0, points: 0 });
-    }
-  };
 
   const toggleLock = () => {
     const newLocked = !barLocked;
@@ -544,6 +578,7 @@ const fetchTotalSupport = async () => {
       <div 
         ref={barRef}
         className={`w-14 flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
+        onTouchStart={handleTouchStart}  
         onTouchMove={handleTouchMove}
         onClick={toggleLock}
       >
