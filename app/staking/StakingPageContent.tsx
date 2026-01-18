@@ -104,7 +104,7 @@ export default function StakingPageContent() {
       
       // ✅ IMPROVED: Fetch both fight types with proper error handling
       const [upcomingRes, pastRes] = await Promise.all([
-        fetch('/api/fights'),
+        fetch('/api/fights/upcoming'),
         fetch('/api/fights/past')
       ]);
       
