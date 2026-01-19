@@ -301,7 +301,7 @@ const handleClaim = async () => {
   }, [fight]);
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0">
+    <div className="flex-1 flex flex-col h-full">
       <div className="text-center mb-8 relative z-10">
         <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-2">{fight.title}</h2>
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-full">
@@ -310,7 +310,7 @@ const handleClaim = async () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-2 gap-4 flex-1 relative">
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-4xl font-black italic text-zinc-800/50 pointer-events-none">VS</div>
         
         {/* Fighter 1 Column */}
