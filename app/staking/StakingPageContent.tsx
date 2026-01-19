@@ -580,7 +580,7 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
       {/* GAUGE */}
      <div 
   ref={barRef}
-  className={`w-14 min-h-[150px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
+  className={`w-14 flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
   onTouchStart={handleTouchStart}  
   onTouchMove={handleTouchMove}
   onClick={toggleLock}
