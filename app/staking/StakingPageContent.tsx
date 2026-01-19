@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Zap, Star, Wallet, ChevronLeft, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-
+import "./staking.css";
 // --- INTERFACES ---
 interface Fighter {
   id: string;
@@ -188,7 +188,15 @@ function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints
       <div className="grid grid-cols-2 gap-4 flex-1 relative h-[50vh]">
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-4xl font-black italic text-zinc-800/50 pointer-events-none">VS</div>
         <FighterStaking fighter={fight.fighter1} opponent={fight.fighter2} fight={fight} userPoints={userPoints} isActive={isActive} telegramId={telegramId} position="left" color="red" />
+        <div className="mt-2 text-center">
+      <p className="text-white font-black italic uppercase text-lg tracking-tighter leading-none">{fight.fighter1.name}</p>
+    
+    </div>
         <FighterStaking fighter={fight.fighter2} opponent={fight.fighter1} fight={fight} userPoints={userPoints} isActive={isActive} telegramId={telegramId} position="right" color="blue" />
+        <div className="mt-2 text-center">
+      <p className="text-white font-black italic uppercase text-lg tracking-tighter leading-none">{fight.fighter2.name}</p>
+      
+    </div>
       </div>
     </div>
   );
@@ -203,6 +211,8 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
   const [messages, setMessages] = useState<any[]>([]);
 
   const decayRef = useRef<NodeJS.Timeout | null>(null);
+   const [popups, setPopups] = useState<any[]>([]);
+  const barRef = useRef<HTMLDivElement>(null);
   const barLockedRef = useRef(false);
   const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
 
@@ -211,6 +221,34 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
 
   useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
 
+
+  // --- REFINED DRAGGING LOGIC ---
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (barLocked || !isActive || !barRef.current) return;
+    
+    const rect = barRef.current.getBoundingClientRect();
+    const touchY = e.touches[0].clientY;
+    
+    // Calculate percentage from BOTTOM of the bar
+    let pct = ((rect.bottom - touchY) / rect.height) * 100;
+    pct = Math.max(0, Math.min(100, pct)); // Clamp 0-100
+    
+    setBarHeight(pct);
+
+    // Haptics and Popups
+    if (Math.random() > 0.94) {
+  const id = Math.random();
+  const text = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
+  
+  // Add a random horizontal position (e.g., between 10% and 90% of screen width)
+  const xPos = Math.floor(Math.random() * 80) + 10; 
+
+  setPopups(prev => [...prev, { id, text, xPos }]); // Store xPos in the object
+  
+  setTimeout(() => setPopups(p => p.filter(x => x.id !== id)), 1000);
+  webApp?.HapticFeedback?.impactOccurred("light");
+}
+  };
   // DECAY LOGIC
   useEffect(() => {
     if (!barLocked && barHeight > 0 && !tapping) {
@@ -227,27 +265,27 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
     return () => { if (decayRef.current) clearInterval(decayRef.current); };
   }, [barLocked, barHeight, tapping, MAX_AMOUNT]);
 
-  const triggerMessage = () => {
-    const msg = { id: Math.random(), text: MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)] };
-    setMessages(prev => [...prev, msg]);
-    setTimeout(() => setMessages(prev => prev.filter(m => m.id !== msg.id)), 2000);
-  };
+  // const triggerMessage = () => {
+  //   const msg = { id: Math.random(), text: MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)] };
+  //   setMessages(prev => [...prev, msg]);
+  //   setTimeout(() => setMessages(prev => prev.filter(m => m.id !== msg.id)), 2000);
+  // };
 
-  const handleDrag = (e: React.TouchEvent) => {
-    if (barLocked || !isActive) return;
-    setTapping(true);
-    const clientY = e.touches[0].clientY;
-    const windowH = window.innerHeight;
-    const next = Math.max(0, Math.min(100, ((windowH - clientY) / (windowH * 0.6)) * 100));
+  // const handleDrag = (e: React.TouchEvent) => {
+  //   if (barLocked || !isActive) return;
+  //   setTapping(true);
+  //   const clientY = e.touches[0].clientY;
+  //   const windowH = window.innerHeight;
+  //   const next = Math.max(0, Math.min(100, ((windowH - clientY) / (windowH * 0.6)) * 100));
     
-    setBarHeight(next);
-    setStakeAmount(Math.floor((next / 100) * MAX_AMOUNT));
+  //   setBarHeight(next);
+  //   setStakeAmount(Math.floor((next / 100) * MAX_AMOUNT));
     
-    if (Math.random() > 0.96) triggerMessage();
-    if (Math.floor(next) % 5 === 0) webApp?.HapticFeedback?.impactOccurred("light");
-  };
+  //   if (Math.random() > 0.96) triggerMessage();
+  //   if (Math.floor(next) % 5 === 0) webApp?.HapticFeedback?.impactOccurred("light");
+  // };
 
-  const handleDragEnd = () => setTapping(false);
+  // const handleDragEnd = () => setTapping(false);
 
   const toggleLock = () => {
     const newLocked = !barLocked;
@@ -304,8 +342,8 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
       {/* GAUGE */}
       <div 
         className={`w-14 flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
-        onTouchMove={handleDrag}
-        onTouchEnd={handleDragEnd}
+        onTouchMove={handleTouchMove}
+        // onTouchEnd={handleDragEnd}
         onClick={toggleLock}
       >
         <motion.div 
@@ -314,7 +352,7 @@ function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, colo
         />
         {!barLocked && (
           <div className="absolute inset-0 flex items-center justify-center rotate-[-90deg] pointer-events-none">
-            <span className="text-[10px] font-black text-white tracking-[0.3em] whitespace-nowrap drop-shadow-md">DRAG TO STAKE</span>
+            <span className="text-[10px] font-black text-white tracking-[0.3em] whitespace-nowrap drop-shadow-md">DRAG UP</span>
           </div>
         )}
       </div>
