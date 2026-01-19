@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Zap, Star, Wallet, ChevronLeft, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import "./staking.css";
 
 // --- INTERFACES ---
 interface Fighter {
@@ -88,74 +87,41 @@ export default function StakingPageContent() {
     }
   }, []);
 
-  // Fetch Data - MODIFIED TO GET ALL FIGHTS (not just upcoming)
- useEffect(() => {
-  const fetchData = async () => {
-    if (!telegramId) return;
-    try {
-      setLoading(true);
-      
-      // Fetch user data
-      const userRes = await fetch(`/api/user/${telegramId}`);
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        setUserPoints(userData.points);
-      }
-      
-      // ✅ IMPROVED: Fetch both fight types with proper error handling
-      const [upcomingRes, pastRes] = await Promise.all([
-        fetch('/api/fights/upcoming'),
-        fetch('/api/fights/past')
-      ]);
-      
-      const upcomingData = upcomingRes.ok ? await upcomingRes.json() : [];
-      const pastData = pastRes.ok ? await pastRes.json() : [];
-      
-      // Combine them: Upcoming first, then Past
-      const allFights = [...upcomingData, ...pastData];
-      setFights(allFights);
-      console.log('Loaded fights:', allFights.length);
-      
-    } catch (err) { 
-      console.error('Fetch error:', err);
-      setError("Failed to load arena"); 
-    } finally { 
-      setLoading(false); 
-    }
-  };
-  fetchData();
-}, [telegramId]);
+  // Fetch Data using your API routes
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!telegramId) return;
+      try {
+        setLoading(true);
+        const userRes = await fetch(`/api/user/${telegramId}`);
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUserPoints(userData.points);
+        }
+        const fightsRes = await fetch('/api/fights/upcoming');
+        if (fightsRes.ok) {
+          const fightsData = await fightsRes.json();
+          setFights(fightsData);
+        }
+      } catch (err) { setError("Failed to load arena"); }
+      finally { setLoading(false); }
+    };
+    fetchData();
+  }, [telegramId]);
 
   // Touch handlers for screen sliding (Fights Slider)
   const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const handleTouchStart = (e: React.TouchEvent) => { 
-    touchStartX.current = e.touches[0].clientX; 
-    touchStartY.current = e.touches[0].clientY; // Add this line
-  // setTapping(true);
-  };
-  
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e: React.TouchEvent) => {
     const touchEndX = e.changedTouches[0].clientX;
-  const touchEndY = e.changedTouches[0].clientY; 
-  
-  const diffX = touchStartX.current - touchEndX;
-  const diffY = Math.abs(touchStartY.current - touchEndY);
-    
-    console.log('Swipe diff:', diffX, 'Current index:', currentIndex, 'Total fights:', fights.length);
-    
-    if (Math.abs(diffX) > 50 && Math.abs(diffX) > diffY) {
-    if (diffX > 0 && currentIndex < fights.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else if (diffX < 0 && currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+    const diff = touchStartX.current - touchEndX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < fights.length - 1) setCurrentIndex(prev => prev + 1);
+      if (diff < 0 && currentIndex > 0) setCurrentIndex(prev => prev - 1);
     }
-  }
   };
 
   if (loading) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic">LOADING ARENA...</div>;
-  
-  if (fights.length === 0) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic">NO FIGHTS AVAILABLE</div>;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col overflow-hidden">
@@ -173,135 +139,44 @@ export default function StakingPageContent() {
         </div>
       </nav>
 
-      {/* FIXED SLIDER CONTAINER */}
-<div 
-  className="flex-1 relative overflow-hidden"
-  onTouchStart={handleTouchStart} 
-  onTouchEnd={handleTouchEnd}
->
-  {/* 2. This is the div that actually slides left/right */}
-  <div 
-    className="flex h-full transition-transform duration-500 ease-out"
-    style={{ transform: `translateX(-${currentIndex * 100}vw)` }}
-  >
-    {fights.map((fight) => (
-      <div key={fight.id} className="w-screen flex-shrink-0 px-4 flex flex-col">
-        <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} />
+      {/* Slider */}
+      <div 
+        className="flex-1 flex transition-transform duration-500 ease-out h-full"
+        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {fights.map((fight) => (
+          <div key={fight.id} className="w-full flex-shrink-0 px-4 flex flex-col">
+             <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} />
+          </div>
+        ))}
       </div>
-    ))}
-  </div>
-</div>
 
       {/* Pagination Dots */}
       <div className="flex justify-center gap-2 p-8 relative z-50">
         {fights.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentIndex(i)}
-            className={`h-1.5 rounded-full transition-all ${i === currentIndex ? 'w-8 bg-yellow-500' : 'w-2 bg-zinc-800'}`}
-          />
+          <div key={i} className={`h-1.5 rounded-full transition-all ${i === currentIndex ? 'w-8 bg-yellow-500' : 'w-2 bg-zinc-800'}`} />
         ))}
-      </div>
-      
-      {/* Debug Info */}
-      <div className="fixed top-20 left-4 bg-black/80 p-2 rounded text-xs z-50">
-        Fight {currentIndex + 1} of {fights.length}
       </div>
     </div>
   );
 }
 
 function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints: number, telegramId: string | null }) {
- const [timer, setTimer] = useState<string>("");
- const [userStakes, setUserStakes] = useState<any[]>([]);
- const [loadingStakes, setLoadingStakes] = useState(true);
-const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
-  
-  
-  const isConcluded = !!fight && (
-    fight.status === "COMPLETED" ||
-    fight.status === "DRAW" ||
-    fight.status === "CANCELLED" ||
-    fight.status === "EXPIRED" ||
-    new Date(fight.fightDate).getTime() <= Date.now()
-  );
-  
- const isActive = !!fight && 
-    fight.status === "SCHEDULED" && 
-    new Date(fight.fightDate).getTime() > Date.now();
-    
-   const isDraw = isConcluded && fight && !fight.winnerId && fight.status !== "CANCELLED" && fight.status !== "EXPIRED";
-   
-  const winner = isConcluded && fight?.winnerId 
-    ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
-    : null;
-
-    // Inside FightCard
-const [isClaimed, setIsClaimed] = useState(false);
-
-// FETCH USER'S STAKE FOR THIS SPECIFIC FIGHT
-  useEffect(() => {
-    const fetchMyStakes = async () => {
-      if (!telegramId || !fight.id) return;
-      try {
-        setLoadingStakes(true);
-        // This endpoint should return all stakes made by this user for this fight
-        const res = await fetch(`/api/stakes/user/${telegramId}/${fight.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setUserStakes(data.stakes || []);
-          setIsClaimed(data.claimed || false);
-        }
-      } catch (err) {
-        console.error("Error fetching user stakes:", err);
-      } finally {
-        setLoadingStakes(false);
-      }
-    };
-
-    fetchMyStakes();
-  }, [fight.id, telegramId]);
-
-// Logic to check if user deserves a reward
-// Assuming you have 'userStakes' data available
-const userStakeOnWinner = userStakes?.find(s => s.fighterId === fight.winnerId);
-const canClaim = isConcluded && userStakeOnWinner && !isClaimed && fight.status === "COMPLETED";
-
-const handleClaim = async () => {
-  try {
-    // Call your API to process the reward
-    const res = await fetch('/api/stakes/claim', {
-      method: 'POST',
-      body: JSON.stringify({ fightId: fight.id, telegramId })
-    });
-    
-    if (res.ok) {
-      setIsClaimed(true);
-      webApp?.HapticFeedback?.notificationOccurred("success");
-      // Trigger a special confetti explosion here if you like!
-    }
-  } catch (err) {
-    console.error("Claim failed", err);
-  }
-};
-
+  const [timer, setTimer] = useState("");
+  const isActive = fight.status === "SCHEDULED" && new Date(fight.fightDate).getTime() > Date.now();
 
   useEffect(() => {
-    if (!fight) return;
-    const interval = setInterval(() => {
+    const int = setInterval(() => {
       const remaining = getTimeRemaining(fight.fightDate);
-      if (remaining.total <= 0) {
-        clearInterval(interval);
-        setTimer("Fight Concluded");
-      } else {
-        setTimer(`${remaining.days}d ${remaining.hours}h ${remaining.minutes}m ${remaining.seconds}s`);
-      }
+      setTimer(remaining.total <= 0 ? "ARENA OPEN" : `${remaining.days}d ${remaining.hours}h ${remaining.minutes}m ${remaining.seconds}s`);
     }, 1000);
-    return () => clearInterval(interval);
+    return () => clearInterval(int);
   }, [fight]);
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col">
       <div className="text-center mb-8 relative z-10">
         <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-2">{fight.title}</h2>
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-full">
@@ -310,125 +185,24 @@ const handleClaim = async () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 flex-1 relative">
+      <div className="grid grid-cols-2 gap-4 flex-1 relative h-[50vh]">
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-4xl font-black italic text-zinc-800/50 pointer-events-none">VS</div>
-        
-        {/* Fighter 1 Column */}
-        <div className="flex flex-col items-center">
-          <FighterStaking 
-             fighter={fight?.fighter1 || undefined}
-          opponent={fight?.fighter2 || undefined}
-          fight={fight}
-          userPoints={userPoints}
-          isActive={isActive}
-          isConcluded={isConcluded}
-          telegramId={telegramId}
-          position="left"
-            color="red" 
-          />
-          <p className="mt-2 text-white font-bold italic uppercase text-xs tracking-tight leading-none">
-            {fight.fighter1.name}
-          </p>
-        </div>
-        
-        {/* Fighter 2 Column */}
-        <div className="flex flex-col items-center">
-          <FighterStaking 
-            fighter={fight.fighter2} 
-            opponent={fight.fighter1} 
-            fight={fight} 
-            userPoints={userPoints} 
-            isActive={isActive} 
-            isConcluded={isConcluded}
-            telegramId={telegramId} 
-            position="right" 
-            color="blue" 
-          />
-          <p className="mt-2 text-white font-bold italic uppercase text-xs tracking-tight leading-none">
-            {fight.fighter2.name}
-          </p>
-        </div>
-         {/* Enhanced Winner/Draw Overlay */}
-      {isConcluded && (
-  <div className="fight-result-overlay">
-    {/* Animated background glow */}
-    <div className={`result-glow ${isDraw ? 'draw-glow' : 'winner-glow'}`}></div>
+        <FighterStaking fighter={fight.fighter1} opponent={fight.fighter2} fight={fight} userPoints={userPoints} isActive={isActive} telegramId={telegramId} position="left" color="red" />
+        <div className="mt-2 text-center">
+      <p className="text-white font-black italic uppercase text-lg tracking-tighter leading-none">{fight.fighter1.name}</p>
     
-    <div className="result-card-glass">
-      {/* Top Badge */}
-      <div className="result-badge">
-        {fight.status === "CANCELLED" ? "VOID" : 
-         fight.status === "EXPIRED" ? "PENDING" : "FINAL RESULT"}
-      </div>
-
-      <div className="result-main-content">
-        {winner ? (
-          <>
-            <div className="winner-presentation">
-              <div className="portrait-frame">
-                <img src={winner.imageUrl} alt={winner.name} className="winner-img" />
-                <div className="crown-icon">👑</div>
-              </div>
-              <h2 className="winner-text-name">{winner.name}</h2>
-              <p className="winner-subtitle">DOMINANT VICTORY</p>
-            </div>
-            
-            {/* Minimal Confetti */}
-            <div className="confetti-wrapper">
-              {[...Array(12)].map((_, i) => (
-                <div key={i} className="dot-confetti" style={{
-                  left: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 2}s`
-                }}></div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="status-display">
-            <div className="status-icon">
-              {fight.status === "CANCELLED" ? "🚫" : isDraw ? "🤝" : "⏰"}
-            </div>
-            <h2 className="status-title">
-              {isDraw ? "STALEMATE" : fight.status === "CANCELLED" ? "CANCELLED" : "VERIFYING"}
-            </h2>
-            <p className="status-desc">
-              {isDraw ? "Split Decision" : "Official scores are being processed"}
-            </p>
-          </div>
-        )}
-      </div>
-
-     <div className="claim-section">
-  {canClaim ? (
-    <button className="claim-button-premium" onClick={handleClaim}>
-      <span className="button-glow"></span>
-      <div className="button-content">
-        <span className="claim-icon">💰</span>
-        <div className="claim-text">
-          <span className="claim-label">COLLECT REWARDS</span>
-          <span className="claim-amount">
-            +{ (userStakeOnWinner.amount * 1.8).toLocaleString() } Shells
-          </span>
-        </div>
-      </div>
-    </button>
-  ) : isClaimed ? (
-    <div className="claimed-status">
-      <span className="check-icon">✓</span> REWARDS COLLECTED
     </div>
-  ) : userStakeOnWinner === undefined && isConcluded ? (
-     <p className="no-stake-msg">Better luck next time!</p>
-  ) : null}
-</div>
+        <FighterStaking fighter={fight.fighter2} opponent={fight.fighter1} fight={fight} userPoints={userPoints} isActive={isActive} telegramId={telegramId} position="right" color="blue" />
+        <div className="mt-2 text-center">
+      <p className="text-white font-black italic uppercase text-lg tracking-tighter leading-none">{fight.fighter2.name}</p>
+      
     </div>
-  </div>
-)}
       </div>
     </div>
   );
 }
 
-function FighterStaking({ fighter, fight, userPoints, isActive, isConcluded = false, telegramId, color, position  }: FighterStakingProps) {
+function FighterStaking({ fighter, fight, userPoints, isActive, telegramId, color }: FighterStakingProps) {
   const [stakeType, setStakeType] = useState<'STARS' | 'POINTS'>('POINTS');
   const [barHeight, setBarHeight] = useState(0);
   const [stakeAmount, setStakeAmount] = useState(0);
@@ -437,68 +211,44 @@ function FighterStaking({ fighter, fight, userPoints, isActive, isConcluded = fa
   const [messages, setMessages] = useState<any[]>([]);
 
   const decayRef = useRef<NodeJS.Timeout | null>(null);
-  const [popups, setPopups] = useState<any[]>([]);
+   const [popups, setPopups] = useState<any[]>([]);
   const barRef = useRef<HTMLDivElement>(null);
   const barLockedRef = useRef(false);
   const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
 
   const MAX_STARS = 100000;
-  const MIN_POINTS_REQUIRED = 200000;
   const MAX_AMOUNT = stakeType === 'STARS' ? MAX_STARS : userPoints;
-const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcluded;
-  const isFighter = fighter?.telegramId === telegramId;
-  
-  const isWinner = isConcluded && fight?.winnerId === fighter?.id;
-  const isLoser = isConcluded && fight?.winnerId !== fighter?.id && fight?.winnerId;
- const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
+
   useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-  e.stopPropagation();
-    touchStartX.current = e.touches[0].clientX;
-  touchStartY.current = e.touches[0].clientY;
-  setTapping(true);
-};
+
   // --- REFINED DRAGGING LOGIC ---
- const handleTouchMove = (e: React.TouchEvent) => {
-  if (barLocked || !isActive || !barRef.current) return;
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (barLocked || !isActive || !barRef.current) return;
+    
+    const rect = barRef.current.getBoundingClientRect();
+    const touchY = e.touches[0].clientY;
+    
+    // Calculate percentage from BOTTOM of the bar
+    let pct = ((rect.bottom - touchY) / rect.height) * 100;
+    pct = Math.max(0, Math.min(100, pct)); // Clamp 0-100
+    
+    setBarHeight(pct);
 
-  const touch = e.touches[0];
+    // Haptics and Popups
+    if (Math.random() > 0.94) {
+  const id = Math.random();
+  const text = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
   
-  // 1. DIRECTION CHECK
-  const deltaX = Math.abs(touch.clientX - touchStartX.current);
-  const deltaY = Math.abs(touch.clientY - touchStartY.current);
+  // Add a random horizontal position (e.g., between 10% and 90% of screen width)
+  const xPos = Math.floor(Math.random() * 80) + 10; 
 
-  // If the user is swiping LEFT or RIGHT, we return immediately.
-  // This allows the touch event to "bubble up" to your slider.
-  if (deltaX > deltaY && deltaX > 10) {
-    return; 
-  }
-
-  // 2. STAKING LOGIC
-  // If we reach here, the user is moving UP/DOWN. 
-  // We prevent the page from moving so the gauge fills smoothly.
-  if (e.cancelable) e.preventDefault();
-
-  const rect = barRef.current.getBoundingClientRect();
-  let pct = ((rect.bottom - touch.clientY) / rect.height) * 100;
-  pct = Math.max(0, Math.min(100, pct));
+  setPopups(prev => [...prev, { id, text, xPos }]); // Store xPos in the object
   
-  setBarHeight(pct);
-  setStakeAmount(Math.floor((pct / 100) * MAX_AMOUNT));
-
-  // 3. YOUR POPUP LOGIC (Keep this!)
-  if (Math.random() > 0.94) {
-    const id = Math.random();
-    const text = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
-    const xPos = Math.floor(Math.random() * 80) + 10;
-    setPopups(prev => [...prev, { id, text, xPos }]);
-    setTimeout(() => setPopups(p => p.filter(x => x.id !== id)), 1000);
-    webApp?.HapticFeedback?.impactOccurred("light");
-  }
-};
-
+  setTimeout(() => setPopups(p => p.filter(x => x.id !== id)), 1000);
+  webApp?.HapticFeedback?.impactOccurred("light");
+}
+  };
   // DECAY LOGIC
   useEffect(() => {
     if (!barLocked && barHeight > 0 && !tapping) {
@@ -514,6 +264,28 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
     }
     return () => { if (decayRef.current) clearInterval(decayRef.current); };
   }, [barLocked, barHeight, tapping, MAX_AMOUNT]);
+
+  // const triggerMessage = () => {
+  //   const msg = { id: Math.random(), text: MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)] };
+  //   setMessages(prev => [...prev, msg]);
+  //   setTimeout(() => setMessages(prev => prev.filter(m => m.id !== msg.id)), 2000);
+  // };
+
+  // const handleDrag = (e: React.TouchEvent) => {
+  //   if (barLocked || !isActive) return;
+  //   setTapping(true);
+  //   const clientY = e.touches[0].clientY;
+  //   const windowH = window.innerHeight;
+  //   const next = Math.max(0, Math.min(100, ((windowH - clientY) / (windowH * 0.6)) * 100));
+    
+  //   setBarHeight(next);
+  //   setStakeAmount(Math.floor((next / 100) * MAX_AMOUNT));
+    
+  //   if (Math.random() > 0.96) triggerMessage();
+  //   if (Math.floor(next) % 5 === 0) webApp?.HapticFeedback?.impactOccurred("light");
+  // };
+
+  // const handleDragEnd = () => setTapping(false);
 
   const toggleLock = () => {
     const newLocked = !barLocked;
@@ -538,20 +310,11 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
   return (
     <div className="flex flex-col items-center h-full relative">
       {/* Popups */}
-      <div className="absolute top-[-80px] w-full pointer-events-none h-40 overflow-visible">
+      <div className="absolute top-[-50px] w-full pointer-events-none h-20 overflow-hidden">
         <AnimatePresence>
-          {popups.map(m => (
-            <motion.div 
-              key={m.id} 
-              initial={{ y: 20, opacity: 0, scale: 0.5 }} 
-              animate={{ y: -60, opacity: 1, scale: 1.2 }} 
-              exit={{ opacity: 0, scale: 0.8 }}
-              style={{ 
-                left: `${m.xPos}%`,
-                transform: 'translateX(-50%)'
-              }}
-              className="absolute text-[12px] font-black text-yellow-500 italic uppercase whitespace-nowrap drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]"
-            >
+          {messages.map(m => (
+            <motion.div key={m.id} initial={{ y: 20, opacity: 0 }} animate={{ y: -40, opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute w-full text-center text-[10px] font-black text-yellow-500 italic uppercase">
               {m.text}
             </motion.div>
           ))}
@@ -565,7 +328,7 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
         {barLocked && <div className="absolute inset-0 bg-yellow-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center"><Lock size={24} className="text-yellow-400" /></div>}
       </div>
 
-      {/* Currency Switcher */}
+     {/* Currency Switcher */}
       <div className="flex bg-black/60 p-1 rounded-full border border-zinc-800 mb-4">
         <button onClick={() => setStakeType('POINTS')} className={`px-2 py-1 rounded-full flex items-center gap-1 transition-all ${stakeType === 'POINTS' ? 'bg-zinc-700 scale-105' : 'opacity-40'}`}>
           <Wallet size={10} className="text-yellow-500" />
@@ -576,15 +339,13 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
           <span className="text-[8px] font-bold">STARS</span>
         </button>
       </div>
-
       {/* GAUGE */}
-     <div 
-  ref={barRef}
-  className={`w-14 flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
-  onTouchStart={handleTouchStart}  
-  onTouchMove={handleTouchMove}
-  onClick={toggleLock}
->
+      <div 
+        className={`w-14 flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
+        onTouchMove={handleTouchMove}
+        // onTouchEnd={handleDragEnd}
+        onClick={toggleLock}
+      >
         <motion.div 
           className={`absolute bottom-0 w-full ${color === 'red' ? 'bg-red-600' : 'bg-blue-600 shadow-[0_0_20px_blue]'}`}
           style={{ height: `${barHeight}%` }}
