@@ -216,9 +216,7 @@ function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints
  const [userStakes, setUserStakes] = useState<any[]>([]);
  const [loadingStakes, setLoadingStakes] = useState(true);
 const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
-   const isActive = !!fight && 
-    fight.status === "SCHEDULED" && 
-    new Date(fight.fightDate).getTime() > Date.now();
+  
   
   const isConcluded = !!fight && (
     fight.status === "COMPLETED" ||
@@ -228,8 +226,12 @@ const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp 
     new Date(fight.fightDate).getTime() <= Date.now()
   );
   
-
+ const isActive = !!fight && 
+    fight.status === "SCHEDULED" && 
+    new Date(fight.fightDate).getTime() > Date.now();
+    
    const isDraw = isConcluded && fight && !fight.winnerId && fight.status !== "CANCELLED" && fight.status !== "EXPIRED";
+   
   const winner = isConcluded && fight?.winnerId 
     ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
     : null;
@@ -299,7 +301,7 @@ const handleClaim = async () => {
   }, [fight]);
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col h-full min-h-0">
       <div className="text-center mb-8 relative z-10">
         <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-2">{fight.title}</h2>
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-full">
@@ -308,7 +310,7 @@ const handleClaim = async () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 flex-1 relative">
+      <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-4xl font-black italic text-zinc-800/50 pointer-events-none">VS</div>
         
         {/* Fighter 1 Column */}
@@ -453,7 +455,8 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
   useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-  touchStartX.current = e.touches[0].clientX;
+  e.stopPropagation();
+    touchStartX.current = e.touches[0].clientX;
   touchStartY.current = e.touches[0].clientY;
   setTapping(true);
 };
@@ -575,13 +578,13 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
       </div>
 
       {/* GAUGE */}
-      <div 
-        ref={barRef}
-        className={`w-14 flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
-        onTouchStart={handleTouchStart}  
-        onTouchMove={handleTouchMove}
-        onClick={toggleLock}
-      >
+     <div 
+  ref={barRef}
+  className={`w-14 min-h-[150px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
+  onTouchStart={handleTouchStart}  
+  onTouchMove={handleTouchMove}
+  onClick={toggleLock}
+>
         <motion.div 
           className={`absolute bottom-0 w-full ${color === 'red' ? 'bg-red-600' : 'bg-blue-600 shadow-[0_0_20px_blue]'}`}
           style={{ height: `${barHeight}%` }}
