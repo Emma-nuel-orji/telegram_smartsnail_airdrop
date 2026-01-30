@@ -539,10 +539,15 @@ useEffect(() => {
   }, [barLocked, barHeight, tapping, MAX_AMOUNT]);
 
   const toggleLock = () => {
-    const newLocked = !barLocked;
-    setBarLocked(newLocked);
-    webApp?.HapticFeedback?.notificationOccurred(newLocked ? "success" : "warning");
-  };
+  if (!barLocked && stakeAmount <= 0) return;
+
+  const newLocked = !barLocked;
+  setBarLocked(newLocked);
+  webApp?.HapticFeedback?.notificationOccurred(
+    newLocked ? "success" : "warning"
+  );
+};
+
 
   const submitStake = async () => {
     if (!isActive || stakeAmount <= 0 || !barLocked) return;
@@ -580,7 +585,7 @@ useEffect(() => {
 
       <div className="relative mb-4">
         <div className={`w-20 h-20 rounded-full border-2 overflow-hidden ${color === 'red' ? 'border-red-600' : 'border-blue-600'}`}>
-          <img src={fighter?.imageUrl} className="w-full h-full object-cover" />
+          <img src={fighter?.imageUrl} className="w-full h-full object-cover grayscale-[0.5]" />
         </div>
         {barLocked && <div className="absolute inset-0 bg-yellow-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center"><Lock size={24} className="text-yellow-400" /></div>}
       </div>
@@ -589,6 +594,18 @@ useEffect(() => {
       <div className="mb-2 px-3 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-black text-green-400 italic">
         {multiplier}x PAYOUT
       </div>
+       {/* Currency Switcher */}
+      <div className="flex bg-black/60 p-1 rounded-full border border-zinc-800 mb-4">
+        <button onClick={() => setStakeType('POINTS')} className={`px-2 py-1 rounded-full flex items-center gap-1 transition-all ${stakeType === 'POINTS' ? 'bg-zinc-700 scale-105' : 'opacity-40'}`}>
+          <Wallet size={10} className="text-yellow-500" />
+          <span className="text-[8px] font-bold">POINTS</span>
+        </button>
+        <button onClick={() => setStakeType('STARS')} className={`px-2 py-1 rounded-full flex items-center gap-1 transition-all ${stakeType === 'STARS' ? 'bg-zinc-700 scale-105' : 'opacity-40'}`}>
+          <Star size={10} className="text-blue-400" />
+          <span className="text-[8px] font-bold">STARS</span>
+        </button>
+      </div>
+
 
       <div 
         ref={barRef}
@@ -612,16 +629,16 @@ useEffect(() => {
       <div className="mt-4 text-center">
         <p className="text-lg font-mono font-bold leading-none">{stakeAmount.toLocaleString()}</p>
         <p className="text-[9px] text-zinc-500 font-black uppercase mt-1">
-          EST. WIN: {Math.floor(stakeAmount * parseFloat(multiplier)).toLocaleString()}
+          EST. WIN: {Math.floor(stakeAmount * parseFloat(multiplier)).toLocaleString()} {stakeType}
         </p>
       </div>
 
-      <button 
-        onClick={() => {/* submitStake logic */}}
-        disabled={!barLocked}
-        className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${barLocked ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-600'}`}
+        <button 
+        onClick={submitStake}
+        disabled={!barLocked || stakeAmount <= 0}
+        className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all ${barLocked && stakeAmount > 0 ? 'bg-white text-black translate-y-0 shadow-lg shadow-white/10' : 'bg-zinc-900 text-zinc-600 translate-y-2 opacity-50'}`}
       >
-        {barLocked ? 'Confirm Stake' : 'Lock to Stake'}
+        {barLocked ? 'Confirm' : 'Lock Bar'}
       </button>
     </div>
   );
