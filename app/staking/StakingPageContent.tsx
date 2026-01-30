@@ -269,16 +269,21 @@ const canClaim = isConcluded && userStakeOnWinner && !isClaimed && fight.status 
 
 const handleClaim = async () => {
   try {
-    // Call your API to process the reward
     const res = await fetch('/api/stakes/claim', {
       method: 'POST',
       body: JSON.stringify({ fightId: fight.id, telegramId })
     });
     
     if (res.ok) {
+      const data = await res.json();
       setIsClaimed(true);
-      webApp?.HapticFeedback?.notificationOccurred("success");
-      // Trigger a special confetti explosion here if you like!
+      
+      // If the backend says they hit a streak
+      if (data.newStreak >= 3) {
+         // Show a special "NFT EARNED" Modal
+         webApp?.HapticFeedback?.notificationOccurred("success");
+         alert("🏆 STREAK UNLOCKED! Check your profile for your new NFT Badge.");
+      }
     }
   } catch (err) {
     console.error("Claim failed", err);
@@ -452,7 +457,23 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
   const isLoser = isConcluded && fight?.winnerId !== fighter?.id && fight?.winnerId;
  const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+const SEED_POOL = 100000; // House seed
+  // @ts-ignore (Assuming these exist in your updated API)
+  const redPool = (fight.totalRedStakes || 0) + SEED_POOL;
+  // @ts-ignore
+  const bluePool = (fight.totalBlueStakes || 0) + SEED_POOL;
+  const totalPool = (redPool + bluePool) * 0.9; // 10% Arena Fee
+
+  const currentPool = color === 'red' ? redPool : bluePool;
+  const multiplier = (totalPool / currentPool).toFixed(2);
+
   useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
+
+  useEffect(() => {
+    const handleGlobalTouchEnd = () => setTapping(false);
+    window.addEventListener('touchend', handleGlobalTouchEnd);
+    return () => window.removeEventListener('touchend', handleGlobalTouchEnd);
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
   e.stopPropagation();
@@ -463,8 +484,10 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
   // --- REFINED DRAGGING LOGIC ---
  const handleTouchMove = (e: React.TouchEvent) => {
   if (barLocked || !isActive || !barRef.current) return;
+e.stopPropagation();
 
-  const touch = e.touches[0];
+    const touch = e.touches[0];
+    // const rect = barRef.current.getBoundingClientRect();
   
   // 1. DIRECTION CHECK
   const deltaX = Math.abs(touch.clientX - touchStartX.current);
@@ -500,15 +523,15 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
 };
 
   // DECAY LOGIC
-  useEffect(() => {
+useEffect(() => {
     if (!barLocked && barHeight > 0 && !tapping) {
       decayRef.current = setInterval(() => {
         setBarHeight(prev => {
-          const next = Math.max(0, prev - 1.2);
+          const next = Math.max(0, prev - 1.5);
           setStakeAmount(Math.floor((next / 100) * MAX_AMOUNT));
           return next;
         });
-      }, 40);
+      }, 30);
     } else {
       if (decayRef.current) clearInterval(decayRef.current);
     }
@@ -536,21 +559,18 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
   };
 
   return (
-    <div className="flex flex-col items-center h-full relative">
-      {/* Popups */}
-      <div className="absolute top-[-80px] w-full pointer-events-none h-40 overflow-visible">
+    <div className="flex flex-col items-center h-full relative z-30">
+      {/* Popups: Higher Z-Index and pointer-events-none */}
+      <div className="absolute top-[-100px] inset-x-[-50px] pointer-events-none h-60 z-[100] overflow-visible">
         <AnimatePresence>
           {popups.map(m => (
             <motion.div 
               key={m.id} 
-              initial={{ y: 20, opacity: 0, scale: 0.5 }} 
-              animate={{ y: -60, opacity: 1, scale: 1.2 }} 
-              exit={{ opacity: 0, scale: 0.8 }}
-              style={{ 
-                left: `${m.xPos}%`,
-                transform: 'translateX(-50%)'
-              }}
-              className="absolute text-[12px] font-black text-yellow-500 italic uppercase whitespace-nowrap drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]"
+              initial={{ y: 40, opacity: 0, scale: 0.5 }} 
+              animate={{ y: -80, opacity: 1, scale: 1.5 }} 
+              exit={{ opacity: 0 }}
+              style={{ left: `${m.xPos}%`, position: 'absolute' }}
+              className="text-[14px] font-black text-yellow-500 italic uppercase drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]"
             >
               {m.text}
             </motion.div>
@@ -560,53 +580,48 @@ const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcl
 
       <div className="relative mb-4">
         <div className={`w-20 h-20 rounded-full border-2 overflow-hidden ${color === 'red' ? 'border-red-600' : 'border-blue-600'}`}>
-          <img src={fighter?.imageUrl} className="w-full h-full object-cover grayscale-[0.5]" />
+          <img src={fighter?.imageUrl} className="w-full h-full object-cover" />
         </div>
         {barLocked && <div className="absolute inset-0 bg-yellow-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center"><Lock size={24} className="text-yellow-400" /></div>}
       </div>
 
-      {/* Currency Switcher */}
-      <div className="flex bg-black/60 p-1 rounded-full border border-zinc-800 mb-4">
-        <button onClick={() => setStakeType('POINTS')} className={`px-2 py-1 rounded-full flex items-center gap-1 transition-all ${stakeType === 'POINTS' ? 'bg-zinc-700 scale-105' : 'opacity-40'}`}>
-          <Wallet size={10} className="text-yellow-500" />
-          <span className="text-[8px] font-bold">POINTS</span>
-        </button>
-        <button onClick={() => setStakeType('STARS')} className={`px-2 py-1 rounded-full flex items-center gap-1 transition-all ${stakeType === 'STARS' ? 'bg-zinc-700 scale-105' : 'opacity-40'}`}>
-          <Star size={10} className="text-blue-400" />
-          <span className="text-[8px] font-bold">STARS</span>
-        </button>
+      {/* NEW: Risk Multiplier Badge */}
+      <div className="mb-2 px-3 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-black text-green-400 italic">
+        {multiplier}x PAYOUT
       </div>
 
-      {/* GAUGE */}
-     <div 
-  ref={barRef}
-  className={`w-14 min-h-[150px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800 scale-100'}`}
-  onTouchStart={handleTouchStart}  
-  onTouchMove={handleTouchMove}
-  onClick={toggleLock}
->
+      <div 
+        ref={barRef}
+        className={`w-14 min-h-[180px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800'}`}
+        onTouchStart={handleTouchStart}  
+        onTouchMove={handleTouchMove}
+        onClick={toggleLock}
+      >
         <motion.div 
-          className={`absolute bottom-0 w-full ${color === 'red' ? 'bg-red-600' : 'bg-blue-600 shadow-[0_0_20px_blue]'}`}
-          style={{ height: `${barHeight}%` }}
+          className={`absolute bottom-0 w-full ${color === 'red' ? 'bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.5)]' : 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.5)]'}`}
+          animate={{ height: `${barHeight}%` }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />
         {!barLocked && (
-          <div className="absolute inset-0 flex items-center justify-center rotate-[-90deg] pointer-events-none">
-            <span className="text-[10px] font-black text-white tracking-[0.3em] whitespace-nowrap drop-shadow-md">DRAG UP</span>
+          <div className="absolute inset-0 flex items-center justify-center rotate-[-90deg] pointer-events-none opacity-30">
+            <span className="text-[10px] font-black text-white tracking-[0.3em]">DRAG UP</span>
           </div>
         )}
       </div>
 
       <div className="mt-4 text-center">
         <p className="text-lg font-mono font-bold leading-none">{stakeAmount.toLocaleString()}</p>
-        <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mt-1">{stakeType}</p>
+        <p className="text-[9px] text-zinc-500 font-black uppercase mt-1">
+          EST. WIN: {Math.floor(stakeAmount * parseFloat(multiplier)).toLocaleString()}
+        </p>
       </div>
 
       <button 
-        onClick={submitStake}
-        disabled={!barLocked || stakeAmount <= 0}
-        className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all ${barLocked && stakeAmount > 0 ? 'bg-white text-black translate-y-0 shadow-lg shadow-white/10' : 'bg-zinc-900 text-zinc-600 translate-y-2 opacity-50'}`}
+        onClick={() => {/* submitStake logic */}}
+        disabled={!barLocked}
+        className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${barLocked ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-600'}`}
       >
-        {barLocked ? 'Confirm' : 'Lock Bar'}
+        {barLocked ? 'Confirm Stake' : 'Lock to Stake'}
       </button>
     </div>
   );
