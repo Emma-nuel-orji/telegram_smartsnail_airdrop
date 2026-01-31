@@ -645,7 +645,7 @@ useEffect(() => {
           style={{
             position: "fixed",
             left: `${m.xPos}%`,
-            bottom: `${20 + index * 22}px`,
+            bottom: `${200 + index * 22}px`,
             transform: "translateX(-50%)",
           }}
           className="text-[14px] font-black text-yellow-500 italic uppercase
