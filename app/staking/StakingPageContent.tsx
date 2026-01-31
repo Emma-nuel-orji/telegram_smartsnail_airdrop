@@ -636,7 +636,7 @@ useEffect(() => {
       {typeof window !== "undefined" &&
   createPortal(
     <AnimatePresence>
-      {popups.map(m => (
+      {popups.map((m, index)=> (
         <motion.div
           key={m.id}
           initial={{ y: 0, opacity: 0, scale: 0.6 }}
@@ -645,7 +645,7 @@ useEffect(() => {
           style={{
             position: "fixed",
             left: `${m.xPos}%`,
-            bottom: "140px", // 🔥 POP FROM BELOW
+            bottom: `${80 + index * 22}px`,
             transform: "translateX(-50%)",
           }}
           className="text-[14px] font-black text-yellow-500 italic uppercase
