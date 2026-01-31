@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from "react-dom";
 import { Lock, Zap, Star, Wallet, ChevronLeft, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -565,24 +566,7 @@ useEffect(() => {
 
   return (
     <div className="flex flex-col items-center h-full relative z-30">
-      {/* Popups: Higher Z-Index and pointer-events-none */}
-      <div className="absolute top-[-100px] inset-x-[-50px] pointer-events-none h-60 z-[100] overflow-visible">
-        <AnimatePresence>
-          {popups.map(m => (
-            <motion.div 
-              key={m.id} 
-              initial={{ y: 40, opacity: 0, scale: 0.5 }} 
-              animate={{ y: -80, opacity: 1, scale: 1.5 }} 
-              exit={{ opacity: 0 }}
-              style={{ left: `${m.xPos}%`, position: 'absolute' }}
-              className="text-[14px] font-black text-yellow-500 italic uppercase drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]"
-            >
-              {m.text}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
+     
       <div className="relative mb-4">
         <div className={`w-20 h-20 rounded-full border-2 overflow-hidden ${color === 'red' ? 'border-red-600' : 'border-blue-600'}`}>
           <img src={fighter?.imageUrl} className="w-full h-full object-cover grayscale-[0.5]" />
@@ -648,6 +632,31 @@ useEffect(() => {
       >
         {barLocked ? 'Confirm' : 'Lock Bar'}
       </button>
+
+      {typeof window !== "undefined" &&
+  createPortal(
+    <AnimatePresence>
+      {popups.map(m => (
+        <motion.div
+          key={m.id}
+          initial={{ y: 0, opacity: 0, scale: 0.6 }}
+          animate={{ y: -80, opacity: 1, scale: 1.4 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: "fixed",
+            left: `${m.xPos}%`,
+            bottom: "140px", // 🔥 POP FROM BELOW
+            transform: "translateX(-50%)",
+          }}
+          className="text-[14px] font-black text-yellow-500 italic uppercase
+                     drop-shadow-[0_0_16px_rgba(234,179,8,0.85)]"
+        >
+          {m.text}
+        </motion.div>
+      ))}
+    </AnimatePresence>,
+    document.getElementById("popup-layer")!
+  )}
     </div>
   );
 }
