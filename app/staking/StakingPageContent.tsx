@@ -565,23 +565,29 @@ useEffect(() => {
 
   return (
     <div className="flex flex-col items-center h-full relative z-30">
-      {/* Popups: Higher Z-Index and pointer-events-none */}
-      <div className="absolute top-[-100px] inset-x-[-50px] pointer-events-none h-60 z-[100] overflow-visible">
-        <AnimatePresence>
-          {popups.map(m => (
-            <motion.div 
-              key={m.id} 
-              initial={{ y: 40, opacity: 0, scale: 0.5 }} 
-              animate={{ y: -80, opacity: 1, scale: 1.5 }} 
-              exit={{ opacity: 0 }}
-              style={{ left: `${m.xPos}%`, position: 'absolute' }}
-              className="text-[14px] font-black text-yellow-500 italic uppercase drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]"
-            >
-              {m.text}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+  {/* POPUPS: Anchored to the BOTTOM of the gauge area, moving UP */}
+  <div className="absolute bottom-40 inset-x-[-60px] pointer-events-none h-[400px] z-[999] overflow-visible">
+    <AnimatePresence>
+      {popups.map(m => (
+        <motion.div 
+          key={m.id} 
+          // initial starts low (near the fingers), animate moves it high
+          initial={{ y: 150, opacity: 0, scale: 0.5 }} 
+          animate={{ y: -250, opacity: 1, scale: 1.5 }} 
+          exit={{ opacity: 0, scale: 2 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{ 
+            left: `${m.xPos}%`, 
+            position: 'absolute',
+            textShadow: '0 0 20px rgba(0,0,0,1)' // Adds contrast against bright UI
+          }}
+          className="text-[16px] font-black text-yellow-500 italic uppercase drop-shadow-[0_0_15px_rgba(234,179,8,1)] whitespace-nowrap"
+        >
+          {m.text}
+        </motion.div>
+      ))}
+    </AnimatePresence>
+  </div>
 
       <div className="relative mb-4">
         <div className={`w-20 h-20 rounded-full border-2 overflow-hidden ${color === 'red' ? 'border-red-600' : 'border-blue-600'}`}>
@@ -627,11 +633,19 @@ useEffect(() => {
       </div>
 
       <div className="mt-4 text-center">
-        <p className="text-lg font-mono font-bold leading-none">{stakeAmount.toLocaleString()}</p>
-        <p className="text-[9px] text-zinc-500 font-black uppercase mt-1">
-          EST. WIN: {Math.floor(stakeAmount * parseFloat(multiplier)).toLocaleString()} {stakeType}
-        </p>
-      </div>
+  <p className="text-lg font-mono font-bold leading-none">
+    {stakeAmount.toLocaleString()}
+  </p>
+
+  <p className="text-[9px] text-zinc-500 font-black uppercase mt-1">
+    EST. WIN: {Math.floor(stakeAmount * parseFloat(multiplier)).toLocaleString()}
+  </p>
+
+  <p className="text-[9px] text-zinc-500 font-black uppercase leading-none">
+    {stakeType}
+  </p>
+</div>
+
 
         <button 
         onClick={submitStake}
