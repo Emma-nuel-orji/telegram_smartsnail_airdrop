@@ -30,6 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <BoostProvider>
               <TelegramInitializer /> {/* ✅ Ensure Telegram SDK loads */}
               <div id="app-root">{children}</div>
+               <div
+                id="popup-layer"
+                className="fixed inset-0 pointer-events-none z-[9999]"
+              />
             </BoostProvider>
           </Providers>
         </ErrorBoundary>
