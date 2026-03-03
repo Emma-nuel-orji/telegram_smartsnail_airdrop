@@ -11,13 +11,15 @@ export async function GET(req: Request) {
   const skip = (page - 1) * limit;
 
   const items = await prisma.nft.findMany({
-    where: { collection },
+    where: { collection: {
+      name: collection 
+    }},
     skip,
     take: limit,
     orderBy: { indexNumber: "asc" },
   });
 
-  const total = await prisma.nft.count({ where: { collection } });
+  const total = await prisma.nft.count({ where: { collection: { name: collection } } });
 
   return NextResponse.json({
     items,

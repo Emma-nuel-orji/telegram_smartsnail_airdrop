@@ -16,30 +16,25 @@ export async function GET(request: Request) {
 
     // 2. Find the user and include their NFTs
     // We cast this as 'any' or a custom type to fix the "nfts does not exist" TS error
-    const user = await prisma.user.findUnique({
-      where: { telegramId: tgId },
-      include: {
-        ownedNfts: true,
-      },
-    }) as any; // The 'as any' tells TS to allow the .nfts property below
+   const user = await prisma.user.findUnique({
+  where: { telegramId: tgId },
+  include: {
+    ownedNfts: true, // This is what you named the relation in the User model
+  },
+            }) as any;
 
-    if (!user) {
-      return NextResponse.json([]);
-    }
+            if (!user) return NextResponse.json([]);
 
-    // 3. Check if nfts exists and format
-    const nfts = user.nfts || [];
+            // IMPORTANT: Match the name used in the 'include' above
+            const nfts = user.ownedNfts || []; 
 
-    const formattedNfts = nfts.map((nft: any) => ({
-      id: nft.id,
-      // Ensure 'collection' field name matches your FighterStaking .find() logic
-      collection: nft.collectionName || "Default", 
-      // Safe BigInt to Number conversion for JSON
-      priceShells: nft.priceShells ? Number(nft.priceShells) : 0, 
-      imageUrl: nft.imageUrl,
-      rarity: nft.rarity
-    }));
-
+            const formattedNfts = nfts.map((nft: any) => ({
+            id: nft.id,
+            collection: nft.collectionName || "Default", 
+            priceShells: nft.priceShells ? Number(nft.priceShells) : 0, 
+            imageUrl: nft.imageUrl,
+            rarity: nft.rarity
+            }));
     return NextResponse.json(formattedNfts);
   } catch (error) {
     console.error("NFT Fetch Error:", error);
