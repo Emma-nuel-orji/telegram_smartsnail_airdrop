@@ -41,7 +41,7 @@ export async function GET() {
             id: fight.winner.id.toString(),
             name: fight.winner.name,
             imageUrl: fight.winner.imageUrl || null,
-            telegramId: fight.winner.telegramId || null,
+            telegramId: fight.winner.userTelegramId || null,
             socialMedia: fight.winner.socialMedia || null,
           }
         : null,
@@ -50,7 +50,7 @@ export async function GET() {
             id: fight.fighter1.id.toString(),
             name: fight.fighter1.name,
             imageUrl: fight.fighter1.imageUrl || null,
-            telegramId: fight.fighter1.telegramId || null,
+            telegramId: fight.fighter1.userTelegramId || null,
             socialMedia: fight.fighter1.socialMedia || null,
           }
         : null,
@@ -59,7 +59,7 @@ export async function GET() {
             id: fight.fighter2.id.toString(),
             name: fight.fighter2.name,
             imageUrl: fight.fighter2.imageUrl || null,
-            telegramId: fight.fighter2.telegramId || null,
+            telegramId: fight.fighter2.userTelegramId || null,
             socialMedia: fight.fighter2.socialMedia || null,
           }
         : null,
