@@ -43,7 +43,7 @@ export async function GET(
     const user = await prisma.user.findFirst({
       where: { telegramId: BigInt(params.telegramId) },
       include: { 
-        fighter: {
+        athleteProfile: {
           include: { nft: true } 
         }
         
