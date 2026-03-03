@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
 
     // Check if fighter already exists
     const existingFighter = await prisma.fighter.findFirst({
-      where: { telegramId: BigInt(telegramId) }
-    });
+  where: { userTelegramId: BigInt(telegramId) }
+   });
 
     if (existingFighter) {
       return NextResponse.json(
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
           where: { telegramId: BigInt(telegramId) },
           data: { points: { decrement: REGISTRATION_COST_SHELLS } }
         }),
-        prisma.fighter.create({
+       prisma.fighter.create({
           data: {
             name,
             age,
@@ -178,9 +178,10 @@ export async function POST(request: NextRequest) {
             height,
             weight,
             weightClass,
-            telegramId: BigInt(telegramId),
+            // ✅ Use the schema field name: userTelegramId
+            userTelegramId: BigInt(telegramId), 
             imageUrl: photoPath,
-            status: 'PENDING', // Requires admin approval
+            status: 'PENDING',
           }
         })
       ]);
