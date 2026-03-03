@@ -3,15 +3,37 @@ import { useEffect } from "react";
 
 const TelegramInitializer = () => { 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
-      console.log("✅ Telegram WebApp SDK Loaded", window.Telegram.WebApp);
-      window.Telegram.WebApp.ready();
-    } else {
-      console.error("❌ Telegram WebApp SDK NOT Loaded");
+    const webApp = typeof window !== "undefined" ? (window as any).Telegram?.WebApp : null;
+
+    if (webApp) {
+      webApp.ready();
+      webApp.expand(); // Make the app full screen for a better feel
+
+      const user = webApp.initDataUnsafe?.user;
+      const startParam = webApp.initDataUnsafe?.start_param; // This is the Referrer's ID
+
+      if (user && startParam) {
+        const syncReferral = async () => {
+          try {
+            await fetch('/api/referrals', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userTelegramId: user.id.toString(),
+                referrerTelegramId: startParam.toString()
+              })
+            });
+            console.log("🔗 Referral sync attempted");
+          } catch (err) {
+            console.error("Referral sync error:", err);
+          }
+        };
+        syncReferral();
+      }
     }
   }, []);
 
-  return null; // No UI needed
+  return null;
 }
-export default TelegramInitializer; 
-export {};
+
+export default TelegramInitializer;

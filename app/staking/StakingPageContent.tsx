@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from "react-dom";
-import { Lock, Zap, Star, Wallet, ChevronLeft, Trophy } from 'lucide-react';
+import { Lock, X, Zap, Star, Wallet, ChevronLeft, Trophy, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import confetti from 'canvas-confetti';
 import "./staking.css";
 import Loader from '@/loader';
 // --- INTERFACES ---
@@ -12,6 +13,12 @@ interface Fighter {
   telegramId?: string;
   imageUrl?: string;
   socialMedia?: string;
+  isPrivate?: boolean;
+  ownerId?: string | null;
+  collection?: {
+  name: string;
+  imageUrl?: string;
+  };
 }
 
 interface Fight {
@@ -39,7 +46,36 @@ interface FighterStakingProps {
   isConcluded?: boolean;
   telegramId: string | null;
   position: "left" | "right";
-  color: "red" | "blue";
+  color: "red" | "blue" | "gold";
+  onImageClick?: () => void;
+  
+}
+
+interface NFT {
+  id: string;
+  name: string;
+  collectionId: string;
+  collection?: {
+    name: string;
+  };
+  priceShells?: number | null;
+  priceStars: number;
+  priceTon: number;
+ 
+}
+
+interface NFTRewardModalProps {
+  nft: {
+    name: string;
+    imageUrl: string;
+    priceShells: number;
+    rarity: string;
+     collection?: {
+    name: string;
+  };
+  };
+  userReferralCode: string; // Pass this from your User state
+  onClose: () => void;
 }
 
 const MOTIVATIONAL_MESSAGES = [
@@ -172,7 +208,22 @@ export default function StakingPageContent() {
           <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Balance</p>
           <p className="text-sm font-mono font-bold text-yellow-500">{userPoints.toLocaleString()} Shells</p>
         </div>
+        {/* NEW: Scouting Office Button */}
+  <Link href="/recruitment">
+    <button className="relative group px-4 py-2 bg-blue-600/10 border border-blue-500/30 rounded-xl flex items-center gap-2 transition-all hover:bg-blue-600/20 active:scale-95">
+      <div className="absolute -top-1 -right-1">
+        <span className="flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+        </span>
+      </div>
+      <Shield size={16} className="text-blue-400" />
+      <span className="text-[10px] font-black uppercase tracking-tighter text-blue-100">Scout Talent</span>
+    </button>
+  </Link>
       </nav>
+
+      
 
       {/* FIXED SLIDER CONTAINER */}
 <div 
@@ -212,13 +263,261 @@ export default function StakingPageContent() {
   );
 }
 
+ function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void }) {
+
+const [loading, setLoading] = useState(false);
+const [showSuccess, setShowSuccess] = useState(false);
+const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+// const currentUserId = webApp?.initDataUnsafe?.user?.id?.toString();
+const userTelegramId = webApp?.initDataUnsafe?.user?.id?.toString();
+const handleSign = async (fighterId: string) => {
+  try {
+    setLoading(true);
+    const response = await fetch(`/api/recruit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        fighterId, 
+        telegramId: userTelegramId 
+      })
+    });
+
+    if (response.ok) {
+      // 1. Trigger Confetti
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#EAB308', '#22C55E', '#FFFFFF']
+      });
+
+      // 2. Show Success Overlay
+      setShowSuccess(true);
+      
+      // 3. Close after delay
+      setTimeout(() => {
+        onClose();
+        window.location.reload();
+      }, 3000);
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+  const isAvailableForSign = !fighter.isPrivate && !fighter.ownerId;
+  const displayPrice = fighter.salePriceTon 
+    ? `${fighter.salePriceTon} TON` 
+    : "Not for Sale";
+  const total = fighter.wins + fighter.losses + fighter.draws;
+  const winRate = total > 0 ? Math.round((fighter.wins / total) * 100) : 0;
+  const StreakMeter = ({ 
+  streak = 0, 
+  isOwner = false,
+  price = "" 
+}: { 
+  streak?: number; 
+  isOwner?: boolean;
+  price?: string;
+}) => {
+  const progress = streak % 3;
+  const isHot = progress === 2; // High value state
+
+  return (
+    <div className={`w-full p-5 rounded-2xl border-2 mb-6 relative group transition-all duration-500 ${
+      isHot 
+        ? 'bg-orange-500/10 border-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.2)] animate-pulse' 
+        : 'bg-zinc-900/80 border-yellow-500/20'
+    }`}>
+      
+      {/* 1. THE STATUS HEADER */}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isHot ? 'text-orange-500' : 'text-yellow-500'}`}>
+            {isHot ? "⚠️ HIGH VALUE TARGET" : "Reward Progress"}
+          </h4>
+          <p className="text-white font-bold italic text-sm mt-0.5">
+            {isHot ? "ONE WIN TO MINT NFT" : `${3 - progress} wins until NFT drop`}
+          </p>
+        </div>
+        
+        {isHot && (
+          <div className="flex gap-1">
+             <span className="animate-bounce">🔥</span>
+             <span className="animate-bounce delay-75">🔥</span>
+          </div>
+        )}
+      </div>
+
+      {/* 2. THE SHELL SLOTS */}
+      <div className="flex gap-4 justify-between relative z-10">
+        {[1, 2, 3].map((step) => {
+          const isActive = progress >= step;
+          const isTarget = step === 3 && isHot;
+
+          return (
+            <div 
+              key={step}
+              className={`relative flex-1 h-14 rounded-xl border-2 flex items-center justify-center transition-all duration-300 ${
+                isActive 
+                  ? 'bg-yellow-500/20 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' 
+                  : isTarget
+                    ? 'bg-orange-600/20 border-orange-500 border-dashed animate-pulse'
+                    : 'bg-black/40 border-zinc-800'
+              }`}
+            >
+              <span className={`text-3xl transition-transform duration-500 ${
+                isActive ? 'scale-110 opacity-100' : isTarget ? 'scale-90 opacity-40 animate-spin-slow' : 'scale-75 opacity-20 grayscale'
+              }`}>
+                🐚
+              </span>
+
+              {/* Target Crosshair for the 3rd slot when Hot */}
+              {isTarget && (
+                <div className="absolute inset-0 border border-orange-500/30 rounded-lg scale-110 animate-ping" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 3. THE "SIGNING" ADVICE */}
+      {!isOwner && (
+        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+          <p className="text-[9px] text-zinc-400 max-w-[70%] leading-tight">
+            Sign now for <span className="text-white font-bold">{price}</span>. The 3rd win bonus will go to <span className="text-green-500 italic">YOU</span>.
+          </p>
+          {isHot && <span className="text-[8px] font-black text-orange-500 underline uppercase italic">Action Required</span>}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+ return (
+  <>
+    {/* 1. SUCCESS OVERLAY */}
+    {showSuccess && (
+      <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in zoom-in duration-300">
+        <div className="text-center p-8 bg-zinc-900 border-2 border-yellow-500 rounded-3xl shadow-[0_0_50px_rgba(234,179,8,0.3)]">
+          <div className="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+            <Zap size={40} fill="black" />
+          </div>
+          <h3 className="text-3xl font-black italic uppercase text-white">Signed!</h3>
+          <p className="text-zinc-400 font-bold mt-2">Fighter added to your roster.</p>
+        </div>
+      </div>
+    )}
+
+    {/* 2. MAIN MODAL */}
+    <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex flex-col p-6 animate-in fade-in slide-in-from-bottom-6 overflow-y-auto">
+      {/* Close Button */}
+      <button onClick={onClose} className="self-end p-3 bg-zinc-900 rounded-full mb-4 active:scale-90 transition-transform">
+        <X size={24} className="text-zinc-400" />
+      </button>
+
+      <div className="flex flex-col items-center max-w-sm mx-auto w-full">
+        {/* Profile Image */}
+        <div className={`w-40 h-40 rounded-full p-1.5 mb-6 shadow-2xl ${fighter.isPrivate ? 'gold-shimmer-border' : 'border-4 border-zinc-800'}`}>
+          <img src={fighter.imageUrl} className="w-full h-full rounded-full object-cover bg-zinc-900" />
+        </div>
+        
+        {/* Identity & Price */}
+        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white text-center">{fighter.name}</h2>
+        <div className="mt-1 mb-8 px-4 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full">
+          <p className="text-yellow-500 font-mono font-black text-sm uppercase tracking-widest">{displayPrice}</p>
+        </div>
+
+        {/* PHYSICAL SPECS GRID (2 columns) */}
+        <div className="grid grid-cols-2 gap-4 w-full mb-4">
+          <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800">
+            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-tighter mb-1">Gender</p>
+            <p className="text-lg font-bold text-white uppercase italic leading-none">{fighter.gender || '—'}</p>
+          </div>
+          
+          <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800">
+            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-tighter mb-1">Height</p>
+            <p className="text-lg font-bold text-white italic leading-none">{fighter.height ? `${fighter.height} cm` : '—'}</p>
+          </div>
+
+          <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800">
+            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-tighter mb-1">Weight Class</p>
+            <p className="text-lg font-bold text-white uppercase italic leading-none">{fighter.weightClass || '—'}</p>
+          </div>
+
+          <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800">
+            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-tighter mb-1">Social Media</p>
+            {fighter.socialMedia ? (
+              <a href={fighter.socialMedia} target="_blank" className="text-lg font-bold text-blue-400 hover:text-blue-300 underline uppercase italic leading-none">Open IG</a>
+            ) : (
+              <p className="text-lg font-bold text-zinc-700 uppercase italic leading-none">Private</p>
+            )}
+          </div>
+        </div>
+
+        {/* NEW: STREAK METER */}
+        <StreakMeter 
+          streak={fighter.currentStreak} 
+          isOwner={fighter.ownerId === userTelegramId}
+          price={displayPrice}
+        />
+
+        {/* CAREER RECORD (Full Width - Moved outside grid) */}
+        <div className="w-full bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 mb-8">
+          <div className="flex justify-between items-end mb-2">
+            <p className="text-[10px] text-zinc-500 font-black uppercase">Career Record</p>
+            <p className="text-xs font-bold text-green-500">{winRate}% Win Rate</p>
+          </div>
+          
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <p className="text-2xl font-black text-white leading-none">{fighter.wins || 0}<span className="text-[10px] text-zinc-500 ml-1">W</span></p>
+            </div>
+            <div className="flex-1 border-x border-zinc-800 px-4">
+              <p className="text-2xl font-black text-white leading-none">{fighter.losses || 0}<span className="text-[10px] text-zinc-500 ml-1">L</span></p>
+            </div>
+            <div className="flex-1 text-right">
+              <p className="text-2xl font-black text-white leading-none">{fighter.draws || 0}<span className="text-[10px] text-zinc-500 ml-1">D</span></p>
+            </div>
+          </div>
+        </div>
+
+        {/* DYNAMIC ACTION BUTTON */}
+        {isAvailableForSign ? (
+          <button 
+            disabled={loading}
+            className="w-full py-5 bg-green-600 hover:bg-green-500 active:scale-95 transition-all rounded-2xl font-black uppercase italic tracking-widest flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(22,163,74,0.3)] disabled:opacity-50"
+            onClick={() => handleSign(fighter.id)}
+          >
+            <Zap size={22} fill="currentColor" />
+            {loading ? "Signing..." : `Sign for ${displayPrice}`}
+          </button>
+        ) : (
+          <div className="w-full py-5 bg-zinc-800/50 rounded-2xl border border-zinc-800/50 text-center">
+            <p className="text-[10px] text-zinc-500 font-black uppercase mb-1">Contract Status</p>
+            <p className="text-white font-black uppercase italic tracking-widest">
+              Signed by {fighter.owner?.username || "Management"}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </>
+); }
+
 function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints: number, telegramId: string | null }) {
  const [timer, setTimer] = useState<string>("");
  const [userStakes, setUserStakes] = useState<any[]>([]);
  const [loadingStakes, setLoadingStakes] = useState(true);
-const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
-  
-  
+ const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+ const [selectedFighter, setSelectedFighter] = useState<any>(null); 
+const [isClaimed, setIsClaimed] = useState(false);
+const [showConfetti, setShowConfetti] = useState(false);
   const isConcluded = !!fight && (
     fight.status === "COMPLETED" ||
     fight.status === "DRAW" ||
@@ -236,9 +535,8 @@ const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp 
   const winner = isConcluded && fight?.winnerId 
     ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
     : null;
+ const [rewardData, setRewardData] = useState<any | null>(null);
 
-    // Inside FightCard
-const [isClaimed, setIsClaimed] = useState(false);
 
 // FETCH USER'S STAKE FOR THIS SPECIFIC FIGHT
   useEffect(() => {
@@ -267,24 +565,48 @@ const [isClaimed, setIsClaimed] = useState(false);
 // Assuming you have 'userStakes' data available
 const userStakeOnWinner = userStakes?.find(s => s.fighterId === fight.winnerId);
 const canClaim = isConcluded && userStakeOnWinner && !isClaimed && fight.status === "COMPLETED";
+const triggerNFTRewardAnimation = (message: string) => {
+  console.log("🏆 NFT REWARD:", message);
+  webApp?.HapticFeedback?.notificationOccurred("success");
+};
+
+const triggerAirdropAnimation = (message: string) => {
+  console.log("💰 AIRDROP:", message);
+  webApp?.HapticFeedback?.impactOccurred("heavy");
+};
 
 const handleClaim = async () => {
   try {
     const res = await fetch('/api/stakes/claim', {
       method: 'POST',
-      body: JSON.stringify({ fightId: fight.id, telegramId })
+      headers: { 'Content-Type': 'application/json' }, // Good practice to add this
+      body: JSON.stringify({ 
+        fightId: fight.id, 
+        telegramId,
+        fightTitle: fight.title 
+      })
     });
     
     if (res.ok) {
       const data = await res.json();
+
+      // --- START VISUAL EFFECTS ---
+      setShowConfetti(true);
       setIsClaimed(true);
-      
-      // If the backend says they hit a streak
-      if (data.newStreak >= 3) {
-         // Show a special "NFT EARNED" Modal
-         webApp?.HapticFeedback?.notificationOccurred("success");
-         alert("🏆 STREAK UNLOCKED! Check your profile for your new NFT Badge.");
+      webApp?.HapticFeedback?.notificationOccurred("success");
+      // ----------------------------
+
+      // TRIGGER THE GLOW MODAL IF AN NFT WAS MINTED
+      if (data.nftMinted && data.nftData) {
+        setRewardData(data.nftData); // This opens the modal
+        triggerNFTRewardAnimation("Fighter Milestone: New NFT Earned!");
       }
+
+      if (data.isAirdropActive) {
+        triggerAirdropAnimation("TEAM WIN! +50k Airdrop Credited!");
+      }
+            // Stop confetti after a few seconds
+      setTimeout(() => setShowConfetti(false), 4000);
     }
   } catch (err) {
     console.error("Claim failed", err);
@@ -305,6 +627,18 @@ const handleClaim = async () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [fight]);
+
+  const getFighterColor = (fighter: any) => {
+  // 1. If the fighter has an owner or is marked private -> GOLD
+  if (fighter.ownerId || fighter.isPrivate) return "gold";
+  
+  // 2. Otherwise, check the collection name
+  if (fighter.collection?.name === "SmartSnail") return "red";
+  if (fighter.collection?.name === "Manchies") return "blue";
+  
+  // 3. Fallback/Default
+  return "red"; 
+};
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -330,7 +664,8 @@ const handleClaim = async () => {
           isConcluded={isConcluded}
           telegramId={telegramId}
           position="left"
-            color="red" 
+          color={getFighterColor(fight.fighter1)}
+           onImageClick={() => setSelectedFighter(fight.fighter1)} 
           />
           <p className="mt-2 text-white font-bold italic uppercase text-xs tracking-tight leading-none">
             {fight.fighter1.name}
@@ -348,11 +683,18 @@ const handleClaim = async () => {
             isConcluded={isConcluded}
             telegramId={telegramId} 
             position="right" 
-            color="blue" 
+            color={getFighterColor(fight.fighter2)}
+             onImageClick={() => setSelectedFighter(fight.fighter1)} 
           />
           <p className="mt-2 text-white font-bold italic uppercase text-xs tracking-tight leading-none">
             {fight.fighter2.name}
           </p>
+          {selectedFighter && (
+         <FighterModal 
+           fighter={selectedFighter} 
+           onClose={() => setSelectedFighter(null)} 
+         />
+       )}
         </div>
          {/* Enhanced Winner/Draw Overlay */}
       {isConcluded && (
@@ -402,10 +744,39 @@ const handleClaim = async () => {
             </p>
           </div>
         )}
+
+        {rewardData && (
+    <NFTRewardModal 
+      nft={rewardData} 
+      userReferralCode={telegramId || "friend"} 
+      onClose={() => setRewardData(null)} 
+    />
+  )}
       </div>
 
-     <div className="claim-section">
-  {canClaim ? (
+     <div className="claim-section relative">
+      {showConfetti && (
+    <div className="absolute inset-0 pointer-events-none z-50">
+      {[...Array(30)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ y: 0, x: 0, opacity: 1, scale: 1 }}
+          animate={{ 
+            y: -250 - Math.random() * 150, 
+            x: (Math.random() - 0.5) * 300,
+            opacity: 0,
+            scale: 0.2,
+            rotate: Math.random() * 720
+          }}
+          transition={{ duration: 2, ease: "easeOut" }}
+          className={`absolute left-1/2 top-1/2 w-2 h-2 rounded-full ${
+            i % 2 === 0 ? 'bg-yellow-400' : 'bg-white'
+          } shadow-[0_0_10px_rgba(255,255,255,0.8)]`}
+        />
+      ))}
+    </div>
+  )}
+      {canClaim ? (
     <button className="claim-button-premium" onClick={handleClaim}>
       <span className="button-glow"></span>
       <div className="button-content">
@@ -413,7 +784,8 @@ const handleClaim = async () => {
         <div className="claim-text">
           <span className="claim-label">COLLECT REWARDS</span>
           <span className="claim-amount">
-            +{ (userStakeOnWinner.amount * 1.8).toLocaleString() } Shells
+            {/* We use the pointsEarned saved in the stake record directly */}
+            +{ Number(userStakeOnWinner.pointsEarned).toLocaleString() } Shells
           </span>
         </div>
       </div>
@@ -432,9 +804,83 @@ const handleClaim = async () => {
       </div>
     </div>
   );
+
+  
 }
 
-function FighterStaking({ fighter, fight, userPoints, isActive, isConcluded = false, telegramId, color, position  }: FighterStakingProps) {
+
+
+const NFTRewardModal: React.FC<NFTRewardModalProps> = ({ nft, userReferralCode, onClose }) => {
+  const handleShareStory = () => {
+    const webApp = (window as any).Telegram?.WebApp;
+    // "https://t.me/SmartSnails_Bot"
+    // Referral link to your Bot
+    const refLink = `https://t.me/SmartSnails_Bot?start=${userReferralCode}`;
+    const text = `🏆 I just minted a ${nft.rarity} ${nft.name} from the ${nft.collection?.name} squad! \n\n🔥 My betting power increased by ${nft.priceShells.toLocaleString()} Shells! \n\nJoin my team here: ${refLink}`;
+    if (webApp?.shareToStory) {
+      // Point the Story media to the actual NFT image from your DB
+      webApp.shareToStory(nft.imageUrl, {
+        text: text,
+        widget_link: { url: refLink, name: "Play Now 🐚" }
+      });
+    } else {
+      // Fallback: Standard Telegram Message Share
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`;
+      webApp?.openTelegramLink(shareUrl);
+    }
+  };
+
+  // Dynamic colors based on Rarity
+  const rarityColor = nft.rarity === 'LEGENDARY' ? 'text-orange-500' : 'text-yellow-500';
+  const glowColor = nft.rarity === 'LEGENDARY' ? 'shadow-[0_0_50px_rgba(249,115,22,0.4)]' : 'shadow-[0_0_50px_rgba(234,179,8,0.4)]';
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
+      <div className={`relative w-full max-w-sm bg-zinc-900 border-2 border-zinc-800 rounded-[2.5rem] p-8 text-center ${glowColor} animate-in fade-in zoom-in duration-300`}>
+        
+        {/* NFT Image with Glow */}
+        <div className="relative w-40 h-40 mx-auto mb-6">
+          <div className="absolute inset-0 bg-yellow-500/20 blur-3xl rounded-full animate-pulse" />
+          <img 
+            src={nft.imageUrl} 
+            className="relative w-full h-full object-contain drop-shadow-2xl" 
+            alt="NFT Reward"
+          />
+        </div>
+
+        <h3 className={`text-xs font-black uppercase tracking-widest mb-1 ${rarityColor}`}>
+          {nft.rarity} UNLOCKED
+        </h3>
+        <h2 className="text-2xl font-black text-white uppercase italic mb-4">
+          {nft.name}
+        </h2>
+
+        {/* Dynamic Power from DB */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl py-4 mb-6">
+          <span className="text-[10px] text-zinc-500 font-bold block uppercase mb-1">Betting Limit Boost</span>
+          <span className="text-3xl font-black text-white">+{nft.priceShells.toLocaleString()}</span>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <button 
+            onClick={handleShareStory}
+            className="w-full py-4 bg-yellow-500 text-black font-black rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            📲 SHARE TO STORY
+          </button>
+          <button 
+            onClick={onClose}
+            className="w-full py-3 text-zinc-500 font-bold hover:text-white transition-colors"
+          >
+            SKIP
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+function FighterStaking({ fighter, fight, userPoints, isActive, onImageClick, isConcluded = false, telegramId, color, position  }: FighterStakingProps) {
   const [stakeType, setStakeType] = useState<'STARS' | 'POINTS'>('POINTS');
   const [barHeight, setBarHeight] = useState(0);
   const [stakeAmount, setStakeAmount] = useState(0);
@@ -447,26 +893,115 @@ function FighterStaking({ fighter, fight, userPoints, isActive, isConcluded = fa
   const barRef = useRef<HTMLDivElement>(null);
   const barLockedRef = useRef(false);
   const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
-
   const MAX_STARS = 100000;
   const MIN_POINTS_REQUIRED = 200000;
-  const MAX_AMOUNT = stakeType === 'STARS' ? MAX_STARS : userPoints;
-const canParticipate = userPoints >= MIN_POINTS_REQUIRED && isActive && !isConcluded;
   const isFighter = fighter?.telegramId === telegramId;
   
   const isWinner = isConcluded && fight?.winnerId === fighter?.id;
   const isLoser = isConcluded && fight?.winnerId !== fighter?.id && fight?.winnerId;
  const touchStartX = useRef(0);
   const touchStartY = useRef(0);
-const SEED_POOL = 100000; // House seed
-  // @ts-ignore (Assuming these exist in your updated API)
-  const redPool = (fight.totalRedStakes || 0) + SEED_POOL;
-  // @ts-ignore
-  const bluePool = (fight.totalBlueStakes || 0) + SEED_POOL;
-  const totalPool = (redPool + bluePool) * 0.9; // 10% Arena Fee
 
-  const currentPool = color === 'red' ? redPool : bluePool;
-  const multiplier = (totalPool / currentPool).toFixed(2);
+const themes = {
+    red: {
+      border: "border-red-600",
+      glow: "shadow-[0_0_15px_rgba(220,38,38,0.5)]",
+      bg: "bg-red-600"
+    },
+    blue: {
+      border: "border-blue-600",
+      glow: "shadow-[0_0_15px_rgba(37,99,235,0.5)]",
+      bg: "bg-blue-600"
+    },
+    gold: {
+      border: "border-yellow-500",
+      glow: "shadow-[0_0_20px_rgba(234,179,8,0.7)]",
+      bg: "bg-gradient-to-r from-yellow-400 via-yellow-600 to-yellow-400"
+    },
+    zinc: {
+      border: "border-zinc-500",
+      glow: "",
+      bg: "bg-zinc-500"
+    }
+  };
+
+const activeTheme = themes[color as keyof typeof themes] || themes.zinc;
+
+const getFighterTheme = (fighter: Fighter) => {
+  if (fighter.isPrivate || fighter.ownerId) return themes.gold;
+  if (fighter.collection?.name === "SmartSnail") return themes.red;
+  if (fighter.collection?.name === "Manchies") return themes.blue;
+  
+  // Default fallback
+  return themes.zinc; 
+};
+
+
+ const [livePools, setLivePools] = useState({ red: 0, blue: 0 });
+
+useEffect(() => {
+  const syncPools = async () => {
+    const res = await fetch(`/api/stakes/total/fight/${fight.id}`);
+    const data = await res.json();
+    if (res.ok) {
+      setLivePools({
+        red: Number(data.totalRedStakes),
+        blue: Number(data.totalBlueStakes)
+      });
+    }
+  };
+  syncPools();
+  // Optional: Poll every 30 seconds for live updates
+  const interval = setInterval(syncPools, 30000);
+  return () => clearInterval(interval);
+}, [fight.id]);
+
+// 2. These variables now match your existing logic perfectly
+  const redPool = livePools.red;
+  const bluePool = livePools.blue;
+  const SEED = 100000;
+  const [userOwnedNfts, setUserOwnedNfts] = useState<NFT[]>([]);
+  const mySide = (color === 'red' ? redPool : bluePool) + SEED;
+  const oppositeSide = (color === 'red' ? bluePool : redPool) + SEED;
+  const totalPool = redPool + bluePool + (SEED * 2);
+  const totalStakes = redPool + bluePool;
+  const oppositeSideStakes = color === 'red' ? bluePool : redPool;
+  const stakerProfitPool = oppositeSideStakes * 0.7; 
+  const accurateTotalPool = mySide + stakerProfitPool;
+  const multiplier = (accurateTotalPool / mySide).toFixed(2);
+
+  const userNft = userOwnedNfts.find(
+  (n: NFT) => n.collection === fighter?.collection?.name
+  );
+
+  const hasMatchingNFT = !!userNft;
+  const nftPower = userNft?.priceShells || 0; 
+
+
+  const canInteract = () => {
+  if (!fighter) return false;
+  
+  const hasEnoughPoints = userPoints >= MIN_POINTS_REQUIRED;
+
+  // We use hasMatchingNFT (the true/false version) here
+  return hasMatchingNFT || hasEnoughPoints;
+};
+  const canParticipate =
+  (userPoints >= MIN_POINTS_REQUIRED || hasMatchingNFT) &&
+  isActive &&
+  !isConcluded;
+  const MAX_AMOUNT = stakeType === 'STARS' 
+    ? MAX_STARS 
+    : (hasMatchingNFT ? (userPoints + nftPower) : userPoints); 
+
+    useEffect(() => {
+    async function getMyNfts() {
+      const res = await fetch('/api/user/nfts');
+      const data = await res.json();
+      setUserOwnedNfts(data); // Put the data in the "State" box
+    }
+    getMyNfts();
+  }, []);
 
   useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
 
@@ -487,22 +1022,14 @@ const SEED_POOL = 100000; // House seed
   if (barLocked || !isActive || !barRef.current) return;
 e.stopPropagation();
 
-    const touch = e.touches[0];
-    // const rect = barRef.current.getBoundingClientRect();
-  
-  // 1. DIRECTION CHECK
+  const touch = e.touches[0];
+
   const deltaX = Math.abs(touch.clientX - touchStartX.current);
   const deltaY = Math.abs(touch.clientY - touchStartY.current);
-
-  // If the user is swiping LEFT or RIGHT, we return immediately.
-  // This allows the touch event to "bubble up" to your slider.
   if (deltaX > deltaY && deltaX > 10) {
     return; 
   }
 
-  // 2. STAKING LOGIC
-  // If we reach here, the user is moving UP/DOWN. 
-  // We prevent the page from moving so the gauge fills smoothly.
   if (e.cancelable) e.preventDefault();
 
   const rect = barRef.current.getBoundingClientRect();
@@ -550,30 +1077,81 @@ useEffect(() => {
 };
 
 
-  const submitStake = async () => {
-    if (!isActive || stakeAmount <= 0 || !barLocked) return;
-    try {
-      const endpoint = stakeType === 'STARS' ? '/api/stakes/stars' : '/api/stakes/place';
-      const body = { fightId: fight.id, fighterId: fighter?.id, stakeAmount, telegramId, stakeType };
-      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.invoiceLink) window.location.href = data.invoiceLink;
-        else { setBarHeight(0); setBarLocked(false); }
+ const submitStake = async () => {
+  if (!isActive || stakeAmount <= 0 || !barLocked) return;
+  
+  try {
+    const endpoint = stakeType === 'STARS' ? '/api/stakes/stars' : '/api/stakes/place';
+    
+    const body = { 
+      fightId: fight.id, 
+      fighterId: fighter?.id, 
+      // Convert to string so the backend BigInt() can read it safely
+      stakeAmount: stakeAmount.toString(), 
+      telegramId, 
+      stakeType,
+      multiplier: multiplier, // Send the multiplier used at the time of locking
+      nftId: userNft?.id || null, 
+      isNftBypass: hasMatchingNFT
+    };
+
+    const res = await fetch(endpoint, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(body) 
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.invoiceLink) {
+        window.location.href = data.invoiceLink;
+      } else {
+        // Success: Reset UI
+        setBarHeight(0); 
+        setBarLocked(false);
+        alert("Stake placed successfully!");
       }
-    } catch (e) { console.error(e); }
-  };
+    } else {
+      const errorData = await res.json();
+      alert(`Error: ${errorData.error}`);
+    }
+  } catch (e) { 
+    console.error("Stake submission failed:", e); 
+  }
+};
 
   return (
-    <div className="flex flex-col items-center h-full relative z-30">
-     
-      <div className="relative mb-4">
-        <div className={`w-20 h-20 rounded-full border-2 overflow-hidden ${color === 'red' ? 'border-red-600' : 'border-blue-600'}`}>
-          <img src={fighter?.imageUrl} className="w-full h-full object-cover grayscale-[0.5]" />
+  <div className="flex flex-col items-center h-full relative z-30">
+   <div className="relative mb-4">
+    {/* Wrap the frame inside the clickable div */}
+     <div 
+      onClick={onImageClick} 
+      className="relative cursor-pointer active:scale-95 transition-transform group"
+     >
+      {/* Main Portrait Frame */}
+      <div className={`w-20 h-20 rounded-full p-[3px] transition-all duration-500 ${color === 'gold' ? 'gold-shimmer-border' : activeTheme.border} ${activeTheme.glow}`}>
+        <div className="w-full h-full rounded-full overflow-hidden bg-black">
+          <img src={fighter?.imageUrl} className="w-full h-full object-cover" />
         </div>
-        {barLocked && <div className="absolute inset-0 bg-yellow-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center"><Lock size={24} className="text-yellow-400" /></div>}
       </div>
 
+      {/* TINY NFT IMAGE / TEAM BADGE (Conditional Rendering) */}
+      <div className="absolute -bottom-1 -right-1 flex items-center">
+        {/* If it's NOT gold (not private) AND has a team image, show the badge */}
+        {color !== 'gold' && fighter?.collection?.imageUrl ? (
+          <div className="w-8 h-8 rounded-lg border-2 border-zinc-900 overflow-hidden shadow-xl rotate-12 bg-zinc-800">
+            <img src={fighter.collection.imageUrl} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          /* If it IS gold (private) or missing image, show the text badge only */
+          <div className={`px-2 py-0.5 rounded text-[7px] font-black text-white uppercase ${activeTheme.bg} shadow-lg shadow-black/50`}>
+            {color === 'gold' ? "PRIVATE" : "FREE AGENT"}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+      
       {/* NEW: Risk Multiplier Badge */}
       <div className="mb-2 px-3 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-black text-green-400 italic">
         {multiplier}x PAYOUT
@@ -620,7 +1198,7 @@ useEffect(() => {
   </p>
 
   <p className="text-[9px] text-zinc-500 font-black uppercase leading-none">
-    {stakeType}
+    CURRENCY:{stakeType}
   </p>
 </div>
 
@@ -645,7 +1223,7 @@ useEffect(() => {
           style={{
             position: "fixed",
             left: `${m.xPos}%`,
-            bottom: `${200 + index * 22}px`,
+            bottom: `${280 + index * 22}px`,
             transform: "translateX(-50%)",
           }}
           className="text-[14px] font-black text-yellow-500 italic uppercase

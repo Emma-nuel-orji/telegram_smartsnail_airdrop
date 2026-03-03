@@ -1,38 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 
-export async function GET(req: NextRequest, { params }: { params: { fighterId: string } }) {
-  const { fighterId } = params;
-
-  if (!fighterId) {
-    return NextResponse.json({ error: 'Fighter ID is required' }, { status: 400 });
-  }
+export async function GET(req: NextRequest, { params }: { params: { fightId: string } }) {
+  const { fightId } = params;
 
   try {
-    // Fetch total stars for the fighter
-    const totalStars = await prisma.stake.aggregate({
-      where: { 
-        fighterId,
-        stakeType: 'STARS', // Filter by stakeType = STARS
-      },
-      _sum: { stakeAmount: true }, // Aggregate stakeAmount for stars
+    // 1. Fetch the fight to identify the explicit fighters
+    const fight = await prisma.fight.findUnique({
+      where: { id: fightId },
+      select: { fighter1Id: true, fighter2Id: true }
     });
 
-    // Fetch total points for the fighter
-    const totalPoints = await prisma.stake.aggregate({
+    if (!fight) {
+      return NextResponse.json({ error: 'Fight not found' }, { status: 404 });
+    }
+
+    // 2. Aggregate all stakes for this fight, grouped by fighter
+    const stats = await prisma.stake.groupBy({
+      by: ['fighterId'],
       where: { 
-        fighterId,
-        stakeType: 'POINTS', // Filter by stakeType = POINTS
+        fightId,
+        status: 'COMPLETED' 
       },
-      _sum: { stakeAmount: true }, // Aggregate stakeAmount for points
+      _sum: { stakeAmount: true }
     });
+
+    // 3. Map aggregates to Red (Fighter 1) and Blue (Fighter 2)
+    const getSum = (id: string) => stats.find(s => s.fighterId === id)?._sum.stakeAmount || 0n;
+
+    const totalRedStakes = getSum(fight.fighter1Id);
+    const totalBlueStakes = getSum(fight.fighter2Id);
 
     return NextResponse.json({
-      stars: totalStars._sum.stakeAmount || 0, // Use stakeAmount for stars
-      points: totalPoints._sum.stakeAmount || 0, // Use stakeAmount for points
+      totalRedStakes: totalRedStakes.toString(), // String for BigInt safety
+      totalBlueStakes: totalBlueStakes.toString()
     });
   } catch (error) {
-    console.error('Error fetching total support:', error);
-    return NextResponse.json({ error: 'Failed to fetch total support' }, { status: 500 });
+    console.error('API Error:', error);
+    return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

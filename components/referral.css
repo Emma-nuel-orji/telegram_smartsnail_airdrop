@@ -267,11 +267,10 @@
 }
 
 .referral-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;           /* Arrange children horizontally */
+  align-items: center;     /* Vertically center image and text */
+  gap: 12px;               /* Space between avatar and text */
+  padding: 8px 0;          /* Optional vertical spacing */
 }
 
 .referral-item:last-child {

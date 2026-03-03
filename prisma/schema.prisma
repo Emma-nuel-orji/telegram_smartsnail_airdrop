@@ -19,7 +19,9 @@ model User {
   email          String?         
   points         BigInt          @default(0)
   tappingRate    Int             @default(1)
-  fighter           Fighter?
+  athleteProfile  Fighter?  @relation("AthleteRole")
+  totalManagerEarnings BigInt @default(0) // Cumulative Shells earned from owned fighters
+  managedFighters Fighter[] @relation("ManagerRole")
   ownedNfts        Nft[]     @relation("NftOwner")
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -31,7 +33,6 @@ model User {
    consecutiveWins Int     @default(0)
   stakes          Stake[]
   storyShares     StoryShare[] // ✅ Define the opposite relation
-
   pointTransactions PointTransaction[]
 
   // Indexes
@@ -244,18 +245,31 @@ model Fight {
 
 
 model Fighter {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
-  imageUrl       String?
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  imageUrl         String?
+  userTelegramId   BigInt?      @unique
+  athlete         User?     @relation("AthleteRole", fields: [userTelegramId], references: [telegramId])
+  ownerId          String?      @db.ObjectId
+  owner           User?     @relation("ManagerRole", fields: [ownerId], references: [id])
+  currentStreak    Int          @default(0)
+  collectionId     String?      @db.ObjectId  // Links the fighter to "SmartSnails" or "Manchies"
+  collection      Collection?   @relation(fields: [collectionId], references: [id])
+  // MARKET FIELDS: For the Recruitment Page
+  isForSale        Boolean     @default(false)
+  salePriceTon     Float?      // Price set by the owner in TON
+  salePriceShells  BigInt?     // Price set by the owner in Shells/Points
+  isPrivate        Boolean     @default(false) // True if bought out of a team
+
+  totalFighterEarnings BigInt @default(0) // Cumulative Shells earned from being signed/bonuses
+  generatedManagerProfit BigInt @default(0) // Total Shells earned by the manager from this fighter
   age            Int? 
   gender         String?     
   height         Float?    
   weight         Float?    
   weightClass    String?   
-  telegramId     BigInt?   @unique
   socialMedia    String?
   points         BigInt    @default(0)
-  user            User?     @relation(fields: [telegramId], references: [telegramId])
   nftId           String?   @db.ObjectId
   nft             Nft?      @relation(fields: [nftId], references: [id])
   status         FighterStatus  @default(PENDING)
@@ -265,6 +279,11 @@ model Fighter {
   winnerOf       Fight[]   @relation("FightWinner")
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  // NEW STATS FIELDS
+  wins         Int      @default(0)
+  losses       Int      @default(0)
+  draws        Int      @default(0)
+  totalFights  Int      @default(0)
 }
 
 enum FighterStatus {
@@ -284,15 +303,18 @@ model Stake {
   fightId      String       @db.ObjectId
   fighter      Fighter      @relation(fields: [fighterId], references: [id])
   fighterId    String       @db.ObjectId
-  stakeAmount  Int          // Amount in stars (max 100,000)
+  stakeAmount        BigInt       // The Shells equivalent used for the pool
+  starsAmount        Int?
   stakeType    StakeType    // STARS or POINTS
   status       StakeStatus  @default(PENDING) // PENDING, COMPLETED, FAILED
   outcome      StakeOutcome? // Will be set after fight completion
   pointsEarned BigInt?      // Calculated after fight completion
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-  initialStakeAmount Int    // Initial stake amount
-
+  initialStakeAmount BigInt   // Initial stake amount
+  isClaimed          Boolean      @default(false)
+  nftId        String?      @db.ObjectId
+  nft          Nft?         @relation(fields: [nftId], references: [id])
   @@index([fightId], name: "fight_stakes_index")
   @@index([userId], name: "user_stakes_index")
   @@index([fighterId], name: "fighter_stakes_index")
@@ -433,24 +455,34 @@ enum TicketStatus {
   rejected
 }
 
+model Collection {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  name              String    @unique // "SmartSnail", "Manchies"
+  bannerColor       String    @default("blue") // blue, red, gold
+  floorPriceShells  BigInt    @default(250000)
+  nfts              Nft[]
+  fighters          Fighter[] // The fighters assigned to this "Team"
+  imageUrl        String
+}
+
 model Nft {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
   name            String
   imageUrl        String
-  collection      String
+  collectionId    String    @db.ObjectId
+  collection      Collection @relation(fields: [collectionId], references: [id])
+
   rarity          String?
   priceTon        Float
   priceStars      Int
-  priceShells     Int?     // Add this if not present
+  priceShells     Int?
   indexNumber     Int
-  isSold          Boolean  @default(false)
-  ownerTelegramId String?
-  owner            User?     @relation("NftOwner", fields: [ownerTelegramId], references: [id])
-  minted          Boolean  @default(false)
-  traits          Json?    // Store as JSON
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  fighters        Fighter[]
+  isSold          Boolean   @default(false)
+  ownerId         String?   @db.ObjectId
+  owner           User?     @relation("NftOwner", fields: [ownerId], references: [id])
+  fighters        Fighter[] 
+  stakes       Stake[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
-
 

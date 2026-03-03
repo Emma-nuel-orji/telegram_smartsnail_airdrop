@@ -1,6 +1,4 @@
-// app/api/stakes/place/route.ts
 import { NextResponse } from 'next/server';
-// import {prisma} from '@/lib/prisma';
 import { prisma } from '@/prisma/client';
 import { getWebAppUser } from '@/lib/storage';
 
@@ -8,134 +6,115 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { fightId, fighterId, stakeAmount, stakeType } = body;
-    
+
     if (!fightId || !fighterId || !stakeAmount || !stakeType) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-    
-    // Get user from Telegram Web App
+
+    // ✅ FIXED: Defining telegramUser correctly
     const telegramUser = await getWebAppUser();
     if (!telegramUser || !telegramUser.id) {
-      return NextResponse.json(
-        { error: 'User not authenticated' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
-    
-    // Find user in database
-    const user = await prisma.user.findUnique({
-      where: {
-        telegramId: BigInt(telegramUser.id)
-      }
-    });
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-    
-    // Check if user has minimum required points
-    if (user.points < 200000) {
-      return NextResponse.json(
-        { error: 'Minimum 200,000 points required to participate' },
-        { status: 403 }
-      );
-    }
-    
-    // Validate fight and fighter
-    const fight = await prisma.fight.findUnique({
-      where: { id: fightId },
-      include: { fighter1: true, fighter2: true }
-    });
-    
-    if (!fight) {
-      return NextResponse.json(
-        { error: 'Fight not found' },
-        { status: 404 }
-      );
-    }
-    
-    if (fight.status !== 'SCHEDULED') {
-      return NextResponse.json(
-        { error: 'Can only stake on scheduled fights' },
-        { status: 400 }
-      );
-    }
-    
-    const isValidFighter = 
-      fight.fighter1Id === fighterId || 
-      fight.fighter2Id === fighterId;
+
+    // ✅ FIXED: Defining stakeAmountBI before the transaction
+    const stakeAmountBI = BigInt(stakeAmount);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { telegramId: BigInt(telegramUser.id) },
+      });
+      const fight = await tx.fight.findUnique({ where: { id: fightId } });
+      const selectedFighter = await tx.fighter.findUnique({ where: { id: fighterId } });
+
+      if (!user || !fight || !selectedFighter) throw new Error('Data not found');
       
-    if (!isValidFighter) {
-      return NextResponse.json(
-        { error: 'Invalid fighter for this fight' },
-        { status: 400 }
-      );
-    }
-    
-    // Check if user already has a stake for this fight
-    const existingStake = await prisma.stake.findFirst({
-      where: {
-        userId: user.id,
-        fightId
-      }
-    });
-    
-    if (existingStake) {
-      return NextResponse.json(
-        { error: 'You have already placed a stake for this fight' },
-        { status: 400 }
-      );
-    }
-    
-    // For POINTS stake type, ensure user has enough points
-    if (stakeType === 'POINTS' && user.points < stakeAmount) {
-      return NextResponse.json(
-        { error: 'Insufficient points balance' },
-        { status: 400 }
-      );
-    }
-    
-    // Process based on stake type
-    if (stakeType === 'POINTS') {
-      // Deduct points immediately for POINTS stake type
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          points: {
-            decrement: stakeAmount
+      // ✅ FIXED: Changed "STARTING" to your actual enum "SCHEDULED" 
+      // Ensure this matches your FightStatus enum (e.g., SCHEDULED, ONGOING, CONCLUDED)
+      if (fight.status !== 'SCHEDULED') throw new Error('Fight is not accepting stakes');
+
+      const existing = await tx.stake.findFirst({
+        where: { userId: user.id, fightId }
+      });
+      if (existing) throw new Error('Already staked on this fight');
+
+      const userNft = await tx.nft.findFirst({
+        where: { ownerId: user.id, collectionId: selectedFighter.collectionId || undefined }
+      });
+
+      // 🚨 NFT LOCK CHECK
+      if (userNft) {
+        const nftBusy = await tx.stake.findFirst({
+          where: {
+            nftId: userNft.id,
+            status: 'COMPLETED',
+            fight: {
+              // Lock NFT if the fight is still SCHEDULED
+              status: 'SCHEDULED' 
+            }
           }
+        });
+        if (nftBusy) throw new Error('This NFT is already locked in another fight');
+      }
+
+      const nftPower = BigInt(userNft?.priceShells || 0);
+      const totalStakingPower = user.points + nftPower;
+
+      if (totalStakingPower < 200000n && !userNft) throw new Error('Min 200k power required');
+      if (stakeAmountBI > totalStakingPower) throw new Error('Insufficient power');
+
+      // Commissions
+      const managerCut = (stakeAmountBI * 50n) / 100n;
+      const fighterCut = (stakeAmountBI * 30n) / 100n;
+
+      if (selectedFighter.ownerId) {
+        await tx.user.update({
+          where: { id: selectedFighter.ownerId },
+          data: { points: { increment: managerCut } }
+        });
+      }
+      if (selectedFighter.userTelegramId) {
+        await tx.user.update({
+          where: { telegramId: selectedFighter.userTelegramId },
+          data: { points: { increment: fighterCut } }
+        });
+      }
+
+      // Point Deduction Logic
+      const amountToDeduct = stakeAmountBI > user.points ? user.points : stakeAmountBI;
+      
+      const updatedUser = await tx.user.update({
+        where: { id: user.id },
+        data: { points: { decrement: amountToDeduct } }
+      });
+
+      if (updatedUser.points < 0n) throw new Error('Insufficient balance');
+
+      return await tx.stake.create({
+        data: {
+          userId: user.id,
+          fightId,
+          fighterId,
+          nftId: userNft?.id || null, // Store reference for the lock
+          stakeAmount: stakeAmountBI,
+          stakeType: 'POINTS',
+          status: 'COMPLETED',
+          initialStakeAmount: stakeAmountBI
         }
       });
-    }
-    
-    // Create stake
-    const stake = await prisma.stake.create({
-      data: {
-        userId: user.id,
-        fightId,
-        fighterId,
-        stakeAmount,
-        stakeType,
-        initialStakeAmount: stakeAmount,
-      }
     });
-    
+
     return NextResponse.json({
       message: 'Stake placed successfully',
-      stake
+      stake: {
+        ...result,
+        stakeAmount: result.stakeAmount.toString(),
+        initialStakeAmount: result.initialStakeAmount.toString()
+      }
     });
-    
-  } catch (error) {
-    console.error('Error placing stake:', error);
-    return NextResponse.json(
-      { error: 'Failed to place stake' },
-      { status: 500 }
-    );
+
+  } catch (error: any) {
+    console.error('Stake Error:', error.message);
+    return NextResponse.json({ error: error.message || 'Failed to place stake' }, { status: 400 });
   }
 }
