@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Wallet, Zap, Shield, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
