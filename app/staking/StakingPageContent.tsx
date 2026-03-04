@@ -969,10 +969,14 @@ useEffect(() => {
   const stakerProfitPool = oppositeSideStakes * 0.7; 
   const accurateTotalPool = mySide + stakerProfitPool;
   const multiplier = (accurateTotalPool / mySide).toFixed(2);
-
+  const [userId, setUserId] = useState<string | null>(null);
   const userNft = userOwnedNfts.find(
   (n: NFT) => n.collection === fighter?.collection?.name
   );
+
+// const userNft = userOwnedNfts.find(
+//   (n: NFT) => n.collection?.toLowerCase() === fighter?.collection?.name?.toLowerCase()
+// );
 
   const hasMatchingNFT = !!userNft;
   const nftPower = userNft?.priceShells || 0; 
@@ -995,13 +999,25 @@ useEffect(() => {
     : (hasMatchingNFT ? (userPoints + nftPower) : userPoints); 
 
     useEffect(() => {
-    async function getMyNfts() {
-      const res = await fetch('/api/user/nfts');
+  const tg = (window as any).Telegram?.WebApp;
+  if (tg?.initDataUnsafe?.user?.id) {
+    setUserId(tg.initDataUnsafe.user.id.toString());
+  }
+}, []);
+
+// 3. Update your NFT fetch to watch for that 'userId'
+useEffect(() => {
+  if (!userId) return;
+
+  async function getMyNfts() {
+    const res = await fetch(`/api/user/nfts?telegramId=${userId}`);
+    if (res.ok) {
       const data = await res.json();
-      setUserOwnedNfts(data); // Put the data in the "State" box
+      setUserOwnedNfts(data);
     }
-    getMyNfts();
-  }, []);
+  }
+  getMyNfts();
+}, [userId]);
 
   useEffect(() => { barLockedRef.current = barLocked; }, [barLocked]);
 
