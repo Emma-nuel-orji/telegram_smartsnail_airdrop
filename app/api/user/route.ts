@@ -15,18 +15,29 @@ const userSchema = z.object({
     email: z.string().email().nullable().optional()
 });
 
-// Helper function to serialize user data
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 function serializeUser(user: any) {
+    if (!user) return null;
+
+    // By explicitly listing fields, we avoid sending raw BigInts 
+    // that haven't been converted to strings or numbers.
     return {
-      ...user,
       id: user.id.toString(),
       telegramId: user.telegramId.toString(),
-      points: Number(user.points),
+      username: user.username || "",
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      points: Number(user.points || 0), // Convert BigInt to Number for JS
+      tappingRate: user.tappingRate || 1,
       hasClaimedWelcome: user.hasClaimedWelcome ?? false,
       createdAt: user.createdAt?.toISOString(),
       updatedAt: user.updatedAt?.toISOString(),
+     
     };
-  }
+}
   
   // ✅ POST: Create or Update User
 export async function POST(req: NextRequest): Promise<Response> {

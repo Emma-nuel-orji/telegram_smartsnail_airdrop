@@ -281,3 +281,9 @@
 .scout-glow {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
 }
+
+.fighter-frame.silver {
+  border-color: #94a3b8; /* Slate-400 */
+  box-shadow: 0 0 15px rgba(148, 163, 184, 0.2);
+}
+.text-silver { color: #cbd5e1; }

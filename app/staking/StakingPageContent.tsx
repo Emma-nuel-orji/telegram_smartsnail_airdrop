@@ -46,7 +46,7 @@ interface FighterStakingProps {
   isConcluded?: boolean;
   telegramId: string | null;
   position: "left" | "right";
-  color: "red" | "blue" | "gold";
+  color: "red" | "blue" | "gold" | "silver";
   onImageClick?: () => void;
   
 }
@@ -124,6 +124,7 @@ export default function StakingPageContent() {
       }
     }
   }, []);
+
 
   // Fetch Data - MODIFIED TO GET ALL FIGHTS (not just upcoming)
  useEffect(() => {
@@ -637,7 +638,7 @@ const handleClaim = async () => {
   if (fighter.collection?.name === "Manchies") return "blue";
   
   // 3. Fallback/Default
-  return "red"; 
+  return "silver"; 
 };
 
   return (
