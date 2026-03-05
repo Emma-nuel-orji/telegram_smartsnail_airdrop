@@ -34,27 +34,33 @@ export async function GET(
   { params }: { params: { telegramId: string } }
 ): Promise<Response> {
   try {
-    // Ensure telegramId is a valid number before converting it to BigInt
+    console.log("GET /api/user/[id] - Requested ID:", params.telegramId);
+
     if (!/^\d+$/.test(params.telegramId)) {
-      return NextResponse.json({ error: "Invalid Telegram ID format" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
     }
 
     const user = await prisma.user.findFirst({
       where: { telegramId: BigInt(params.telegramId) },
       include: { 
-        athleteProfile: {
-          include: { nft: true } 
-        }
-        
+        athleteProfile: { include: { nft: true } } 
       }
     });
 
     if (!user) {
+      console.log("GET /api/user/[id] - User not found in DB");
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(serializeUser(user));
+    console.log("GET /api/user/[id] - User found, starting serialization...");
+    
+    // Log the structure of athleteProfile to see if it's what we expect
+    console.log("AthleteProfile Check:", !!user.athleteProfile, "NFT Check:", !!user.athleteProfile?.nft);
+
+    const serialized = serializeUser(user);
+    return NextResponse.json(serialized);
   } catch (error) {
+    console.error("GET /api/user/[id] - CRITICAL ERROR:", error);
     return NextResponse.json(
       { error: "Internal server error", details: (error as Error).message },
       { status: 500 }

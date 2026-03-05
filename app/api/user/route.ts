@@ -29,52 +29,54 @@ function serializeUser(user: any) {
   }
   
   // ✅ POST: Create or Update User
-  export async function POST(req: NextRequest): Promise<Response> {
-    try {
-      const { telegramId, firstName, lastName, username } = await req.json();
-  
-      if (!telegramId || !/^[0-9]+$/.test(telegramId)) {
-        return NextResponse.json({ error: "Invalid Telegram ID" }, { status: 400 });
-      }
-  
-      let user = await prisma.user.upsert({
-        where: { telegramId: BigInt(telegramId) },
-        update: { firstName, lastName, username },
-        create: { telegramId: BigInt(telegramId), firstName, lastName, username },
-      });
-  
-      return NextResponse.json(serializeUser(user));
-    } catch (error) {
-      return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
+export async function POST(req: NextRequest): Promise<Response> {
+  try {
+    const body = await req.json();
+    console.log("POST /api/user - Body received:", body);
+
+    const { telegramId, firstName, lastName, username } = body;
+
+    if (!telegramId || !/^[0-9]+$/.test(telegramId)) {
+      return NextResponse.json({ error: "Invalid Telegram ID" }, { status: 400 });
     }
+
+    console.log("POST /api/user - Attempting Upsert for:", telegramId);
+    let user = await prisma.user.upsert({
+      where: { telegramId: BigInt(telegramId) },
+      update: { firstName, lastName, username },
+      create: { telegramId: BigInt(telegramId), firstName, lastName, username },
+    });
+
+    console.log("POST /api/user - Success, serializing...");
+    return NextResponse.json(serializeUser(user));
+  } catch (error) {
+    console.error("POST /api/user - CRITICAL ERROR:", error);
+    return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
   }
-  
-  // ✅ PATCH: Increment Points
-  export async function PATCH(req: NextRequest): Promise<Response> {
-    try {
-      const { telegramId, increment } = await req.json();
-  
-      if (!telegramId || !/^[0-9]+$/.test(telegramId)) {
-        return NextResponse.json({ error: "Invalid Telegram ID" }, { status: 400 });
-      }
-  
-      if (!increment || isNaN(increment)) {
-        return NextResponse.json({ error: "Invalid increment value" }, { status: 400 });
-      }
-  
-      let user = await prisma.user.findFirst({ where: { telegramId: BigInt(telegramId) } });
-  
-      if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
-      }
-  
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { points: Number(user.points) + Number(increment) },
-      });
-  
-      return NextResponse.json(serializeUser(user));
-    } catch (error) {
-      return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
+}
+
+// ✅ PATCH: Increment Points
+export async function PATCH(req: NextRequest): Promise<Response> {
+  try {
+    const { telegramId, increment } = await req.json();
+    console.log(`PATCH /api/user - ID: ${telegramId}, Inc: ${increment}`);
+
+    if (!telegramId || !/^[0-9]+$/.test(telegramId)) {
+      return NextResponse.json({ error: "Invalid Telegram ID" }, { status: 400 });
     }
+
+    // FIX: Use atomic increment with BigInt to avoid 500 errors
+    const user = await prisma.user.update({
+      where: { telegramId: BigInt(telegramId) },
+      data: { 
+        points: { increment: BigInt(Math.floor(Number(increment))) } 
+      },
+    });
+
+    console.log("PATCH /api/user - Update successful");
+    return NextResponse.json(serializeUser(user));
+  } catch (error) {
+    console.error("PATCH /api/user - CRITICAL ERROR:", error);
+    return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
   }
+}
