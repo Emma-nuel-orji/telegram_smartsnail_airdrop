@@ -277,9 +277,8 @@
   background: linear-gradient(45deg, #fbbf24, #f59e0b, #fbbf24);
   background-size: 200% 200%;
   animation: shimmer 2s linear infinite;
-  /* box-shadow: 0 0 15px rgba(254, 204, 0, 0.4); */
+  box-shadow: 0 0 15px rgba(254, 204, 0, 0.4); 
 }
-
 @keyframes shimmer {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
