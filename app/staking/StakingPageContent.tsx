@@ -263,17 +263,16 @@ export default function StakingPageContent() {
     </div>
   );
 }
-
 function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
   const userTelegramId = webApp?.initDataUnsafe?.user?.id?.toString();
 
-  // FIX: PREVENT BACKGROUND SCROLLING
+  // 1. HARD LOCK SCROLLING
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'unset'; };
+    document.body.classList.add('no-scroll');
+    return () => document.body.classList.remove('no-scroll');
   }, []);
 
   const handleSign = async (fighterId: string) => {
@@ -286,17 +285,17 @@ function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void 
       });
 
       if (response.ok) {
-        confetti({
-          particleCount: 150,
-          spread: 70,
+        confetti({ 
+          particleCount: 100, 
+          spread: 70, 
           origin: { y: 0.6 },
-          colors: ['#EAB308', '#22C55E', '#FFFFFF']
+          colors: ['#D4AF37', '#FCF6BA', '#FFFFFF'] 
         });
         setShowSuccess(true);
         setTimeout(() => {
           onClose();
           window.location.reload();
-        }, 3000);
+        }, 2000);
       }
     } catch (error) {
       console.error(error);
@@ -306,128 +305,107 @@ function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void 
   };
 
   const isAvailableForSign = !fighter.isPrivate && !fighter.ownerId;
-  const displayPrice = fighter.salePriceTon ? `${fighter.salePriceTon} TON` : "Not for Sale";
-  const total = fighter.wins + fighter.losses + fighter.draws;
-  const winRate = total > 0 ? Math.round((fighter.wins / total) * 100) : 0;
-
-  // Internal component for the streak
-  const StreakMeter = ({ streak = 0, isOwner = false, price = "" }: any) => {
-    const progress = streak % 3;
-    const isHot = progress === 2;
-    return (
-      <div className={`w-full p-5 rounded-3xl border-2 mb-6 transition-all duration-500 ${
-        isHot ? 'bg-orange-500/10 border-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.1)]' : 'bg-zinc-900/40 border-white/5'
-      }`}>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isHot ? 'text-orange-500' : 'text-zinc-500'}`}>
-              {isHot ? "⚠️ HIGH VALUE TARGET" : "Reward Progress"}
-            </h4>
-            <p className="text-white font-bold italic text-sm mt-0.5">
-              {isHot ? "ONE WIN TO MINT NFT" : `${3 - progress} wins until NFT drop`}
-            </p>
-          </div>
-          {isHot && <div className="flex gap-1 animate-bounce text-lg">🔥🔥</div>}
-        </div>
-        <div className="flex gap-3 justify-between">
-          {[1, 2, 3].map((step) => {
-            const isActive = progress >= step;
-            const isTarget = step === 3 && isHot;
-            return (
-              <div key={step} className={`relative flex-1 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${
-                isActive ? 'bg-yellow-500/20 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 
-                isTarget ? 'bg-orange-600/20 border-orange-500 border-dashed animate-pulse' : 'bg-black/40 border-zinc-800'
-              }`}>
-                <span className={`text-2xl transition-all ${isActive ? 'opacity-100 scale-110' : 'opacity-20 grayscale'}`}>🐚</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+  const winRate = (fighter.wins + fighter.losses) > 0 
+    ? Math.round((fighter.wins / (fighter.wins + fighter.losses)) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center">
-      {/* BACKGROUND OVERLAY: Frosted glass to separate from Main Page */}
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+    <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
+      {/* DARK BACKDROP - Increased blur for distinct separation */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300" 
+        onClick={onClose} 
+      />
 
-      {/* SUCCESS OVERLAY */}
-      {showSuccess && (
-        <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/40 backdrop-blur-md">
-          <div className="text-center p-10 bg-zinc-950 border-2 border-yellow-500 rounded-[3rem] shadow-[0_0_60px_rgba(234,179,8,0.4)] scale-110">
-            <div className="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Zap size={40} fill="black" />
-            </div>
-            <h3 className="text-3xl font-black italic uppercase text-white">Signed!</h3>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CONTAINER */}
-      <div className="relative w-full max-w-lg bg-[#0a0a0a] border-t border-zinc-800 rounded-t-[3rem] sm:rounded-[3rem] p-6 pb-12 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-y-auto max-h-[92vh] animate-in slide-in-from-bottom-full duration-500">
-        <div className="w-12 h-1 bg-zinc-800 rounded-full mx-auto mb-6 sm:hidden" />
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-500">
-          <X size={20} />
+      {/* COMPACT MODAL CARD */}
+      <div className="relative w-full max-w-[320px] bg-zinc-950 border border-zinc-800 rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,1)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
+        
+        {/* CLOSE BUTTON */}
+        <button 
+          onClick={onClose}
+          className="absolute top-5 right-5 p-2 bg-zinc-900/50 hover:bg-zinc-800 rounded-full text-zinc-500 transition-colors z-10"
+        >
+          <X size={16} />
         </button>
 
-        <div className="flex flex-col items-center max-w-sm mx-auto">
-          {/* IMAGE SECTION */}
-          <div className={`w-40 h-40 rounded-full p-1.5 mb-6 shadow-2xl relative ${fighter.isPrivate ? 'gold-shimmer-border' : 'border-4 border-zinc-800'}`}>
-            <img src={fighter.imageUrl} className="w-full h-full rounded-full object-cover bg-zinc-900" />
+        <div className="flex flex-col items-center">
+          {/* IMAGE CONTAINER with the Shimmer Border Padding Fix */}
+          <div className={`w-32 h-32 rounded-full mb-4 flex items-center justify-center overflow-hidden ${
+            fighter.isPrivate ? 'gold-shimmer-border p-[3px]' : 'border-2 border-zinc-800 p-[2px]'
+          }`}>
+            <img 
+              src={fighter.imageUrl} 
+              className="w-full h-full rounded-full object-cover bg-black" 
+              alt="Fighter"
+            />
           </div>
 
-          <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white text-center leading-none mb-2">{fighter.name}</h2>
-          <div className="mb-8 px-4 py-1 bg-zinc-900 border border-zinc-800 rounded-full">
-            <p className="text-yellow-500 font-mono font-black text-xs uppercase tracking-widest">{displayPrice}</p>
+          <h2 className="text-2xl font-black italic uppercase text-white mb-1 leading-tight tracking-tighter">
+            {fighter.name}
+          </h2>
+          
+          <div className="px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-6">
+             <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">
+                {fighter.salePriceTon ? `${fighter.salePriceTon} TON` : 'PRIVATE AGENT'}
+             </p>
           </div>
 
-          {/* SPECS GRID */}
-          <div className="grid grid-cols-2 gap-3 w-full mb-6">
-            <div className="bg-zinc-900/60 p-4 rounded-2xl border border-white/5">
-              <p className="text-[9px] text-zinc-500 font-black uppercase mb-1">Height / Gender</p>
-              <p className="text-sm font-bold text-white italic">{fighter.height || '—'}cm / {fighter.gender || '—'}</p>
+          {/* STATS STRIP */}
+          <div className="flex w-full justify-around bg-zinc-900/30 py-4 rounded-2xl border border-white/5 mb-6">
+            <div className="text-center">
+              <p className="text-xl font-black text-white leading-none">{fighter.wins}</p>
+              <p className="text-[8px] text-zinc-500 font-bold uppercase mt-1">Wins</p>
             </div>
-            <div className="bg-zinc-900/60 p-4 rounded-2xl border border-white/5">
-              <p className="text-[9px] text-zinc-500 font-black uppercase mb-1">Weight Class</p>
-              <p className="text-sm font-bold text-white italic uppercase">{fighter.weightClass || 'Open'}</p>
+            <div className="h-8 w-px bg-zinc-800" />
+            <div className="text-center">
+              <p className="text-xl font-black text-white leading-none">{winRate}%</p>
+              <p className="text-[8px] text-zinc-500 font-bold uppercase mt-1">Rate</p>
             </div>
-          </div>
-
-          {/* STREAK METER */}
-          <StreakMeter streak={fighter.currentStreak} isOwner={fighter.ownerId === userTelegramId} price={displayPrice} />
-
-          {/* RECORD */}
-          <div className="w-full bg-zinc-900/60 p-5 rounded-3xl border border-white/5 mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Career Stats</p>
-              <span className="text-xs font-black text-green-500 bg-green-500/10 px-2 py-0.5 rounded-md">{winRate}% WIN</span>
-            </div>
-            <div className="flex justify-around text-center">
-              <div><p className="text-2xl font-black text-white">{fighter.wins}</p><p className="text-[8px] font-bold text-zinc-500 uppercase">W</p></div>
-              <div className="w-px h-8 bg-zinc-800" />
-              <div><p className="text-2xl font-black text-white">{fighter.losses}</p><p className="text-[8px] font-bold text-zinc-500 uppercase">L</p></div>
-              <div className="w-px h-8 bg-zinc-800" />
-              <div><p className="text-2xl font-black text-white">{fighter.draws}</p><p className="text-[8px] font-bold text-zinc-500 uppercase">D</p></div>
+            <div className="h-8 w-px bg-zinc-800" />
+            <div className="text-center">
+              <p className="text-xl font-black text-white leading-none">{fighter.losses}</p>
+              <p className="text-[8px] text-zinc-500 font-bold uppercase mt-1">Losses</p>
             </div>
           </div>
 
-          {/* ACTION BUTTON */}
+          {/* ATTRIBUTES */}
+          <div className="w-full space-y-3 mb-8 px-2">
+            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+              <span className="text-zinc-500 text-[9px] font-black uppercase tracking-wider">Weight Class</span>
+              <span className="text-white text-[11px] font-bold italic uppercase">{fighter.weightClass || 'Open'}</span>
+            </div>
+            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+              <span className="text-zinc-500 text-[9px] font-black uppercase tracking-wider">Height</span>
+              <span className="text-white text-[11px] font-bold italic">{fighter.height} CM</span>
+            </div>
+          </div>
+
+          {/* SIGN BUTTON */}
           {isAvailableForSign ? (
             <button 
-              disabled={loading}
               onClick={() => handleSign(fighter.id)}
-              className="w-full py-5 bg-green-600 hover:bg-green-500 active:scale-95 transition-all rounded-[2rem] font-black uppercase italic tracking-widest flex items-center justify-center gap-3 shadow-[0_15px_30px_rgba(22,163,74,0.3)]"
+              disabled={loading}
+              className="group relative w-full py-4 bg-green-600 hover:bg-green-500 rounded-2xl font-black uppercase italic text-xs tracking-widest text-white shadow-lg shadow-green-900/20 active:scale-95 transition-all"
             >
-              <Zap size={20} fill="currentColor" />
-              {loading ? "PROCESSING..." : `SIGN FOR ${displayPrice}`}
+              <span className="relative z-10">{loading ? "PROCESSING..." : `SIGN CONTRACT`}</span>
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity" />
             </button>
           ) : (
-            <div className="w-full py-5 bg-zinc-900/80 rounded-[2rem] border border-zinc-800 text-center">
-              <p className="text-zinc-500 font-black uppercase italic tracking-widest">CONTRACTED</p>
+            <div className="w-full py-4 bg-zinc-900/50 rounded-2xl text-center border border-zinc-800/50 opacity-60">
+              <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest">CONTRACTED</p>
             </div>
           )}
         </div>
+
+        {/* SUCCESS MESSAGE - Updated with Backdrop Blur */}
+        {showSuccess && (
+          <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-sm rounded-[2.5rem] flex flex-col items-center justify-center z-50 animate-in fade-in duration-300">
+            <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(234,179,8,0.4)]">
+               <Zap size={30} className="text-black" fill="black" />
+            </div>
+            <p className="text-2xl font-black italic text-white mt-4 tracking-tighter">SIGNED!</p>
+            <p className="text-[10px] text-zinc-400 font-bold uppercase mt-1">Fighter Roster Updated</p>
+          </div>
+        )}
       </div>
     </div>
   );

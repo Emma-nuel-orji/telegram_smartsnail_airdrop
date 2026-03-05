@@ -250,6 +250,9 @@
 
 
 .gold-shimmer-border {
+  position: relative;
+  /* 1. Add padding to create the 'thickness' of the border */
+  padding: 4px; 
   background: linear-gradient(
     90deg, 
     #d4af37 0%, 
@@ -260,6 +263,10 @@
   );
   background-size: 200% auto;
   animation: gold-shimmer 3s linear infinite;
+  /* 2. Ensure the container itself is a perfect circle */
+  border-radius: 9999px;
+  /* 3. Add a glow that matches the gold */
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
 }
 
 @keyframes gold-shimmer {
@@ -267,10 +274,15 @@
   100% { background-position: 200% 0; }
 }
 
-.gold-shimmer-border > div, 
-.gold-shimmer-border > img {
-  background: black;
+/* Ensure the image/div inside is a circle and has a black background to hide the center of the gradient */
+.gold-shimmer-border img,
+.gold-shimmer-border .inner-circle {
+  background: #000;
   border-radius: 9999px;
+  width: 100%;
+  height: 100%;
+  object-cover: cover;
+  display: block;
 }
 
 /* .gold-shimmer-border {
