@@ -9,19 +9,18 @@ function serializeUser(user: any) {
     telegramId: user.telegramId.toString(),
     points: Number(user.points),
     // 1. Serialize the Fighter profile
-    fighter: user.fighter ? {
-      ...user.fighter,
-      id: user.fighter.id.toString(),
-      telegramId: user.fighter.telegramId?.toString(),
-      points: Number(user.fighter.points),
-      height: Number(user.fighter.height),
-      weight: Number(user.fighter.weight),
-      // 2. Serialize the nested NFT team data assigned by admin
-      nft: user.fighter.nft ? {
-        ...user.fighter.nft,
-        id: user.fighter.nft.id.toString(),
-        priceTon: Number(user.fighter.nft.priceTon),
-        priceStars: Number(user.fighter.nft.priceStars),
+    athleteProfile: user.athleteProfile ? {
+      ...user.athleteProfile,
+      id: user.athleteProfile.id.toString(),
+      userTelegramId: user.athleteProfile.userTelegramId?.toString(),
+      points: Number(user.athleteProfile.points || 0),
+      height: Number(user.athleteProfile.height || 0),
+      weight: Number(user.athleteProfile.weight || 0),
+      nft: user.athleteProfile.nft ? {
+        ...user.athleteProfile.nft,
+        id: user.athleteProfile.nft.id.toString(),
+        priceTon: Number(user.athleteProfile.nft.priceTon || 0),
+        priceStars: Number(user.athleteProfile.nft.priceStars || 0),
       } : null
     } : null,
     createdAt: user.createdAt?.toISOString(),
