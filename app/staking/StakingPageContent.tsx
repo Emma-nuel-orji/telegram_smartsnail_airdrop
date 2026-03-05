@@ -191,7 +191,7 @@ export default function StakingPageContent() {
   }
   };
 
-  if (loading) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic">LOADING ARENA...</div>;
+  if (loading) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic">POLYCOMBAT LOADING...</div>;
   
   if (fights.length === 0) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic">NO FIGHTS AVAILABLE</div>;
 
@@ -264,252 +264,174 @@ export default function StakingPageContent() {
   );
 }
 
- function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void }) {
+function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+  const userTelegramId = webApp?.initDataUnsafe?.user?.id?.toString();
 
-const [loading, setLoading] = useState(false);
-const [showSuccess, setShowSuccess] = useState(false);
-const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
-// const currentUserId = webApp?.initDataUnsafe?.user?.id?.toString();
-const userTelegramId = webApp?.initDataUnsafe?.user?.id?.toString();
-const handleSign = async (fighterId: string) => {
-  try {
-    setLoading(true);
-    const response = await fetch(`/api/recruit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        fighterId, 
-        telegramId: userTelegramId 
-      })
-    });
+  // FIX: PREVENT BACKGROUND SCROLLING
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, []);
 
-    if (response.ok) {
-      // 1. Trigger Confetti
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#EAB308', '#22C55E', '#FFFFFF']
+  const handleSign = async (fighterId: string) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/recruit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fighterId, telegramId: userTelegramId })
       });
 
-      // 2. Show Success Overlay
-      setShowSuccess(true);
-      
-      // 3. Close after delay
-      setTimeout(() => {
-        onClose();
-        window.location.reload();
-      }, 3000);
+      if (response.ok) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#EAB308', '#22C55E', '#FFFFFF']
+        });
+        setShowSuccess(true);
+        setTimeout(() => {
+          onClose();
+          window.location.reload();
+        }, 3000);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  };
 
   const isAvailableForSign = !fighter.isPrivate && !fighter.ownerId;
-  const displayPrice = fighter.salePriceTon 
-    ? `${fighter.salePriceTon} TON` 
-    : "Not for Sale";
+  const displayPrice = fighter.salePriceTon ? `${fighter.salePriceTon} TON` : "Not for Sale";
   const total = fighter.wins + fighter.losses + fighter.draws;
   const winRate = total > 0 ? Math.round((fighter.wins / total) * 100) : 0;
-  const StreakMeter = ({ 
-  streak = 0, 
-  isOwner = false,
-  price = "" 
-}: { 
-  streak?: number; 
-  isOwner?: boolean;
-  price?: string;
-}) => {
-  const progress = streak % 3;
-  const isHot = progress === 2; // High value state
 
-  return (
-    <div className={`w-full p-5 rounded-2xl border-2 mb-6 relative group transition-all duration-500 ${
-      isHot 
-        ? 'bg-orange-500/10 border-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.2)] animate-pulse' 
-        : 'bg-zinc-900/80 border-yellow-500/20'
-    }`}>
-      
-      {/* 1. THE STATUS HEADER */}
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isHot ? 'text-orange-500' : 'text-yellow-500'}`}>
-            {isHot ? "⚠️ HIGH VALUE TARGET" : "Reward Progress"}
-          </h4>
-          <p className="text-white font-bold italic text-sm mt-0.5">
-            {isHot ? "ONE WIN TO MINT NFT" : `${3 - progress} wins until NFT drop`}
-          </p>
-        </div>
-        
-        {isHot && (
-          <div className="flex gap-1">
-             <span className="animate-bounce">🔥</span>
-             <span className="animate-bounce delay-75">🔥</span>
-          </div>
-        )}
-      </div>
-
-      {/* 2. THE SHELL SLOTS */}
-      <div className="flex gap-4 justify-between relative z-10">
-        {[1, 2, 3].map((step) => {
-          const isActive = progress >= step;
-          const isTarget = step === 3 && isHot;
-
-          return (
-            <div 
-              key={step}
-              className={`relative flex-1 h-14 rounded-xl border-2 flex items-center justify-center transition-all duration-300 ${
-                isActive 
-                  ? 'bg-yellow-500/20 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' 
-                  : isTarget
-                    ? 'bg-orange-600/20 border-orange-500 border-dashed animate-pulse'
-                    : 'bg-black/40 border-zinc-800'
-              }`}
-            >
-              <span className={`text-3xl transition-transform duration-500 ${
-                isActive ? 'scale-110 opacity-100' : isTarget ? 'scale-90 opacity-40 animate-spin-slow' : 'scale-75 opacity-20 grayscale'
-              }`}>
-                🐚
-              </span>
-
-              {/* Target Crosshair for the 3rd slot when Hot */}
-              {isTarget && (
-                <div className="absolute inset-0 border border-orange-500/30 rounded-lg scale-110 animate-ping" />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 3. THE "SIGNING" ADVICE */}
-      {!isOwner && (
-        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
-          <p className="text-[9px] text-zinc-400 max-w-[70%] leading-tight">
-            Sign now for <span className="text-white font-bold">{price}</span>. The 3rd win bonus will go to <span className="text-green-500 italic">YOU</span>.
-          </p>
-          {isHot && <span className="text-[8px] font-black text-orange-500 underline uppercase italic">Action Required</span>}
-        </div>
-      )}
-    </div>
-  );
-};
-
-
- return (
-  <>
-    {/* 1. SUCCESS OVERLAY */}
-    {showSuccess && (
-      <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in zoom-in duration-300">
-        <div className="text-center p-8 bg-zinc-900 border-2 border-yellow-500 rounded-3xl shadow-[0_0_50px_rgba(234,179,8,0.3)]">
-          <div className="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-            <Zap size={40} fill="black" />
-          </div>
-          <h3 className="text-3xl font-black italic uppercase text-white">Signed!</h3>
-          <p className="text-zinc-400 font-bold mt-2">Fighter added to your roster.</p>
-        </div>
-      </div>
-    )}
-
-    {/* 2. MAIN MODAL */}
-    <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-xl flex flex-col p-6 animate-in fade-in slide-in-from-bottom-6 overflow-y-auto">
-      {/* Close Button */}
-      <button onClick={onClose} className="self-end p-3 bg-zinc-900 rounded-full mb-4 active:scale-90 transition-transform">
-        <X size={24} className="text-zinc-400" />
-      </button>
-
-      <div className="flex flex-col items-center max-w-sm mx-auto w-full">
-        {/* Profile Image */}
-        <div className={`w-40 h-40 rounded-full p-1.5 mb-6 shadow-2xl ${fighter.isPrivate ? 'gold-shimmer-border' : 'border-4 border-zinc-800'}`}>
-          <img src={fighter.imageUrl} className="w-full h-full rounded-full object-cover bg-zinc-900" />
-        </div>
-        
-        {/* Identity & Price */}
-        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white text-center">{fighter.name}</h2>
-        <div className="mt-1 mb-8 px-4 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full">
-          <p className="text-yellow-500 font-mono font-black text-sm uppercase tracking-widest">{displayPrice}</p>
-        </div>
-
-        {/* PHYSICAL SPECS GRID (2 columns) */}
-        <div className="grid grid-cols-2 gap-4 w-full mb-4">
-          <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800">
-            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-tighter mb-1">Gender</p>
-            <p className="text-lg font-bold text-white uppercase italic leading-none">{fighter.gender || '—'}</p>
-          </div>
-          
-          <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800">
-            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-tighter mb-1">Height</p>
-            <p className="text-lg font-bold text-white italic leading-none">{fighter.height ? `${fighter.height} cm` : '—'}</p>
-          </div>
-
-          <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800">
-            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-tighter mb-1">Weight Class</p>
-            <p className="text-lg font-bold text-white uppercase italic leading-none">{fighter.weightClass || '—'}</p>
-          </div>
-
-          <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800">
-            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-tighter mb-1">Social Media</p>
-            {fighter.socialMedia ? (
-              <a href={fighter.socialMedia} target="_blank" className="text-lg font-bold text-blue-400 hover:text-blue-300 underline uppercase italic leading-none">Open IG</a>
-            ) : (
-              <p className="text-lg font-bold text-zinc-700 uppercase italic leading-none">Private</p>
-            )}
-          </div>
-        </div>
-
-        {/* NEW: STREAK METER */}
-        <StreakMeter 
-          streak={fighter.currentStreak} 
-          isOwner={fighter.ownerId === userTelegramId}
-          price={displayPrice}
-        />
-
-        {/* CAREER RECORD (Full Width - Moved outside grid) */}
-        <div className="w-full bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 mb-8">
-          <div className="flex justify-between items-end mb-2">
-            <p className="text-[10px] text-zinc-500 font-black uppercase">Career Record</p>
-            <p className="text-xs font-bold text-green-500">{winRate}% Win Rate</p>
-          </div>
-          
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <p className="text-2xl font-black text-white leading-none">{fighter.wins || 0}<span className="text-[10px] text-zinc-500 ml-1">W</span></p>
-            </div>
-            <div className="flex-1 border-x border-zinc-800 px-4">
-              <p className="text-2xl font-black text-white leading-none">{fighter.losses || 0}<span className="text-[10px] text-zinc-500 ml-1">L</span></p>
-            </div>
-            <div className="flex-1 text-right">
-              <p className="text-2xl font-black text-white leading-none">{fighter.draws || 0}<span className="text-[10px] text-zinc-500 ml-1">D</span></p>
-            </div>
-          </div>
-        </div>
-
-        {/* DYNAMIC ACTION BUTTON */}
-        {isAvailableForSign ? (
-          <button 
-            disabled={loading}
-            className="w-full py-5 bg-green-600 hover:bg-green-500 active:scale-95 transition-all rounded-2xl font-black uppercase italic tracking-widest flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(22,163,74,0.3)] disabled:opacity-50"
-            onClick={() => handleSign(fighter.id)}
-          >
-            <Zap size={22} fill="currentColor" />
-            {loading ? "Signing..." : `Sign for ${displayPrice}`}
-          </button>
-        ) : (
-          <div className="w-full py-5 bg-zinc-800/50 rounded-2xl border border-zinc-800/50 text-center">
-            <p className="text-[10px] text-zinc-500 font-black uppercase mb-1">Contract Status</p>
-            <p className="text-white font-black uppercase italic tracking-widest">
-              Signed by {fighter.owner?.username || "Management"}
+  // Internal component for the streak
+  const StreakMeter = ({ streak = 0, isOwner = false, price = "" }: any) => {
+    const progress = streak % 3;
+    const isHot = progress === 2;
+    return (
+      <div className={`w-full p-5 rounded-3xl border-2 mb-6 transition-all duration-500 ${
+        isHot ? 'bg-orange-500/10 border-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.1)]' : 'bg-zinc-900/40 border-white/5'
+      }`}>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isHot ? 'text-orange-500' : 'text-zinc-500'}`}>
+              {isHot ? "⚠️ HIGH VALUE TARGET" : "Reward Progress"}
+            </h4>
+            <p className="text-white font-bold italic text-sm mt-0.5">
+              {isHot ? "ONE WIN TO MINT NFT" : `${3 - progress} wins until NFT drop`}
             </p>
           </div>
-        )}
+          {isHot && <div className="flex gap-1 animate-bounce text-lg">🔥🔥</div>}
+        </div>
+        <div className="flex gap-3 justify-between">
+          {[1, 2, 3].map((step) => {
+            const isActive = progress >= step;
+            const isTarget = step === 3 && isHot;
+            return (
+              <div key={step} className={`relative flex-1 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${
+                isActive ? 'bg-yellow-500/20 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 
+                isTarget ? 'bg-orange-600/20 border-orange-500 border-dashed animate-pulse' : 'bg-black/40 border-zinc-800'
+              }`}>
+                <span className={`text-2xl transition-all ${isActive ? 'opacity-100 scale-110' : 'opacity-20 grayscale'}`}>🐚</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center">
+      {/* BACKGROUND OVERLAY: Frosted glass to separate from Main Page */}
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+
+      {/* SUCCESS OVERLAY */}
+      {showSuccess && (
+        <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/40 backdrop-blur-md">
+          <div className="text-center p-10 bg-zinc-950 border-2 border-yellow-500 rounded-[3rem] shadow-[0_0_60px_rgba(234,179,8,0.4)] scale-110">
+            <div className="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Zap size={40} fill="black" />
+            </div>
+            <h3 className="text-3xl font-black italic uppercase text-white">Signed!</h3>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONTAINER */}
+      <div className="relative w-full max-w-lg bg-[#0a0a0a] border-t border-zinc-800 rounded-t-[3rem] sm:rounded-[3rem] p-6 pb-12 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-y-auto max-h-[92vh] animate-in slide-in-from-bottom-full duration-500">
+        <div className="w-12 h-1 bg-zinc-800 rounded-full mx-auto mb-6 sm:hidden" />
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-500">
+          <X size={20} />
+        </button>
+
+        <div className="flex flex-col items-center max-w-sm mx-auto">
+          {/* IMAGE SECTION */}
+          <div className={`w-40 h-40 rounded-full p-1.5 mb-6 shadow-2xl relative ${fighter.isPrivate ? 'gold-shimmer-border' : 'border-4 border-zinc-800'}`}>
+            <img src={fighter.imageUrl} className="w-full h-full rounded-full object-cover bg-zinc-900" />
+          </div>
+
+          <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white text-center leading-none mb-2">{fighter.name}</h2>
+          <div className="mb-8 px-4 py-1 bg-zinc-900 border border-zinc-800 rounded-full">
+            <p className="text-yellow-500 font-mono font-black text-xs uppercase tracking-widest">{displayPrice}</p>
+          </div>
+
+          {/* SPECS GRID */}
+          <div className="grid grid-cols-2 gap-3 w-full mb-6">
+            <div className="bg-zinc-900/60 p-4 rounded-2xl border border-white/5">
+              <p className="text-[9px] text-zinc-500 font-black uppercase mb-1">Height / Gender</p>
+              <p className="text-sm font-bold text-white italic">{fighter.height || '—'}cm / {fighter.gender || '—'}</p>
+            </div>
+            <div className="bg-zinc-900/60 p-4 rounded-2xl border border-white/5">
+              <p className="text-[9px] text-zinc-500 font-black uppercase mb-1">Weight Class</p>
+              <p className="text-sm font-bold text-white italic uppercase">{fighter.weightClass || 'Open'}</p>
+            </div>
+          </div>
+
+          {/* STREAK METER */}
+          <StreakMeter streak={fighter.currentStreak} isOwner={fighter.ownerId === userTelegramId} price={displayPrice} />
+
+          {/* RECORD */}
+          <div className="w-full bg-zinc-900/60 p-5 rounded-3xl border border-white/5 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Career Stats</p>
+              <span className="text-xs font-black text-green-500 bg-green-500/10 px-2 py-0.5 rounded-md">{winRate}% WIN</span>
+            </div>
+            <div className="flex justify-around text-center">
+              <div><p className="text-2xl font-black text-white">{fighter.wins}</p><p className="text-[8px] font-bold text-zinc-500 uppercase">W</p></div>
+              <div className="w-px h-8 bg-zinc-800" />
+              <div><p className="text-2xl font-black text-white">{fighter.losses}</p><p className="text-[8px] font-bold text-zinc-500 uppercase">L</p></div>
+              <div className="w-px h-8 bg-zinc-800" />
+              <div><p className="text-2xl font-black text-white">{fighter.draws}</p><p className="text-[8px] font-bold text-zinc-500 uppercase">D</p></div>
+            </div>
+          </div>
+
+          {/* ACTION BUTTON */}
+          {isAvailableForSign ? (
+            <button 
+              disabled={loading}
+              onClick={() => handleSign(fighter.id)}
+              className="w-full py-5 bg-green-600 hover:bg-green-500 active:scale-95 transition-all rounded-[2rem] font-black uppercase italic tracking-widest flex items-center justify-center gap-3 shadow-[0_15px_30px_rgba(22,163,74,0.3)]"
+            >
+              <Zap size={20} fill="currentColor" />
+              {loading ? "PROCESSING..." : `SIGN FOR ${displayPrice}`}
+            </button>
+          ) : (
+            <div className="w-full py-5 bg-zinc-900/80 rounded-[2rem] border border-zinc-800 text-center">
+              <p className="text-zinc-500 font-black uppercase italic tracking-widest">CONTRACTED</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  </>
-); }
+  );
+}
 
 function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints: number, telegramId: string | null }) {
  const [timer, setTimer] = useState<string>("");
@@ -685,7 +607,7 @@ const handleClaim = async () => {
             telegramId={telegramId} 
             position="right" 
             color={getFighterColor(fight.fighter2)}
-             onImageClick={() => setSelectedFighter(fight.fighter1)} 
+             onImageClick={() => setSelectedFighter(fight.fighter2)} 
           />
           <p className="mt-2 text-white font-bold italic uppercase text-xs tracking-tight leading-none">
             {fight.fighter2.name}
@@ -835,6 +757,11 @@ const NFTRewardModal: React.FC<NFTRewardModalProps> = ({ nft, userReferralCode, 
   const rarityColor = nft.rarity === 'LEGENDARY' ? 'text-orange-500' : 'text-yellow-500';
   const glowColor = nft.rarity === 'LEGENDARY' ? 'shadow-[0_0_50px_rgba(249,115,22,0.4)]' : 'shadow-[0_0_50px_rgba(234,179,8,0.4)]';
 
+    useEffect(() => {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = 'unset'; };
+    }, []);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
       <div className={`relative w-full max-w-sm bg-zinc-900 border-2 border-zinc-800 rounded-[2.5rem] p-8 text-center ${glowColor} animate-in fade-in zoom-in duration-300`}>
@@ -971,9 +898,9 @@ useEffect(() => {
   const accurateTotalPool = mySide + stakerProfitPool;
   const multiplier = (accurateTotalPool / mySide).toFixed(2);
   const [userId, setUserId] = useState<string | null>(null);
-  const userNft = userOwnedNfts.find(
-  (n: NFT) => n.collection === fighter?.collection?.name
-  );
+    const userNft = userOwnedNfts.find(
+      (n: NFT) => n.collection?.name === fighter?.collection?.name
+    );
 
 // const userNft = userOwnedNfts.find(
 //   (n: NFT) => n.collection?.toLowerCase() === fighter?.collection?.name?.toLowerCase()
@@ -1036,7 +963,7 @@ useEffect(() => {
 };
   // --- REFINED DRAGGING LOGIC ---
  const handleTouchMove = (e: React.TouchEvent) => {
-  if (barLocked || !isActive || !barRef.current) return;
+  if (!canParticipate || barLocked || !isActive || !barRef.current) return;
 e.stopPropagation();
 
   const touch = e.touches[0];
@@ -1186,24 +1113,43 @@ useEffect(() => {
       </div>
 
 
-      <div 
+            <div 
         ref={barRef}
-        className={`w-14 min-h-[180px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800'}`}
+        className={`w-14 min-h-[180px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all 
+          ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800'}
+          ${!canParticipate ? 'opacity-40 grayscale cursor-not-allowed' : ''}`} 
         onTouchStart={handleTouchStart}  
         onTouchMove={handleTouchMove}
-        onClick={toggleLock}
+        onClick={canParticipate ? toggleLock : undefined}
       >
-        <motion.div 
-          className={`absolute bottom-0 w-full ${color === 'red' ? 'bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.5)]' : 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.5)]'}`}
-          animate={{ height: `${barHeight}%` }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        />
-        {!barLocked && (
-          <div className="absolute inset-0 flex items-center justify-center rotate-[-90deg] pointer-events-none opacity-30">
-            <span className="text-[10px] font-black text-white tracking-[0.3em]">DRAG UP</span>
+        {/* NEW: Lock Overlay for Inactive Users */}
+        {!canParticipate && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1px]">
+            <Lock size={16} className="text-zinc-400 mb-1" />
+            <span className="text-[8px] font-black text-zinc-400 uppercase tracking-tighter text-center px-1">
+              REQS NOT MET
+            </span>
           </div>
         )}
-      </div>
+
+  <motion.div 
+  className={`absolute bottom-0 w-full transition-colors duration-500 ${
+    color === 'red' ? 'bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.5)]' : 
+    color === 'blue' ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.5)]' : 
+    color === 'gold' ? 'bg-gradient-to-t from-yellow-700 via-yellow-500 to-yellow-300 shadow-[0_0_25px_rgba(234,179,8,0.6)]' : 
+    'bg-zinc-500 shadow-[0_0_15px_rgba(113,113,122,0.4)]' /* Default for Free Agents */
+  }`}
+  animate={{ height: `${canParticipate ? barHeight : 0}%` }}
+  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+/>
+
+  {/* Only show "DRAG UP" if they are allowed to and not locked */}
+  {canParticipate && !barLocked && (
+    <div className="absolute inset-0 flex items-center justify-center rotate-[-90deg] pointer-events-none opacity-30">
+      <span className="text-[10px] font-black text-white tracking-[0.3em]">DRAG UP</span>
+    </div>
+  )}
+</div>
 
       <div className="mt-4 text-center">
   <p className="text-lg font-mono font-bold leading-none">
@@ -1221,12 +1167,15 @@ useEffect(() => {
 
 
         <button 
-        onClick={submitStake}
-        disabled={!barLocked || stakeAmount <= 0}
-        className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all ${barLocked && stakeAmount > 0 ? 'bg-white text-black translate-y-0 shadow-lg shadow-white/10' : 'bg-zinc-900 text-zinc-600 translate-y-2 opacity-50'}`}
+        onClick={barLocked ? submitStake : toggleLock} 
+        disabled={(!barLocked && stakeAmount <= 0) || !canParticipate} 
+        className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all 
+          ${!canParticipate ? 'bg-red-900/20 text-red-500 border border-red-500/30 cursor-not-allowed' : 
+            barLocked ? 'bg-white text-black shadow-lg' : 'bg-zinc-800 text-white'}`}
       >
-        {barLocked ? 'Confirm' : 'Lock Bar'}
+        {!canParticipate ? 'REQS NOT MET' : barLocked ? 'Confirm Stake' : 'Lock Stake'}
       </button>
+
 
       {typeof window !== "undefined" &&
   createPortal(
