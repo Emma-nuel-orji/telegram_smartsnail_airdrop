@@ -3,6 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Wallet, Zap, Shield, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useWallet } from '../context/walletContext';
+
+interface Fighter {
+  id: string;
+  name: string;
+  imageUrl: string;
+  weightClass: string;
+  salePriceTon: number;
+  // Add any other fields you use
+}
 
 export default function RecruitmentOffice() {
   const [fighters, setFighters] = useState([]);
@@ -84,51 +94,94 @@ export default function RecruitmentOffice() {
   );
 }
 
-function FighterNFTCard({ fighter }: { fighter: any }) {
+function FighterNFTCard({ fighter }: { fighter: Fighter }) {
+  const { isConnected, tonConnectUI, walletAddress } = useWallet();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSignContract = async () => {
+    // 1. Validation Logic
+    if (!isConnected || !tonConnectUI || !walletAddress) {
+      alert("Wallet not connected! Please connect your wallet first.");
+      return;
+    }
+
+    const priceTon = fighter.salePriceTon || 5.0; 
+    const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
+
+    if (!receiverAddress) {
+      alert("Receiver address not configured.");
+      return;
+    }
+
+    // 2. Build Transaction
+    const transaction = {
+      validUntil: Math.floor(Date.now() / 1000) + 360,
+      messages: [
+        {
+          address: receiverAddress,
+          amount: String(Math.floor(priceTon * 1e9)), // Convert to nanoTON
+        },
+      ],
+    };
+
+    try {
+      setIsProcessing(true);
+      
+      // 3. Send Transaction
+      const tonResult = await tonConnectUI.sendTransaction(transaction);
+
+      if (!tonResult || !tonResult.boc) {
+        throw new Error("Transaction failed or missing data.");
+      }
+
+      // 4. Verify with Backend (Passing the fighterId)
+      const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id;
+
+      const verifyResponse = await fetch("/api/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactionHash: tonResult.boc,
+          paymentMethod: "TON",
+          totalAmount: priceTon,
+          userId: userId,
+          fighterId: fighter.id, // Linking the payment to this specific fighter
+          itemType: "FIGHTER_RECRUITMENT"
+        })
+      });
+
+      const result = await verifyResponse.json();
+      
+      if (result.success) {
+        alert(`${fighter.name} is now under your command!`);
+        // Optional: Trigger a refresh or local state update
+      }
+
+    } catch (error) {
+      console.error("TON transaction error:", error);
+      alert("Transaction failed. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative flex flex-col group"
-    >
-      {/* The NFT "Plate" */}
-      <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-zinc-900 border-2 border-zinc-800 group-hover:border-blue-500/50 transition-all nft-shimmer">
-        
-        {/* Fighter Image */}
-        <img 
-          src={fighter.imageUrl} 
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-        />
+    <motion.div className="relative flex flex-col group">
+      {/* ... (Your existing UI for image and stats) ... */}
 
-        {/* Top Badges */}
-        <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
-          <div className="bg-black/80 backdrop-blur-md px-2 py-1 rounded-md border border-white/10">
-            <p className="text-[7px] text-zinc-500 font-black uppercase">Rank</p>
-            <p className="text-[10px] font-black text-white leading-none">#812</p>
-          </div>
-          <div className="bg-yellow-500 text-black px-1.5 py-0.5 rounded font-black text-[8px] uppercase">
-            {fighter.weightClass}
-          </div>
-        </div>
-
-        {/* Bottom Stats Overlay */}
-        <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black via-black/80 to-transparent">
-          <h3 className="text-sm font-black italic uppercase text-white truncate mb-1">
-            {fighter.name}
-          </h3>
-          <div className="flex items-center gap-2">
-            <TrendingUp size={10} className="text-green-500" />
-            <span className="text-[9px] font-bold text-green-500">82% SUCCESS</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Pricing Button */}
-      <button className="mt-3 w-full py-3 bg-white hover:bg-zinc-200 text-black rounded-xl flex flex-col items-center justify-center transition-all active:scale-95">
-        <span className="text-[7px] font-black uppercase opacity-60">Sign Contract</span>
+      <button 
+        onClick={handleSignContract}
+        disabled={isProcessing}
+        className={`mt-3 w-full py-3 rounded-xl flex flex-col items-center justify-center transition-all active:scale-95 ${
+          isProcessing ? 'bg-zinc-700' : 'bg-white hover:bg-zinc-200 text-black'
+        }`}
+      >
+        <span className="text-[7px] font-black uppercase opacity-60">
+          {isProcessing ? "Verifying..." : "Sign Contract"}
+        </span>
         <div className="flex items-center gap-1">
           <img src="/ton-icon.png" className="w-3 h-3" alt="TON" />
-          <span className="text-xs font-black uppercase">5.00 TON</span>
+          <span className="text-xs font-black uppercase">{fighter.salePriceTon || "5.00"} TON</span>
         </div>
       </button>
     </motion.div>
