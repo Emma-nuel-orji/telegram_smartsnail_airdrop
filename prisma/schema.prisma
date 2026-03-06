@@ -290,6 +290,9 @@ enum FighterStatus {
   PENDING
   APPROVED
   REJECTED
+  ON_SALE      
+  CONTRACTED   
+  STAKED
 }
 
 

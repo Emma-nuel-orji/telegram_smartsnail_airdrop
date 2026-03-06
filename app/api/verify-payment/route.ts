@@ -5,6 +5,7 @@ import { processPayment } from '../purchase/route';
 
 export async function POST(request: Request) {
   try {
+    
     const body = await request.json();
     const {
       orderId,
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
       userId,
       bookCount,
       bookId,
+      fighterId, itemType,
       fxckedUpBagsQty,
       humanRelationsQty,
       telegram_payment_charge_id, // For Stars payments
@@ -26,6 +28,72 @@ export async function POST(request: Request) {
       paymentMethod,
       telegram_payment_charge_id,
     });
+
+
+    // 1. Handle Fighter Recruitment/Resale
+    if (itemType === "FIGHTER_RECRUITMENT" || itemType === "FIGHTER_RESALE") {
+      
+      const result = await prisma.$transaction(async (tx) => {
+        // Find the buyer
+        const buyer = await tx.user.findFirst({ where: { telegramId: BigInt(userId) } });
+        if (!buyer) throw new Error("Buyer not found");
+
+        // If paying with Shells, check and deduct balance
+        if (paymentMethod === "SHELLS") {
+          if (buyer.points < BigInt(totalAmount)) {
+            throw new Error("Insufficient Shells balance");
+          }
+          await tx.user.update({
+            where: { id: buyer.id },
+            data: { points: { decrement: BigInt(totalAmount) } }
+          });
+        }
+
+        // Update the Fighter: New Owner, Not for sale anymore
+        const updatedFighter = await tx.fighter.update({
+          where: { id: fighterId },
+          data: {
+            ownerId: buyer.id,
+            isForSale: false,
+            salePriceTon: null,
+            salePriceShells: null,
+            status: "APPROVED" // Or CONTRACTED if you updated your enum
+          }
+        });
+
+        
+// 1. Create the Order (The Receipt)
+      const newOrder = await tx.order.create({
+        data: {
+          orderId: `PC-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          paymentMethod: paymentMethod, // "TON" or "SHELLS"
+          totalAmount: Number(totalAmount),
+          status: "SUCCESS",
+          transactionReference: transactionHash || `SHELL_${Date.now()}`,
+        }
+      });
+
+      // 2. Create the Purchase (The link between User, Order, and Fighter)
+      // Note: You may need to adjust field names based on your Purchase model
+      await tx.purchase.create({
+        data: {
+          order: { connect: { id: newOrder.id } },
+          user: { connect: { id: buyer.id } }, 
+          paymentType: paymentMethod, // e.g., "TON"
+          amountPaid: Number(totalAmount),
+          // If your Purchase model tracks the fighter specifically:
+          // fighterId: fighterId, 
+          // quantity: 1,
+        }
+      });
+
+        return { success: true, fighterName: updatedFighter.name };
+      });
+
+      return NextResponse.json(result);
+    }
+
+
 
     // ✅ Validate required fields based on payment method
     if (paymentMethod === 'TON' && !transactionHash) {

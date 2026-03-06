@@ -4,6 +4,7 @@ import { ChevronLeft, Wallet, Zap, Shield, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useWallet } from '../context/walletContext';
+import { User } from 'lucide-react';
 
 interface Fighter {
   id: string;
@@ -20,7 +21,7 @@ export default function RecruitmentOffice() {
 
   useEffect(() => {
     // Fetch only "Unsigned" or "Available" fighters
-    fetch('/api/fighters/available')
+    fetch('/api/fighter/available')
       .then(res => res.json())
       .then(data => {
         setFighters(data);
@@ -47,15 +48,19 @@ export default function RecruitmentOffice() {
 
       {/* Header Area */}
       <header className="p-6 border-b border-zinc-900 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex justify-between items-center mb-4">
-          <Link href="/staking" className="p-2 bg-zinc-900 rounded-full"><ChevronLeft /></Link>
-          <div className="text-center">
-             <h1 className="text-xl font-black italic uppercase tracking-tighter">Scouting Deck</h1>
-             <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.3em]">PolyCombat Intelligence</p>
-          </div>
-          <div className="w-10" /> {/* Spacer */}
-        </div>
-      </header>
+  <div className="flex justify-between items-center mb-4">
+    <Link href="/staking" className="p-2 bg-zinc-900 rounded-full"><ChevronLeft /></Link>
+    <div className="text-center">
+       <h1 className="text-xl font-black italic uppercase tracking-tighter">Scouting Deck</h1>
+       <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.3em]">PolyCombat Intelligence</p>
+    </div>
+    
+    {/* NEW: Button to My Roster */}
+    <Link href="/recruitment/myteam" className="p-2 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-900/40">
+      <User size={20} />
+    </Link>
+  </div>
+</header>
 
       {/* Market Stats */}
       <div className="p-6 grid grid-cols-2 gap-3">
@@ -94,96 +99,136 @@ export default function RecruitmentOffice() {
   );
 }
 
-function FighterNFTCard({ fighter }: { fighter: Fighter }) {
+function FighterNFTCard({ fighter }: { fighter: any }) {
   const { isConnected, tonConnectUI, walletAddress } = useWallet();
   const [isProcessing, setIsProcessing] = useState(false);
+  const shellPrice = fighter.salePriceShells || (fighter.salePriceTon ? fighter.salePriceTon * 1000 : 5000);
+  // Logic to determine if this is a TON sale or a Shells sale
+  // If ownerId is null or matches your Admin ID, it's a TON sale
+  const isPrimarySale = !fighter.ownerId || fighter.ownerId === "YOUR_ADMIN_ID";
+  
+  const handlePurchase = async () => {
+    const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id;
 
-  const handleSignContract = async () => {
-    // 1. Validation Logic
-    if (!isConnected || !tonConnectUI || !walletAddress) {
-      alert("Wallet not connected! Please connect your wallet first.");
-      return;
-    }
-
-    const priceTon = fighter.salePriceTon || 5.0; 
-    const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
-
-    if (!receiverAddress) {
-      alert("Receiver address not configured.");
-      return;
-    }
-
-    // 2. Build Transaction
-    const transaction = {
-      validUntil: Math.floor(Date.now() / 1000) + 360,
-      messages: [
-        {
-          address: receiverAddress,
-          amount: String(Math.floor(priceTon * 1e9)), // Convert to nanoTON
-        },
-      ],
-    };
-
-    try {
-      setIsProcessing(true);
+    if (isPrimarySale) {
+      // --- TON PAYMENT LOGIC ---
+      if (!isConnected || !tonConnectUI) return alert("Connect Wallet!");
       
-      // 3. Send Transaction
+      const priceTon = fighter.salePriceTon || 5.0;
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 360,
+        messages: [{
+          address: process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS,
+          amount: String(Math.floor(priceTon * 1e9)),
+        }],
+      };
+
+     try {
+    setIsProcessing(true);
+
+    if (isPrimarySale) {
+      // --- TON PAYMENT LOGIC ---
+      if (!isConnected || !tonConnectUI) return alert("Connect Wallet!");
+
+      const priceTon = fighter.salePriceTon || 5.0;
+      const receiverAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
+
+      if (!receiverAddress) throw new Error("Receiver address not configured.");
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 360,
+        messages: [{
+          address: receiverAddress,
+          amount: String(Math.floor(priceTon * 1e9)),
+        }],
+      };
+
       const tonResult = await tonConnectUI.sendTransaction(transaction);
+      if (!tonResult?.boc) throw new Error("Transaction rejected.");
 
-      if (!tonResult || !tonResult.boc) {
-        throw new Error("Transaction failed or missing data.");
-      }
-
-      // 4. Verify with Backend (Passing the fighterId)
-      const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id;
-
-      const verifyResponse = await fetch("/api/verify-payment", {
+      // Verify TON Payment
+      const response = await fetch("/api/verify-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transactionHash: tonResult.boc,
           paymentMethod: "TON",
-          totalAmount: priceTon,
           userId: userId,
-          fighterId: fighter.id, // Linking the payment to this specific fighter
+          fighterId: fighter.id,
           itemType: "FIGHTER_RECRUITMENT"
         })
       });
-
-      const result = await verifyResponse.json();
-      
+      const result = await response.json();
       if (result.success) {
-        alert(`${fighter.name} is now under your command!`);
-        // Optional: Trigger a refresh or local state update
-      }
+        alert("Fighter successfully recruited via TON!");
+        window.location.reload();
+      } else { alert(result.error || "Verification failed"); }
 
-    } catch (error) {
-      console.error("TON transaction error:", error);
-      alert("Transaction failed. Please try again.");
-    } finally {
-      setIsProcessing(false);
+    } else {
+      // --- SHELLS PAYMENT LOGIC ---
+      const shellPrice = fighter.salePriceShells || (fighter.salePriceTon * 1000);
+      
+      const response = await fetch("/api/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentMethod: "SHELLS",
+          totalAmount: shellPrice,
+          userId: userId,
+          fighterId: fighter.id,
+          itemType: "FIGHTER_RESALE"
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert("Fighter purchased via Shells!");
+        window.location.reload();
+      } else { alert(result.error || "Insufficient Shells"); }
     }
-  };
+  } catch (error) {
+    console.error("Purchase Error:", error);
+    alert("Transaction failed.");
+  } finally {
+    setIsProcessing(false);
+  }
+}
+};
 
   return (
-    <motion.div className="relative flex flex-col group">
-      {/* ... (Your existing UI for image and stats) ... */}
-
-      <button 
-        onClick={handleSignContract}
+    <motion.div className="relative flex flex-col p-3 bg-zinc-900/50 rounded-2xl border border-zinc-800">
+      <img src={fighter.imageUrl} className="w-full aspect-square object-cover rounded-xl mb-3" />
+      <h3 className="text-xs font-black uppercase italic">{fighter.name}</h3>
+      
+     <button 
+        onClick={handlePurchase}
         disabled={isProcessing}
-        className={`mt-3 w-full py-3 rounded-xl flex flex-col items-center justify-center transition-all active:scale-95 ${
-          isProcessing ? 'bg-zinc-700' : 'bg-white hover:bg-zinc-200 text-black'
+        className={`mt-3 w-full py-3 rounded-xl flex flex-col items-center justify-center transition-all ${
+          isPrimarySale ? 'bg-white text-black' : 'bg-yellow-500 text-black shadow-lg shadow-yellow-900/20'
         }`}
       >
         <span className="text-[7px] font-black uppercase opacity-60">
-          {isProcessing ? "Verifying..." : "Sign Contract"}
+          {isPrimarySale ? "Primary Recruitment" : "Manager Resale"}
         </span>
         <div className="flex items-center gap-1">
-          <img src="/ton-icon.png" className="w-3 h-3" alt="TON" />
-          <span className="text-xs font-black uppercase">{fighter.salePriceTon || "5.00"} TON</span>
+          {isPrimarySale ? (
+            <>
+              <Wallet size={10} />
+              <span className="text-xs font-black">{fighter.salePriceTon || "5.0"} TON</span>
+            </>
+          ) : (
+            <>
+              <Zap size={10} className="fill-current" />
+              <span className="text-xs font-black">{shellPrice} SHELLS</span>
+            </>
+          )}
         </div>
       </button>
+      
+      {!isPrimarySale && (
+        <p className="text-[7px] text-center mt-1 text-zinc-500 font-bold uppercase tracking-widest">
+          TON Equivalence applied
+        </p>
+      )}
     </motion.div>
   );
 }
