@@ -263,13 +263,13 @@ export default function StakingPageContent() {
     </div>
   );
 }
+
 function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
   const userTelegramId = webApp?.initDataUnsafe?.user?.id?.toString();
 
-  // 1. HARD LOCK SCROLLING
   useEffect(() => {
     document.body.classList.add('no-scroll');
     return () => document.body.classList.remove('no-scroll');
@@ -285,125 +285,101 @@ function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void 
       });
 
       if (response.ok) {
-        confetti({ 
-          particleCount: 100, 
-          spread: 70, 
-          origin: { y: 0.6 },
-          colors: ['#D4AF37', '#FCF6BA', '#FFFFFF'] 
-        });
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         setShowSuccess(true);
-        setTimeout(() => {
-          onClose();
-          window.location.reload();
-        }, 2000);
+        setTimeout(() => { onClose(); window.location.reload(); }, 2500);
       }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
   const isAvailableForSign = !fighter.isPrivate && !fighter.ownerId;
-  const winRate = (fighter.wins + fighter.losses) > 0 
-    ? Math.round((fighter.wins / (fighter.wins + fighter.losses)) * 100) : 0;
+  const displayPrice = fighter.salePriceTon ? `${fighter.salePriceTon} TON` : "PRIVATE";
+  const winRate = (fighter.wins + fighter.losses + fighter.draws) > 0 
+    ? Math.round((fighter.wins / (fighter.wins + fighter.losses + fighter.draws)) * 100) : 0;
 
   return (
     <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
-      {/* DARK BACKDROP - Increased blur for distinct separation */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300" 
-        onClick={onClose} 
-      />
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
 
-      {/* COMPACT MODAL CARD */}
-      <div className="relative w-full max-w-[320px] bg-zinc-950 border border-zinc-800 rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,1)] animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
+      <div className="relative w-full max-w-[360px] bg-zinc-950 border border-zinc-800 rounded-[2.5rem] p-5 shadow-[0_0_60px_rgba(0,0,0,1)] animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] no-scrollbar">
         
         {/* CLOSE BUTTON */}
-        <button 
-          onClick={onClose}
-          className="absolute top-5 right-5 p-2 bg-zinc-900/50 hover:bg-zinc-800 rounded-full text-zinc-500 transition-colors z-10"
-        >
-          <X size={16} />
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-zinc-900 rounded-full text-zinc-500 z-10 active:scale-90">
+          <X size={18} />
         </button>
 
         <div className="flex flex-col items-center">
-          {/* IMAGE CONTAINER with the Shimmer Border Padding Fix */}
-          <div className={`w-32 h-32 rounded-full mb-4 flex items-center justify-center overflow-hidden ${
-            fighter.isPrivate ? 'gold-shimmer-border p-[3px]' : 'border-2 border-zinc-800 p-[2px]'
-          }`}>
-            <img 
-              src={fighter.imageUrl} 
-              className="w-full h-full rounded-full object-cover bg-black" 
-              alt="Fighter"
-            />
+          {/* IMAGE SECTION */}
+          <div className={`w-28 h-28 rounded-full mb-3 flex items-center justify-center ${fighter.isPrivate ? 'gold-shimmer-border p-[3px]' : 'border-2 border-zinc-800 p-[2px]'}`}>
+            <img src={fighter.imageUrl} className="w-full h-full rounded-full object-cover bg-black" alt="" />
           </div>
 
-          <h2 className="text-2xl font-black italic uppercase text-white mb-1 leading-tight tracking-tighter">
-            {fighter.name}
-          </h2>
-          
-          <div className="px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-6">
-             <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">
-                {fighter.salePriceTon ? `${fighter.salePriceTon} TON` : 'PRIVATE AGENT'}
-             </p>
+          <h2 className="text-2xl font-black italic uppercase text-white tracking-tighter text-center leading-none mb-1">{fighter.name}</h2>
+          <div className="px-3 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-4">
+            <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">{displayPrice}</p>
           </div>
 
-          {/* STATS STRIP */}
-          <div className="flex w-full justify-around bg-zinc-900/30 py-4 rounded-2xl border border-white/5 mb-6">
-            <div className="text-center">
-              <p className="text-xl font-black text-white leading-none">{fighter.wins}</p>
-              <p className="text-[8px] text-zinc-500 font-bold uppercase mt-1">Wins</p>
+          {/* PHYSICAL SPECS (Restored) */}
+          <div className="grid grid-cols-2 gap-2 w-full mb-4">
+            <div className="bg-zinc-900/50 p-2.5 rounded-xl border border-white/5">
+              <p className="text-[8px] text-zinc-500 font-black uppercase mb-0.5">Height / Gender</p>
+              <p className="text-xs font-bold text-white italic">{fighter.height}cm / {fighter.gender}</p>
             </div>
-            <div className="h-8 w-px bg-zinc-800" />
-            <div className="text-center">
-              <p className="text-xl font-black text-white leading-none">{winRate}%</p>
-              <p className="text-[8px] text-zinc-500 font-bold uppercase mt-1">Rate</p>
-            </div>
-            <div className="h-8 w-px bg-zinc-800" />
-            <div className="text-center">
-              <p className="text-xl font-black text-white leading-none">{fighter.losses}</p>
-              <p className="text-[8px] text-zinc-500 font-bold uppercase mt-1">Losses</p>
+            <div className="bg-zinc-900/50 p-2.5 rounded-xl border border-white/5">
+              <p className="text-[8px] text-zinc-500 font-black uppercase mb-0.5">Socials</p>
+              {fighter.socialMedia ? (
+                <a href={fighter.socialMedia} target="_blank" className="text-xs font-bold text-blue-400 underline italic uppercase">Instagram</a>
+              ) : <p className="text-xs font-bold text-zinc-700 italic uppercase">Private</p>}
             </div>
           </div>
 
-          {/* ATTRIBUTES */}
-          <div className="w-full space-y-3 mb-8 px-2">
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-              <span className="text-zinc-500 text-[9px] font-black uppercase tracking-wider">Weight Class</span>
-              <span className="text-white text-[11px] font-bold italic uppercase">{fighter.weightClass || 'Open'}</span>
+          {/* STREAK METER (Restored) */}
+          <div className={`w-full p-4 rounded-2xl border mb-4 ${fighter.currentStreak % 3 === 2 ? 'bg-orange-500/10 border-orange-500/50 animate-pulse' : 'bg-zinc-900/80 border-zinc-800'}`}>
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-[9px] font-black uppercase text-zinc-400">NFT Progress</h4>
+              <span className="text-[10px] font-bold text-white italic">{3 - (fighter.currentStreak % 3)} to drop</span>
             </div>
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-              <span className="text-zinc-500 text-[9px] font-black uppercase tracking-wider">Height</span>
-              <span className="text-white text-[11px] font-bold italic">{fighter.height} CM</span>
+            <div className="flex gap-2">
+              {[1, 2, 3].map((s) => (
+                <div key={s} className={`h-8 flex-1 rounded-lg border flex items-center justify-center ${ (fighter.currentStreak % 3) >= s ? 'bg-yellow-500/20 border-yellow-500' : 'bg-black/40 border-zinc-800' }`}>
+                  <span className={`text-lg ${(fighter.currentStreak % 3) >= s ? 'opacity-100' : 'opacity-10 grayscale'}`}>🐚</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* SIGN BUTTON */}
+          {/* CAREER RECORD (Restored) */}
+          <div className="w-full bg-zinc-900/40 p-3 rounded-2xl border border-zinc-800/50 mb-6">
+            <div className="flex justify-between text-[8px] font-black uppercase text-zinc-500 mb-2 tracking-widest">
+              <span>Career Record</span>
+              <span className="text-green-500">{winRate}% Win Rate</span>
+            </div>
+            <div className="flex justify-between text-center">
+              <div><p className="text-xl font-black text-white leading-none">{fighter.wins}</p><p className="text-[8px] font-bold text-zinc-600 uppercase">W</p></div>
+              <div className="w-px h-6 bg-zinc-800 self-center" />
+              <div><p className="text-xl font-black text-white leading-none">{fighter.losses}</p><p className="text-[8px] font-bold text-zinc-600 uppercase">L</p></div>
+              <div className="w-px h-6 bg-zinc-800 self-center" />
+              <div><p className="text-xl font-black text-white leading-none">{fighter.draws}</p><p className="text-[8px] font-bold text-zinc-600 uppercase">D</p></div>
+            </div>
+          </div>
+
+          {/* ACTION BUTTON */}
           {isAvailableForSign ? (
-            <button 
-              onClick={() => handleSign(fighter.id)}
-              disabled={loading}
-              className="group relative w-full py-4 bg-green-600 hover:bg-green-500 rounded-2xl font-black uppercase italic text-xs tracking-widest text-white shadow-lg shadow-green-900/20 active:scale-95 transition-all"
-            >
-              <span className="relative z-10">{loading ? "PROCESSING..." : `SIGN CONTRACT`}</span>
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity" />
+            <button onClick={() => handleSign(fighter.id)} disabled={loading} className="w-full py-4 bg-green-600 rounded-2xl font-black uppercase italic text-xs tracking-widest text-white shadow-lg active:scale-95 transition-all">
+              {loading ? "SIGNING..." : `SIGN CONTRACT`}
             </button>
           ) : (
-            <div className="w-full py-4 bg-zinc-900/50 rounded-2xl text-center border border-zinc-800/50 opacity-60">
+            <div className="w-full py-4 bg-zinc-900/50 rounded-2xl text-center border border-zinc-800 opacity-50">
               <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest">CONTRACTED</p>
             </div>
           )}
         </div>
 
-        {/* SUCCESS MESSAGE - Updated with Backdrop Blur */}
+        {/* SUCCESS MESSAGE */}
         {showSuccess && (
-          <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-sm rounded-[2.5rem] flex flex-col items-center justify-center z-50 animate-in fade-in duration-300">
-            <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(234,179,8,0.4)]">
-               <Zap size={30} className="text-black" fill="black" />
-            </div>
-            <p className="text-2xl font-black italic text-white mt-4 tracking-tighter">SIGNED!</p>
-            <p className="text-[10px] text-zinc-400 font-bold uppercase mt-1">Fighter Roster Updated</p>
+          <div className="absolute inset-0 bg-zinc-950 rounded-[2.5rem] flex flex-col items-center justify-center z-50 animate-in fade-in duration-300">
+            <Zap size={40} className="text-yellow-500 animate-bounce" fill="currentColor" />
+            <p className="text-xl font-black italic text-white mt-2">SIGNED!</p>
           </div>
         )}
       </div>
@@ -1091,40 +1067,44 @@ useEffect(() => {
       </div>
 
 
-            <div 
-        ref={barRef}
-        className={`w-14 min-h-[180px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all 
-          ${barLocked ? 'border-yellow-500/50 scale-95' : 'border-zinc-800'}
-          ${!canParticipate ? 'opacity-40 grayscale cursor-not-allowed' : ''}`} 
-        onTouchStart={handleTouchStart}  
-        onTouchMove={handleTouchMove}
-        onClick={canParticipate ? toggleLock : undefined}
-      >
-        {/* NEW: Lock Overlay for Inactive Users */}
-        {!canParticipate && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1px]">
-            <Lock size={16} className="text-zinc-400 mb-1" />
-            <span className="text-[8px] font-black text-zinc-400 uppercase tracking-tighter text-center px-1">
-              REQS NOT MET
-            </span>
-          </div>
-        )}
-
+      <div 
+  ref={barRef}
+  className={`w-14 min-h-[180px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all duration-300 
+    ${barLocked ? 'border-yellow-500/50 scale-95 shadow-[0_0_15px_rgba(234,179,8,0.1)]' : 'border-zinc-800'}
+    ${!canParticipate ? 'opacity-40 grayscale cursor-not-allowed' : 'cursor-ns-resize'}`} 
+  onTouchStart={handleTouchStart}  
+  onTouchMove={handleTouchMove}
+  onClick={canParticipate ? toggleLock : undefined}
+>
+  {/* 1. DYNAMIC FILL (Red, Blue, Gold, or Zinc) */}
   <motion.div 
-  className={`absolute bottom-0 w-full transition-colors duration-500 ${
-    color === 'red' ? 'bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.5)]' : 
-    color === 'blue' ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.5)]' : 
-    color === 'gold' ? 'bg-gradient-to-t from-yellow-700 via-yellow-500 to-yellow-300 shadow-[0_0_25px_rgba(234,179,8,0.6)]' : 
-    'bg-zinc-500 shadow-[0_0_15px_rgba(113,113,122,0.4)]' /* Default for Free Agents */
-  }`}
-  animate={{ height: `${canParticipate ? barHeight : 0}%` }}
-  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-/>
+    className={`absolute bottom-0 w-full transition-colors duration-500 ${
+      color === 'red' ? 'bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.5)]' : 
+      color === 'blue' ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.5)]' : 
+      color === 'gold' ? 'bg-gradient-to-t from-yellow-700 via-yellow-500 to-yellow-300 shadow-[0_0_25px_rgba(234,179,8,0.6)]' : 
+      'bg-zinc-500 shadow-[0_0_15px_rgba(113,113,122,0.4)]'
+    }`}
+    animate={{ height: `${canParticipate ? barHeight : 0}%` }}
+    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+  />
 
-  {/* Only show "DRAG UP" if they are allowed to and not locked */}
+  {/* 2. PADLOCK OVERLAY (Shows if Locked OR if Requirements not met) */}
+  {(barLocked || !canParticipate) && (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
+      <div className={`${barLocked ? 'bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.4)]' : 'bg-zinc-800'} p-2 rounded-full border border-white/10 animate-in zoom-in duration-200`}>
+        <Lock 
+          size={16} 
+          className={barLocked ? 'text-black' : 'text-zinc-500'} 
+          fill="currentColor" 
+        />
+      </div>
+    </div>
+  )}
+
+  {/* 3. DRAG CUE (Only if active and not locked) */}
   {canParticipate && !barLocked && (
     <div className="absolute inset-0 flex items-center justify-center rotate-[-90deg] pointer-events-none opacity-30">
-      <span className="text-[10px] font-black text-white tracking-[0.3em]">DRAG UP</span>
+      <span className="text-[10px] font-black text-white tracking-[0.3em] animate-pulse">DRAG UP</span>
     </div>
   )}
 </div>
