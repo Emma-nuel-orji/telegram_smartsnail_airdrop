@@ -32,93 +32,117 @@ export async function POST(request: Request) {
 
     // 1. Handle Fighter Recruitment/Resale
     if (itemType === "FIGHTER_RECRUITMENT" || itemType === "FIGHTER_RESALE") {
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Fetch Fighter
+ // 1. Fetch Fighter
+const fighter = await tx.fighter.findUnique({
+  where: { id: fighterId },
+  select: { id: true, name: true, ownerId: true, salePriceTon: true, salePriceShells: true }
+});
+
+if (!fighter) throw new Error("Fighter not found");
+
+// 2. SECURITY CHECK: Verify the price matches the DB
+if (paymentMethod === "SHELLS") {
+    const actualPrice = Number(fighter.salePriceShells || 0);
+    // Use a small margin for floats if necessary, but for Shells/Points, exact is usually best
+    if (Number(totalAmount) < actualPrice) {
+        throw new Error(`Price mismatch: Expected ${actualPrice} Shells, got ${totalAmount}`);
+    }
+} 
+
+if (paymentMethod === "TON") {
+    const actualPriceTon = Number(fighter.salePriceTon || 0);
+    // We check if the reported totalAmount is at least what the DB requires
+    if (Number(totalAmount) < actualPriceTon) {
+        throw new Error(`Price mismatch: Expected ${actualPriceTon} TON, got ${totalAmount}`);
+    }
+}
+
+    // Replace with your actual numerical Telegram ID
+    const PRIMARY_SELLER_ID = "654321000"; 
+
+    // 2. Find Buyer (Using findFirst to be safe with telegramId)
+    // We convert to BigInt only for the telegramId field
+    const buyer = await tx.user.findFirst({ 
+      where: { telegramId: BigInt(userId) } 
+    });
+    
+    if (!buyer) throw new Error("Buyer not found in database");
+
+    // 3. Payment Deduction (Shells only)
+    if (paymentMethod === "SHELLS") {
+      const amountToDeduct = BigInt(totalAmount);
+      if (buyer.points < amountToDeduct) throw new Error("Insufficient Shells");
       
-      const result = await prisma.$transaction(async (tx) => {
-        // Find the buyer
-        const buyer = await tx.user.findFirst({ where: { telegramId: BigInt(userId) } });
-        if (!buyer) throw new Error("Buyer not found");
+      await tx.user.update({
+        where: { id: buyer.id },
+        data: { points: { decrement: amountToDeduct } }
+      });
+    }
 
-        // If paying with Shells, check and deduct balance
-        if (paymentMethod === "SHELLS") {
-          if (buyer.points < BigInt(totalAmount)) {
-            throw new Error("Insufficient Shells balance");
-          }
-          await tx.user.update({
-            where: { id: buyer.id },
-            data: { points: { decrement: BigInt(totalAmount) } }
-          });
-        }
+    // 4. Update Fighter Ownership
+    const updatedFighter = await tx.fighter.update({
+      where: { id: fighter.id },
+      data: {
+        ownerId: buyer.id,
+        isForSale: false,
+        salePriceTon: null,
+        salePriceShells: null,
+        status: "APPROVED" 
+      }
+    });
 
-        // Update the Fighter: New Owner, Not for sale anymore
-        const updatedFighter = await tx.fighter.update({
-          where: { id: fighterId },
-          data: {
-            ownerId: buyer.id,
-            isForSale: false,
-            salePriceTon: null,
-            salePriceShells: null,
-            status: "APPROVED" // Or CONTRACTED if you updated your enum
-          }
+    // 5. Handle Secondary Payout (The Manager's cut)
+    if (fighter.ownerId && fighter.ownerId !== PRIMARY_SELLER_ID) {
+      const seller = await tx.user.findUnique({ where: { id: fighter.ownerId } });
+      
+      if (seller) {
+        // Calculate payout (1 TON = 1000 Shells)
+        const payoutShells = BigInt(Math.floor(Number(fighter.salePriceTon || 0) * 1000));
+        
+        await tx.user.update({
+          where: { id: seller.id },
+          data: { points: { increment: payoutShells } }
         });
 
-        
-// 1. Create the Order (The Receipt)
-      const newOrder = await tx.order.create({
-        data: {
-          orderId: `PC-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-          paymentMethod: paymentMethod, // "TON" or "SHELLS"
-          totalAmount: Number(totalAmount),
-          status: "SUCCESS",
-          transactionReference: transactionHash || `SHELL_${Date.now()}`,
-        }
-      });
-
-      // 2. Create the Purchase (The link between User, Order, and Fighter)
-      // Note: You may need to adjust field names based on your Purchase model
-      await tx.purchase.create({
-        data: {
-          order: { connect: { id: newOrder.id } },
-          user: { connect: { id: buyer.id } }, 
-          paymentType: paymentMethod, // e.g., "TON"
-          amountPaid: Number(totalAmount),
-          // If your Purchase model tracks the fighter specifically:
-          // fighterId: fighterId, 
-          // quantity: 1,
-        }
-      });
-
-        return { success: true, fighterName: updatedFighter.name };
-      });
-
-      // Inside your prisma.$transaction
-        const seller = await tx.user.findUnique({ where: { id: fighter.ownerId } });
-
-        if (fighter.ownerId === PRIMARY_SELLER_ID) {
-          // Primary Sale: Funds go to your TON Wallet (handled by TON Connect)
-          console.log("Primary Sale: No internal shell transfer needed.");
-        } else if (seller) {
-          // Secondary Sale: Pay the Manager in Shells
-          const payoutShells = BigInt(Math.floor(Number(fighter.salePriceTon) * 1000));
-          
-          await tx.user.update({
-            where: { id: seller.id },
-            data: { points: { increment: payoutShells } }
-          });
-
-          // Log the earnings for the seller
-          await tx.pointTransaction.create({
-            data: {
-              userId: seller.id,
-              pointsUsed: payoutShells,
-              type: 'EARN', // New type for sales
-              status: 'APPROVED',
-              description: `Sold Fighter: ${fighter.name}`
-            }
-          });
-        }
-
-      return NextResponse.json(result);
+        await tx.pointTransaction.create({
+          data: {
+            userId: seller.id,
+            pointsUsed: payoutShells,
+            type: 'EARN', 
+            status: 'APPROVED',
+            // serviceId is now optional, so it stays null here
+          }
+        });
+      }
     }
+
+    // 6. Create Receipt Records
+    const newOrder = await tx.order.create({
+      data: {
+        orderId: `PC-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        paymentMethod: paymentMethod,
+        totalAmount: Number(totalAmount),
+        status: "SUCCESS",
+        transactionReference: transactionHash || `SHELL_${Date.now()}`,
+      }
+    });
+
+    await tx.purchase.create({
+      data: {
+        order: { connect: { id: newOrder.id } }, 
+        user: { connect: { id: buyer.id } },
+        paymentType: paymentMethod,
+        amountPaid: Number(totalAmount),
+      }
+    });
+
+    return { success: true, fighterName: updatedFighter.name, orderId: newOrder.orderId };
+  });
+
+  return NextResponse.json(result);
+}
 
 
 

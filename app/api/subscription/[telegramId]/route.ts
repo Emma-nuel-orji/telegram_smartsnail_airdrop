@@ -79,6 +79,7 @@ export async function DELETE(req: Request, { params }: { params: { telegramId: s
     const deleted = await prisma.pointTransaction.deleteMany({
       where: {
         status: 'PENDING',
+        serviceId: { not: null },
         service: {
           type: 'SUBSCRIPTION',
         },
