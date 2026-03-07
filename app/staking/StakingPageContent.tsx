@@ -822,9 +822,12 @@ const getFighterTheme = (fighter: Fighter) => {
  const [livePools, setLivePools] = useState({ red: 0, blue: 0 });
 
 useEffect(() => {
-  const syncPools = async () => {
-    const res = await fetch(`/api/stakes/total/${fight.id}`);
+  if (!fighter?.id) return;
+
+  const loadPools = async () => {
+    const res = await fetch(`/api/stakes/total/${fighter.id}`);
     const data = await res.json();
+
     if (res.ok) {
       setLivePools({
         red: Number(data.totalRedStakes),
@@ -832,11 +835,9 @@ useEffect(() => {
       });
     }
   };
-  syncPools();
-  // Optional: Poll every 30 seconds for live updates
-  const interval = setInterval(syncPools, 30000);
-  return () => clearInterval(interval);
-}, [fight.id]);
+
+  loadPools();
+}, [fighter?.id]);
 
 // 2. These variables now match your existing logic perfectly
   const redPool = livePools.red;

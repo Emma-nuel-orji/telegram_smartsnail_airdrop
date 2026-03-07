@@ -60,7 +60,7 @@ if (paymentMethod === "TON") {
 }
 
     // Replace with your actual numerical Telegram ID
-    const PRIMARY_SELLER_ID = "654321000"; 
+    const PRIMARY_SELLER_ID = "795571382"; 
 
     // 2. Find Buyer (Using findFirst to be safe with telegramId)
     // We convert to BigInt only for the telegramId field
