@@ -46,25 +46,26 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
         '1 Year': 365,
       };
 
-      const days = service.duration ? durationMap[service.duration] || 30 : 30;
+      const days = service?.duration ? (durationMap[service.duration] || 30) : 30;
 
       expiresAt = new Date(tx.approvedAt);
       expiresAt.setDate(expiresAt.getDate() + days);
       isActive = new Date() < expiresAt;
     }
+if (!service) {
+  return NextResponse.json({ error: 'Associated service not found' }, { status: 404 });
+}
 
-    // Return data in the format frontend expects
-    return NextResponse.json({
-      id: service.id,
-      name: service.name,
-      duration: service.duration,
-      priceShells: service.priceShells,
-      approvedAt: tx.approvedAt,
-      status: tx.status,
-      active: isActive,
-      expiresAt,
-    });
-
+return NextResponse.json({
+  id: service.id,
+  name: service.name,
+  duration: service.duration,
+  priceShells: service.priceShells,
+  approvedAt: tx.approvedAt,
+  status: tx.status,
+  active: isActive,
+  expiresAt,
+});
   } catch (error) {
     console.error('Error fetching subscription:', error);
     return NextResponse.json({ error: 'Failed to fetch subscription' }, { status: 500 });
