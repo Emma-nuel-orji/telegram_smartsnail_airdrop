@@ -139,7 +139,7 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
         </p>
         
         <div className="flex gap-2">
-          // Inside the return, change the button logic:
+          {/* //Inside the return, change the button logic */}
             <button 
             onClick={fighter.isForSale ? handleWithdraw : handleListForSale}
             disabled={isUpdating}

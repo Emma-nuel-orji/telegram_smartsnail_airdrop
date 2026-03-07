@@ -402,6 +402,7 @@ enum TransactionStatus {
   PENDING
   APPROVED
   REJECTED
+  COMPLETED
 }
 
 model Service {

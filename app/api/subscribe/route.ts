@@ -5,50 +5,62 @@ export async function POST(req: Request) {
   try {
     const { telegramId, serviceId } = await req.json();
     
+    if (!telegramId || !serviceId) {
+      return NextResponse.json({ error: 'Missing required data' }, { status: 400 });
+    }
+
     const telegramIdBigInt = BigInt(telegramId);
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { telegramId: telegramIdBigInt },
-    });
+    // Run everything in a transaction to ensure points are actually taken
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Get user and Service
+      const user = await tx.user.findUnique({
+        where: { telegramId: telegramIdBigInt },
+      });
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+      const service = await tx.service.findUnique({
+        where: { id: serviceId },
+      });
 
-    // Get service
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
-    });
+      if (!user) throw new Error('User not found');
+      if (!service) throw new Error('Service not found');
 
-    if (!service) {
-      return NextResponse.json({ error: 'Service not found' }, { status: 404 });
-    }
+      // 2. Check balance
+      if (user.points < service.priceShells) {
+        throw new Error('Insufficient shells');
+      }
 
-    // Check if user has enough shells
-    if (user.points < service.priceShells) {
-      return NextResponse.json({ error: 'Insufficient shells' }, { status: 400 });
-    }
+      // 3. DEDUCT POINTS FROM USER
+      await tx.user.update({
+        where: { id: user.id },
+        data: { points: { decrement: service.priceShells } },
+      });
 
-    // Create transaction (PENDING status)
-    const transaction = await prisma.pointTransaction.create({
-      data: {
-        userId: user.id,
-        serviceId: service.id,
-        pointsUsed: service.priceShells,
-        status: 'PENDING',
-        type: 'SPEND',
-      },
+      // 4. Create the Spend Transaction
+      const transaction = await tx.pointTransaction.create({
+        data: {
+          userId: user.id,
+          serviceId: service.id,
+          pointsUsed: service.priceShells,
+          status: 'COMPLETED', // Set to COMPLETED since shells are now gone
+          type: 'SPEND',
+        },
+      });
+
+      return transaction;
     });
 
     return NextResponse.json({
       success: true,
-      transactionId: transaction.id,
-      message: 'Subscription request submitted for approval',
+      transactionId: result.id,
+      message: 'Subscription successful! Shells deducted.',
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating subscription:', error);
-    return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to create subscription' }, 
+      { status: 400 }
+    );
   }
 }

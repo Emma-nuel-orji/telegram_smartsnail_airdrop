@@ -43,6 +43,40 @@ const sagecombat = () => {
     ];
   };
 
+const handlePurchase = async (plan: any, method: 'SHELLS' | 'STARS') => {
+  const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id;
+  if (!userId) return alert("Please open this in Telegram!");
+
+  const confirmPurchase = confirm(`Enroll in ${plan.title} for ${method === 'SHELLS' ? plan.shells.toLocaleString() + ' Shells' : plan.stars + ' Stars'}?`);
+  
+  if (!confirmPurchase) return;
+
+  try {
+    const response = await fetch("/api/verify-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentMethod: method,
+        totalAmount: method === 'SHELLS' ? plan.shells : plan.stars,
+        userId: userId,
+        itemType: "TRAINING_PLAN",
+        planId: plan.id,
+        intensity: intensity,
+        ageGroup: ageGroup
+      })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      alert("🥊 Training Enrolled! See you at the gym.");
+    } else {
+      alert(result.error || "Transaction failed.");
+    }
+  } catch (error) {
+    alert("Connection error. Try again later.");
+  }
+};
+
   return (
     <div className="min-h-screen bg-black text-white p-4 font-sans">
       {/* Header */}
@@ -89,14 +123,14 @@ const sagecombat = () => {
             <span className="font-bold">Regular</span>
           </button>
           <button 
-            onClick={() => setIntensity('Intensive')}
-            className={`p-4 rounded-2xl border-2 flex flex-col gap-2 transition-all ${
-              intensity === 'Intensive' ? 'border-red-500 bg-red-500/10' : 'border-zinc-800 bg-zinc-900/50'
+            onClick={() => setIntensity('Regular')}
+            className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${
+              intensity === 'Regular' ? 'border-blue-500 bg-blue-500/20 scale-[1.02]' : 'border-zinc-800 bg-zinc-900/50 opacity-50'
             }`}
           >
-            <Zap size={20} className={intensity === 'Intensive' ? 'text-red-500' : 'text-zinc-600'} />
-            <span className="font-bold">Intensive</span>
-          </button>
+            <Target size={24} className={intensity === 'Regular' ? 'text-blue-400' : 'text-zinc-600'} />
+            <span className={`text-xs font-black uppercase ${intensity === 'Regular' ? 'text-white' : 'text-zinc-500'}`}>Regular</span>
+            </button>
         </div>
       </div>
 
@@ -128,6 +162,21 @@ const sagecombat = () => {
                 <div className="text-lg font-black">{plan.stars.toLocaleString()}</div>
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-3 mt-6">
+            <button 
+              onClick={() => handlePurchase(plan, 'SHELLS')}
+              className="py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+            >
+              Pay with Shells
+            </button>
+            <button 
+              onClick={() => handlePurchase(plan, 'STARS')}
+              className="py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-900/40"
+            >
+              Pay with Stars
+            </button>
+          </div>
           </div>
         ))}
 
