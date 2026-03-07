@@ -79,27 +79,51 @@ export default function MyRoster() {
 }
 
 function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
-    const [showIntel, setShowIntel] = useState(false);
+  const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id;
+  
+  // Define your Admin/Primary Seller ID
+  const PRIMARY_SELLER_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID; 
+  const isPrimaryAsset = !fighter.ownerId || fighter.ownerId === PRIMARY_SELLER_ID;
+
+  // Calculate equivalent (e.g., 1 TON = 1000 Shells)
+  const tonPrice = fighter.salePriceTon || 5.0;
+  const shellEquivalent = Math.floor(tonPrice * 1000);
+  const [showIntel, setShowIntel] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const nftSerialNumber = fighter.id.slice(-4).toUpperCase();
+ const handleListForSale = async () => {
+  const price = prompt("Enter listing price (TON):", "5.0");
+  if (!price || isNaN(parseFloat(price))) return;
 
-  const handleListForSale = async () => {
-    const price = prompt("Enter listing price (TON):", "5.0");
-    if (!price || isNaN(parseFloat(price))) return;
-
-    setIsUpdating(true);
+  setIsUpdating(true); // Start loading spinner
+  
+  try {
     const res = await fetch('/api/fighter/list', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fighterId: fighter.id, price: parseFloat(price) })
     });
-    
-    if (res.ok) window.location.reload();
-    setIsUpdating(false);
-  };
+
+    const data = await res.json();
+
+    if (res.ok) {
+      // ✅ SUCCESS: Now it's safe to reload or update state
+      window.location.reload(); 
+    } else {
+      // ❌ API FAILED: Revert UI and explain why
+      alert(`Listing Failed: ${data.error || "Server Error"}`);
+    }
+  } catch (err) {
+    // ❌ NETWORK FAILED
+    alert("Check your connection. The blockchain sync failed.");
+  } finally {
+    setIsUpdating(false); // Stop loading spinner
+  }
+};
 
   const handleWithdraw = async () => {
   setIsUpdating(true);
-  const res = await fetch('/api/fighters/list', {
+  const res = await fetch('/api/fighter/list', {
     method: 'PATCH', // We'll use PATCH for updating status
     body: JSON.stringify({ fighterId: fighter.id, withdraw: true })
   });
@@ -109,55 +133,112 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
 
 
 
-  return (
-    <>
+ return (
+  <>
     <motion.div 
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="bg-zinc-900/60 rounded-2xl p-4 border border-zinc-800 flex items-center gap-4 relative"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative group bg-gradient-to-b from-zinc-800/40 to-black p-[1px] rounded-3xl border border-white/5 hover:border-blue-500/50 transition-all duration-500 overflow-hidden"
     >
-      {/* NFT Visual */}
-      <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-black border border-zinc-700 shadow-2xl">
-        <img src={fighter.imageUrl} className="w-full h-full object-cover grayscale-[0.2] hover:grayscale-0 transition-all duration-500" alt="" />
-        <div className="absolute top-1 left-1 bg-black/80 px-1 rounded-[2px] border border-white/10">
-          <p className="text-[6px] font-black text-blue-400">PC-NFT</p>
-        </div>
-      </div>
-      
-      {/* NFT Metadata */}
-      <div className="flex-1">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="text-sm font-black uppercase italic text-white tracking-tight">{fighter.name}</h3>
-          <div className="flex items-center gap-1 bg-zinc-800 px-1.5 py-0.5 rounded">
-            <Activity size={8} className="text-green-500" />
-            <span className="text-[7px] font-black text-zinc-300 uppercase">{fighter.status}</span>
+      {/* Holographic Scanline Effect */}
+      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(59,130,246,0.05)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_5s_infinite] pointer-events-none" />
+
+      <div className="bg-[#0a0a0a] rounded-[23px] p-4 flex flex-col gap-4 relative z-10">
+        
+        <div className="flex items-center gap-4">
+          {/* NFT Visual Container */}
+          <div className="relative group">
+            <div className="w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 relative z-10">
+              <img 
+                src={fighter.imageUrl} 
+                className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100" 
+                alt={fighter.name} 
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-blue-600/90 py-0.5">
+                 <p className="text-[6px] text-center font-black text-white uppercase tracking-widest">AUTHENTIC</p>
+              </div>
+            </div>
+            <div className="absolute -inset-1 bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+          
+          {/* Metadata */}
+          <div className="flex-1">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[8px] font-bold text-blue-500 tracking-[0.2em]">#{fighter.id.slice(-4).toUpperCase()}</span>
+                  <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                  <span className="text-[8px] font-bold text-zinc-500 uppercase">{fighter.weightClass}</span>
+                </div>
+                <h3 className="text-sm font-black uppercase italic text-white tracking-tight mt-0.5 group-hover:text-blue-400 transition-colors">
+                  {fighter.name}
+                </h3>
+              </div>
+              
+              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${
+                fighter.isForSale ? 'border-orange-500/30 bg-orange-500/10' : 'border-green-500/30 bg-green-500/10'
+              }`}>
+                <div className={`w-1 h-1 rounded-full animate-pulse ${fighter.isForSale ? 'bg-orange-500' : 'bg-green-500'}`} />
+                <span className={`text-[7px] font-black uppercase ${fighter.isForSale ? 'text-orange-400' : 'text-green-400'}`}>
+                  {fighter.isForSale ? 'MARKET_LISTED' : 'READY_OP'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <p className="text-[9px] text-zinc-500 font-bold uppercase mb-3">
-          {fighter.collection?.name || "Independent"} • {fighter.weightClass}
-        </p>
-        
+
+        {/* --- DUAL CURRENCY DISPLAY BLOCK --- */}
+        <div className="bg-zinc-900/50 rounded-2xl p-3 border border-white/5">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest">Market Valuation</span>
+            <span className="text-[7px] font-black text-blue-500 uppercase">
+              {isPrimaryAsset ? "Direct TON Payout" : "Internal Points Credit"}
+            </span>
+          </div>
+
+          <div className="flex items-baseline gap-2">
+            {isPrimaryAsset ? (
+              <span className="text-lg font-black italic text-white">{tonPrice} TON</span>
+            ) : (
+              <>
+                <span className="text-lg font-black italic text-yellow-500">{shellEquivalent.toLocaleString()} SHELLS</span>
+                <span className="text-[8px] text-zinc-600 font-bold uppercase">(≈ {tonPrice} TON)</span>
+              </>
+            )}
+          </div>
+
+          {!isPrimaryAsset && fighter.isForSale && (
+            <div className="mt-2 pt-2 border-t border-white/5">
+              <p className="text-[7px] text-zinc-500 uppercase font-bold leading-tight">
+                Manager Notice: Secondary sales are credited as 
+                <span className="text-yellow-500"> Shells</span> to your Asset Registry balance.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
         <div className="flex gap-2">
-          {/* //Inside the return, change the button logic */}
             <button 
-            onClick={fighter.isForSale ? handleWithdraw : handleListForSale}
-            disabled={isUpdating}
-            className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg active:scale-95 transition-all ${
-                fighter.isForSale ? 'bg-red-600 text-white' : 'bg-white text-black'
-            }`}
+              onClick={fighter.isForSale ? handleWithdraw : handleListForSale}
+              disabled={isUpdating}
+              className={`flex-1 py-2 text-[9px] font-black uppercase rounded-xl border transition-all ${
+                  fighter.isForSale 
+                  ? 'border-red-900/50 bg-red-950/20 text-red-500 hover:bg-red-900/40' 
+                  : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+              }`}
             >
-            {isUpdating ? "..." : fighter.isForSale ? "Withdraw Asset" : "List for Sale"}
+              {isUpdating ? "SYNCING..." : fighter.isForSale ? "Withdraw Asset" : "List for Sale"}
+            </button>
+
+            <button 
+              onClick={() => setShowIntel(true)}
+              className="px-3 bg-blue-600/10 border border-blue-500/30 text-blue-500 rounded-xl hover:bg-blue-600/20 transition-all"
+            >
+              <Target size={14} />
             </button>
         </div>
       </div>
-
-      <button 
-          onClick={() => setShowIntel(true)}
-          className="px-3 py-2 bg-zinc-800 text-white text-[9px] font-black uppercase rounded-lg"
-        >
-          <Target size={12} />
-        </button>
     </motion.div>
     {/* Intel Modal Overlay */}
       {showIntel && (

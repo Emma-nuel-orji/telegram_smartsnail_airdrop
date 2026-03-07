@@ -823,7 +823,7 @@ const getFighterTheme = (fighter: Fighter) => {
 
 useEffect(() => {
   const syncPools = async () => {
-    const res = await fetch(`/api/stakes/total/fight/${fight.id}`);
+    const res = await fetch(`/api/stakes/total/${fight.id}`);
     const data = await res.json();
     if (res.ok) {
       setLivePools({

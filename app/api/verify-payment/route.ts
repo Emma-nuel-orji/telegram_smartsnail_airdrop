@@ -90,6 +90,33 @@ export async function POST(request: Request) {
         return { success: true, fighterName: updatedFighter.name };
       });
 
+      // Inside your prisma.$transaction
+        const seller = await tx.user.findUnique({ where: { id: fighter.ownerId } });
+
+        if (fighter.ownerId === PRIMARY_SELLER_ID) {
+          // Primary Sale: Funds go to your TON Wallet (handled by TON Connect)
+          console.log("Primary Sale: No internal shell transfer needed.");
+        } else if (seller) {
+          // Secondary Sale: Pay the Manager in Shells
+          const payoutShells = BigInt(Math.floor(Number(fighter.salePriceTon) * 1000));
+          
+          await tx.user.update({
+            where: { id: seller.id },
+            data: { points: { increment: payoutShells } }
+          });
+
+          // Log the earnings for the seller
+          await tx.pointTransaction.create({
+            data: {
+              userId: seller.id,
+              pointsUsed: payoutShells,
+              type: 'EARN', // New type for sales
+              status: 'APPROVED',
+              description: `Sold Fighter: ${fighter.name}`
+            }
+          });
+        }
+
       return NextResponse.json(result);
     }
 

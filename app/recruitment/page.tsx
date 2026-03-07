@@ -18,6 +18,17 @@ interface Fighter {
 export default function RecruitmentOffice() {
   const [fighters, setFighters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasNewEarnings, setHasNewEarnings] = useState(false);
+
+  useEffect(() => {
+    // Check if there are recent 'EARN' transactions
+    const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id;
+    if (userId) {
+      fetch(`/api/user/notifications?userId=${userId}`)
+        .then(res => res.json())
+        .then(data => setHasNewEarnings(data.unreadEarnings));
+    }
+  }, []);
 
   useEffect(() => {
     // Fetch only "Unsigned" or "Available" fighters
@@ -56,8 +67,16 @@ export default function RecruitmentOffice() {
     </div>
     
     {/* NEW: Button to My Roster */}
-    <Link href="/recruitment/myteam" className="p-2 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-900/40">
+    <Link href="/recruitment/myteam" className="relative p-2 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-900/40">
       <User size={20} />
+      
+      {/* The Notification Badge */}
+      {hasNewEarnings && (
+        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-black"></span>
+        </span>
+      )}
     </Link>
   </div>
 </header>
