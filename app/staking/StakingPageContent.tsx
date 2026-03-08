@@ -412,6 +412,10 @@ const [showConfetti, setShowConfetti] = useState(false);
   const winner = isConcluded && fight?.winnerId 
     ? (fight.fighter1.id === fight.winnerId ? fight.fighter1 : fight.fighter2)
     : null;
+     const fightStartTime = new Date(fight.fightDate).getTime();
+const fiveMinutesInMs = 5 * 60 * 1000;
+const isTooLateToStake = Date.now() >= (fightStartTime - fiveMinutesInMs);
+const canUserStake = isActive && !isTooLateToStake;
  const [rewardData, setRewardData] = useState<any | null>(null);
 
 
@@ -539,6 +543,7 @@ const handleClaim = async () => {
           userPoints={userPoints}
           isActive={isActive}
           isConcluded={isConcluded}
+          isActive={canUserStake}
           telegramId={telegramId}
           position="left"
           color={getFighterColor(fight.fighter1)}
@@ -558,6 +563,7 @@ const handleClaim = async () => {
             userPoints={userPoints} 
             isActive={isActive} 
             isConcluded={isConcluded}
+            isActive={canUserStake}
             telegramId={telegramId} 
             position="right" 
             color={getFighterColor(fight.fighter2)}

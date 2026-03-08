@@ -24,7 +24,10 @@ export async function POST(req: Request) {
       const user = await tx.user.findUnique({
         where: { telegramId: BigInt(telegramUser.id) },
       });
-      const fight = await tx.fight.findUnique({ where: { id: fightId } });
+      const fight = await prisma.fight.findUnique({ where: { id: fightId } });
+        if (new Date() >= new Date(fight.fightDate)) {
+          return NextResponse.json({ error: "Betting is closed for this fight" }, { status: 403 });
+        }
       const selectedFighter = await tx.fighter.findUnique({ where: { id: fighterId } });
 
       if (!user || !fight || !selectedFighter) throw new Error('Data not found');

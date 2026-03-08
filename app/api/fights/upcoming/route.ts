@@ -27,6 +27,9 @@ export async function GET() {
             userTelegramId: true,
             socialMedia: true,
             gender: true,
+            collection: true,
+            ownerId: true,  
+            isPrivate: true,
           },
         },
         fighter2: {
@@ -37,6 +40,9 @@ export async function GET() {
             userTelegramId: true,
             socialMedia: true,
             gender: true,
+            collection: true,
+            ownerId: true,  
+             isPrivate: true,
           },
         },
         stakes: true, // optional, if you want stake info

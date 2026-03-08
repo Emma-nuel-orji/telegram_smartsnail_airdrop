@@ -45,8 +45,8 @@ export default function MyRoster() {
         <div className="flex justify-between items-center">
           <Link href="/staking" className="p-2 bg-zinc-900 rounded-full"><ChevronLeft /></Link>
           <div className="text-center">
-             <h1 className="text-xl font-black italic uppercase tracking-tighter">Asset Registry</h1>
-             <p className="text-[8px] text-blue-500 font-bold uppercase tracking-[0.3em]">PolyCombat Intelligence</p>
+             <h1 className="text-xl font-black italic uppercase tracking-tighter">POLYCOMBAT NFTs</h1>
+             <p className="text-[8px] text-blue-500 font-bold uppercase tracking-[0.3em]">YOUR COLLECTIONS</p>
           </div>
           <div className="w-10" /> 
         </div>
@@ -180,7 +180,7 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
               }`}>
                 <div className={`w-1 h-1 rounded-full animate-pulse ${fighter.isForSale ? 'bg-orange-500' : 'bg-green-500'}`} />
                 <span className={`text-[7px] font-black uppercase ${fighter.isForSale ? 'text-orange-400' : 'text-green-400'}`}>
-                  {fighter.isForSale ? 'MARKET_LISTED' : 'READY_OP'}
+                  {fighter.isForSale ? 'MARKET_LISTED' : '1 of 1'}
                 </span>
               </div>
             </div>

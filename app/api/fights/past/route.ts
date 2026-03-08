@@ -14,21 +14,20 @@ export async function GET() {
     const now = new Date();
 
     const pastFights = await prisma.fight.findMany({
-  where: {
-    fightDate: { lt: now },
-    OR: [
-      { status: { in: ["COMPLETED", "CANCELLED", "DRAW", "EXPIRED"] } },
-      { status: "SCHEDULED" }, // ⬅️ THIS IS THE KEY
-    ],
-  },
-  
-  orderBy: { fightDate: "desc" },
-  include: {
-    fighter1: true,
-    fighter2: true,
-    winner: true,
-  },
-});
+      where: {
+        fightDate: { lt: now },
+        OR: [
+          { status: { in: ["COMPLETED", "CANCELLED", "DRAW", "EXPIRED"] } },
+          { status: "SCHEDULED" },
+        ],
+      },
+      orderBy: { fightDate: "desc" },
+      include: {
+        fighter1: { include: { collection: true } },
+        fighter2: { include: { collection: true } },
+        winner: { include: { collection: true } },
+      },
+    });
 
     const transformedFights = pastFights.map((fight) => ({
       id: fight.id.toString(),
@@ -36,33 +35,11 @@ export async function GET() {
       fightDate: fight.fightDate.toISOString(),
       status: fight.status,
       winnerId: fight.winnerId?.toString() || undefined,
-      winner: fight.winner
-        ? {
-            id: fight.winner.id.toString(),
-            name: fight.winner.name,
-            imageUrl: fight.winner.imageUrl || null,
-            telegramId: fight.winner.userTelegramId || null,
-            socialMedia: fight.winner.socialMedia || null,
-          }
-        : null,
-      fighter1: fight.fighter1
-        ? {
-            id: fight.fighter1.id.toString(),
-            name: fight.fighter1.name,
-            imageUrl: fight.fighter1.imageUrl || null,
-            telegramId: fight.fighter1.userTelegramId || null,
-            socialMedia: fight.fighter1.socialMedia || null,
-          }
-        : null,
-      fighter2: fight.fighter2
-        ? {
-            id: fight.fighter2.id.toString(),
-            name: fight.fighter2.name,
-            imageUrl: fight.fighter2.imageUrl || null,
-            telegramId: fight.fighter2.userTelegramId || null,
-            socialMedia: fight.fighter2.socialMedia || null,
-          }
-        : null,
+      
+      // Fixed: Use fight.winner, fight.fighter1, and fight.fighter2
+      winner: fight.winner ? transformFighterData(fight.winner) : null,
+      fighter1: fight.fighter1 ? transformFighterData(fight.fighter1) : null,
+      fighter2: fight.fighter2 ? transformFighterData(fight.fighter2) : null,
     }));
 
     return NextResponse.json(serializeBigInt(transformedFights));
@@ -73,4 +50,22 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+// A helper function to avoid repeating yourself and fix variable names
+function transformFighterData(f: any) {
+  return {
+    id: f.id.toString(),
+    name: f.name,
+    imageUrl: f.imageUrl || null,
+    telegramId: f.userTelegramId || null,
+    socialMedia: f.socialMedia || null,
+    ownerId: f.ownerId || null,
+    isPrivate: f.isPrivate || false, // Important for your color logic!
+    collection: f.collection ? {
+      id: f.collection.id,
+      name: f.collection.name,
+      imageUrl: f.collection.imageUrl
+    } : null,
+  };
 }
