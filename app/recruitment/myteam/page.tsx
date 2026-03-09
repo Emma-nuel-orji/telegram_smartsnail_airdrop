@@ -79,7 +79,15 @@ export default function MyRoster() {
 }
 
 function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
-  const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id;
+const rawUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  
+  // ✅ Guard Clause: Stop here if userId is missing
+  if (!rawUserId) {
+    alert("User authentication failed. Please open via Telegram.");
+    return;
+  }
+
+  const userId = rawUserId.toString(); // Now it's safe to call .toString()
   
   // Define your Admin/Primary Seller ID
   const PRIMARY_SELLER_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID; 
@@ -101,7 +109,7 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
     const res = await fetch('/api/fighter/list', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fighterId: fighter.id, price: parseFloat(price) })
+      body: JSON.stringify({ fighterId: fighter.id, price: parseFloat(price),userId: userId.toString() })
     });
 
     const data = await res.json();

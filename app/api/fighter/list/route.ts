@@ -51,3 +51,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to list fighter" }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const { fighterId, userId, withdraw } = await req.json();
+
+    if (!fighterId || !userId || !withdraw) {
+      return NextResponse.json({ error: "Missing data for withdrawal" }, { status: 400 });
+    }
+
+    // 1. OWNERSHIP CHECK (Crucial for security)
+    const fighter = await prisma.fighter.findUnique({
+      where: { id: fighterId },
+      select: { ownerId: true }
+    });
+
+    if (!fighter) {
+      return NextResponse.json({ error: "Fighter not found" }, { status: 404 });
+    }
+
+    // Ensure the requester is the owner
+    if (fighter.ownerId !== userId) {
+      return NextResponse.json({ error: "Unauthorized withdrawal" }, { status: 403 });
+    }
+
+    // 2. WITHDRAW: Reset the listing status
+    const updatedFighter = await prisma.fighter.update({
+      where: { id: fighterId },
+      data: {
+        status: "PENDING",       // Or whatever your default status is
+        isForSale: false,
+        salePriceTon: null,
+        // salePriceShells: null, // Reset this too if you use it
+      },
+    });
+
+    return NextResponse.json({ success: true, message: "Asset withdrawn from market" });
+
+  } catch (error) {
+    console.error("Withdrawal error:", error);
+    return NextResponse.json({ error: "Failed to withdraw fighter" }, { status: 500 });
+  }
+}

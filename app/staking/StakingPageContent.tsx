@@ -306,7 +306,9 @@ function FighterModal({ fighter,  onClose, userStakes = [],fight }: { fighter: a
   const displayPrice = fighter.salePriceTon ? `${fighter.salePriceTon} TON` : "NOT LISTED";
   const winRate = (fighter.wins + fighter.losses + fighter.draws) > 0 
     ? Math.round((fighter.wins / (fighter.wins + fighter.losses + fighter.draws)) * 100) : 0;
-
+console.log("🔍 Debug Stakes for:", fighter.name);
+console.log("Raw userStakes array:", userStakes);
+console.log("Raw fight.stakes array:", fight?.stakes);
   return (
     <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
@@ -325,9 +327,9 @@ function FighterModal({ fighter,  onClose, userStakes = [],fight }: { fighter: a
           </div>
 
           <h2 className="text-2xl font-black italic uppercase text-white tracking-tighter text-center leading-none mb-1">{fighter.name}</h2>
-          <div className="px-3 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-4">
+          {/* <div className="px-3 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-4">
             <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">{displayPrice}</p>
-          </div>
+          </div> */}
 
           {/* 🛡️ TEAM / COLLECTION INDICATOR */}
           {fighter.collection?.name && (
@@ -876,22 +878,26 @@ const getFighterTheme = (fighter: Fighter) => {
  const [livePools, setLivePools] = useState({ red: 0, blue: 0 });
 
 useEffect(() => {
-  if (!fighter?.id) return;
+  if (!fight?.id) return;
 
   const loadPools = async () => {
-    const res = await fetch(`/api/stakes/total/${fighter.id}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/stakes/total/${fight.id}`);
+      if (!res.ok) return;
 
-    if (res.ok) {
+      const data = await res.json();
+
       setLivePools({
         red: Number(data.totalRedStakes),
         blue: Number(data.totalBlueStakes)
       });
+    } catch (err) {
+      console.error("Failed to load pools", err);
     }
   };
 
   loadPools();
-}, [fighter?.id]);
+}, [fight?.id]);
 
 // 2. These variables now match your existing logic perfectly
   const redPool = livePools.red;
