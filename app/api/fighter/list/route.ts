@@ -23,9 +23,11 @@ export async function POST(req: Request) {
 
     // Verify the person listing it is the actual owner
     // Note: Use BigInt(userId) if your ownerId is stored as a BigInt/Telegram ID
-    if (fighter.ownerId !== userId) {
-      return NextResponse.json({ error: "Unauthorized: You do not own this fighter" }, { status: 403 });
-    }
+    console.log("DEBUG - Database Owner:", fighter.ownerId, typeof fighter.ownerId);
+console.log("DEBUG - Request User:", userId, typeof userId);
+    if (fighter.ownerId?.toString() !== userId.toString()) {
+  return NextResponse.json({ error: "Unauthorized: You do not own this fighter" }, { status: 403 });
+}
 
     // 2. Update the asset status and price
     const updatedFighter = await prisma.fighter.update({
