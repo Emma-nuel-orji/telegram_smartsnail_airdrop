@@ -278,7 +278,7 @@ function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void 
   const handleSign = async (fighterId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/recruit`, {
+      const response = await fetch(`/api/verify-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fighterId, telegramId: userTelegramId })
@@ -293,7 +293,7 @@ function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void 
   };
 
   const isAvailableForSign = !fighter.isPrivate && !fighter.ownerId;
-  const displayPrice = fighter.salePriceTon ? `${fighter.salePriceTon} TON` : "PRIVATE";
+  const displayPrice = fighter.salePriceTon ? `${fighter.salePriceTon} TON` : "NOT LISTED";
   const winRate = (fighter.wins + fighter.losses + fighter.draws) > 0 
     ? Math.round((fighter.wins / (fighter.wins + fighter.losses + fighter.draws)) * 100) : 0;
 

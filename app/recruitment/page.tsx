@@ -63,7 +63,7 @@ export default function RecruitmentOffice() {
     <Link href="/staking" className="p-2 bg-zinc-900 rounded-full"><ChevronLeft /></Link>
     <div className="text-center">
        <h1 className="text-xl font-black italic uppercase tracking-tighter">Scouting Deck</h1>
-       <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.3em]">PolyCombat Intelligence</p>
+       <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.3em]">PolyCombat NFTs</p>
     </div>
     
     {/* NEW: Button to My Roster */}
