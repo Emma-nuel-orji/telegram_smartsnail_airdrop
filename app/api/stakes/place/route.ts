@@ -11,62 +11,65 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // ✅ FIXED: Defining telegramUser correctly
     const telegramUser = await getWebAppUser();
     if (!telegramUser || !telegramUser.id) {
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
 
-    // ✅ FIXED: Defining stakeAmountBI before the transaction
     const stakeAmountBI = BigInt(stakeAmount);
 
     const result = await prisma.$transaction(async (tx) => {
+      // 1. Fetch data within the transaction using 'tx'
       const user = await tx.user.findUnique({
         where: { telegramId: BigInt(telegramUser.id) },
       });
-      const fight = await prisma.fight.findUnique({ where: { id: fightId } });
-        if (new Date() >= new Date(fight.fightDate)) {
-          return NextResponse.json({ error: "Betting is closed for this fight" }, { status: 403 });
-        }
-      const selectedFighter = await tx.fighter.findUnique({ where: { id: fighterId } });
-
-      if (!user || !fight || !selectedFighter) throw new Error('Data not found');
       
-      // ✅ FIXED: Changed "STARTING" to your actual enum "SCHEDULED" 
-      // Ensure this matches your FightStatus enum (e.g., SCHEDULED, ONGOING, CONCLUDED)
-      if (fight.status !== 'SCHEDULED') throw new Error('Fight is not accepting stakes');
+      const fight = await tx.fight.findUnique({ where: { id: fightId } });
 
+      // 🚨 NULL CHECK (Moved up to satisfy TypeScript)
+      if (!user || !fight) {
+        throw new Error('User or Fight data not found');
+      }
+
+      // 2. Time Guard with Buffer (Now safe because fight is guaranteed to exist)
+      const isExpired = Date.now() >= (new Date(fight.fightDate).getTime() - (5 * 60 * 1000));
+      if (isExpired || fight.status !== 'SCHEDULED') {
+          throw new Error('Staking is no longer available for this fight');
+      }
+
+      const selectedFighter = await tx.fighter.findUnique({ where: { id: fighterId } });
+      if (!selectedFighter) throw new Error('Selected fighter not found');
+
+      // 3. Existing Stake Check
       const existing = await tx.stake.findFirst({
         where: { userId: user.id, fightId }
       });
       if (existing) throw new Error('Already staked on this fight');
 
+      // 4. NFT Check & Lock
       const userNft = await tx.nft.findFirst({
         where: { ownerId: user.id, collectionId: selectedFighter.collectionId || undefined }
       });
 
-      // 🚨 NFT LOCK CHECK
       if (userNft) {
         const nftBusy = await tx.stake.findFirst({
           where: {
             nftId: userNft.id,
             status: 'COMPLETED',
-            fight: {
-              // Lock NFT if the fight is still SCHEDULED
-              status: 'SCHEDULED' 
-            }
+            fight: { status: 'SCHEDULED' } 
           }
         });
         if (nftBusy) throw new Error('This NFT is already locked in another fight');
       }
 
+      // 5. Power Calculation
       const nftPower = BigInt(userNft?.priceShells || 0);
       const totalStakingPower = user.points + nftPower;
 
       if (totalStakingPower < 200000n && !userNft) throw new Error('Min 200k power required');
       if (stakeAmountBI > totalStakingPower) throw new Error('Insufficient power');
 
-      // Commissions
+      // 6. Commissions (The part that needs the CLAWBACK in your bot script later)
       const managerCut = (stakeAmountBI * 50n) / 100n;
       const fighterCut = (stakeAmountBI * 30n) / 100n;
 
@@ -83,7 +86,7 @@ export async function POST(req: Request) {
         });
       }
 
-      // Point Deduction Logic
+      // 7. Point Deduction
       const amountToDeduct = stakeAmountBI > user.points ? user.points : stakeAmountBI;
       
       const updatedUser = await tx.user.update({
@@ -93,12 +96,13 @@ export async function POST(req: Request) {
 
       if (updatedUser.points < 0n) throw new Error('Insufficient balance');
 
+      // 8. Create Stake
       return await tx.stake.create({
         data: {
           userId: user.id,
           fightId,
           fighterId,
-          nftId: userNft?.id || null, // Store reference for the lock
+          nftId: userNft?.id || null,
           stakeAmount: stakeAmountBI,
           stakeType: 'POINTS',
           status: 'COMPLETED',
