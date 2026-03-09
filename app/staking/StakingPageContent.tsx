@@ -541,9 +541,8 @@ const handleClaim = async () => {
           opponent={fight?.fighter2 || undefined}
           fight={fight}
           userPoints={userPoints}
-          isActive={isActive}
+          isActive={isActive && canUserStake}
           isConcluded={isConcluded}
-          isActive={canUserStake}
           telegramId={telegramId}
           position="left"
           color={getFighterColor(fight.fighter1)}
@@ -561,9 +560,8 @@ const handleClaim = async () => {
             opponent={fight.fighter1} 
             fight={fight} 
             userPoints={userPoints} 
-            isActive={isActive} 
+            isActive={isActive && canUserStake}
             isConcluded={isConcluded}
-            isActive={canUserStake}
             telegramId={telegramId} 
             position="right" 
             color={getFighterColor(fight.fighter2)}
