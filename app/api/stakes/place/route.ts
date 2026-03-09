@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       const existing = await tx.stake.findFirst({
         where: { userId: user.id, fightId }
       });
-      if (existing) throw new Error('Already staked on this fight');
+      // if (existing) throw new Error('Already staked on this fight');
 
       // 4. NFT Check & Lock
       const userNft = await tx.nft.findFirst({

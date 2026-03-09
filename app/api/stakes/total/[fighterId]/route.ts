@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 
-export async function GET(req: NextRequest, { params }: { params: { fightId: string } }) {
-  const { fightId } = params;
+export async function GET(req: NextRequest, { params }: { params: { fighterId: string } }) {
+  const { fighterId } = params;
 
   try {
     // 1. Fetch the fight to identify the explicit fighters
     const fight = await prisma.fight.findUnique({
-      where: { id: fightId },
+      where: { id: fighterId },
       select: { fighter1Id: true, fighter2Id: true }
     });
 

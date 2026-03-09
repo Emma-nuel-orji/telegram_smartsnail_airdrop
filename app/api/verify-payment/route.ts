@@ -5,7 +5,6 @@ import { processPayment } from '../purchase/route';
 
 export async function POST(request: Request) {
   try {
-    
     const body = await request.json();
     const {
       orderId,
@@ -15,7 +14,6 @@ export async function POST(request: Request) {
       userId,
       bookCount,
       bookId,
-      fighterId, itemType,
       fxckedUpBagsQty,
       humanRelationsQty,
       telegram_payment_charge_id, // For Stars payments
@@ -28,123 +26,6 @@ export async function POST(request: Request) {
       paymentMethod,
       telegram_payment_charge_id,
     });
-
-
-    // 1. Handle Fighter Recruitment/Resale
-    if (itemType === "FIGHTER_RECRUITMENT" || itemType === "FIGHTER_RESALE") {
-  const result = await prisma.$transaction(async (tx) => {
-    // 1. Fetch Fighter
- // 1. Fetch Fighter
-const fighter = await tx.fighter.findUnique({
-  where: { id: fighterId },
-  select: { id: true, name: true, ownerId: true, salePriceTon: true, salePriceShells: true }
-});
-
-if (!fighter) throw new Error("Fighter not found");
-
-// 2. SECURITY CHECK: Verify the price matches the DB
-if (paymentMethod === "SHELLS") {
-    const actualPrice = Number(fighter.salePriceShells || 0);
-    // Use a small margin for floats if necessary, but for Shells/Points, exact is usually best
-    if (Number(totalAmount) < actualPrice) {
-        throw new Error(`Price mismatch: Expected ${actualPrice} Shells, got ${totalAmount}`);
-    }
-} 
-
-if (paymentMethod === "TON") {
-    const actualPriceTon = Number(fighter.salePriceTon || 0);
-    // We check if the reported totalAmount is at least what the DB requires
-    if (Number(totalAmount) < actualPriceTon) {
-        throw new Error(`Price mismatch: Expected ${actualPriceTon} TON, got ${totalAmount}`);
-    }
-}
-
-    // Replace with your actual numerical Telegram ID
-    const PRIMARY_SELLER_ID = "795571382"; 
-
-    // 2. Find Buyer (Using findFirst to be safe with telegramId)
-    // We convert to BigInt only for the telegramId field
-    const buyer = await tx.user.findFirst({ 
-      where: { telegramId: BigInt(userId) } 
-    });
-    
-    if (!buyer) throw new Error("Buyer not found in database");
-
-    // 3. Payment Deduction (Shells only)
-    if (paymentMethod === "SHELLS") {
-      const amountToDeduct = BigInt(totalAmount);
-      if (buyer.points < amountToDeduct) throw new Error("Insufficient Shells");
-      
-      await tx.user.update({
-        where: { id: buyer.id },
-        data: { points: { decrement: amountToDeduct } }
-      });
-    }
-
-    // 4. Update Fighter Ownership
-    const updatedFighter = await tx.fighter.update({
-      where: { id: fighter.id },
-      data: {
-        ownerId: buyer.id,
-        isForSale: false,
-        salePriceTon: null,
-        salePriceShells: null,
-        status: "APPROVED" 
-      }
-    });
-
-    // 5. Handle Secondary Payout (The Manager's cut)
-    if (fighter.ownerId && fighter.ownerId !== PRIMARY_SELLER_ID) {
-      const seller = await tx.user.findUnique({ where: { id: fighter.ownerId } });
-      
-      if (seller) {
-        // Calculate payout (1 TON = 1000 Shells)
-        const payoutShells = BigInt(Math.floor(Number(fighter.salePriceTon || 0) * 1000));
-        
-        await tx.user.update({
-          where: { id: seller.id },
-          data: { points: { increment: payoutShells } }
-        });
-
-        await tx.pointTransaction.create({
-          data: {
-            userId: seller.id,
-            pointsUsed: payoutShells,
-            type: 'EARN', 
-            status: 'APPROVED',
-            // serviceId is now optional, so it stays null here
-          }
-        });
-      }
-    }
-
-    // 6. Create Receipt Records
-    const newOrder = await tx.order.create({
-      data: {
-        orderId: `PC-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-        paymentMethod: paymentMethod,
-        totalAmount: Number(totalAmount),
-        status: "SUCCESS",
-        transactionReference: transactionHash || `SHELL_${Date.now()}`,
-      }
-    });
-
-    await tx.purchase.create({
-      data: {
-        order: { connect: { id: newOrder.id } }, 
-        user: { connect: { id: buyer.id } },
-        paymentType: paymentMethod,
-        amountPaid: Number(totalAmount),
-      }
-    });
-
-    return { success: true, fighterName: updatedFighter.name, orderId: newOrder.orderId };
-  });
-
-  return NextResponse.json(result);
-}
-
-
 
     // ✅ Validate required fields based on payment method
     if (paymentMethod === 'TON' && !transactionHash) {

@@ -19,6 +19,10 @@ export default function RecruitmentOffice() {
   const [fighters, setFighters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasNewEarnings, setHasNewEarnings] = useState(false);
+  const activeDeals = fighters.filter((f: any) => f.isForSale).length;
+  const totalVolume = fighters
+  .filter((f: any) => f.isForSale)
+  .reduce((sum: number, f: any) => sum + (f.salePriceTon || 0), 0);
 
   useEffect(() => {
     // Check if there are recent 'EARN' transactions
@@ -83,13 +87,13 @@ export default function RecruitmentOffice() {
 
       {/* Market Stats */}
       <div className="p-6 grid grid-cols-2 gap-3">
-        <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-           <p className="text-[8px] text-zinc-500 font-black uppercase">Active Deals</p>
-           <p className="text-lg font-mono font-bold">124</p>
+       <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
+          <p className="text-[8px] text-zinc-500 font-black uppercase">Active Deals</p>
+          <p className="text-lg font-mono font-bold">{activeDeals}</p>
         </div>
         <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-           <p className="text-[8px] text-zinc-500 font-black uppercase">Volume (24h)</p>
-           <p className="text-lg font-mono font-bold text-blue-400">8.4k TON</p>
+          <p className="text-[8px] text-zinc-500 font-black uppercase">Market Value</p>
+          <p className="text-lg font-mono font-bold text-blue-400">{totalVolume.toFixed(1)} TON</p>
         </div>
       </div>
 
@@ -124,10 +128,11 @@ function FighterNFTCard({ fighter }: { fighter: any }) {
   const shellPrice = fighter.salePriceShells || (fighter.salePriceTon ? fighter.salePriceTon * 1000 : 5000);
   // Logic to determine if this is a TON sale or a Shells sale
   // If ownerId is null or matches your Admin ID, it's a TON sale
-  const isPrimarySale = !fighter.ownerId || fighter.ownerId === "YOUR_ADMIN_ID";
-  
+  const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
+  const isPrimarySale = !fighter.ownerId || String(fighter.ownerId) === String(ADMIN_ID);
   const handlePurchase = async () => {
     const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id;
+    if (!userId) return alert("Please open this app inside Telegram");
 
     if (isPrimarySale) {
       // --- TON PAYMENT LOGIC ---
@@ -166,7 +171,7 @@ function FighterNFTCard({ fighter }: { fighter: any }) {
       if (!tonResult?.boc) throw new Error("Transaction rejected.");
 
       // Verify TON Payment
-      const response = await fetch("/api/verify-payment", {
+      const response = await fetch("/api/recruit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

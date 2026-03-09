@@ -263,12 +263,22 @@ export default function StakingPageContent() {
     </div>
   );
 }
-
-function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void }) {
+function FighterModal({ fighter,  onClose, userStakes = [],fight }: { fighter: any, onClose: () => void, userStakes?: any[], fight?: any 
+}) {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
   const userTelegramId = webApp?.initDataUnsafe?.user?.id?.toString();
+  const myStakesOnFighter = userStakes
+    .filter((s: any) => s.fighterId === fighter.id)
+    .reduce((sum: number, s: any) => sum + Number(s.stakeAmount), 0);
+
+  // Calculate global stakes for this fighter (from the fight object)
+  const totalGlobalStakes = fight?.stakes
+    ? fight.stakes
+        .filter((s: any) => s.fighterId === fighter.id)
+        .reduce((sum: number, s: any) => sum + Number(s.stakeAmount), 0)
+    : 0;
 
   useEffect(() => {
     document.body.classList.add('no-scroll');
@@ -278,7 +288,7 @@ function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void 
   const handleSign = async (fighterId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/verify-payment`, {
+      const response = await fetch(`/api/recruit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fighterId, telegramId: userTelegramId })
@@ -317,6 +327,36 @@ function FighterModal({ fighter, onClose }: { fighter: any, onClose: () => void 
           <h2 className="text-2xl font-black italic uppercase text-white tracking-tighter text-center leading-none mb-1">{fighter.name}</h2>
           <div className="px-3 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-4">
             <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">{displayPrice}</p>
+          </div>
+
+          {/* 🛡️ TEAM / COLLECTION INDICATOR */}
+          {fighter.collection?.name && (
+            <div className="flex items-center gap-1.5 mb-2">
+               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Team:</span>
+               <span className="text-[10px] font-black text-blue-400 uppercase italic tracking-tight bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
+                {fighter.collection.name}
+               </span>
+            </div>
+          )}
+
+          <div className="px-3 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-4">
+            <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">{displayPrice}</p>
+          </div>
+
+          {/* 🚨 NEW: STAKING STATS SECTION */}
+          <div className="grid grid-cols-2 gap-2 w-full mb-4">
+            <div className="bg-blue-500/10 p-3 rounded-2xl border border-blue-500/20">
+              <p className="text-[8px] text-blue-400 font-black uppercase mb-1">Total Pool</p>
+              <p className="text-sm font-black text-white italic">
+                {totalGlobalStakes.toLocaleString()} <span className="text-[10px] opacity-50">🐚</span>
+              </p>
+            </div>
+            <div className="bg-green-500/10 p-3 rounded-2xl border border-green-500/20">
+              <p className="text-[8px] text-green-400 font-black uppercase mb-1">Your Stake</p>
+              <p className="text-sm font-black text-white italic">
+                {myStakesOnFighter.toLocaleString()} <span className="text-[10px] opacity-50">🐚</span>
+              </p>
+            </div>
           </div>
 
           {/* PHYSICAL SPECS (Restored) */}
@@ -420,27 +460,35 @@ const canUserStake = isActive && !isTooLateToStake;
 
 
 // FETCH USER'S STAKE FOR THIS SPECIFIC FIGHT
-  useEffect(() => {
-    const fetchMyStakes = async () => {
-      if (!telegramId || !fight.id) return;
-      try {
-        setLoadingStakes(true);
-        // This endpoint should return all stakes made by this user for this fight
-        const res = await fetch(`/api/stakes/user/${telegramId}/${fight.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setUserStakes(data.stakes || []);
-          setIsClaimed(data.claimed || false);
-        }
-      } catch (err) {
-        console.error("Error fetching user stakes:", err);
-      } finally {
-        setLoadingStakes(false);
-      }
-    };
+ useEffect(() => {
+  const fetchMyStakes = async () => {
+    if (!telegramId || !fight.id) return;
+    try {
+      setLoadingStakes(true);
+      const res = await fetch(`/api/stakes/user/${telegramId}/${fight.id}`);
+      
+      if (res.ok) {
+        const data = await res.json();
+        
+        // ✅ Correctly sanitized and stored
+        const sanitizedStakes = (data.stakes || []).map((s: any) => ({
+          ...s,
+          stakeAmount: Number(s.stakeAmount), 
+          initialStakeAmount: Number(s.initialStakeAmount)
+        }));
 
-    fetchMyStakes();
-  }, [fight.id, telegramId]);
+        setUserStakes(sanitizedStakes);
+        setIsClaimed(data.claimed || false);
+      } // End of if (res.ok)
+    } catch (err) {
+      console.error("Error fetching user stakes:", err);
+    } finally {
+      setLoadingStakes(false);
+    }
+  };
+
+  fetchMyStakes();
+}, [fight.id, telegramId]);
 
 // Logic to check if user deserves a reward
 // Assuming you have 'userStakes' data available
@@ -574,6 +622,8 @@ const handleClaim = async () => {
          <FighterModal 
            fighter={selectedFighter} 
            onClose={() => setSelectedFighter(null)} 
+           userStakes={userStakes}
+           fight={fight}
          />
        )}
         </div>
