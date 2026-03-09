@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 import { getWebAppUser } from '@/lib/storage';
-
+import { StakeStatus } from '@prisma/client';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
         const nftBusy = await tx.stake.findFirst({
           where: {
             nftId: userNft.id,
-            status: 'COMPLETED',
+            status: StakeStatus.PENDING,
             fight: { status: 'SCHEDULED' } 
           }
         });
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
           nftId: userNft?.id || null,
           stakeAmount: stakeAmountBI,
           stakeType: 'POINTS',
-          status: 'COMPLETED',
+          status: StakeStatus.PENDING,
           initialStakeAmount: stakeAmountBI
         }
       });

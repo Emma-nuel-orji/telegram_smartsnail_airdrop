@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
-
+import { StakeStatus } from '@prisma/client';
 export async function GET(req: NextRequest, { params }: { params: { fighterId: string } }) {
   const { fighterId } = params;
 
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { fighterId: s
       by: ['fighterId'],
       where: { 
         fighterId,
-        status: 'COMPLETED' 
+        status: { in: [StakeStatus.PENDING, StakeStatus.WON, StakeStatus.CLAIMED] }, 
       },
       _sum: { stakeAmount: true }
     });
