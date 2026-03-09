@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: { fighterId: s
     const stats = await prisma.stake.groupBy({
       by: ['fighterId'],
       where: { 
-        fightId,
+        fighterId,
         status: 'COMPLETED' 
       },
       _sum: { stakeAmount: true }
