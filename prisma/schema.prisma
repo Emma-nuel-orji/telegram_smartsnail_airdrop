@@ -339,7 +339,9 @@ enum StakeType {
 
 enum StakeStatus {
   PENDING
-  COMPLETED
+  WON        
+  CLAIMED  
+  LOST
   FAILED
 }
 
