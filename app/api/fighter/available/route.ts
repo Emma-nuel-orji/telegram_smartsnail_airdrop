@@ -2,6 +2,8 @@ import { prisma } from '@/prisma/client';
 import { NextResponse } from 'next/server';
 
 // app/api/fighter/available/route.ts
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export async function GET() {
   try {
     const fighters = await prisma.fighter.findMany();

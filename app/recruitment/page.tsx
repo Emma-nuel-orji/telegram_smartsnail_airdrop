@@ -36,7 +36,7 @@ export default function RecruitmentOffice() {
 
   useEffect(() => {
     // Fetch only "Unsigned" or "Available" fighters
-    fetch('/api/fighter/available')
+    fetch('/api/fighter/available', { cache: "no-store" })
       .then(res => res.json())
       .then(data => {
         setFighters(data);
