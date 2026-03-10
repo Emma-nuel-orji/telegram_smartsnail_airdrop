@@ -32,7 +32,7 @@ export async function GET(req: Request) {
               }
             },
             {
-              ownerId: SUPER_ADMIN_ID
+              ownerId: userId.toString()
             },
             { ownerId: null }
           ]
