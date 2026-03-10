@@ -20,8 +20,11 @@ export async function GET(req: Request) {
           OR: [
             // Genesis fighters from official collections (no owner)
             {
-              ownerId: null,
-              collection: { name: { in: ["SmartSnail", "Manchies"] } }
+            collection: { name: { in: ["SmartSnail", "Manchies"] } },
+          OR: [
+            { ownerId: null },
+            { ownerId: undefined }
+          ]
             },
             // Fighters the admin personally signed/owns
             { ownerId: SUPER_ADMIN_ID }
