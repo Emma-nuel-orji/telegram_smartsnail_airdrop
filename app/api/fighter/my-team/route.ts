@@ -33,7 +33,8 @@ export async function GET(req: Request) {
             },
             {
               ownerId: SUPER_ADMIN_ID
-            }
+            },
+            { ownerId: null }
           ]
         },
         include: {
