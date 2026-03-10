@@ -9,7 +9,8 @@ export async function POST(request: Request) {
       telegramId, 
       paymentMethod, 
       transactionHash, 
-      totalAmount 
+      totalAmount,
+      userId
     } = body;
 
     // 1. Validate Input
@@ -74,7 +75,16 @@ export async function POST(request: Request) {
         });
       }
 
-      // 6. Create Records
+      if (!fighter.ownerId) {
+            await prisma.fighter.update({
+              where: { id: fighterId },
+              data: { ownerId: userId } // The ID sent from your frontend
+            });
+          } 
+          // 3. Normal security check for non-genesis fighters
+          else if (fighter.ownerId !== userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+          }
      // 6. Create Records
             const newOrder = await tx.order.create({
             data: {
