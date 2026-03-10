@@ -8,54 +8,40 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
-    if (!userId) {
-      return NextResponse.json([]);
-    }
+    if (!userId) return NextResponse.json([]);
 
     const isAdmin = userId === SUPER_ADMIN_ID;
 
     let fighters;
 
     if (isAdmin) {
-      // Super admin: SmartSnail + Manchies + fighters owned by admin
       fighters = await prisma.fighter.findMany({
         where: {
           OR: [
+            // Genesis fighters from official collections (no owner)
             {
-              collection: {
-                name: "SmartSnail"
-              }
+              ownerId: null,
+              collection: { name: { in: ["SmartSnail", "Manchies"] } }
             },
-            {
-              collection: {
-                name: "Manchies"
-              }
-            },
-            {
-              ownerId: userId.toString()
-            },
-            { ownerId: null },
-            {status: { in: ["PENDING", "ON_SALE", "CONTRACTED"] }}
+            // Fighters the admin personally signed/owns
+            { ownerId: SUPER_ADMIN_ID }
           ]
         },
-        include: {
-          collection: true,
-          owner: true
-        }
+        include: { collection: true, owner: true }
       });
+
     } else {
-      // Normal users only see their fighters
+      // Private managers: ONLY fighters explicitly assigned to them
+      // Strict ownerId match — never leaks genesis/collection fighters
       fighters = await prisma.fighter.findMany({
         where: {
           ownerId: userId.toString()
+          // ownerId: null fighters are NEVER returned here
         },
-        include: {
-          collection: true
-        }
+        include: { collection: true }
       });
     }
 
-    // Fix BigInt serialization (important for Next.js)
     const serializedFighters = JSON.parse(
       JSON.stringify(fighters, (_, value) =>
         typeof value === "bigint" ? value.toString() : value
@@ -66,9 +52,6 @@ export async function GET(req: Request) {
 
   } catch (error) {
     console.error("Roster Fetch Error:", error);
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

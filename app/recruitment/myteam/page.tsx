@@ -79,67 +79,65 @@ export default function MyRoster() {
 }
 
 function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
-const rawUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-  
-  // ✅ Guard Clause: Stop here if userId is missing
-  if (!rawUserId) {
-    alert("User authentication failed. Please open via Telegram.");
-    return;
-  }
-
-  const userId = rawUserId.toString(); // Now it's safe to call .toString()
-  
-  // Define your Admin/Primary Seller ID
-  const PRIMARY_SELLER_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID; 
-  // const isPrimaryAsset = !fighter.ownerId || fighter.ownerId === PRIMARY_SELLER_ID;
-  const isPrimaryAsset = fighter.ownerId === PRIMARY_SELLER_ID && userId !== PRIMARY_SELLER_ID;
-
-  // Calculate equivalent (e.g., 1 TON = 1000 Shells)
-  const tonPrice = fighter.salePriceTon || 5.0;
-  const shellEquivalent = Math.floor(tonPrice * 1000);
+  // ✅ ALL hooks MUST be at the top — before any conditional returns
   const [showIntel, setShowIntel] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const nftSerialNumber = fighter.id.slice(-4).toUpperCase();
- const handleListForSale = async () => {
-  const price = prompt("Enter listing price (TON):", "5.0");
-  if (!price || isNaN(parseFloat(price))) return;
 
-  setIsUpdating(true); // Start loading spinner
-  
-  try {
-    const res = await fetch('/api/fighter/list', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fighterId: fighter.id, price: parseFloat(price),userId: userId.toString() })
-    });
+  const rawUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  const userId = rawUserId?.toString();
 
-    const data = await res.json();
-
-    if (res.ok) {
-      // ✅ SUCCESS: Now it's safe to reload or update state
-      window.location.reload(); 
-    } else {
-      // ❌ API FAILED: Revert UI and explain why
-      alert(`Listing Failed: ${data.error || "Server Error"}`);
-    }
-  } catch (err) {
-    // ❌ NETWORK FAILED
-    alert("Check your connection. The blockchain sync failed.");
-  } finally {
-    setIsUpdating(false); // Stop loading spinner
+  // ✅ Guard Clause AFTER hooks
+  if (!userId) {
+    return (
+      <div className="p-4 text-red-500 text-xs font-bold uppercase">
+        Auth failed. Open via Telegram.
+      </div>
+    );
   }
-};
+
+  const PRIMARY_SELLER_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
+  const isPrimaryAsset = fighter.ownerId === PRIMARY_SELLER_ID && userId !== PRIMARY_SELLER_ID;
+  const tonPrice = fighter.salePriceTon || 5.0;
+  const shellEquivalent = Math.floor(tonPrice * 1000);
+  const nftSerialNumber = fighter.id.slice(-4).toUpperCase();
+
+  const handleListForSale = async () => {
+    const price = prompt("Enter listing price (TON):", "5.0");
+    if (!price || isNaN(parseFloat(price))) return;
+
+    setIsUpdating(true);
+    try {
+      const res = await fetch('/api/fighter/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fighterId: fighter.id, price: parseFloat(price), userId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert(`Listing Failed: ${data.error || "Server Error"}`);
+      }
+    } catch {
+      alert("Check your connection. The blockchain sync failed.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleWithdraw = async () => {
-  setIsUpdating(true);
-  const res = await fetch('/api/fighter/list', {
-    method: 'PATCH', // We'll use PATCH for updating status
-    body: JSON.stringify({ fighterId: fighter.id, userId: rawUserId.toString(), withdraw: true })
-  });
-  if (res.ok) window.location.reload();
-  setIsUpdating(false);
-};
-
+    setIsUpdating(true);
+    try {
+      const res = await fetch('/api/fighter/list', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fighterId: fighter.id, userId, withdraw: true })
+      });
+      if (res.ok) window.location.reload();
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
 
  return (

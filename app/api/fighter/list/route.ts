@@ -62,13 +62,13 @@ const updatedFighter = await prisma.fighter.update({
 
 export async function PATCH(req: Request) {
   try {
-    const { fighterId, userId, withdraw } = await req.json();
+    const body = await req.json();
+    const { fighterId, userId, withdraw } = body;
 
     if (!fighterId || !userId || !withdraw) {
-      return NextResponse.json({ error: "Missing data for withdrawal" }, { status: 400 });
+      return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    // 1. OWNERSHIP CHECK (Crucial for security)
     const fighter = await prisma.fighter.findUnique({
       where: { id: fighterId },
       select: { ownerId: true }
@@ -78,18 +78,23 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Fighter not found" }, { status: 404 });
     }
 
-    // Ensure the requester is the owner
-    if (fighter.ownerId?.toString() !== userId.toString()) {
-  return NextResponse.json({ error: "Unauthorized withdrawal" }, { status: 403 });
-}
-    // 2. WITHDRAW: Reset the listing status
-    const updatedFighter = await prisma.fighter.update({
+    const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
+    const isAdmin = userId.toString() === ADMIN_ID;
+
+    // ✅ FIXED: Allow withdrawal if owner matches OR if admin withdrawing a null-owner fighter
+    const isOwner = fighter.ownerId?.toString() === userId.toString();
+    const isGenesisAdmin = fighter.ownerId === null && isAdmin;
+
+    if (!isOwner && !isGenesisAdmin) {
+      return NextResponse.json({ error: "Unauthorized withdrawal" }, { status: 403 });
+    }
+
+    await prisma.fighter.update({
       where: { id: fighterId },
       data: {
-        status: "CONTRACTED",       // Or whatever your default status is
+        status: "CONTRACTED",
         isForSale: false,
         salePriceTon: null,
-        // salePriceShells: null, // Reset this too if you use it
       },
     });
 
