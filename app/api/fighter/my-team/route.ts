@@ -1,43 +1,72 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/prisma/client';
 import { NextResponse } from 'next/server';
 
-const prisma = new PrismaClient();
-const SUPER_ADMIN_ID = "795571382"; // Replace with your actual TG ID string
+const SUPER_ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
-
-  if (!userId) return NextResponse.json([]);
-
   try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json([]);
+    }
+
+    const isAdmin = userId === SUPER_ADMIN_ID;
+
     let fighters;
 
-    // 1. Fetch the data from the database
-    if (userId === SUPER_ADMIN_ID) {
+    if (isAdmin) {
+      // Super admin: SmartSnail + Manchies + fighters owned by admin
       fighters = await prisma.fighter.findMany({
-        include: { collection: true, owner: true }
+        where: {
+          OR: [
+            {
+              collection: {
+                name: "SmartSnail"
+              }
+            },
+            {
+              collection: {
+                name: "Manchies"
+              }
+            },
+            {
+              ownerId: SUPER_ADMIN_ID
+            }
+          ]
+        },
+        include: {
+          collection: true,
+          owner: true
+        }
       });
     } else {
+      // Normal users only see their fighters
       fighters = await prisma.fighter.findMany({
-        where: { ownerId: userId }, // Adjust this if you use 'owner' relation ID
-        include: { collection: true }
+        where: {
+          ownerId: userId.toString()
+        },
+        include: {
+          collection: true
+        }
       });
     }
 
-    // 2. CONVERT BIGINT TO STRING BEFORE SENDING
-    // This is the part you were asking about. It sits right before the return.
+    // Fix BigInt serialization (important for Next.js)
     const serializedFighters = JSON.parse(
-      JSON.stringify(fighters, (key, value) =>
-        typeof value === 'bigint' ? value.toString() : value
+      JSON.stringify(fighters, (_, value) =>
+        typeof value === "bigint" ? value.toString() : value
       )
     );
 
-    // 3. Return the clean, JSON-friendly data
     return NextResponse.json(serializedFighters);
 
   } catch (error) {
     console.error("Roster Fetch Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server Error" },
+      { status: 500 }
+    );
   }
 }
