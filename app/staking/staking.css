@@ -14,7 +14,7 @@
   pointer-events: none;
   white-space: nowrap;
   z-index: 100;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   text-shadow: 0 0 10px rgba(0,0,0,0.5);
   
   /* The Animation */
@@ -31,7 +31,7 @@
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -150px); /* Moves up 150px */
+    transform: translate(-50%, -200px); /* Moves up 150px */
   }
 }
 

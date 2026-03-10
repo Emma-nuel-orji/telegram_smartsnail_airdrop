@@ -250,7 +250,7 @@ model Fighter {
   imageUrl         String?
   userTelegramId   BigInt?      @unique
   athlete         User?     @relation("AthleteRole", fields: [userTelegramId], references: [telegramId])
-  ownerId          String?      @db.ObjectId
+  ownerId          String?     
   owner           User?     @relation("ManagerRole", fields: [ownerId], references: [id])
   currentStreak    Int          @default(0)
   collectionId     String?      @db.ObjectId  // Links the fighter to "SmartSnails" or "Manchies"

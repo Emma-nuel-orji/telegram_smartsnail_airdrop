@@ -999,10 +999,10 @@ e.stopPropagation();
   setStakeAmount(Math.floor((pct / 100) * MAX_AMOUNT));
 
   // 3. YOUR POPUP LOGIC (Keep this!)
-  if (Math.random() > 0.94) {
+  if (Math.random() > 0.97) {
     const id = Math.random();
     const text = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
-    const xPos = Math.floor(Math.random() * 80) + 10;
+    const xPos = Math.floor(Math.random() * 50) + 25;
     setPopups(prev => [...prev, { id, text, xPos }]);
     setTimeout(() => setPopups(p => p.filter(x => x.id !== id)), 1000);
     webApp?.HapticFeedback?.impactOccurred("light");
