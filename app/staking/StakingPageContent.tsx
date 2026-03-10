@@ -651,7 +651,7 @@ const handleClaim = async () => {
                 <div className="crown-icon">👑</div>
               </div>
               <h2 className="winner-text-name">{winner.name}</h2>
-              <p className="winner-subtitle">DOMINANT VICTORY</p>
+              <p className="winner-subtitle">WINS</p>
             </div>
             
             {/* Minimal Confetti */}
@@ -1014,11 +1014,11 @@ useEffect(() => {
     if (!barLocked && barHeight > 0 && !tapping) {
       decayRef.current = setInterval(() => {
         setBarHeight(prev => {
-          const next = Math.max(0, prev - 1.5);
+          const next = Math.max(0, prev - 0.9);
           setStakeAmount(Math.floor((next / 100) * MAX_AMOUNT));
           return next;
         });
-      }, 30);
+      }, 40);
     } else {
       if (decayRef.current) clearInterval(decayRef.current);
     }

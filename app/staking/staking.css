@@ -8,13 +8,13 @@
   bottom: 20%; /* Start point */
   transform: translateX(-50%);
   color: #a855f7; /* Purple to match your theme */
-  font-weight: 900;
+  font-weight: 700;
   font-style: italic;
   text-transform: uppercase;
   pointer-events: none;
   white-space: nowrap;
   z-index: 100;
-  font-size: 1.2rem;
+  font-size: 0.75rem;
   text-shadow: 0 0 10px rgba(0,0,0,0.5);
   
   /* The Animation */

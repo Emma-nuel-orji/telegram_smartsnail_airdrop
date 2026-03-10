@@ -54,11 +54,16 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, fighter: safeData });
 
-  } catch (error) {
-    console.error("Listing error:", error);
-    return NextResponse.json({ error: "Failed to list fighter" }, { status: 500 });
-  }
-}
+  } catch (error: any) {
+  console.error("Listing error FULL:", error);
+  console.error("Error message:", error?.message);
+  console.error("Error stack:", error?.stack);
+
+  return NextResponse.json(
+    { error: error?.message || "Failed to list fighter" },
+    { status: 500 }
+  );
+}}
 
 export async function PATCH(req: Request) {
   try {
