@@ -12,38 +12,33 @@ export async function POST(req: Request) {
     }
 
    // 1. OWNERSHIP CHECK
-        const fighter = await prisma.fighter.findUnique({
-          where: { id: fighterId },
-          select: { id: true, ownerId: true } // Added id for the update
-        });
+const fighter = await prisma.fighter.findUnique({
+  where: { id: fighterId },
+  select: { id: true, ownerId: true }
+});
 
-        if (!fighter) {
-          return NextResponse.json({ error: "Fighter not found" }, { status: 404 });
-        }
+if (!fighter) {
+  return NextResponse.json({ error: "Fighter not found" }, { status: 404 });
+}
 
-        // 🚨 THE FIX: Handle Genesis (null) owners
-        if (fighter.ownerId === null) {
-          console.log("Genesis fighter detected. Assigning owner...");
-          await prisma.fighter.update({
-            where: { id: fighterId },
-            data: { ownerId: userId.toString() }
-          });
-        } 
-        // Normal check if an owner already exists
-        else if (fighter.ownerId.toString() !== userId.toString()) {
-          return NextResponse.json({ 
-            error: "Unauthorized: You do not own this fighter" 
-          }, { status: 403 });
-        }
-    // 2. Update the asset status and price
-    const updatedFighter = await prisma.fighter.update({
-      where: { id: fighterId },
-      data: {
-        status: "ON_SALE",     
-        isForSale: true,       // Good to keep this boolean in sync
-        salePriceTon: price,   
-      },
-    });
+// 🚨 REMOVE THE "GENESIS FIX" THAT ASSIGNS OWNERID HERE
+// Only allow the listing if the owner is NULL (Genesis) OR matches the Admin ID
+const isAdmin = userId.toString() === process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
+
+if (fighter.ownerId !== null && fighter.ownerId.toString() !== userId.toString()) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+}
+
+// 2. Update status and price BUT LEAVE ownerId ALONE
+const updatedFighter = await prisma.fighter.update({
+  where: { id: fighterId },
+  data: {
+    status: "ON_SALE",     
+    isForSale: true,       
+    salePriceTon: price,   
+    // ❌ DO NOT include ownerId: userId here!
+  },
+});
 
     // 3. BIGINT FIX: Convert BigInts to strings before sending to the browser
     const safeData = JSON.parse(
