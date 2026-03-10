@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 
 const SUPER_ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
 
+// app/api/fighter/my-team/route.ts
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -10,37 +12,28 @@ export async function GET(req: Request) {
 
     if (!userId) return NextResponse.json([]);
 
-    const isAdmin = userId === SUPER_ADMIN_ID;
+    // ✅ Fix 1: Ensure we compare strings to strings
+    const isAdmin = userId.toString() === SUPER_ADMIN_ID?.toString();
 
     let fighters;
-
+console.log("DEBUG:", { userId, SUPER_ADMIN_ID, match: userId === SUPER_ADMIN_ID });
     if (isAdmin) {
+      // ADMIN VIEW: Everything owned by admin OR everything with NO owner
       fighters = await prisma.fighter.findMany({
         where: {
           OR: [
-            // Genesis fighters from official collections (no owner)
-            {
-            collection: { name: { in: ["SmartSnail", "Manchies"] } },
-          OR: [
+            { ownerId: SUPER_ADMIN_ID },
             { ownerId: null },
-            { ownerId: undefined }
-          ]
-            },
-            // Fighters the admin personally signed/owns
-            { ownerId: SUPER_ADMIN_ID }
+            // Also include by collection name just in case
+            { collection: { name: { in: ["SmartSnail", "Manchies"] } } }
           ]
         },
         include: { collection: true, owner: true }
       });
-
     } else {
-      // Private managers: ONLY fighters explicitly assigned to them
-      // Strict ownerId match — never leaks genesis/collection fighters
+      // USER VIEW: Strictly what they own
       fighters = await prisma.fighter.findMany({
-        where: {
-          ownerId: userId.toString()
-          // ownerId: null fighters are NEVER returned here
-        },
+        where: { ownerId: userId.toString() },
         include: { collection: true }
       });
     }
