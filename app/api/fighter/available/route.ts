@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server';
 // app/api/fighter/available/route.ts
 export async function GET() {
   try {
+    const fighters = await prisma.fighter.findMany();
+console.log("ALL fighters from Prisma:", fighters.length);
     const available = await prisma.fighter.findMany({
       where: {
         isForSale: true, // Only show what is actively listed

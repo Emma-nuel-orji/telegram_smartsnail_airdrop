@@ -12,6 +12,7 @@ export async function POST(req: Request) {
 
    // 1. OWNERSHIP CHECK
 const fighter = await prisma.fighter.findUnique({
+  
   where: { id: fighterId },
   select: { id: true, ownerId: true }
 });
