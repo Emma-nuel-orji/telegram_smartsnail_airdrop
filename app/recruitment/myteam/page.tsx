@@ -15,7 +15,7 @@ interface Fighter {
   salePriceTon?: number;
   ownerId?: string;
   collection?: { name: string };
-  isForSale: string;
+  isForSale: boolean;
 }
 
 export default function MyRoster() {
@@ -91,7 +91,8 @@ const rawUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
   
   // Define your Admin/Primary Seller ID
   const PRIMARY_SELLER_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID; 
-  const isPrimaryAsset = !fighter.ownerId || fighter.ownerId === PRIMARY_SELLER_ID;
+  // const isPrimaryAsset = !fighter.ownerId || fighter.ownerId === PRIMARY_SELLER_ID;
+  const isPrimaryAsset = fighter.ownerId === PRIMARY_SELLER_ID && userId !== PRIMARY_SELLER_ID;
 
   // Calculate equivalent (e.g., 1 TON = 1000 Shells)
   const tonPrice = fighter.salePriceTon || 5.0;
@@ -133,7 +134,7 @@ const rawUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
   setIsUpdating(true);
   const res = await fetch('/api/fighter/list', {
     method: 'PATCH', // We'll use PATCH for updating status
-    body: JSON.stringify({ fighterId: fighter.id, withdraw: true })
+    body: JSON.stringify({ fighterId: fighter.id, userId: rawUserId.toString(), withdraw: true })
   });
   if (res.ok) window.location.reload();
   setIsUpdating(false);
