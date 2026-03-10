@@ -91,7 +91,7 @@ export async function PATCH(req: Request) {
     const updatedFighter = await prisma.fighter.update({
       where: { id: fighterId },
       data: {
-        status: "PENDING",       // Or whatever your default status is
+        status: "CONTRACTED",       // Or whatever your default status is
         isForSale: false,
         salePriceTon: null,
         // salePriceShells: null, // Reset this too if you use it
