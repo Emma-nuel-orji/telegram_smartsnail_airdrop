@@ -11,24 +11,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fighterId, price, or userId" }, { status: 400 });
     }
 
-    // 1. OWNERSHIP CHECK: Find the fighter and check who owns it
-    const fighter = await prisma.fighter.findUnique({
-      where: { id: fighterId },
-      select: { ownerId: true }
-    });
+   // 1. OWNERSHIP CHECK
+        const fighter = await prisma.fighter.findUnique({
+          where: { id: fighterId },
+          select: { id: true, ownerId: true } // Added id for the update
+        });
 
-    if (!fighter) {
-      return NextResponse.json({ error: "Fighter not found" }, { status: 404 });
-    }
+        if (!fighter) {
+          return NextResponse.json({ error: "Fighter not found" }, { status: 404 });
+        }
 
-    // Verify the person listing it is the actual owner
-    // Note: Use BigInt(userId) if your ownerId is stored as a BigInt/Telegram ID
-    console.log("DEBUG - Database Owner:", fighter.ownerId, typeof fighter.ownerId);
-console.log("DEBUG - Request User:", userId, typeof userId);
-    if (fighter.ownerId?.toString() !== userId.toString()) {
-  return NextResponse.json({ error: "Unauthorized: You do not own this fighter" }, { status: 403 });
-}
-
+        // 🚨 THE FIX: Handle Genesis (null) owners
+        if (fighter.ownerId === null) {
+          console.log("Genesis fighter detected. Assigning owner...");
+          await prisma.fighter.update({
+            where: { id: fighterId },
+            data: { ownerId: userId.toString() }
+          });
+        } 
+        // Normal check if an owner already exists
+        else if (fighter.ownerId.toString() !== userId.toString()) {
+          return NextResponse.json({ 
+            error: "Unauthorized: You do not own this fighter" 
+          }, { status: 403 });
+        }
     // 2. Update the asset status and price
     const updatedFighter = await prisma.fighter.update({
       where: { id: fighterId },
@@ -73,10 +79,9 @@ export async function PATCH(req: Request) {
     }
 
     // Ensure the requester is the owner
-    if (fighter.ownerId !== userId) {
-      return NextResponse.json({ error: "Unauthorized withdrawal" }, { status: 403 });
-    }
-
+    if (fighter.ownerId?.toString() !== userId.toString()) {
+  return NextResponse.json({ error: "Unauthorized withdrawal" }, { status: 403 });
+}
     // 2. WITHDRAW: Reset the listing status
     const updatedFighter = await prisma.fighter.update({
       where: { id: fighterId },
