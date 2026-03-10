@@ -34,7 +34,8 @@ export async function GET(req: Request) {
             {
               ownerId: userId.toString()
             },
-            { ownerId: null }
+            { ownerId: null },
+            {status: { in: ["PENDING", "ON_SALE", "CONTRACTED"] }}
           ]
         },
         include: {
