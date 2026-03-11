@@ -1036,46 +1036,52 @@ useEffect(() => {
 };
 
 
- const submitStake = async () => {
+const submitStake = async () => {
   if (!isActive || stakeAmount <= 0 || !barLocked) return;
-  
+
   try {
     const endpoint = stakeType === 'STARS' ? '/api/stakes/stars' : '/api/stakes/place';
-    
-    const body = { 
-      fightId: fight.id, 
-      fighterId: fighter?.id, 
-      // Convert to string so the backend BigInt() can read it safely
-      stakeAmount: stakeAmount.toString(), 
-      telegramId, 
+
+    const body = {
+      fightId: fight.id,
+      fighterId: fighter?.id,
+      stakeAmount: stakeAmount.toString(),
+      telegramId,
       stakeType,
-      multiplier: multiplier, // Send the multiplier used at the time of locking
-      nftId: userNft?.id || null, 
-      isNftBypass: hasMatchingNFT
+      multiplier: multiplier,
+      nftId: userNft?.id || null,
+      isNftBypass: hasMatchingNFT,
     };
 
-    const res = await fetch(endpoint, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify(body) 
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
 
-    if (res.ok) {
-      const data = await res.json();
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(`Error: ${data.error}`);
+      return;
+    }
+
+    if (stakeType === 'STARS') {
+      // Stars: redirect user to Telegram invoice link
       if (data.invoiceLink) {
         window.location.href = data.invoiceLink;
       } else {
-        // Success: Reset UI
-        setBarHeight(0); 
-        setBarLocked(false);
-        alert("Stake placed successfully!");
+        alert("Failed to generate Stars invoice.");
       }
     } else {
-      const errorData = await res.json();
-      alert(`Error: ${errorData.error}`);
+      // TON or normal stakes: update UI immediately
+      setBarHeight(0);
+      setBarLocked(false);
+      alert("Stake placed successfully!");
     }
-  } catch (e) { 
-    console.error("Stake submission failed:", e); 
+  } catch (e) {
+    console.error("Stake submission failed:", e);
+    alert("Failed to submit stake. Check your connection.");
   }
 };
 
