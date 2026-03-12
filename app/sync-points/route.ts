@@ -24,7 +24,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Anti-cheat
-    const maxAllowed = (user.tappingRate || 1) * 100; 
+   const user = await prisma.user.findUnique({
+  where: { telegramId: BigInt(telegramId) }, // or however you identify them
+  select: { tappingRate: true }
+});
+
+// 2. Safety check: make sure the user exists
+if (!user) {
+  return NextResponse.json({ error: 'User not found' }, { status: 404 });
+}
+
+// 3. NOW you can use the user variable for anti-cheat
+const maxAllowed = (user.tappingRate || 1) * 100; 
 
 if (pointsToAdd > maxAllowed) {
   return NextResponse.json({ success: false, message: 'Too many points' }, { status: 400 });
