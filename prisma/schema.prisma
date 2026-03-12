@@ -37,6 +37,7 @@ model User {
 
   // Indexes
   @@index([points], name: "points_asc_index")
+  subscriptions Subscription[]
  
   
 }
@@ -425,6 +426,7 @@ model Service {
   @@index([createdAt])  
   active      Boolean  @default(true)
   purchases  Purchase[]  @relation("ServiceToPurchase")
+  subscriptions     Subscription[]
 }
 
 
@@ -434,16 +436,16 @@ enum ServiceType {
 }
 
 model Subscription {
-  id           String   @id @default(cuid())
-  userId       String
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
   user         User     @relation(fields: [userId], references: [id])
-  serviceId    String?
+  serviceId    String?  @db.ObjectId
   service      Service? @relation(fields: [serviceId], references: [id])
   planTitle    String
   startDate    DateTime @default(now())
   endDate      DateTime
   totalClasses Int      @default(1)
-  status       String   @default("ACTIVE") // ACTIVE, CANCELLED, EXPIRED
+  status       String   @default("ACTIVE")
   createdAt    DateTime @default(now())
 }
 
