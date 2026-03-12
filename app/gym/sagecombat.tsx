@@ -1,6 +1,6 @@
-
+"use client";
 import React, { useState } from 'react';
-import { ShieldCheck, Zap, Target, Star, Wallet,ChevronLeft,Clock  } from 'lucide-react';
+import { ShieldCheck, Zap, Target, Star, Wallet,ChevronLeft  } from 'lucide-react';
 import Link from "next/link";
 // Types for our plans
 type AgeGroup = 'Adult' | 'Youth' | 'Kids';
@@ -48,41 +48,23 @@ const handlePurchase = async (plan: any, method: 'SHELLS' | 'STARS') => {
   if (!userId) return alert("Please open this in Telegram!");
 
   const confirmPurchase = confirm(`Enroll in ${plan.title} for ${method === 'SHELLS' ? plan.shells.toLocaleString() + ' Shells' : plan.stars + ' Stars'}?`);
+  
   if (!confirmPurchase) return;
 
   try {
-    let response;
-
-    if (method === 'SHELLS') {
-      // 🎯 Corrected: Shells use the subscribe API
-      response = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          telegramId: userId, // Backend expects telegramId
-          serviceId: plan.id, // Ensure plan.id matches your DB Service ID
-          intensity: intensity,
-          ageGroup: ageGroup
-        })
-      });
-    } else {
-      // ⭐ Stars use the invoice API
-      response = await fetch("/api/create-stars-invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          planId: plan.id, 
-          userId: userId,
-          priceStars: plan.stars 
-        })
-      });
-      
-      const { invoiceLink } = await response.json();
-      if (invoiceLink) {
-        window?.Telegram?.WebApp.openInvoice(invoiceLink);
-      }
-      return; // Stop here for Stars as the popup takes over
-    }
+    const response = await fetch("/api/verify-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentMethod: method,
+        totalAmount: method === 'SHELLS' ? plan.shells : plan.stars,
+        userId: userId,
+        itemType: "TRAINING_PLAN",
+        planId: plan.id,
+        intensity: intensity,
+        ageGroup: ageGroup
+      })
+    });
 
     const result = await response.json();
     if (result.success) {
@@ -107,9 +89,6 @@ const handlePurchase = async (plan: any, method: 'SHELLS' | 'STARS') => {
         <div className="bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800 text-[10px] text-yellow-400 font-bold">
           LIVE STATUS: ACTIVE
         </div>
-        <Link href="/training/schedule" className="p-2 bg-zinc-900 rounded-lg border border-zinc-800">
-    <Clock size={20} className="text-blue-400" />
-  </Link>
       </header>
 
       {/* Age Group Selector */}
@@ -133,30 +112,26 @@ const handlePurchase = async (plan: any, method: 'SHELLS' | 'STARS') => {
           <h3 className="text-xs font-black uppercase text-zinc-500 tracking-widest">Training Intensity</h3>
           <span className="text-[10px] text-zinc-600 italic">Intensive includes HIIT & Roadwork</span>
         </div>
-       <div className="grid grid-cols-2 gap-4">
-  <button 
-    onClick={() => setIntensity('Regular')}
-    className={`p-4 rounded-2xl border-2 flex flex-col gap-2 transition-all ${
-      intensity === 'Regular' ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-800 bg-zinc-900/50'
-    }`}
-  >
-    <Target size={20} className={intensity === 'Regular' ? 'text-blue-500' : 'text-zinc-600'} />
-    <span className="font-bold">Regular</span>
-  </button>
-
-  {/* 🚨 FIX: Changed 'Regular' to 'Intensive' here */}
-  <button 
-  onClick={() => setIntensity('Intensive')} // Already correct
-  className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${
-    intensity === 'Intensive' ? 'border-orange-500 bg-orange-500/20 scale-[1.02]' : 'border-zinc-800 bg-zinc-900/50 opacity-50'
-  }`}
->
-  <Zap size={24} className={intensity === 'Intensive' ? 'text-orange-400' : 'text-zinc-600'} />
-  <span className={`text-xs font-black uppercase ${intensity === 'Intensive' ? 'text-white' : 'text-zinc-500'}`}>
-    Intensive
-  </span>
-</button>
-</div>
+        <div className="grid grid-cols-2 gap-4">
+          <button 
+            onClick={() => setIntensity('Regular')}
+            className={`p-4 rounded-2xl border-2 flex flex-col gap-2 transition-all ${
+              intensity === 'Regular' ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-800 bg-zinc-900/50'
+            }`}
+          >
+            <Target size={20} className={intensity === 'Regular' ? 'text-blue-500' : 'text-zinc-600'} />
+            <span className="font-bold">Regular</span>
+          </button>
+          <button 
+            onClick={() => setIntensity('Regular')}
+            className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${
+              intensity === 'Regular' ? 'border-blue-500 bg-blue-500/20 scale-[1.02]' : 'border-zinc-800 bg-zinc-900/50 opacity-50'
+            }`}
+          >
+            <Target size={24} className={intensity === 'Regular' ? 'text-blue-400' : 'text-zinc-600'} />
+            <span className={`text-xs font-black uppercase ${intensity === 'Regular' ? 'text-white' : 'text-zinc-500'}`}>Regular</span>
+            </button>
+        </div>
       </div>
 
       {/* Plan Cards */}

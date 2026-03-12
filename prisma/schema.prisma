@@ -433,6 +433,7 @@ enum ServiceType {
   ONE_TIME
 }
 
+<<<<<<< HEAD
 model Subscription {
   id               String   @id @default(auto()) @map("_id") @db.ObjectId
   userId           String   @db.ObjectId
@@ -450,6 +451,8 @@ model Subscription {
 }
 
 
+=======
+>>>>>>> cbf09fff1ae30a6fbf87301eb353ad4ef0840d72
 model Ticket {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   ticketId      String   @unique
