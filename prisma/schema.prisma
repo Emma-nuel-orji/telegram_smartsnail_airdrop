@@ -433,6 +433,19 @@ enum ServiceType {
   ONE_TIME
 }
 
+model Subscription {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  serviceId    String?
+  service      Service? @relation(fields: [serviceId], references: [id])
+  planTitle    String
+  startDate    DateTime @default(now())
+  endDate      DateTime
+  totalClasses Int      @default(1)
+  status       String   @default("ACTIVE") // ACTIVE, CANCELLED, EXPIRED
+  createdAt    DateTime @default(now())
+}
 
 model Ticket {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
