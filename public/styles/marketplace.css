@@ -1,0 +1,95 @@
+/* Marketplace Grid */
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+/* NFT Card */
+.nft-card {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  transition: 0.25s ease;
+  cursor: pointer;
+}
+
+.nft-card:hover {
+  transform: scale(1.03);
+}
+
+/* Image */
+.nft-image {
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+/* Title */
+.nft-title {
+  margin-top: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+}
+
+/* Rarity */
+.nft-rarity {
+  color: rgb(200, 200, 200);
+  font-size: 0.85rem;
+}
+
+/* Price buttons */
+.nft-price-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: none;
+  margin-top: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-stars {
+  background: #ffffff22;
+  color: white;
+}
+
+.btn-ton {
+  background: #ffffff22;
+  color: white;
+}
+
+.btn-shells {
+  background: linear-gradient(90deg, #6a0dad, #3b00a8);
+  color: white;
+}
+
+/* Detail Page Styling */
+.nft-detail-wrapper {
+  min-height: 100vh;
+  padding: 16px;
+  background: linear-gradient(to bottom right, #3b0a75, #001f69, #1a0b6a);
+}
+
+.nft-detail-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 24px;
+  border-radius: 24px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Traits */
+.trait-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  color: white;
+}

@@ -1,0 +1,511 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+ 
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User model
+model User {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  telegramId     BigInt          @unique
+  username       String?
+  firstName      String?
+  lastName       String?
+  tasks          Task[]          @relation("UserTasks")
+  email          String?         
+  points         BigInt          @default(0)
+  tappingRate    Int             @default(1)
+  athleteProfile  Fighter?  @relation("AthleteRole")
+  totalManagerEarnings BigInt @default(0) // Cumulative Shells earned from owned fighters
+  managedFighters Fighter[] @relation("ManagerRole")
+  ownedNfts        Nft[]     @relation("NftOwner")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  hasClaimedWelcome Boolean  @default(false)
+  referralsMade     Referral[] @relation("Referrer")     // Users this user referred
+  referralReceived  Referral[] @relation("ReferredBy")   // How this user was referred
+  purchases      Purchase[]
+  completedTasks CompletedTask[] // A User can have many completed tasks
+   consecutiveWins Int     @default(0)
+  stakes          Stake[]
+  storyShares     StoryShare[] // ✅ Define the opposite relation
+  pointTransactions PointTransaction[]
+
+  // Indexes
+  @@index([points], name: "points_asc_index")
+ 
+  
+}
+
+// CompletedTask model
+model CompletedTask {
+  id          String   @id @default(cuid()) @map("_id") 
+  taskId      String          
+  userId      String   @db.ObjectId
+  completedAt DateTime @default(now())
+  points         BigInt          @default(0)
+
+  // Define relations
+  task Task @relation(fields: [taskId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+}
+
+
+// Task model
+model Task {
+   mongoId      String @id @map("_id") // ✅ MongoDB requires this as the primary key
+  id           String @unique // ✅ Add @unique so Prisma can query by id
+  description   String
+  completed     Boolean @default(false)
+  section       String  // Will be constrained in TypeScript to "main" | "daily" | "partners"
+  type          String  // Will be constrained in TypeScript to "daily" | "permanent"
+  image         String
+  link          String
+  completedTime DateTime?
+  batchId       String?
+  mediaUrl      String?
+  isStoryTask   Boolean? @default(false)
+  mediaType     String?
+  reward        Int?
+   userId        String? @db.ObjectId 
+
+  // Relations
+   user          User?  @relation(fields: [userId], references: [id], name: "UserTasks")
+  CompletedTask CompletedTask[]
+}
+
+
+
+model Referral {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  referrerId BigInt
+  referredId BigInt
+  createdAt  DateTime @default(now())
+  
+  referrer User @relation("Referrer", fields: [referrerId], references: [telegramId])
+  referred User @relation("ReferredBy", fields: [referredId], references: [telegramId])
+
+  @@unique([referredId], name: "unique_referred_user")
+  @@index([referrerId], name: "referrer_index")
+}
+
+
+
+// GeneratedCode model
+model GeneratedCode {
+  id         String     @id @default(cuid()) @map("_id") @db.ObjectId
+  code       String     @unique
+  batchId    String
+  isRedeemed Boolean    @default(false)
+  redeemedAt DateTime?
+  redeemedBy String?   
+  assignedTo String?   
+  bookId     String    
+  isUsed     Boolean?    @default(false)
+  purchaseId String?     @db.ObjectId
+  createdAt  DateTime    @default(now())
+  isReserved Boolean     @default(false)
+  usedAt     DateTime?   @map("used_at")
+  // Relations
+  book       Book?       @relation(fields: [bookId], references: [id])
+  purchase   Purchase?   @relation(fields: [purchaseId], references: [id])
+}
+
+// Book model
+model Book {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  author      String
+  coinsReward Int
+  description String
+  priceCard   Float
+  priceStars  Int
+  googleDriveLink String?
+  priceTon    Float
+  stockLimit  Int
+  tappingRate Int
+  title       String
+  usedStock   Int
+
+  // Relations
+  generatedCodes GeneratedCode[] // One-to-many relation to GeneratedCode
+  purchases      Purchase[]      // One-to-many relation to Purchase
+
+  @@map("Book") // Map this model to the MongoDB "Book" collection
+}
+
+
+model Order {
+  id                  String       @id @default(cuid()) @map("_id") 
+  orderId             String      @unique
+  paymentMethod       String
+  totalAmount         Float
+  status              String      // e.g., "PENDING", "COMPLETED"
+  createdAt           DateTime    @default(now())
+  transactionReference String?
+
+  // Relationships
+  purchases           Purchase[]  @relation("OrderPurchases") // One-to-many relation to Purchase
+  pendingTransactions PendingTransaction[]
+} 
+
+
+model Purchase {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String        @db.ObjectId
+  bookId            String?       @db.ObjectId  
+  paymentType       String
+  amountPaid        Float
+  booksBought       Int           @default(0)
+  orderReference    String?        
+  fxckedUpBagsQty   Int?         // Optional
+  humanRelationsQty Int?         // Optional
+  createdAt         DateTime     @default(now())
+  coinsReward       Int          @default(0)
+
+
+  // Relations
+  user              User         @relation(fields: [userId], references: [id])
+  book              Book?        @relation(fields: [bookId], references: [id])  
+  serviceId         String?     @db.ObjectId
+  service          Service?      @relation("ServiceToPurchase", fields: [serviceId], references: [id])
+  codes             GeneratedCode[]
+   order            Order?       @relation("OrderPurchases", fields: [orderReference], references: [orderId])
+}
+
+
+model PendingTransaction {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  email             String
+  amount            Float
+  bookCount         Int
+  fxckedUpBagsQty   Int
+  humanRelationsQty Int
+  telegramId        String
+  referrerId        String?
+  tappingRate  Float
+  totalPoints       Float
+  payloadData       String
+  status            String    // e.g., "PENDING", "COMPLETED"
+
+  // Foreign key and relation
+  orderId           String   
+  order             Order    @relation(fields: [orderId], references: [id])
+
+  createdAt         DateTime @default(now())
+}
+
+model StoryShare {
+  id          String   @id @default(cuid()) @map("_id") 
+  trackingId  String?  @unique
+  telegramId  BigInt
+  taskId      String
+  clicks      Int      @default(0)
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  // Relations
+  user        User     @relation(fields: [telegramId], references: [telegramId])
+}
+
+
+model Nonce {
+  id      String    @id @default(cuid()) @map("_id") @db.ObjectId
+  value   String   @unique 
+  usedAt  DateTime @default(now()) 
+}
+
+
+
+
+
+model Fight {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  fightDate    DateTime
+  status       FightStatus @default(SCHEDULED)
+  weightClass  String?
+  fighter1     Fighter   @relation("Fighter1Fights", fields: [fighter1Id], references: [id])
+  fighter1Id   String    @db.ObjectId
+  fighter2     Fighter   @relation("Fighter2Fights", fields: [fighter2Id], references: [id])
+  fighter2Id   String    @db.ObjectId
+  stakes       Stake[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  winnerId     String?   @db.ObjectId // Null until fight is completed
+  winner       Fighter?  @relation("FightWinner", fields: [winnerId], references: [id])  // ✅ Add relation name
+
+  @@index([fightDate], name: "fight_date_index")
+  @@index([fighter1Id], name: "fighter1_fight_index")
+  @@index([fighter2Id], name: "fighter2_fight_index")
+}
+
+
+model Fighter {
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  imageUrl         String?
+  userTelegramId   BigInt?      @unique
+  athlete         User?     @relation("AthleteRole", fields: [userTelegramId], references: [telegramId])
+  ownerId          String?     
+  owner           User?     @relation("ManagerRole", fields: [ownerId], references: [id])
+  currentStreak    Int          @default(0)
+  collectionId     String?      @db.ObjectId  // Links the fighter to "SmartSnails" or "Manchies"
+  collection      Collection?   @relation(fields: [collectionId], references: [id])
+  // MARKET FIELDS: For the Recruitment Page
+  isForSale        Boolean     @default(false)
+  salePriceTon     Float?      // Price set by the owner in TON
+  salePriceShells  BigInt?     // Price set by the owner in Shells/Points
+  isPrivate        Boolean     @default(false) // True if bought out of a team
+
+  totalFighterEarnings BigInt @default(0) // Cumulative Shells earned from being signed/bonuses
+  generatedManagerProfit BigInt @default(0) // Total Shells earned by the manager from this fighter
+  age            Int? 
+  gender         String?     
+  height         Float?    
+  weight         Float?    
+  weightClass    String?   
+  socialMedia    String?
+  points         BigInt    @default(0)
+  nftId           String?   @db.ObjectId
+  nft             Nft?      @relation(fields: [nftId], references: [id])
+  status         FighterStatus  @default(PENDING)
+  fightsAsF1     Fight[]   @relation("Fighter1Fights")
+  fightsAsF2     Fight[]   @relation("Fighter2Fights")
+  stakes         Stake[]
+  winnerOf       Fight[]   @relation("FightWinner")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  // NEW STATS FIELDS
+  wins         Int      @default(0)
+  losses       Int      @default(0)
+  draws        Int      @default(0)
+  totalFights  Int      @default(0)
+}
+
+enum FighterStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ON_SALE      
+  CONTRACTED   
+  STAKED
+}
+
+
+
+// Stake model
+model Stake {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  user         User         @relation(fields: [userId], references: [id])
+  userId       String       @db.ObjectId
+  fight        Fight        @relation(fields: [fightId], references: [id])
+  fightId      String       @db.ObjectId
+  fighter      Fighter      @relation(fields: [fighterId], references: [id])
+  fighterId    String       @db.ObjectId
+  stakeAmount        BigInt       // The Shells equivalent used for the pool
+  starsAmount        Int?
+  stakeType    StakeType    // STARS or POINTS
+  status       StakeStatus  @default(PENDING) // PENDING, COMPLETED, FAILED
+  outcome      StakeOutcome? // Will be set after fight completion
+  pointsEarned BigInt?      // Calculated after fight completion
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  initialStakeAmount BigInt   // Initial stake amount
+  isClaimed          Boolean      @default(false)
+  nftId        String?      @db.ObjectId
+  nft          Nft?         @relation(fields: [nftId], references: [id])
+  @@index([fightId], name: "fight_stakes_index")
+  @@index([userId], name: "user_stakes_index")
+  @@index([fighterId], name: "fighter_stakes_index")
+}
+
+// Enums
+enum FightStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  DRAW
+}
+
+enum StakeType {
+  STARS
+  POINTS
+}
+
+enum StakeStatus {
+  PENDING
+  WON        
+  CLAIMED  
+  LOST
+  FAILED
+}
+
+enum StakeOutcome {
+  WIN
+  LOSS
+  DRAW
+  CANCELLED
+}
+
+model Partner {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  type        String   // e.g., "GYM", "SALON", "RESTAURANT"
+  address     String?
+  contactInfo String?
+  telegramId  BigInt?  @unique
+  admins      Admin[]  @relation("PartnerAdmins")
+  services    Service[]
+  transactions PointTransaction[]
+}
+
+model Admin {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  telegramId BigInt    @unique
+  permissions  AdminPermission[] 
+  partnerId  String?   @db.ObjectId
+  partner    Partner?  @relation("PartnerAdmins", fields: [partnerId], references: [id])
+}
+
+enum AdminPermission {
+  SUPERADMIN     // full access
+  FIGHT_MANAGER  // can resolve fights
+  MENU_MANAGER   
+  GYM_ADMIN 
+}
+
+
+model PointTransaction {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @db.ObjectId
+  partner     Partner?  @relation(fields: [partnerId], references: [id])
+  partnerId   String?   @db.ObjectId
+  service    Service?  @relation("ServiceToPointTransactions", fields: [serviceId], references: [id])
+  serviceId   String?   @db.ObjectId
+  pointsUsed  BigInt
+  type        TransactionType 
+  status      TransactionStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  approvedAt  DateTime?
+}
+
+enum TransactionType {
+  SPEND
+  EARN
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model Service {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  imageUrl    String?
+  serviceId   String?       @db.ObjectId 
+  type        ServiceType // SUBSCRIPTION, ONE_TIME
+  duration    String?     // e.g., "1 Month" (only for SUBSCRIPTION)
+  priceShells BigInt
+  partnerType String?
+  partnerId   String   @db.ObjectId
+  partner     Partner  @relation(fields: [partnerId], references: [id])
+  pointTransactions PointTransaction[] @relation("ServiceToPointTransactions")
+  createdAt   DateTime @default(now()) 
+  updatedAt   DateTime @updatedAt    
+  @@index([createdAt])  
+  active      Boolean  @default(true)
+  purchases  Purchase[]  @relation("ServiceToPurchase")
+}
+
+
+enum ServiceType {
+  SUBSCRIPTION
+  ONE_TIME
+}
+
+model Subscription {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @db.ObjectId
+  user             User     @relation(fields: [userId], references: [id])
+  serviceId        String   @db.ObjectId // 👈 Link to the Service they bought
+  planTitle        String   // e.g., "3 Months Pro"
+  startDate        DateTime @default(now())
+  endDate          DateTime
+  totalClasses     Int      // Total boxes to check (e.g., 12)
+  classesAttended  Int      @default(0) // How many boxes are currently checked
+  status           String   @default("ACTIVE") 
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+
+model Ticket {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  ticketId      String   @unique
+  telegramId    BigInt
+  userName      String
+  ticketType    String   // 'Regular', 'VIP', 'VVIP'
+  quantity      Int
+  paymentMethod String   // 'stars', 'shells'
+  totalCost     Int
+  pricePerTicket Int
+  status        TicketStatus @default(purchased) // 'pending', 'approved', 'rejected'
+  purchaseDate  DateTime @default(now())
+  approvedDate  DateTime?
+  approvedBy    String?  // Admin telegram ID
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([telegramId])
+  @@index([status])
+}
+
+enum TicketStatus {
+  purchased
+  pending
+  approved
+  rejected
+}
+
+model Collection {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  name              String    @unique // "SmartSnail", "Manchies"
+  bannerColor       String    @default("blue") // blue, red, gold
+  floorPriceShells  BigInt    @default(250000)
+  nfts              Nft[]
+  fighters          Fighter[] // The fighters assigned to this "Team"
+  imageUrl        String
+}
+
+model Nft {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  imageUrl        String
+  collectionId    String    @db.ObjectId
+  collection      Collection @relation(fields: [collectionId], references: [id])
+
+  rarity          String?
+  priceTon        Float
+  priceStars      Int
+  priceShells     Int?
+  indexNumber     Int
+  isSold          Boolean   @default(false)
+  ownerId         String?   @db.ObjectId
+  owner           User?     @relation("NftOwner", fields: [ownerId], references: [id])
+  fighters        Fighter[] 
+  stakes       Stake[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+

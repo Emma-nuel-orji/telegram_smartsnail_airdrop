@@ -1,0 +1,188 @@
+/* Core Page Styling */
+.boost-page {
+  background-color: #070707; /* True deep black */
+  padding: 20px 16px;
+  color: #f4f4f5; /* zinc-100 */
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+h1 {
+  font-weight: 900;
+  font-size: 32px;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  text-align: left; /* Better for mobile */
+  color: #ffffff;
+  margin-top: 1rem;
+}
+
+h3 {
+  font-size: 11px;
+  text-align: left;
+  color: #a1a1aa; /* zinc-400 */
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+
+/* Book Cards */
+.books-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.book-card {
+  border: 1px solid rgba(168, 85, 247, 0.2); /* Subtle purple border */
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(24, 24, 27, 0.6); /* Zinc-900 with transparency */
+  backdrop-filter: blur(10px);
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.book-card:hover {
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+.book-card h2 {
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #ffffff;
+  font-size: 20px;
+}
+
+/* Stepper Input Styling */
+.book-card input {
+  width: 100%;
+  padding: 14px;
+  margin-top: 15px;
+  background-color: #000000;
+  border: 2px solid #27272a;
+  border-radius: 12px;
+  color: #a855f7; /* Purple text */
+  font-weight: 900;
+  font-style: italic;
+  outline: none;
+}
+
+.book-card input:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+}
+
+/* Summary Section (The Glow Box) */
+.summary-container {
+  margin-top: 30px;
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.1), rgba(0, 0, 0, 0));
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  border-radius: 32px;
+  text-align: left;
+}
+
+.summary-container p {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-style: italic;
+  margin-bottom: 8px;
+  color: #e4e4e7;
+  display: flex;
+  justify-content: space-between;
+}
+
+.summary-container input {
+  width: 100%;
+  padding: 12px;
+  background: #000;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  color: white;
+  margin-top: 10px;
+}
+
+/* Modernized Buttons */
+.payment-buttons {
+  display: flex;
+  flex-direction: column; /* Better for mobile thumbs */
+  margin-top: 20px;
+  gap: 12px;
+}
+
+.payment-buttons button {
+  width: 100%;
+  padding: 18px;
+  border: none;
+  border-radius: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-style: italic;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* Specific button colors */
+.payment-buttons button:nth-child(1) { background-color: #0088cc; color: white; } /* TON Blue */
+.payment-buttons button:nth-child(2) { background-color: #27272a; color: #52525b; } /* Disabled Card */
+.payment-buttons button:nth-child(3) { background-color: #facc15; color: #000; } /* Stars Gold */
+
+.payment-buttons button:active {
+  transform: scale(0.96);
+}
+
+/* Counter & Info */
+.counter-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: #a855f7; /* Purple */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 8px;
+}
+
+.info-icon {
+  background: #a855f7;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  color: white;
+}
+
+/* Redemption Section */
+.code-section {
+  background: rgba(39, 39, 42, 0.3);
+  border-radius: 24px;
+  margin-top: 40px;
+  padding: 20px;
+  border: 1px dashed #3f3f46;
+}
+
+.code-section h3 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+/* Utilities */
+.or-divider {
+  margin: 40px 0;
+  font-weight: 900;
+  font-style: italic;
+  color: #3f3f46;
+}
+
+.or-divider:before, .or-divider:after {
+  border-top: 1px solid #27272a;
+}
+

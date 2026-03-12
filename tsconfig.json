@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./*", "src/*"],
+      "@telegram-apps/sdk": ["./node_modules/@twa-dev/sdk/dist/index.js"],
+      "@loader": ["./loader", "./src/loader"],
+      "@/prisma/*": ["./lib/prisma.ts"],
+      "@/lib/*": ["./lib/*"],
+      "@/components/*": ["./components/*"],
+      "@contexts/*": ["./app/api/context/*"],
+      "@/src/*": ["./src/*"],
+      
+      "@/app/*": ["./app/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "bot/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.d.ts",
+    ".next/types/**/*.ts",
+    "testConnection.ts",
+    "global.d.ts"
+, "test-connection.mjs", "prisma/seed.mjs", "lib/bot.js", "lib/bot.js"  ],
+  "exclude": ["node_modules"]
+}
