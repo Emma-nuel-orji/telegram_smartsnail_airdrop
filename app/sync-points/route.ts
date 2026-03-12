@@ -24,12 +24,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Anti-cheat
-    if (pointsToAdd > 1000) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Too many points in one sync' 
-      }, { status: 400 });
-    }
+    const maxAllowed = (user.tappingRate || 1) * 100; 
+
+if (pointsToAdd > maxAllowed) {
+  return NextResponse.json({ success: false, message: 'Too many points' }, { status: 400 });
+}
 
     console.log(`💾 Syncing ${pointsToAdd} points for user ${telegramId}`);
 

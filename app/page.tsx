@@ -119,30 +119,29 @@ export default function Home() {
           }
         }
 
-        if (!syncManager.current) {
-          syncManager.current = new UserSyncManager(telegramId);
-        }
+       // 1. Initialize Sync Manager FIRST
+if (!syncManager.current) {
+  syncManager.current = new UserSyncManager(telegramId);
+}
 
-        try {
-          const res = await axios.get(`/api/user/${telegramId}`);
-          const serverUser = res.data;
+try {
+  const res = await axios.get(`/api/user/${telegramId}`);
+  const serverUser = res.data;
 
-          const hasPending = syncManager.current?.hasPendingSync() || false;
-          const pendingPoints =
-            hasPending && cachedUser
-              ? cachedUser.points - serverUser.points
-              : 0;
+  // 2. Now syncManager is guaranteed to have run its constructor 
+  // and loaded pending points from localStorage.
+  const pending = syncManager.current.getPendingPoints();
+  const totalPoints = serverUser.points + pending;
 
-          const finalUser = {
-            ...serverUser,
-            points: serverUser.points + Math.max(0, pendingPoints),
-          };
+  const finalUser = {
+    ...serverUser,
+    points: totalPoints,
+  };
 
-          localStorage.setItem(storageKey, JSON.stringify(finalUser));
-          setUser(finalUser);
-          setShowWelcomePopup(!finalUser.hasClaimedWelcome); // ✅ FIX
-
-        } catch (fetchError: any) {
+  localStorage.setItem(storageKey, JSON.stringify(finalUser));
+  setUser(finalUser);
+  setShowWelcomePopup(!finalUser.hasClaimedWelcome);
+} catch (fetchError: any) {
           // --- NEW USER FALLBACK ---
           if (!cachedUser && fetchError?.response?.status === 404) {
             const newUser = {

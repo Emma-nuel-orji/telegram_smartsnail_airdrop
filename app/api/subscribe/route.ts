@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
   try {
-    const { telegramId, serviceId } = await req.json();
+    const { telegramId, serviceId, planTitle } = await req.json();
     
     if (!telegramId || !serviceId) {
       return NextResponse.json({ error: 'Missing required data' }, { status: 400 });
@@ -11,7 +11,6 @@ export async function POST(req: Request) {
 
     const telegramIdBigInt = BigInt(telegramId);
 
-    // Run everything in a transaction to ensure points are actually taken
     const result = await prisma.$transaction(async (tx) => {
       // 1. Get user and Service
       const user = await tx.user.findUnique({
@@ -36,24 +35,42 @@ export async function POST(req: Request) {
         data: { points: { decrement: service.priceShells } },
       });
 
-      // 4. Create the Spend Transaction
-      const transaction = await tx.pointTransaction.create({
+      // --- NEW LOGIC: CREATE THE PUNCH CARD SUBSCRIPTION ---
+      const durationInDays = serviceId === '3-months' ? 90 : (serviceId === '6-months' ? 180 : 1);
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + durationInDays);
+
+      const subscription = await tx.subscription.create({
+        data: {
+          userId: user.id,
+          serviceId: service.id,
+          planTitle: planTitle || service.name,
+          startDate: new Date(),
+          endDate: endDate,
+          // Calculate total boxes for the punch card
+          totalClasses: serviceId === '3-months' ? 36 : (serviceId === '6-months' ? 72 : 1),
+          status: 'ACTIVE',
+        },
+      });
+
+      // 4. Create the Spend Transaction log
+      await tx.pointTransaction.create({
         data: {
           userId: user.id,
           serviceId: service.id,
           pointsUsed: service.priceShells,
-          status: 'COMPLETED', // Set to COMPLETED since shells are now gone
+          status: 'APPROVED',
           type: 'SPEND',
         },
       });
 
-      return transaction;
+      return subscription;
     });
 
     return NextResponse.json({
       success: true,
-      transactionId: result.id,
-      message: 'Subscription successful! Shells deducted.',
+      subscriptionId: result.id,
+      message: 'Subscription successful! Punch card activated.',
     });
 
   } catch (error: any) {
