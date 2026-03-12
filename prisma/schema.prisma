@@ -433,26 +433,7 @@ enum ServiceType {
   ONE_TIME
 }
 
-<<<<<<< HEAD
-model Subscription {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId           String   @db.ObjectId
-  user             User     @relation(fields: [userId], references: [id])
-  serviceId        String   @db.ObjectId // 👈 Link to the Service they bought
-  planTitle        String   // e.g., "3 Months Pro"
-  startDate        DateTime @default(now())
-  endDate          DateTime
-  totalClasses     Int      // Total boxes to check (e.g., 12)
-  classesAttended  Int      @default(0) // How many boxes are currently checked
-  status           String   @default("ACTIVE") 
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-
-=======
->>>>>>> cbf09fff1ae30a6fbf87301eb353ad4ef0840d72
+f1ae30a6fbf87301eb353ad4ef0840d72
 model Ticket {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   ticketId      String   @unique
