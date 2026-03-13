@@ -135,10 +135,14 @@ class UserSyncManager {
     }
   }
 
-  hasPendingSync(): boolean {
-    return this.pendingPoints > 0;
-  }
+  resetPendingPoints(): void {
+  this.pendingPoints = 0;
+  this.clearPendingPoints();
+}
 
+hasPendingSync(): boolean {
+  return this.pendingPoints > 0;
+}
   cleanup(): void {
     if (this.syncTimer) clearInterval(this.syncTimer);
     if (this.pendingPoints > 0) this.sync();
