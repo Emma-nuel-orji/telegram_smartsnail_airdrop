@@ -36,7 +36,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const updatedUser = await prisma.$transaction(async (tx) => {
       // Get current user data
       const user = await tx.user.findUnique({
-        where: { telegramId }
+        where: { telegramId: BigInt(telegramId) },
       });
 
       if (!user) {

@@ -17,9 +17,11 @@ export async function POST(req: Request) {
         where: { telegramId: telegramIdBigInt },
       });
 
-      const service = await tx.service.findUnique({
-        where: { id: serviceId },
-      });
+     const service = await tx.service.findFirst({
+  where: { 
+    name: { contains: planTitle, mode: 'insensitive' } 
+  },
+});
 
       if (!user) throw new Error('User not found');
       if (!service) throw new Error('Service not found');

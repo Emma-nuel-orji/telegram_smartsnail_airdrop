@@ -16,7 +16,7 @@ class UserSyncManager {
     this.telegramId = telegramId;
     this.loadPendingPoints();
     this.startPeriodicSync();
-    this.setupBeforeUnloadHandler();
+    // this.setupBeforeUnloadHandler();
   }
 
   // --- NEW HELPER FOR HOME PAGE ---
@@ -29,7 +29,7 @@ class UserSyncManager {
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       this.pendingPoints = parseInt(stored, 10) || 0;
-      if (this.pendingPoints > 0) this.sync();
+      // if (this.pendingPoints > 0) this.sync();
     }
   }
 
@@ -108,14 +108,14 @@ class UserSyncManager {
     }
   }
 
-  private setupBeforeUnloadHandler(): void {
-    window.addEventListener('beforeunload', () => {
-      if (this.pendingPoints > 0) this.syncBeforeUnload();
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && this.pendingPoints > 0) this.sync();
-    });
-  }
+  // private setupBeforeUnloadHandler(): void {
+  //   window.addEventListener('beforeunload', () => {
+  //     if (this.pendingPoints > 0) this.syncBeforeUnload();
+  //   });
+  //   document.addEventListener('visibilitychange', () => {
+  //     if (document.hidden && this.pendingPoints > 0) this.sync();
+  //   });
+  // }
 
   private syncBeforeUnload(): void {
     const payload = JSON.stringify({
