@@ -1,5 +1,3 @@
-
-
 // UserSyncManager.ts
 class UserSyncManager {
   private telegramId: string;
@@ -9,19 +7,23 @@ class UserSyncManager {
   onSyncSuccess?: (serverPoints: number) => void;
 
   // Sync configuration
-  private readonly SYNC_INTERVAL = 2000; 
+  private readonly SYNC_INTERVAL = 500; 
   private readonly STORAGE_KEY_PREFIX = 'pending_points_';
 
   constructor(telegramId: string) {
     this.telegramId = telegramId;
     this.loadPendingPoints();
     this.startPeriodicSync();
-    // this.setupBeforeUnloadHandler();
+    this.setupBeforeUnloadHandler();
   }
 
-  // --- NEW HELPER FOR HOME PAGE ---
   getPendingPoints(): number {
     return this.pendingPoints;
+  }
+
+  resetPendingPoints(): void {
+    this.pendingPoints = 0;
+    this.clearPendingPoints();
   }
 
   private loadPendingPoints(): void {
@@ -29,7 +31,6 @@ class UserSyncManager {
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       this.pendingPoints = parseInt(stored, 10) || 0;
-      // if (this.pendingPoints > 0) this.sync();
     }
   }
 
@@ -43,19 +44,10 @@ class UserSyncManager {
     localStorage.removeItem(storageKey);
   }
 
-  // --- UPDATED LOGIC FOR HIGH TAPPING RATES ---
   addPoints(points: number): void {
     this.pendingPoints += points;
     this.savePendingPoints();
-
-    /** * If the tap rate is 1000, we don't want to sync every click.
-     * We only force an immediate sync if the user has accumulated 
-     * a massive amount of points (e.g., 50,000).
-     * Otherwise, the 2-second timer handles it smoothly.
-     */
-    if (this.pendingPoints >= 50000) { 
-      this.sync();
-    }
+    this.sync(); // sync immediately on every tap
   }
 
   private startPeriodicSync(): void {
@@ -85,7 +77,6 @@ class UserSyncManager {
       const data = await response.json();
       
       if (data.success) {
-        // Subtract only what we successfully sent
         this.pendingPoints -= pointsToSync;
         
         if (this.pendingPoints <= 0) {
@@ -108,14 +99,14 @@ class UserSyncManager {
     }
   }
 
-  // private setupBeforeUnloadHandler(): void {
-  //   window.addEventListener('beforeunload', () => {
-  //     if (this.pendingPoints > 0) this.syncBeforeUnload();
-  //   });
-  //   document.addEventListener('visibilitychange', () => {
-  //     if (document.hidden && this.pendingPoints > 0) this.sync();
-  //   });
-  // }
+  private setupBeforeUnloadHandler(): void {
+    window.addEventListener('beforeunload', () => {
+      if (this.pendingPoints > 0) this.syncBeforeUnload();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.pendingPoints > 0) this.sync();
+    });
+  }
 
   private syncBeforeUnload(): void {
     const payload = JSON.stringify({
@@ -135,14 +126,10 @@ class UserSyncManager {
     }
   }
 
-  resetPendingPoints(): void {
-  this.pendingPoints = 0;
-  this.clearPendingPoints();
-}
+  hasPendingSync(): boolean {
+    return this.pendingPoints > 0;
+  }
 
-hasPendingSync(): boolean {
-  return this.pendingPoints > 0;
-}
   cleanup(): void {
     if (this.syncTimer) clearInterval(this.syncTimer);
     if (this.pendingPoints > 0) this.sync();
