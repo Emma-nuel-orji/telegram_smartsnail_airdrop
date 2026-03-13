@@ -125,11 +125,15 @@ if (!syncManager.current) {
 }
 
 try {
-  const res = await axios.get(`/api/user/${telegramId}`);
-  const serverUser = res.data;
+ const res = await axios.get(`/api/user/${telegramId}`);
+const serverUser = res.data;
+console.log('🌐 Server user points on load:', serverUser.points);
+
 syncManager.current.resetPendingPoints();
+console.log('🔁 After reset, pending points:', syncManager.current.getPendingPoints());
 
 const finalUser = serverUser;
+console.log('👤 Setting user with points:', finalUser.points);
 
   localStorage.setItem(storageKey, JSON.stringify(finalUser));
   setUser(finalUser);

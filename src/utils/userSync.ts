@@ -6,12 +6,12 @@ class UserSyncManager {
   private syncInProgress: boolean = false;
   onSyncSuccess?: (serverPoints: number) => void;
 
-  // Sync configuration
   private readonly SYNC_INTERVAL = 500; 
   private readonly STORAGE_KEY_PREFIX = 'pending_points_';
 
   constructor(telegramId: string) {
     this.telegramId = telegramId;
+    console.log('🟢 SyncManager created for:', telegramId);
     this.loadPendingPoints();
     this.startPeriodicSync();
     this.setupBeforeUnloadHandler();
@@ -22,6 +22,7 @@ class UserSyncManager {
   }
 
   resetPendingPoints(): void {
+    console.log('🔄 resetPendingPoints called. Was:', this.pendingPoints);
     this.pendingPoints = 0;
     this.clearPendingPoints();
   }
@@ -31,6 +32,9 @@ class UserSyncManager {
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       this.pendingPoints = parseInt(stored, 10) || 0;
+      console.log('📦 Loaded pending points from localStorage:', this.pendingPoints);
+    } else {
+      console.log('📦 No pending points in localStorage');
     }
   }
 
@@ -42,17 +46,21 @@ class UserSyncManager {
   private clearPendingPoints(): void {
     const storageKey = this.STORAGE_KEY_PREFIX + this.telegramId;
     localStorage.removeItem(storageKey);
+    console.log('🗑️ Cleared pending points from localStorage');
   }
 
   addPoints(points: number): void {
+    const before = this.pendingPoints;
     this.pendingPoints += points;
+    console.log(`➕ addPoints(${points}) | before: ${before} → after: ${this.pendingPoints}`);
     this.savePendingPoints();
-    this.sync(); // sync immediately on every tap
+    this.sync();
   }
 
   private startPeriodicSync(): void {
     this.syncTimer = setInterval(() => {
       if (this.pendingPoints > 0 && !this.syncInProgress) {
+        console.log('⏱️ Periodic sync triggered. Pending:', this.pendingPoints);
         this.sync();
       }
     }, this.SYNC_INTERVAL);
@@ -63,6 +71,7 @@ class UserSyncManager {
 
     this.syncInProgress = true;
     const pointsToSync = this.pendingPoints;
+    console.log('📤 Syncing points to server:', pointsToSync);
 
     try {
       const response = await fetch('/api/sync-points', {
@@ -75,9 +84,11 @@ class UserSyncManager {
       });
 
       const data = await response.json();
+      console.log('📥 Server response:', data);
       
       if (data.success) {
         this.pendingPoints -= pointsToSync;
+        console.log('✅ Sync success. Server points:', data.points, '| Remaining pending:', this.pendingPoints);
         
         if (this.pendingPoints <= 0) {
           this.pendingPoints = 0;
@@ -101,9 +112,11 @@ class UserSyncManager {
 
   private setupBeforeUnloadHandler(): void {
     window.addEventListener('beforeunload', () => {
+      console.log('🚪 beforeunload fired. Pending:', this.pendingPoints);
       if (this.pendingPoints > 0) this.syncBeforeUnload();
     });
     document.addEventListener('visibilitychange', () => {
+      console.log('👁️ visibilitychange. Hidden:', document.hidden, '| Pending:', this.pendingPoints);
       if (document.hidden && this.pendingPoints > 0) this.sync();
     });
   }
@@ -115,6 +128,7 @@ class UserSyncManager {
     });
 
     if (navigator.sendBeacon) {
+      console.log('🚀 sendBeacon fired with:', this.pendingPoints);
       navigator.sendBeacon('/api/sync-points', new Blob([payload], { type: 'application/json' }));
     } else {
       try {
@@ -131,6 +145,7 @@ class UserSyncManager {
   }
 
   cleanup(): void {
+    console.log('🧹 cleanup called. Pending:', this.pendingPoints);
     if (this.syncTimer) clearInterval(this.syncTimer);
     if (this.pendingPoints > 0) this.sync();
   }
