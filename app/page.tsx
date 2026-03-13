@@ -127,16 +127,7 @@ if (!syncManager.current) {
 try {
   const res = await axios.get(`/api/user/${telegramId}`);
   const serverUser = res.data;
-
-  // 2. Now syncManager is guaranteed to have run its constructor 
-  // and loaded pending points from localStorage.
-  const pending = syncManager.current.getPendingPoints();
-  const totalPoints = serverUser.points + pending;
-
-  const finalUser = {
-    ...serverUser,
-    points: totalPoints,
-  };
+const finalUser = serverUser;
 
   localStorage.setItem(storageKey, JSON.stringify(finalUser));
   setUser(finalUser);
