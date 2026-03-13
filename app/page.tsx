@@ -127,6 +127,8 @@ if (!syncManager.current) {
 try {
   const res = await axios.get(`/api/user/${telegramId}`);
   const serverUser = res.data;
+syncManager.current.resetPendingPoints();
+
 const finalUser = serverUser;
 
   localStorage.setItem(storageKey, JSON.stringify(finalUser));
