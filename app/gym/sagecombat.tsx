@@ -98,7 +98,7 @@ const SageCombat = () => {
           <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">SageCombat</h1>
           <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Boxing</p>
         </div>
-        <Link href="/schedule" className="p-2 bg-zinc-900 rounded-xl border border-zinc-800">
+        <Link href="/gym/schedule" className="p-2 bg-zinc-900 rounded-xl border border-zinc-800">
           <Clock size={22} className="text-blue-400" />
         </Link>
       </header>
