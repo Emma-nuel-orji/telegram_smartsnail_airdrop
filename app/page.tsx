@@ -178,22 +178,22 @@ console.log('👤 Setting user with points:', finalUser.points);
   // --- GLOBAL USER UPDATE LISTENER (CRITICAL FIX) ---
   useEffect(() => {
     const handler = (event: CustomEvent<User>) => {
-      setUser(prev => {
-        if (!prev) return event.detail;
+      // setUser(prev => {
+      //   if (!prev) return event.detail;
 
-        const merged = {
-          ...prev,
-          ...event.detail,
-          points: event.detail.points,
-        };
+      //   const merged = {
+      //     ...prev,
+      //     ...event.detail,
+      //     points: event.detail.points,
+      //   };
 
-        localStorage.setItem(
-          STORAGE_KEY(prev.telegramId),
-          JSON.stringify(merged)
-        );
+      //   localStorage.setItem(
+      //     STORAGE_KEY(prev.telegramId),
+      //     JSON.stringify(merged)
+      //   );
 
-        return merged;
-      });
+      //   return merged;
+      // });
     };
 
     window.addEventListener('userDataUpdate', handler as EventListener);
@@ -206,12 +206,12 @@ console.log('👤 Setting user with points:', finalUser.points);
     if (!syncManager.current || !user?.telegramId) return;
 
     syncManager.current.onSyncSuccess = (serverPoints: number) => {
-      setUser(prev => {
-        if (!prev) return prev;
-        const updated = { ...prev, points: serverPoints };
-        localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(updated));
-        return updated;
-      });
+      // setUser(prev => {
+      //   if (!prev) return prev;
+      //   const updated = { ...prev, points: serverPoints };
+      //   localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(updated));
+      //   return updated;
+      // });
     };
 
     return () => syncManager.current?.cleanup();
