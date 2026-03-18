@@ -1,85 +1,96 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// 1. ADD THE HELPER (Fixes: Cannot find name 'sendTelegram')
+async function sendTelegram(chatId: string | undefined, text: string, extra = {}) {
+  if (!chatId || !process.env.TELEGRAM_BOT_TOKEN) return;
+  
+  const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        parse_mode: 'Markdown',
+        ...extra,
+      }),
+    });
+  } catch (err) {
+    console.error("Telegram Notification Failed:", err);
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const { telegramId, serviceId, planTitle } = await req.json();
-    
-    if (!telegramId || !serviceId) {
-      return NextResponse.json({ error: 'Missing required data' }, { status: 400 });
-    }
+    const { telegramId, serviceId, planTitle, intensity, duration } = await req.json();
 
-    const telegramIdBigInt = BigInt(telegramId);
-
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Get user and Service
-      const user = await tx.user.findUnique({
-        where: { telegramId: telegramIdBigInt },
-      });
-
-     const service = await tx.service.findFirst({
-  where: { 
-    name: { contains: planTitle, mode: 'insensitive' } 
-  },
-});
-
-      if (!user) throw new Error('User not found');
-      if (!service) throw new Error('Service not found');
-
-      // 2. Check balance
-      if (user.points < service.priceShells) {
-        throw new Error('Insufficient shells');
+    // 2. Fetch Partner/Admin Context
+    const service = await prisma.service.findUnique({
+      where: { id: serviceId },
+      include: { 
+        partner: { include: { admins: true } } 
       }
-
-      // 3. DEDUCT POINTS FROM USER
-      await tx.user.update({
-        where: { id: user.id },
-        data: { points: { decrement: service.priceShells } },
-      });
-
-      // --- NEW LOGIC: CREATE THE PUNCH CARD SUBSCRIPTION ---
-      const durationInDays = serviceId === '3-months' ? 90 : (serviceId === '6-months' ? 180 : 1);
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + durationInDays);
-
-      const subscription = await tx.subscription.create({
-        data: {
-          userId: user.id,
-          serviceId: service.id,
-          planTitle: planTitle || service.name,
-          startDate: new Date(),
-          endDate: endDate,
-          // Calculate total boxes for the punch card
-          totalClasses: serviceId === '3-months' ? 36 : (serviceId === '6-months' ? 72 : 1),
-          status: 'ACTIVE',
-        },
-      });
-
-      // 4. Create the Spend Transaction log
-      await tx.pointTransaction.create({
-        data: {
-          userId: user.id,
-          serviceId: service.id,
-          pointsUsed: service.priceShells,
-          status: 'APPROVED',
-          type: 'SPEND',
-        },
-      });
-
-      return subscription;
     });
 
-    return NextResponse.json({
-      success: true,
-      subscriptionId: result.id,
-      message: 'Subscription successful! Punch card activated.',
+    if (!service) return NextResponse.json({ error: "Service not found" }, { status: 404 });
+
+    // 3. Subscription Setup
+    const startDate = new Date();
+    const endDate = new Date();
+    if (duration === '3 Months') endDate.setMonth(startDate.getMonth() + 3);
+    else endDate.setMonth(startDate.getMonth() + 1);
+
+    // 4. THE PRISMA FIX: Include the 'user' relation in the return object
+    const subscription = await prisma.subscription.create({
+      data: {
+        user: { connect: { telegramId: BigInt(telegramId) } },
+        service: { connect: { id: serviceId } },
+        partnerId: service.partnerId,
+        planTitle: planTitle || service.name,
+        status: "ACTIVE",
+        startDate,
+        endDate,
+        planType: !!intensity ? "COMBAT" : "GYM",
+        gymName: service.partner.name
+      },
+      include: { 
+        user: true // <--- THIS FIXES THE 'Property user does not exist' ERROR
+      }
     });
 
-  } catch (error: any) {
-    console.error('Error creating subscription:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to create subscription' }, 
-      { status: 400 }
-    );
+    // 5. Notification Logic
+    const partnerAdmin = service.partner.admins[0];
+    const adminTag = partnerAdmin 
+      ? `[Admin](tg://user?id=${partnerAdmin.telegramId.toString()})` 
+      : "@SuperAdmin";
+
+    const isCombat = !!intensity;
+    const header = isCombat ? "🥊 **COMBAT ENROLLMENT**" : "🏋️ **GYM ACCESS GRANTED**";
+    
+    const notificationMsg = 
+      `${adminTag} \n` + 
+      `${header}\n\n` +
+      `📍 **Location:** ${service.partner.name}\n` +
+      `👤 **Trainee:** ${subscription.user.firstName}\n` +
+      `📋 **Plan:** ${planTitle}\n` +
+      `${isCombat ? "⚠️ *Action Required: Set training days.*" : "✅ *Auto-activated.*"}`;
+
+    await sendTelegram(process.env.ADMIN_GROUP_ID, notificationMsg, {
+      reply_markup: { // Note: 'reply_markup' is the correct key for inline_keyboard in Bot API
+        inline_keyboard: isCombat ? [[{ 
+          text: "📅 Set Training Days", 
+          callback_data: `set_sched_${subscription.id}` 
+        }]] : []
+      }
+    });
+
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    console.error("Critical API Error:", error);
+    return NextResponse.json({ success: false, error: "Internal Error" });
   }
 }

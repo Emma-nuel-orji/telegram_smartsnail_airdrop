@@ -3,7 +3,7 @@
 import WebApp from "@twa-dev/sdk";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { Clock, Zap, Star, Trophy, Crown, Dumbbell, MapPin, ChevronLeft, UserPlus, ShieldCheck } from "lucide-react";
+import { Clock, Zap, Star, Trophy, Crown, Dumbbell, MapPin, ChevronLeft, UserPlus, ShieldCheck, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import PartnerProgress from "./PartnerProgress";
@@ -21,33 +21,84 @@ export default function GymSubscriptions() {
   const [activeSub, setActiveSub] = useState<any>(null);
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [purchasing, setPurchasing] = useState<string | null>(null);
 
+  // --- INITIALIZE TELEGRAM USER ---
   useEffect(() => {
     const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString();
     if (userId) setTelegramId(userId);
   }, []);
 
+  // --- FETCH DATA ---
   useEffect(() => {
     if (!telegramId) return;
     async function fetchData() {
       try {
+        // 1. Fetch User Profile & Balance
         const userRes = await fetch(`/api/user/${telegramId}`);
         const user = await userRes.json();
         if (user.nickname && user.name) setIsRegistered(true);
         setShells(Number(user.points));
 
+        // 2. Fetch Available Plans for THIS Gym
         const subsRes = await fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&gymId=${gymId}`);
         setSubscriptions(await subsRes.json());
 
+        // 3. Check for Active Subscription
         const res = await fetch(`/api/subscription/${telegramId}?gymId=${gymId}`);
         if (res.ok) {
           const subData = await res.json();
-          if (subData.status === 'APPROVED') setActiveSub(subData);
+          // Status 'ACTIVE' matches our new API default
+          if (subData && subData.status === 'ACTIVE') {
+            setActiveSub(subData);
+          }
         }
-      } catch (err) { console.error(err); } finally { setLoading(false); }
+      } catch (err) { 
+        console.error("Fetch Error:", err); 
+      } finally { 
+        setLoading(false); 
+      }
     }
     fetchData();
   }, [telegramId, gymId]);
+
+  // --- PURCHASE LOGIC ---
+  const handlePurchase = async (plan: any) => {
+    if (shells < Number(plan.priceShells)) {
+      return toast.error("Insufficient Shells! Go earn more first. 🐚");
+    }
+
+    const confirmPurchase = confirm(`Enroll in ${plan.name} for ${Number(plan.priceShells).toLocaleString()} Shells?`);
+    if (!confirmPurchase) return;
+
+    setPurchasing(plan.id);
+    try {
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegramId: telegramId,
+          serviceId: plan.id,
+          planTitle: plan.name,
+          duration: plan.duration,
+          planType: "GYM", // Keeps logic separate from Sage Combat
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success("🏋️ Contract Signed! Access granted.");
+        // Reload to show the Progress Grid
+        window.location.reload();
+      } else {
+        toast.error(result.error || "Transaction failed.");
+      }
+    } catch (error) {
+      toast.error("Connection error. Try again later.");
+    } finally {
+      setPurchasing(null);
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center">
@@ -58,9 +109,9 @@ export default function GymSubscriptions() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-white selection:bg-blue-500">
-      <Toaster position="top-center" />
+      <Toaster position="top-center" reverseOrder={false} />
       
-      {/* --- REGISTRATION LOCK (COOL OVERLAY) --- */}
+      {/* --- REGISTRATION LOCK --- */}
       {!isRegistered && (
         <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-8 backdrop-blur-xl">
           <div className="w-full max-w-sm bg-zinc-900/50 border border-zinc-800 p-8 rounded-[3rem] text-center shadow-2xl">
@@ -79,7 +130,7 @@ export default function GymSubscriptions() {
         </div>
       )}
 
-      {/* --- DYNAMIC HEADER --- */}
+      {/* --- HEADER --- */}
       <div className="relative h-64 w-full overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center scale-110 blur-[2px] opacity-40"
@@ -124,18 +175,18 @@ export default function GymSubscriptions() {
            <button className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400">Top Up +</button>
         </div>
 
-        {/* --- ACTIVE CALENDAR (Appears only if Subscribed) --- */}
+        {/* --- ACTIVE CALENDAR --- */}
         {activeSub && (
           <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <PartnerProgress sub={activeSub} />
             <div className="mt-4 bg-zinc-900/30 border border-zinc-800/50 p-4 rounded-2xl flex items-center justify-between">
-               <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Plan: {activeSub.name}</span>
+               <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Plan: {activeSub.planTitle}</span>
                <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Active Access</span>
             </div>
           </div>
         )}
 
-        {/* --- MEMBERSHIP PLANS GRID (Hidden if Subscribed) --- */}
+        {/* --- PLANS GRID --- */}
         {!activeSub && (
           <>
             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-600 mb-6 text-center italic">Available Contracts</h2>
@@ -143,7 +194,7 @@ export default function GymSubscriptions() {
               {subscriptions.map((sub) => (
                 <div 
                   key={sub.id}
-                  className="group relative bg-zinc-900/40 border border-zinc-800 p-6 rounded-[2.5rem] overflow-hidden hover:border-blue-500/50 transition-all active:scale-95 duration-300"
+                  className="group relative bg-zinc-900/40 border border-zinc-800 p-6 rounded-[2.5rem] overflow-hidden hover:border-blue-500/50 transition-all duration-300"
                 >
                   <div className="relative z-10 flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -156,16 +207,17 @@ export default function GymSubscriptions() {
                        </div>
                     </div>
                     <div className="text-right">
-                       <span className="block text-xl font-black italic">{sub.priceShells.toLocaleString()}</span>
+                       <span className="block text-xl font-black italic">{Number(sub.priceShells).toLocaleString()}</span>
                        <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Shells</span>
                     </div>
                   </div>
                   
                   <button 
-                    className="w-full mt-6 py-4 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition-all"
-                    onClick={() => console.log('Purchase logic here')}
+                    disabled={purchasing === sub.id}
+                    className="w-full mt-6 py-4 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition-all flex items-center justify-center"
+                    onClick={() => handlePurchase(sub)}
                   >
-                    Initiate Contract
+                    {purchasing === sub.id ? <Loader2 className="animate-spin" /> : "Initiate Contract"}
                   </button>
                 </div>
               ))}

@@ -3,27 +3,41 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(req: Request) {
   try {
-    // In a real Telegram environment, you'd verify the initData header here.
-    // For now, we check a custom header or query param for the Admin ID.
     const { searchParams } = new URL(req.url);
     const requesterId = searchParams.get('adminId');
-    
-    if (requesterId !== process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    if (!requesterId) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+
+    // 1. Fetch the Admin and check their permissions/partner
+    const admin = await prisma.admin.findUnique({
+      where: { telegramId: BigInt(requesterId) },
+      select: { permissions: true, partnerId: true }
+    });
+
+    if (!admin) return NextResponse.json({ error: 'Not an Admin' }, { status: 401 });
+
+    // 2. Build the Filter
+    let filter: any = { status: 'ACTIVE' };
+
+    // If NOT a SuperAdmin, restrict results to their specific partnerId
+    if (!admin.permissions.includes('SUPERADMIN')) {
+      if (!admin.partnerId) return NextResponse.json({ error: 'No Partner Assigned' }, { status: 403 });
+      
+      // Filter for subscriptions belonging to the Admin's partner
+      filter.partnerId = admin.partnerId;
     }
 
-    const activeSubs = await prisma.subscription.findMany({
-      where: { status: 'ACTIVE' },
+    // 3. Fetch Data
+    const subscriptions = await prisma.subscription.findMany({
+      where: filter,
       include: {
-        user: {
-          select: { firstName: true, username: true }
-        }
+        user: { select: { firstName: true, username: true, nickname: true } }
       },
       orderBy: { startDate: 'desc' }
     });
 
-    return NextResponse.json(activeSubs);
+    return NextResponse.json(subscriptions);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch roster' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Error' }, { status: 500 });
   }
 }

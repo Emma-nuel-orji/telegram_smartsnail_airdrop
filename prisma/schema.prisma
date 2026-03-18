@@ -19,6 +19,7 @@ model User {
   imageUrl       String?
   tasks          Task[]          @relation("UserTasks")
   email          String?         
+  
   points         BigInt          @default(0)
   tappingRate    Int             @default(1)
   athleteProfile  Fighter?  @relation("AthleteRole")
@@ -365,6 +366,7 @@ model Partner {
   admins      Admin[]  @relation("PartnerAdmins")
   services    Service[]
   transactions PointTransaction[]
+  subscriptions Subscription[]
 }
 
 model Admin {
@@ -448,9 +450,13 @@ model Subscription {
   endDate      DateTime
   totalClasses Int      @default(1)
   status       String   @default("ACTIVE")
+  trainingDays Int[]    // Store as numbers: 0=Sun, 1=Mon, 2=Tue...
+  planType     String
   createdAt    DateTime @default(now())
   gymName             String?  // Store gym name for notifications
   lastNotifiedExpiry  Boolean  @default(false)
+  partnerId String   @db.ObjectId
+  partner   Partner  @relation(fields: [partnerId], references: [id])
 }
 
 model Ticket {
