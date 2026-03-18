@@ -20,27 +20,35 @@ export default function GymSubscriptions() {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [activeSub, setActiveSub] = useState<any>(null);
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false); // NEW: Dynamic Admin State
   const [loading, setLoading] = useState<boolean>(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
-  // --- INITIALIZE TELEGRAM USER ---
   useEffect(() => {
     const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString();
     if (userId) setTelegramId(userId);
   }, []);
 
-  // --- FETCH DATA ---
   useEffect(() => {
     if (!telegramId) return;
     async function fetchData() {
       try {
-        // 1. Fetch User Profile & Balance
+        // 1. Fetch User Profile & Permissions
         const userRes = await fetch(`/api/user/${telegramId}`);
-        const user = await userRes.json();
-        if (user.nickname && user.name) setIsRegistered(true);
-        setShells(Number(user.points));
+        const userData = await userRes.json();
+        
+        // Dynamic Check: Is this person a registered user?
+        if (userData.nickname && userData.name) setIsRegistered(true);
+        
+        // Dynamic Check: Is this person an Admin in the DB?
+        // (Assuming your /api/user endpoint returns a 'permissions' array from the Admin model)
+        if (userData.permissions?.includes('SUPERADMIN') || userData.permissions?.includes('GYM_ADMIN')) {
+          setIsAdmin(true);
+        }
 
-        // 2. Fetch Available Plans for THIS Gym
+        setShells(Number(userData.points || 0));
+
+        // 2. Fetch Available Plans
         const subsRes = await fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&gymId=${gymId}`);
         setSubscriptions(await subsRes.json());
 
@@ -48,7 +56,6 @@ export default function GymSubscriptions() {
         const res = await fetch(`/api/subscription/${telegramId}?gymId=${gymId}`);
         if (res.ok) {
           const subData = await res.json();
-          // Status 'ACTIVE' matches our new API default
           if (subData && subData.status === 'ACTIVE') {
             setActiveSub(subData);
           }
@@ -62,13 +69,15 @@ export default function GymSubscriptions() {
     fetchData();
   }, [telegramId, gymId]);
 
-  // --- PURCHASE LOGIC ---
+  // DYNAMIC ACCESS: If they are registered OR they are an admin, let them in.
+  const hasAccess = isRegistered || isAdmin;
+
   const handlePurchase = async (plan: any) => {
     if (shells < Number(plan.priceShells)) {
-      return toast.error("Insufficient Shells! Go earn more first. 🐚");
+      return toast.error("Insufficient Shells! 🐚");
     }
 
-    const confirmPurchase = confirm(`Enroll in ${plan.name} for ${Number(plan.priceShells).toLocaleString()} Shells?`);
+    const confirmPurchase = confirm(`Enroll in ${plan.name}?`);
     if (!confirmPurchase) return;
 
     setPurchasing(plan.id);
@@ -81,20 +90,17 @@ export default function GymSubscriptions() {
           serviceId: plan.id,
           planTitle: plan.name,
           duration: plan.duration,
-          planType: "GYM", // Keeps logic separate from Sage Combat
+          planType: "GYM",
         })
       });
 
       const result = await response.json();
       if (result.success) {
-        toast.success("🏋️ Contract Signed! Access granted.");
-        // Reload to show the Progress Grid
+        toast.success("🏋️ Access granted.");
         window.location.reload();
-      } else {
-        toast.error(result.error || "Transaction failed.");
       }
     } catch (error) {
-      toast.error("Connection error. Try again later.");
+      toast.error("Error connecting to vault.");
     } finally {
       setPurchasing(null);
     }
@@ -102,28 +108,23 @@ export default function GymSubscriptions() {
 
   if (loading) return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center">
-      <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-      <span className="text-blue-500 font-black italic uppercase tracking-tighter">Syncing Snail Pass...</span>
+      <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+      <span className="text-blue-500 font-black italic uppercase tracking-tighter">Verifying Credentials...</span>
     </div>
   );
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white selection:bg-blue-500">
-      <Toaster position="top-center" reverseOrder={false} />
+    <div className="relative min-h-screen bg-[#050505] text-white">
+      <Toaster position="top-center" />
       
-      {/* --- REGISTRATION LOCK --- */}
-      {!isRegistered && (
+      {/* --- DYNAMIC REGISTRATION LOCK --- */}
+      {!hasAccess && (
         <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-8 backdrop-blur-xl">
-          <div className="w-full max-w-sm bg-zinc-900/50 border border-zinc-800 p-8 rounded-[3rem] text-center shadow-2xl">
-            <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-3xl mx-auto mb-6 flex items-center justify-center rotate-12 shadow-lg shadow-blue-500/20">
-              <UserPlus className="text-white w-10 h-10 -rotate-12" />
-            </div>
+          <div className="w-full max-w-sm bg-zinc-900/50 border border-zinc-800 p-8 rounded-[3rem] text-center">
+            <UserPlus className="text-blue-500 w-16 h-16 mx-auto mb-6" />
             <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-2">Access Denied</h2>
-            <p className="text-zinc-500 text-sm mb-8 leading-relaxed">Your digital signature is missing. Complete your profile in the bot to unlock the gym vault.</p>
-            <button 
-              onClick={() => WebApp.close()} 
-              className="w-full bg-white text-black font-black py-5 rounded-2xl uppercase text-xs tracking-[0.2em] hover:bg-zinc-200 transition-all"
-            >
+            <p className="text-zinc-500 text-sm mb-8">Complete your profile in the bot to unlock the gym vault.</p>
+            <button onClick={() => WebApp.close()} className="w-full bg-white text-black font-black py-5 rounded-2xl uppercase text-xs">
               Initialize Profile
             </button>
           </div>
@@ -132,36 +133,33 @@ export default function GymSubscriptions() {
 
       {/* --- HEADER --- */}
       <div className="relative h-64 w-full overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center scale-110 blur-[2px] opacity-40"
-          style={{ backgroundImage: `url(${GYM_BACKGROUND})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${GYM_BACKGROUND})` }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505]" />
         
         <div className="relative z-10 p-6 flex flex-col h-full justify-between">
           <div className="flex justify-between items-start">
             <Link href="/gym" className="p-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl">
               <ChevronLeft size={20} />
             </Link>
-            <div className="px-4 py-2 bg-blue-500/10 backdrop-blur-md border border-blue-500/20 rounded-full flex items-center gap-2">
-              <ShieldCheck size={14} className="text-blue-400" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Verified Member</span>
-            </div>
+            
+            {/* DYNAMIC CLOCK ICON: Only visible if the DB says they are an Admin */}
+            {isAdmin && (
+              <Link href="/gym/manager" className="p-3 bg-blue-600/20 backdrop-blur-md border border-blue-500/50 rounded-2xl hover:bg-blue-600 transition-all">
+                <Clock size={20} className="text-blue-400" />
+              </Link>
+            )}
           </div>
 
-          <div className="pb-4">
-            <h1 className="text-5xl font-black italic uppercase tracking-tighter leading-none">
+          <div>
+            <h1 className="text-5xl font-black italic uppercase tracking-tighter">
               {activeSub ? "Level Up" : "Snail Pass"}
             </h1>
-            <div className="flex items-center gap-2 mt-2 opacity-60">
-              <MapPin size={12} />
-              <span className="text-xs font-bold uppercase tracking-widest">{decodeURIComponent(gymName)}</span>
-            </div>
+            <span className="text-xs font-bold uppercase tracking-widest opacity-60">{decodeURIComponent(gymName)}</span>
           </div>
         </div>
       </div>
 
-      <div className="relative z-10 px-6 pb-20 -mt-8">
+       <div className="relative z-10 px-6 pb-20 -mt-8">
         {/* --- SHELLS WIDGET --- */}
         <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 p-4 rounded-3xl mb-8 flex items-center justify-between shadow-xl">
            <div className="flex items-center gap-3">
