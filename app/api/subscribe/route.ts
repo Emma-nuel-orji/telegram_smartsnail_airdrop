@@ -44,22 +44,23 @@ export async function POST(req: Request) {
     else endDate.setMonth(startDate.getMonth() + 1);
 
     // 4. THE PRISMA FIX: Include the 'user' relation in the return object
-    const subscription = await prisma.subscription.create({
-      data: {
-        user: { connect: { telegramId: BigInt(telegramId) } },
-        service: { connect: { id: serviceId } },
-        partnerId: service.partnerId,
-        planTitle: planTitle || service.name,
-        status: "ACTIVE",
-        startDate,
-        endDate,
-        planType: !!intensity ? "COMBAT" : "GYM",
-        gymName: service.partner.name
-      },
-      include: { 
-        user: true // <--- THIS FIXES THE 'Property user does not exist' ERROR
-      }
-    });
+   const subscription = await prisma.subscription.create({
+  data: {
+    user: { connect: { telegramId: BigInt(telegramId) } },
+    service: { connect: { id: serviceId } },
+    // FIX: Use 'connect' instead of passing the string directly
+    partner: { connect: { id: service.partnerId } }, 
+    planTitle: planTitle || service.name,
+    status: "ACTIVE",
+    startDate,
+    endDate,
+    planType: !!intensity ? "COMBAT" : "GYM",
+    gymName: service.partner.name
+  },
+  include: { 
+    user: true 
+  }
+});
 
     // 5. Notification Logic
     const partnerAdmin = service.partner.admins[0];
