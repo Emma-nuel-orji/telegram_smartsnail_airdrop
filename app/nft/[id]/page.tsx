@@ -3,18 +3,22 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Check, Loader, ChevronLeft, ShieldCheck, Zap } from "lucide-react";
+import { Loader, ChevronLeft, ShieldCheck, Zap, Info, Wallet } from "lucide-react";
+import { getNftData } from "@/lib/nftHelpers"; // Make sure this path is correct
 import "@/public/styles/marketplace.css";
 
 type Nft = {
   id: string;
   name: string;
+  nickname?: string; // Added nickname
+  description?: string; // Added description
   imageUrl: string;
   rarity?: string;
   priceTon: number;
   priceStars: number;
   priceShells?: number;
   collection: string;
+  indexNumber: number; // Added indexNumber
   minted?: boolean;
   traits?: Array<{ type: string; value: string }>;
 };
@@ -31,9 +35,31 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
 
   async function fetchNFT() {
     try {
-      const response = await fetch(`/api/nfts/${params.id}`);
-      const data = await response.json();
-      setNft(data);
+      if (params.id.startsWith("virtual-")) {
+        // --- VIRTUAL LOGIC ---
+        const index = parseInt(params.id.split("-")[1]);
+        const data = getNftData(index, "SmartSnail");
+
+        setNft({
+          id: params.id,
+          name: `SmartSnail #${index}`,
+          nickname: data.nickname, // From our helper
+          description: data.desc, // From our helper
+          imageUrl: data.image,
+          rarity: data.rarity,
+          priceShells: data.price,
+          priceTon: data.price / 1000000,
+          priceStars: Math.floor(data.price / 1000),
+          collection: "SmartSnail",
+          indexNumber: index,
+          minted: false,
+        });
+      } else {
+        // --- DATABASE LOGIC ---
+        const response = await fetch(`/api/nfts/${params.id}`);
+        const data = await response.json();
+        setNft(data);
+      }
     } catch (error) {
       console.error("Failed to fetch NFT:", error);
     } finally {
@@ -41,13 +67,17 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  async function handlePurchase(method: "stars" | "ton") {
+  async function handlePurchase(method: "stars" | "ton" | "shells") {
     setPurchasing(true);
     try {
       const response = await fetch(`/api/nfts/${params.id}/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentMethod: method })
+        body: JSON.stringify({ 
+          paymentMethod: method,
+          indexNumber: nft?.indexNumber,
+          collection: nft?.collection
+        })
       });
       if (response.ok) router.push('/inventory');
     } catch (error) {
@@ -66,7 +96,7 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
   if (!nft) return <div className="text-white text-center mt-20">NFT not found</div>;
 
   return (
-    <div className="min-h-screen bg-[#0f021a] pb-32">
+    <div className="min-h-screen bg-[#0f021a] pb-40">
       {/* Background Glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[40%] bg-purple-600/10 blur-[120px]" />
@@ -77,7 +107,7 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
         <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-white active:scale-90 transition-transform">
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <span className="text-white/60 font-black tracking-widest text-[10px] uppercase">Details</span>
+        <span className="text-white/60 font-black tracking-widest text-[10px] uppercase">Asset Details</span>
         <div className="w-10" /> 
       </div>
 
@@ -87,59 +117,89 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
           <div className="relative aspect-square rounded-[2rem] overflow-hidden shadow-2xl">
             <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-cover" />
             
-            {/* Rarity & Status Overlays */}
+            {/* Rarity Tag */}
             <div className="absolute top-4 left-4 flex gap-2">
-              {nft.minted && (
-                <div className="bg-emerald-500/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-white text-[10px] font-black flex items-center gap-1.5 shadow-lg border border-emerald-400/50 uppercase tracking-tighter">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-white text-[10px] font-black border border-white/20 uppercase">
+                  {nft.rarity}
                 </div>
-              )}
             </div>
           </div>
         </div>
 
+        {/* PRE-CHAIN CONVINCING BOX */}
+        <div className="bg-blue-600/10 border border-blue-500/20 rounded-3xl p-4 mb-8 flex gap-4 items-start">
+            <div className="bg-blue-500/20 p-2 rounded-xl">
+                <Info className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+                <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-1">Pre-Chain Airdrop Spot</h4>
+                <p className="text-zinc-400 text-[11px] leading-snug">
+                    Secure this NFT now with Shells or Stars. Owners will receive an <span className="text-blue-400">Official TON Mint</span> airdrop once the collection goes on-chain.
+                </p>
+            </div>
+        </div>
+
         {/* Info & Title */}
-        <div className="mb-8">
-          <h2 className="text-purple-400 text-xs font-black uppercase tracking-[0.2em] mb-2">{nft.collection}</h2>
-          <h1 className="text-4xl font-black text-white italic tracking-tighter leading-none mb-4">{nft.name}</h1>
-          <p className="text-zinc-400 text-sm leading-relaxed">Exclusive digital asset from the {nft.collection} series. Limited edition with unique traits.</p>
+        <div className="mb-8 px-2">
+          <h2 className="text-purple-400 text-xs font-black uppercase tracking-[0.2em] mb-2">
+            {nft.collection} — #{nft.indexNumber}
+          </h2>
+          <h1 className="text-4xl font-black text-white italic tracking-tighter leading-none mb-4">
+            {nft.nickname || nft.name}
+          </h1>
+          <p className="text-zinc-400 text-sm leading-relaxed">
+            {nft.description || `Exclusive digital asset from the ${nft.collection} series. Limited edition with unique traits.`}
+          </p>
         </div>
 
         {/* Traits Grid */}
-        {nft.traits && nft.traits.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            {nft.traits.map((trait, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 transition-colors hover:bg-white/10">
-                <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">{trait.type}</span>
-                <span className="block text-white font-bold">{trait.value}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-3 mb-8">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+              <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Status</span>
+              <span className="block text-amber-500 font-bold text-sm">Pre-Mint</span>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+              <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Utility</span>
+              <span className="block text-purple-400 font-bold text-sm">+25% Tap Power</span>
+            </div>
+        </div>
       </div>
 
       {/* Floating Sticky Purchase Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0f021a] via-[#0f021a] to-transparent z-[100]">
-        <div className="max-w-md mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-4 shadow-2xl flex flex-col gap-3">
+        <div className="max-w-md mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-3 shadow-2xl flex flex-col gap-2">
+          
+          {/* Main Payment Buttons */}
           <div className="flex gap-2">
             <Button
               onClick={() => handlePurchase('stars')}
               disabled={purchasing}
-              className="flex-1 h-14 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-2xl flex flex-col leading-tight items-center justify-center gap-0"
+              className="flex-1 h-14 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl flex flex-col items-center justify-center gap-0"
             >
-              <span className="text-xs font-black uppercase opacity-60">Buy for</span>
-              <span className="font-black text-lg">{nft.priceStars} Stars ⭐</span>
+              <span className="text-[9px] font-black uppercase opacity-40">Stars</span>
+              <span className="font-black text-md">{nft.priceStars} ⭐</span>
             </Button>
 
             <Button
               onClick={() => handlePurchase('ton')}
               disabled={purchasing}
-              className="flex-1 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex flex-col leading-tight items-center justify-center gap-0 shadow-[0_0_20px_rgba(37,99,235,0.4)]"
+              className="flex-1 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center justify-center gap-0 shadow-lg shadow-blue-600/20"
             >
-              <span className="text-xs font-black uppercase opacity-60 text-white/80">Buy for</span>
-              <span className="font-black text-lg">{nft.priceTon} TON 💎</span>
+              <span className="text-[9px] font-black uppercase text-white/60">TON</span>
+              <span className="font-black text-md">{nft.priceTon} 💎</span>
             </Button>
           </div>
+
+          {/* Shells Option (The Incentive) */}
+          <Button
+            onClick={() => handlePurchase('shells')}
+            disabled={purchasing}
+            className="w-full h-12 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest"
+          >
+            <Zap className="w-4 h-4 fill-purple-400" />
+            Buy with {nft.priceShells?.toLocaleString()} Shells
+          </Button>
+
         </div>
       </div>
     </div>
