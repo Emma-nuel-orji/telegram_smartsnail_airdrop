@@ -72,12 +72,20 @@ useEffect(() => {
     return matchesSearch && matchesRarity;
   });
 
-  const resetMarketplace = (collection: string | null) => {
-    setSelectedCollection(collection);
-    setItems([]);
-    setPage(1);
-    setHasMore(true);
-  };
+ const resetMarketplace = (collection: string | null) => {
+  setSelectedCollection(collection);
+  setItems([]);     // CRITICAL: Clear the list
+  setPage(1);      // CRITICAL: Reset to page 1
+  setHasMore(true);
+  // The useEffect [selectedCollection] will trigger the new load
+};
+
+// Also add a reset for Rarity
+useEffect(() => {
+  setItems([]);
+  setPage(1);
+  setHasMore(true);
+}, [activeRarity]);
 
   return (
     <div className="min-h-screen bg-[#0f021a] text-white">

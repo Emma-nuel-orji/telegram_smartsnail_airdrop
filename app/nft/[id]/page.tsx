@@ -28,21 +28,26 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
   const [nft, setNft] = useState<Nft | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
     fetchNFT();
   }, [params.id]);
 
-  async function fetchNFT() {
-    try {
+ async function fetchNFT() {
+  try {
+    let data;
+    let collectionName = "smartsnail"; // default
+    let index = 0;
+
     if (params.id.startsWith("virtual-")) {
       // 1. Split the ID: ["virtual", "collectionName", "index"]
       const parts = params.id.split("-");
-      const collectionName = parts[1]; // 'manchies' or 'smartsnail'
-      const index = parseInt(parts[2]);
+      collectionName = parts[1]; 
+      index = parseInt(parts[2]);
 
       // 2. Pass the correct collection to the helper
-      const data = getNftData(index, collectionName);
+      data = getNftData(index, collectionName);
 
       setNft({
         id: params.id,
@@ -54,22 +59,32 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
         priceShells: data.price,
         priceTon: data.price / 1000000,
         priceStars: Math.floor(data.price / 1000),
-        collection: collectionName, // Fixed: Use the real collection name
+        collection: collectionName,
         indexNumber: index,
         minted: false,
       });
-      } else {
-        // --- DATABASE LOGIC ---
-        const response = await fetch(`/api/nfts/${params.id}`);
-        const data = await response.json();
-        setNft(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch NFT:", error);
-    } finally {
-      setLoading(false);
+    } else {
+      // --- DATABASE LOGIC ---
+      const response = await fetch(`/api/nfts/${params.id}`);
+      data = await response.json();
+      setNft(data);
+      collectionName = data.collection;
     }
+
+    // 3. FETCH GLOBAL SCARCITY STATS
+    // We fetch this regardless of virtual/database status so the bar is always accurate
+    const statsRes = await fetch('/api/nfts/stats');
+    if (statsRes.ok) {
+      const statsData = await statsRes.json();
+      setStats(statsData); // Make sure you have: const [stats, setStats] = useState<any>(null);
+    }
+
+  } catch (error) {
+    console.error("Failed to fetch NFT:", error);
+  } finally {
+    setLoading(false);
   }
+}
 
   async function handlePurchase(method: "stars" | "ton" | "shells") {
     setPurchasing(true);
@@ -130,6 +145,32 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
+        <div className="mb-6">
+  <div className="flex justify-between items-end mb-2">
+    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+      Collection Supply
+    </span>
+    <span className="text-xs font-bold text-purple-400">
+      {/* We can hardcode 6000 for now or fetch from the stats API */}
+      Limited to 6,000 Assets
+    </span>
+  </div>
+  
+  {/* Progress Bar */}
+  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+    <div 
+      className="h-full bg-gradient-to-r from-purple-600 to-blue-500 shadow-[0_0_10px_rgba(147,51,234,0.5)]" 
+      style={{ width: '85%' }} // You can make this dynamic later
+    />
+  </div>
+  <p className="text-[9px] text-zinc-600 mt-2 italic">
+    * Only unique {nft.collection} IDs are generated. Once sold, they never return to the market.
+  </p>
+</div>
+
+
+
+
         {/* PRE-CHAIN CONVINCING BOX */}
         <div className="bg-blue-600/10 border border-blue-500/20 rounded-3xl p-4 mb-8 flex gap-4 items-start">
             <div className="bg-blue-500/20 p-2 rounded-xl">
@@ -173,6 +214,29 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0f021a] via-[#0f021a] to-transparent z-[100]">
         <div className="max-w-md mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-3 shadow-2xl flex flex-col gap-2">
           
+{stats && (
+  <div className="mt-6 mb-2">
+    <div className="flex justify-between items-center mb-1">
+      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+        {nft?.collection === 'manchies' ? 'Manchie Supply' : 'Legendary Supply'}
+      </span>
+      <span className="text-[10px] font-bold text-white">
+        {nft?.collection === 'manchies' 
+          ? `${stats.manchies.remaining} / 6000 Left` 
+          : `${stats.smartsnail.legendaryRemaining} / 600 Left`}
+      </span>
+    </div>
+    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
+      <div 
+        className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-1000"
+        style={{ 
+          width: `${nft?.collection === 'manchies' ? stats.manchies.percent : stats.smartsnail.percent}%` 
+        }}
+      />
+    </div>
+  </div>
+)}
+
           {/* Main Payment Buttons */}
           <div className="flex gap-2">
             <Button
