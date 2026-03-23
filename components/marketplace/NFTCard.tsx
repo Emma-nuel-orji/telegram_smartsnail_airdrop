@@ -45,13 +45,15 @@ export function NFTCard({ nft, onClick }: NFTCardProps) {
       {/* Info Section */}
       <div className="px-4 pb-4 pt-1 flex flex-col gap-3">
         <div>
-          <h3 className="text-white font-black italic tracking-tighter truncate text-sm">
-            {nft.name}
-          </h3>
-          <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest truncate">
-            {nft.collection}
-          </p>
-        </div>
+        <h3 className="text-white font-black italic tracking-tighter truncate text-sm">
+          {/* Use nickname if it exists, otherwise use name */}
+          {nft.nickname || nft.name}
+        </h3>
+        <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest truncate">
+          {/* If nickname is shown above, maybe show the #ID here */}
+          {nft.nickname ? `${nft.collection} #${nft.indexNumber}` : nft.collection}
+        </p>
+      </div>
 
         {/* Price Row */}
         <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1">

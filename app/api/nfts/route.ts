@@ -37,31 +37,42 @@ export async function GET(req: Request) {
   const items = [];
   const TOTAL_SIZE = 6000;
 
-  for (let i = startNumber; items.length < limit && i <= TOTAL_SIZE; i++) {
-    // Alternate logic for "All" view
+  // We use a separate counter for the loop to ensure we get exactly 20 items
+  let currentId = startNumber;
+
+  while (items.length < limit && currentId <= TOTAL_SIZE) {
+    // 1. Determine Collection: If null, alternate. If specified, use that.
     let currentColl = collection;
     if (!collection) {
-      currentColl = i % 2 === 0 ? "manchies" : "smartsnail";
+      // Alternate: Even IDs are Snails, Odd IDs are Manchies
+      currentColl = currentId % 2 === 0 ? "smartsnail" : "manchies";
     }
 
-    // Skip if sold
-    if (soldSet.has(`${currentColl}-${i}`)) continue;
+    // 2. Check if this specific combo is sold
+    if (soldSet.has(`${currentColl}-${currentId}`)) {
+      currentId++;
+      continue;
+    }
 
-    const data = getNftData(i, currentColl!);
+    // 3. Get the data from helper
+    const data = getNftData(currentId, currentColl!);
 
-    // Rarity filter
+    // 4. Rarity Filter Check
+    // If user is looking for "Common", and we picked a Manchie (which is Legendary), 
+    // we must skip this iteration and try the next ID.
     if (rarity !== "All" && data.rarity !== rarity) {
+      currentId++;
+      // Optimization: If filtering Snails and we passed the rarity range, stop.
       if (collection === 'smartsnail') {
-         // Stop if we exit the rarity range for snails
-         if (rarity === 'Legendary' && i > 600) break;
+         if (rarity === 'Legendary' && currentId > 600) break;
       }
       continue;
     }
 
+    // 5. Build the Object
     items.push({
-      // FIX: Ensure ID doesn't contain "null"
-      id: `virtual-${currentColl}-${i}`,
-      name: `${currentColl === 'manchies' ? 'Manchie' : 'SmartSnail'} #${i}`,
+      id: `virtual-${currentColl}-${currentId}`,
+      name: `${currentColl === 'manchies' ? 'Manchie' : 'SmartSnail'} #${currentId}`,
       nickname: data.nickname,
       imageUrl: data.image,
       rarity: data.rarity,
@@ -69,11 +80,12 @@ export async function GET(req: Request) {
       priceTon: data.price / 1000000, 
       priceStars: Math.floor(data.price / 1000),
       collection: currentColl,
-      indexNumber: i,
+      indexNumber: currentId,
       isSold: false
     });
-  }
 
+    currentId++;
+  }
   return NextResponse.json({
     items,
     page,
