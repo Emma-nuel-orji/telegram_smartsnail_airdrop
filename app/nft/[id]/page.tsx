@@ -35,25 +35,29 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
 
   async function fetchNFT() {
     try {
-      if (params.id.startsWith("virtual-")) {
-        // --- VIRTUAL LOGIC ---
-        const index = parseInt(params.id.split("-")[1]);
-        const data = getNftData(index, "SmartSnail");
+    if (params.id.startsWith("virtual-")) {
+      // 1. Split the ID: ["virtual", "collectionName", "index"]
+      const parts = params.id.split("-");
+      const collectionName = parts[1]; // 'manchies' or 'smartsnail'
+      const index = parseInt(parts[2]);
 
-        setNft({
-          id: params.id,
-          name: `SmartSnail #${index}`,
-          nickname: data.nickname, // From our helper
-          description: data.desc, // From our helper
-          imageUrl: data.image,
-          rarity: data.rarity,
-          priceShells: data.price,
-          priceTon: data.price / 1000000,
-          priceStars: Math.floor(data.price / 1000),
-          collection: "SmartSnail",
-          indexNumber: index,
-          minted: false,
-        });
+      // 2. Pass the correct collection to the helper
+      const data = getNftData(index, collectionName);
+
+      setNft({
+        id: params.id,
+        name: `${collectionName === 'manchies' ? 'Manchie' : 'SmartSnail'} #${index}`,
+        nickname: data.nickname,
+        description: data.desc,
+        imageUrl: data.image,
+        rarity: data.rarity,
+        priceShells: data.price,
+        priceTon: data.price / 1000000,
+        priceStars: Math.floor(data.price / 1000),
+        collection: collectionName, // Fixed: Use the real collection name
+        indexNumber: index,
+        minted: false,
+      });
       } else {
         // --- DATABASE LOGIC ---
         const response = await fetch(`/api/nfts/${params.id}`);

@@ -11,6 +11,7 @@ export type Nft = {
   name: string;
   imageUrl: string;
   rarity?: Rarity;
+  nickname?: string;      // Add this! The '?' means it's optional
   priceTon: number;
   priceStars: number;
   priceShells?: number;

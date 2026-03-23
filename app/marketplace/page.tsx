@@ -52,9 +52,19 @@ export default function Marketplace() {
     return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   }
 
-  useEffect(() => {
+useEffect(() => {
+  setItems([]); // Clear current list
+  setPage(1);   // Reset to first page
+  setHasMore(true);
+ 
+}, [selectedCollection, activeRarity]); 
+
+
+useEffect(() => {
+  if (items.length === 0 && hasMore) {
     loadMore();
-  }, [selectedCollection]); // Reload when collection changes
+  }
+}, [items, hasMore]);
 
   const filteredItems = items.filter(nft => {
     const matchesSearch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
