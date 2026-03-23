@@ -26,11 +26,11 @@ export default function Marketplace() {
     setLoading(true);
 
     try {
-      const data = await fetchNFTs({
-        page,
-        collection: selectedCollection ?? undefined
-      });
-
+     const data = await fetchNFTs({
+  page,
+  collection: selectedCollection ?? "smartsnail",
+  rarity: activeRarity 
+});
       const normalized = data.items.map((nft: any) => ({
         ...nft,
         rarity: nft.rarity
