@@ -86,25 +86,57 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
   }
 }
 
-  async function handlePurchase(method: "stars" | "ton" | "shells") {
-    setPurchasing(true);
-    try {
-      const response = await fetch(`/api/nfts/${params.id}/purchase`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          paymentMethod: method,
-          indexNumber: nft?.indexNumber,
-          collection: nft?.collection
-        })
-      });
-      if (response.ok) router.push('/inventory');
-    } catch (error) {
-      console.error("Purchase failed:", error);
-    } finally {
-      setPurchasing(false);
-    }
+const handlePurchase = async (method: 'stars' | 'ton' | 'shells') => {
+  // 1. Fix the 'nft is possibly null' error
+  if (!nft) {
+    alert("NFT data is still loading. Please wait.");
+    return;
   }
+
+  try {
+    // 2. Safely get the Telegram ID
+    const telegram = typeof window !== 'undefined' ? (window as any).Telegram : null;
+    const tgUserId = telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || "123456";
+
+    const response = await fetch(`/api/nfts/${params.id}/purchase`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "x-telegram-user-id": tgUserId
+      },
+      body: JSON.stringify({ 
+        paymentMethod: method,
+        indexNumber: nft.indexNumber,
+        collection: nft.collection
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      if (method === 'stars' && data.invoiceLink) {
+        // 3. Fix the 'window.Telegram is possibly undefined' error
+        if (telegram?.WebApp) {
+          telegram.WebApp.openInvoice(data.invoiceLink, (status: string) => {
+            if (status === 'paid') {
+              alert("Payment Successful! Redirecting to Inventory...");
+              router.push('/inventory');
+            }
+          });
+        } else {
+          alert("Please open this in Telegram to complete the Stars purchase.");
+        }
+      } else if (method === 'shells') {
+        alert("Success! NFT added to your collection.");
+        router.push('/inventory');
+      }
+    } else {
+      alert(data.error || "Purchase failed");
+    }
+  } catch (error) {
+    console.error("Purchase error:", error);
+  }
+};
 
   if (loading) return (
     <div className="min-h-screen bg-[#0f021a] flex items-center justify-center">
