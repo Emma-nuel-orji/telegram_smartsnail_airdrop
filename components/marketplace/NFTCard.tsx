@@ -6,6 +6,7 @@ import { Nft, Rarity } from "@/lib/types";
 type NFTCardProps = {
   nft: Nft;
   onClick?: () => void;
+  hidePrice?: boolean; // NEW: Optional prop to hide market info
 };
 
 const RARITY_COLORS: Record<Rarity, string> = {
@@ -16,7 +17,7 @@ const RARITY_COLORS: Record<Rarity, string> = {
   Legendary: 'from-orange-400 to-yellow-600'
 };
 
-export function NFTCard({ nft, onClick }: NFTCardProps) {
+export function NFTCard({ nft, onClick, hidePrice = false }: NFTCardProps) {
   return (
     <div
       onClick={onClick}
@@ -38,6 +39,13 @@ export function NFTCard({ nft, onClick }: NFTCardProps) {
           </div>
         )}
 
+        {/* NEW: "Owned" Badge - only shows if hidePrice is true */}
+        {hidePrice && (
+           <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-green-500 text-white shadow-lg border border-green-400/50 flex items-center gap-1">
+             <Check className="w-2 h-2" /> Owned
+           </div>
+        )}
+
         {/* Overlay Shine */}
         <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       </div>
@@ -45,30 +53,39 @@ export function NFTCard({ nft, onClick }: NFTCardProps) {
       {/* Info Section */}
       <div className="px-4 pb-4 pt-1 flex flex-col gap-3">
         <div>
-        <h3 className="text-white font-black italic tracking-tighter truncate text-sm">
-          {/* Use nickname if it exists, otherwise use name */}
-          {nft.nickname || nft.name}
-        </h3>
-        <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest truncate">
-          {/* If nickname is shown above, maybe show the #ID here */}
-          {nft.nickname ? `${nft.collection} #${nft.indexNumber}` : nft.collection}
-        </p>
-      </div>
+          <h3 className="text-white font-black italic tracking-tighter truncate text-sm">
+            {nft.nickname || nft.name}
+          </h3>
+          <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest truncate">
+            {/* If nickname is shown above, maybe show the #ID here */}
+            {nft.nickname ? `${nft.collection} #${nft.indexNumber}` : nft.collection}
+          </p>
+        </div>
 
-        {/* Price Row */}
-        <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
-           <div className="flex flex-col">
-             <span className="text-[8px] text-zinc-500 font-black uppercase">Market Price</span>
-             <div className="flex gap-2">
+        {/* Price Row - Only renders if hidePrice is false */}
+        {!hidePrice ? (
+          <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
+            <div className="flex flex-col">
+              <span className="text-[8px] text-zinc-500 font-black uppercase">Market Price</span>
+              <div className="flex gap-2">
                 {nft.priceStars && <span className="text-yellow-400 font-black text-xs">{nft.priceStars}⭐</span>}
                 {nft.priceTon && <span className="text-blue-400 font-black text-xs">{nft.priceTon}💎</span>}
-             </div>
-           </div>
-           
-           <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              </div>
+            </div>
+            
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 group-hover:bg-purple-600 group-hover:text-white transition-colors">
               <Zap className="w-4 h-4" />
-           </div>
-        </div>
+            </div>
+          </div>
+        ) : (
+          /* NEW: Alternate UI for Inventory View */
+          <div className="border-t border-white/5 pt-3 mt-1 flex items-center justify-between">
+            <span className="text-[8px] text-purple-400 font-black uppercase tracking-widest">
+              Asset Verified
+            </span>
+            <Sparkles className="w-3 h-3 text-purple-400 animate-pulse" />
+          </div>
+        )}
       </div>
 
       {/* Rarity Border Glow */}
