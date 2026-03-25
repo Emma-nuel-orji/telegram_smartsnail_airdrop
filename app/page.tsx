@@ -374,7 +374,7 @@ console.log('👤 Setting user with points:', finalUser.points);
       </div>
 
       <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-30">
+        <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50">
           {[
             { href: "/staking", img: "/images/boxing-gloves.png" },
             { href: "/gym", img: "/images/gym.png" },
