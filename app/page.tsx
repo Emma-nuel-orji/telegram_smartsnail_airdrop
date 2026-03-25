@@ -451,7 +451,7 @@ console.log('👤 Setting user with points:', finalUser.points);
       </div>
 
       <div className="fixed bottom-0 left-0 w-full z-40 p-6 pb-8 bg-gradient-to-t from-[#0f021a] via-[#0f021a]/90 to-transparent">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto pointer-events-auto">
           {/* HIGH VISIBILITY ROCKET FIRE ENERGY BAR */}
           <div className="flex justify-between items-end mb-2 px-1">
             <div className="flex items-center gap-2">
