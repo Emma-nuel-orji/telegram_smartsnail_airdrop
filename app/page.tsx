@@ -77,9 +77,18 @@ export default function Home() {
     if (!address) return '';
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
+  
   const triggerHaptic = (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'medium') => {
-  if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.HapticFeedback) {
+  console.log("HAPTIC TRIGGERED", style);
+
+  if (typeof window !== 'undefined') {
+    console.log("Telegram object:", (window as any).Telegram);
+  }
+
+  if ((window as any).Telegram?.WebApp?.HapticFeedback) {
     (window as any).Telegram.WebApp.HapticFeedback.impactOccurred(style);
+  } else {
+    console.log("❌ Haptic not available");
   }
 };
 
@@ -230,6 +239,7 @@ console.log('👤 Setting user with points:', finalUser.points);
   // --- CLICK HANDLER ---
   const handleClick = async (e: React.MouseEvent) => {
     if (!user?.telegramId || energy <= 0 || !syncManager.current) return;
+      triggerHaptic('medium'); 
 
     const tappingRate = Number(user.tappingRate) || 1;
 
@@ -386,8 +396,11 @@ console.log('👤 Setting user with points:', finalUser.points);
             { href: "/register", img: "/images/register.png" },
             { href: "/marketplace", img: "/images/shop.png" }
           ].map((item, idx) => (
-            <Link key={idx} href={item.href} onPointerDown={() => triggerHaptic('rigid')}>
-              <div className="w-12 h-12 bg-purple-900/40 backdrop-blur-xl border border-purple-500/30 rounded-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl">
+            <Link key={idx} href={item.href}>
+              <div
+                onPointerDown={() => triggerHaptic('rigid')}
+                className="w-12 h-12 ..."
+              >
                 <img src={item.img} className="w-6 h-6" alt="nav" />
               </div>
             </Link>
