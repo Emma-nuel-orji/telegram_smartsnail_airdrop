@@ -399,8 +399,7 @@ console.log('👤 Setting user with points:', finalUser.points);
             <Link key={idx} href={item.href}>
               <div
                 onPointerDown={() => triggerHaptic('rigid')}
-                className="w-12 h-12 ..."
-              >
+                className="w-12 h-12 bg-purple-900/40 backdrop-blur-xl border border-purple-500/30 rounded-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl">
                 <img src={item.img} className="w-6 h-6" alt="nav" />
               </div>
             </Link>
