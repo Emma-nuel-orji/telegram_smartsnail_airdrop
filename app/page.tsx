@@ -381,7 +381,7 @@ console.log('👤 Setting user with points:', finalUser.points);
             { href: "/register", img: "/images/register.png" },
             { href: "/marketplace", img: "/images/shop.png" }
           ].map((item, idx) => (
-            <Link key={idx} href={item.href}>
+            <Link key={idx} href={item.href}onClick={() => window.Telegram?.WebApp?.HapticFeedback.impactOccurred('light')}>
               <div className="w-12 h-12 bg-purple-900/40 backdrop-blur-xl border border-purple-500/30 rounded-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl">
                 <img src={item.img} className="w-6 h-6" alt="nav" />
               </div>
