@@ -24,30 +24,39 @@ type Nft = {
   traits?: Array<{ type: string; value: string }>;
 };
 
+interface CollectionStats {
+  manchies: {
+    remaining: number;
+    percent: number;
+  };
+  smartsnail: {
+    legendaryRemaining: number;
+    percent: number;
+  };
+}
+
 export default function NFTDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [nft, setNft] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false); // NEW: Success State
-  const [stats, setStats] = useState<any>(null);
+const [stats, setStats] = useState<CollectionStats | null>(null);
   useEffect(() => {
     fetchNFT();
   }, [params.id]);
 
   async function fetchNFT() {
-    try {
-   let data;
-    let collectionName = "smartsnail"; // default
+  try {
+    let data;
+    let collectionName = "smartsnail"; 
     let index = 0;
 
+    // 1. Resolve NFT Data
     if (params.id.startsWith("virtual-")) {
-      // 1. Split the ID: ["virtual", "collectionName", "index"]
       const parts = params.id.split("-");
       collectionName = parts[1]; 
       index = parseInt(parts[2]);
-
-      // 2. Pass the correct collection to the helper
       data = getNftData(index, collectionName);
 
       setNft({
@@ -65,26 +74,25 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
         minted: false,
       });
     } else {
-      // --- DATABASE LOGIC ---
       const response = await fetch(`/api/nfts/${params.id}`);
       data = await response.json();
       setNft(data);
-      collectionName = data.collection;
     }
 
-    // 3. FETCH GLOBAL SCARCITY STATS
-    // We fetch this regardless of virtual/database status so the bar is always accurate
+    // 2. Fetch Global Scarcity Stats with STRICT TYPING
     const statsRes = await fetch('/api/nfts/stats');
     if (statsRes.ok) {
-      const statsData = await statsRes.json();
-      setStats(statsData); // Make sure you have: const [stats, setStats] = useState<any>(null);
-    }    } catch (error) {
-      console.error("Failed to fetch NFT:", error);
-    } finally {
-      setLoading(false);
+      // --- THIS IS THE LINE ---
+      const statsData: CollectionStats = await statsRes.json(); 
+      setStats(statsData); 
     }
-  }
 
+  } catch (error) {
+    console.error("Failed to fetch NFT data:", error);
+  } finally {
+    setLoading(false);
+  }
+}
   const handlePurchase = async (method: 'stars' | 'ton' | 'shells') => {
     if (!nft) return;
     
@@ -217,18 +225,28 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
       Collection Supply
     </span>
     <span className="text-xs font-bold text-purple-400">
-      {/* We can hardcode 6000 for now or fetch from the stats API */}
-      Limited to 6,000 Assets
+      {/* Dynamic Text: Shows actual count from your stats API */}
+      {nft?.collection === 'manchies' 
+        ? `${stats?.manchies?.remaining ?? '...'} / 6000 Left` 
+        : `${stats?.smartsnail?.legendaryRemaining ?? '...'} / 600 Left`}
     </span>
   </div>
   
-  {/* Progress Bar */}
   <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
     <div 
-      className="h-full bg-gradient-to-r from-purple-600 to-blue-500 shadow-[0_0_10px_rgba(147,51,234,0.5)]" 
-      style={{ width: '85%' }} // You can make this dynamic later
+      className={`h-full transition-all duration-1000 ease-out ${
+        // If the percent sold is over 90%, make it red and glowing
+        (nft?.collection === 'manchies' ? stats?.manchies?.percent : stats?.smartsnail?.percent) > 90 
+          ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse' 
+          : 'bg-gradient-to-r from-purple-600 to-blue-500 shadow-[0_0_10px_rgba(147,51,234,0.5)]'
+      }`}
+      style={{ 
+        // This is the "Magic" part that moves the bar
+        width: `${nft?.collection === 'manchies' ? stats?.manchies?.percent : stats?.smartsnail?.percent || 0}%` 
+      }} 
     />
   </div>
+
   <p className="text-[9px] text-zinc-600 mt-2 italic">
     * Only unique {nft.collection} IDs are generated. Once sold, they never return to the market.
   </p>
@@ -245,7 +263,7 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
             <div>
                 <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-1">Pre-Chain Airdrop Spot</h4>
                 <p className="text-zinc-400 text-[11px] leading-snug">
-                    Secure this NFT now with Shells or Stars. Owners will receive an <span className="text-blue-400">Official TON Mint</span> airdrop once the collection goes on-chain.
+                    Secure this NFT now with Shells or Stars. Owners will receive an <span className="text-blue-400">Official Mint</span> airdrop once the collection goes on-chain.
                 </p>
             </div>
         </div>
