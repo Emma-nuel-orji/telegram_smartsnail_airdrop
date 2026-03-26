@@ -79,7 +79,7 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
       const statsData = await statsRes.json();
       setStats(statsData); // Make sure you have: const [stats, setStats] = useState<any>(null);
     }    } catch (error) {
-      console.error(error);
+      console.error("Failed to fetch NFT:", error);
     } finally {
       setLoading(false);
     }
