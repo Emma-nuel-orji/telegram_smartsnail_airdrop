@@ -193,7 +193,7 @@ console.log("TON Result received:", tonResult);
     setPurchasing(false);
     setShowSuccess(true);
     setTimeout(() => {
-      router.push('/inventory');
+      router.push('/marketplace/inventory');
     }, 3000);
   };
 
