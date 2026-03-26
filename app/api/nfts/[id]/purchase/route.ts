@@ -101,41 +101,40 @@ export async function POST(
     }
 
     // 3. Handle STARS
-    if (method === "stars") {
-      // FIX: Added "Authorization" header — this is what caused the 401 Unauthorized
-      const invoiceResponse = await fetch(
-        `https://api.telegram.org/bot${process.env.BOT_TOKEN}/createInvoiceLink`,
-        {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            // The Telegram Bot API accepts the token in the URL (already done via /bot${TOKEN}/)
-            // but some setups also need it as a header. The real fix below is the URL format:
-          },
-          body: JSON.stringify({
-            title: nft.name,
-            description: `Unlock ${nft.rarity} ${nft.name}`,
-            payload: JSON.stringify({ nftId: nft.id, tgId: tgUser.telegramId }),
-            provider_token: "",   // empty string is correct for Stars (XTR)
-            currency: "XTR",
-            prices: [{ label: "NFT Purchase", amount: nft.priceStars }]
-          })
-        }
-      );
+   // 3. Handle STARS
+if (method === "stars") {
+  console.log(`[STARS] Creating invoice for NFT: ${nft.id}, User: ${tgUser.telegramId}`);
 
-      const invoiceData = await invoiceResponse.json();
-
-      // FIX: Log the full error so you can debug
-      if (!invoiceData.ok) {
-        console.error("Telegram Stars API error:", invoiceData);
-        return NextResponse.json(
-          { error: invoiceData.description || "Stars invoice creation failed" }, 
-          { status: 400 }
-        );
-      }
-      
-      return NextResponse.json({ success: true, invoiceLink: invoiceData.result });
+  const invoiceResponse = await fetch(
+    `https://api.telegram.org/bot${process.env.BOT_TOKEN}/createInvoiceLink`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }, // Remove "Authorization"
+      body: JSON.stringify({
+        title: nft.name,
+        description: `Unlock ${nft.rarity} ${nft.name}`,
+        // Payload must match what your bot.js expects
+        payload: JSON.stringify({ 
+          type: "NFT_PURCHASE", // Add a type to distinguish from "Stakes"
+          nftId: nft.id, 
+          telegramId: tgUser.telegramId 
+        }),
+        provider_token: "",
+        currency: "XTR",
+        prices: [{ label: "NFT Purchase", amount: nft.priceStars }]
+      })
     }
+  );
+
+  const invoiceData = await invoiceResponse.json();
+  console.log("[STARS] Telegram Response:", JSON.stringify(invoiceData));
+
+  if (!invoiceData.ok) {
+    return NextResponse.json({ error: invoiceData.description }, { status: 400 });
+  }
+  
+  return NextResponse.json({ success: true, invoiceLink: invoiceData.result });
+}
 
     // 4. Handle TON
     if (method === "ton") {

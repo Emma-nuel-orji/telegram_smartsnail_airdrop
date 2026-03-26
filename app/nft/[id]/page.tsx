@@ -148,7 +148,9 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
         };
 
         try {
-          const tonResult = await tonConnectUI.sendTransaction(transaction);
+         console.log("Starting TON transaction with:", transaction);
+const tonResult = await tonConnectUI.sendTransaction(transaction);
+console.log("TON Result received:", tonResult);
           if (tonResult?.boc) {
             toast.loading("Verifying transaction on-chain...", { id: toastId });
             
