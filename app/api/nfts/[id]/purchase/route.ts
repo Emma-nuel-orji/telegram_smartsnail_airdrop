@@ -30,7 +30,7 @@ export async function POST(
       if (!collectionDoc) {
         // Safety: Create the collection if it doesn't exist so the NFT can be created
         collectionDoc = await prisma.collection.create({
-          data: { name: collection, partnerType: "GYM" } // Adjust partnerType as needed
+          data: { name: collection, }
         });
       }
 
