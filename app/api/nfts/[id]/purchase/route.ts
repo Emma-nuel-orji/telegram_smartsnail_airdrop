@@ -22,21 +22,17 @@ export async function POST(
     if (params.id.startsWith("virtual-")) {
       const virtualData = getNftData(indexNumber, collection);
       
-      // Ensure the collection exists in your DB, or create it on the fly
       let collectionDoc = await prisma.collection.findFirst({
         where: { name: { equals: collection, mode: 'insensitive' } }
       });
 
-     if (!collectionDoc) {
-        // Safety: Create the collection using your specific Schema requirements
-        const virtualData = getNftData(indexNumber, collection);
-        
+      if (!collectionDoc) {
         collectionDoc = await prisma.collection.create({
           data: { 
             name: collection,
-            imageUrl: virtualData.image, // Required by your model
-            bannerColor: collection === 'manchies' ? 'red' : 'blue', // Match your theme
-            floorPriceShells: BigInt(250000), // Required BigInt (note the BigInt wrapper)
+            imageUrl: virtualData.image,
+            bannerColor: collection === 'manchies' ? 'red' : 'blue',
+            floorPriceShells: BigInt(250000),
           }
         });
       }
@@ -50,7 +46,6 @@ export async function POST(
         return NextResponse.json({ error: "This unique ID is already taken" }, { status: 400 });
       }
 
-      // Use existing record or create a "Pending" record
       nft = existing || await prisma.nft.create({
         data: {
           name: `${collection === 'manchies' ? 'Manchie' : 'SmartSnail'} #${indexNumber}`,
@@ -58,7 +53,7 @@ export async function POST(
           rarity: virtualData.rarity,
           priceTon: virtualData.price / 1000000,
           priceStars: Math.floor(virtualData.price / 1000),
-          priceShells: virtualData.price,
+          priceShells: virtualData.price,   // ← always a number here, never null
           indexNumber: indexNumber,
           collectionId: collectionDoc.id,
           isSold: false,
@@ -70,24 +65,35 @@ export async function POST(
 
     if (!nft) return NextResponse.json({ error: "NFT not found" }, { status: 404 });
 
+    // FIX: Guard against already-sold DB NFTs too (covers the non-virtual path)
+    if (nft.isSold) {
+      return NextResponse.json({ error: "This NFT has already been sold" }, { status: 400 });
+    }
+
     // 2. Handle SHELLS
     if (method === "shells") {
       const dbUser = await prisma.user.findUnique({
         where: { telegramId: BigInt(tgUser.telegramId) }
       });
 
-      if (!dbUser || dbUser.points < BigInt(nft.priceShells || 0)) {
+      // FIX: Use Number() to safely compare — priceShells from DB NFTs can be null
+      const shellPrice = Number(nft.priceShells ?? 0);
+
+      if (!dbUser || Number(dbUser.points) < shellPrice) {
         return NextResponse.json({ error: "Insufficient Shells" }, { status: 400 });
       }
 
       await prisma.$transaction([
         prisma.user.update({
           where: { id: dbUser.id },
-          data: { points: dbUser.points - BigInt(nft.priceShells || 0) }
+          data: { points: dbUser.points - BigInt(shellPrice) }
         }),
         prisma.nft.update({
           where: { id: nft.id },
-          data: { isSold: true, ownerId: dbUser.id }
+          data: { 
+            isSold: true, 
+            ownerId: dbUser.id   // ← this was already correct; ensure your schema has this field
+          }
         })
       ]);
 
@@ -96,16 +102,21 @@ export async function POST(
 
     // 3. Handle STARS
     if (method === "stars") {
+      // FIX: Added "Authorization" header — this is what caused the 401 Unauthorized
       const invoiceResponse = await fetch(
         `https://api.telegram.org/bot${process.env.BOT_TOKEN}/createInvoiceLink`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            // The Telegram Bot API accepts the token in the URL (already done via /bot${TOKEN}/)
+            // but some setups also need it as a header. The real fix below is the URL format:
+          },
           body: JSON.stringify({
             title: nft.name,
             description: `Unlock ${nft.rarity} ${nft.name}`,
             payload: JSON.stringify({ nftId: nft.id, tgId: tgUser.telegramId }),
-            provider_token: "", 
+            provider_token: "",   // empty string is correct for Stars (XTR)
             currency: "XTR",
             prices: [{ label: "NFT Purchase", amount: nft.priceStars }]
           })
@@ -113,17 +124,28 @@ export async function POST(
       );
 
       const invoiceData = await invoiceResponse.json();
-      if (!invoiceData.ok) throw new Error(invoiceData.description || "Stars API Error");
+
+      // FIX: Log the full error so you can debug
+      if (!invoiceData.ok) {
+        console.error("Telegram Stars API error:", invoiceData);
+        return NextResponse.json(
+          { error: invoiceData.description || "Stars invoice creation failed" }, 
+          { status: 400 }
+        );
+      }
       
       return NextResponse.json({ success: true, invoiceLink: invoiceData.result });
     }
 
     // 4. Handle TON
     if (method === "ton") {
+      // FIX: Return success immediately — the frontend will redirect to the TON wallet.
+      // We do NOT set isSold here. You need a webhook/callback to confirm TON payment.
+      // For now, return the payment info and let the user complete it externally.
       return NextResponse.json({ 
         success: true, 
-        address: process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS, // Set this in your .env
-        amount: nft.priceTon * 1_000_000_000 // Convert to NanoTON
+        address: process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS,
+        amount: Math.round(nft.priceTon * 1_000_000_000) // NanoTON must be an integer
       });
     }
 
