@@ -236,7 +236,7 @@ const [stats, setStats] = useState<CollectionStats | null>(null);
     <div 
       className={`h-full transition-all duration-1000 ease-out ${
         // If the percent sold is over 90%, make it red and glowing
-        (nft?.collection === 'manchies' ? stats?.manchies?.percent : stats?.smartsnail?.percent) > 90 
+        ((nft?.collection === 'manchies' ? stats?.manchies?.percent : stats?.smartsnail?.percent) || 0) > 90 
           ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse' 
           : 'bg-gradient-to-r from-purple-600 to-blue-500 shadow-[0_0_10px_rgba(147,51,234,0.5)]'
       }`}
