@@ -18,7 +18,7 @@ export const getNftData = (index: number, collection: string) => {
       rarity: 'Legendary' as const, // Strict typing
       nickname: imageFile.replace('.png', ''),
       image: `/images/manchies/${encodeURIComponent(imageFile)}`,
-      price: 150,
+      price: 50000,
       desc: "A rare Manchie beast. Early adoption series."
     };
   }
@@ -27,17 +27,17 @@ export const getNftData = (index: number, collection: string) => {
   const base = '/images/snail';
 
   if (index <= 600) {
-    return { rarity: 'Legendary' as const, nickname: 'African Giant', image: `${base}/3.png`, price: 50, desc: 'God-tier snail.' };
+    return { rarity: 'Legendary' as const, nickname: 'African Giant', image: `${base}/3.png`, price: 50000, desc: 'God-tier snail.' };
   } 
   if (index <= 1350) { 
-    return { rarity: 'Epic' as const, nickname: 'Strong Snail', image: `${base}/006.png`, price: 20, desc: 'High endurance.' };
+    return { rarity: 'Epic' as const, nickname: 'Strong Snail', image: `${base}/006.png`, price: 20000, desc: 'High endurance.' };
   } 
   if (index <= 2500) { 
-    return { rarity: 'Rare' as const, nickname: 'Speedy Snail', image: `${base}/20.png`, price: 10, desc: 'Super fast.' };
+    return { rarity: 'Rare' as const, nickname: 'Speedy Snail', image: `${base}/20.png`, price: 10000, desc: 'Super fast.' };
   } 
   if (index <= 4000) { 
-    return { rarity: 'Uncommon' as const, nickname: 'Camouflage Snail', image: `${base}/80.png`, price: 50, desc: 'Stealth expert.' };
+    return { rarity: 'Uncommon' as const, nickname: 'Camouflage Snail', image: `${base}/80.png`, price: 50000, desc: 'Stealth expert.' };
   } 
 
-  return { rarity: 'Common' as const, nickname: 'Sensory Snail', image: `${base}/1204.png`, price: 25, desc: 'Standard shell.' }; 
+  return { rarity: 'Common' as const, nickname: 'Sensory Snail', image: `${base}/1204.png`, price: 25000, desc: 'Standard shell.' }; 
 };

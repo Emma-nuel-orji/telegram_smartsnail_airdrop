@@ -39,8 +39,7 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
   const [purchasing, setPurchasing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [stats, setStats] = useState<CollectionStats | null>(null);
- const [tonConnectUI] = useTonConnectUI(); // Use this for handlePurchase
-  const { walletAddress } = useWallet();
+  const { isConnected, tonConnectUI, walletAddress } = useWallet();
   useEffect(() => {
     fetchNFT();
   }, [params.id]);
@@ -140,12 +139,13 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
       else if (method === 'ton' && data.address) {
         toast.dismiss(toastId);
 
-        if (!tonConnectUI.connected) {
-    setPurchasing(false);
-    toast.error("Please connect your TON wallet first.");
-    await tonConnectUI.openModal(); // Force the wallet selector to open
-    return;
-  }
+      if (!isConnected || !tonConnectUI) {
+        setPurchasing(false);
+        toast.error("Please connect your TON wallet first.");
+        // If your context exposes a connect function, call it here:
+        // tonConnectUI.openModal(); 
+        return; 
+      }
 
         const transaction = {
           validUntil: Math.floor(Date.now() / 1000) + 360,
