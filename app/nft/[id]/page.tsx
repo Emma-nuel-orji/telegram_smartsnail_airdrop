@@ -139,6 +139,14 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
       // --- METHOD 2: TON ---
       else if (method === 'ton' && data.address) {
         toast.dismiss(toastId);
+
+        if (!tonConnectUI.connected) {
+    setPurchasing(false);
+    toast.error("Please connect your TON wallet first.");
+    await tonConnectUI.openModal(); // Force the wallet selector to open
+    return;
+  }
+
         const transaction = {
           validUntil: Math.floor(Date.now() / 1000) + 360,
           messages: [{

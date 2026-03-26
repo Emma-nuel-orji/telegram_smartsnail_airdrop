@@ -106,7 +106,7 @@ if (method === "stars") {
   console.log(`[STARS] Creating invoice for NFT: ${nft.id}, User: ${tgUser.telegramId}`);
 
   const invoiceResponse = await fetch(
-    `https://api.telegram.org/bot${process.env.BOT_TOKEN}/createInvoiceLink`,
+    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/createInvoiceLink`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" }, // Remove "Authorization"
@@ -143,7 +143,7 @@ if (method === "stars") {
       // For now, return the payment info and let the user complete it externally.
       return NextResponse.json({ 
         success: true, 
-        address: process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS,
+        address: process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS,
         amount: Math.round(nft.priceTon * 1_000_000_000) // NanoTON must be an integer
       });
     }
