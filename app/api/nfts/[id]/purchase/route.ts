@@ -27,10 +27,17 @@ export async function POST(
         where: { name: { equals: collection, mode: 'insensitive' } }
       });
 
-      if (!collectionDoc) {
-        // Safety: Create the collection if it doesn't exist so the NFT can be created
+     if (!collectionDoc) {
+        // Safety: Create the collection using your specific Schema requirements
+        const virtualData = getNftData(indexNumber, collection);
+        
         collectionDoc = await prisma.collection.create({
-          data: { name: collection, }
+          data: { 
+            name: collection,
+            imageUrl: virtualData.image, // Required by your model
+            bannerColor: collection === 'manchies' ? 'red' : 'blue', // Match your theme
+            floorPriceShells: BigInt(250000), // Required BigInt (note the BigInt wrapper)
+          }
         });
       }
 
