@@ -1,4 +1,3 @@
-// app/api/nfts/[id]/purchase/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getNftData } from "@/lib/nftHelpers";
@@ -15,35 +14,37 @@ export async function POST(
   try {
     const { paymentMethod, indexNumber, collection } = await req.json();
     const tgUser = await getTelegramUser(req);
+    const method = paymentMethod.toLowerCase();
 
-    // 1. Find or "Create" the NFT Data
+    // 1. Resolve NFT Data (Virtual or DB)
     let nft;
 
     if (params.id.startsWith("virtual-")) {
-      // It's a virtual NFT - Get data from our helper
       const virtualData = getNftData(indexNumber, collection);
       
-      // Check if this specific index was already converted/sold by someone else
+      // Ensure the collection exists in your DB, or create it on the fly
+      let collectionDoc = await prisma.collection.findFirst({
+        where: { name: { equals: collection, mode: 'insensitive' } }
+      });
+
+      if (!collectionDoc) {
+        // Safety: Create the collection if it doesn't exist so the NFT can be created
+        collectionDoc = await prisma.collection.create({
+          data: { name: collection, partnerType: "GYM" } // Adjust partnerType as needed
+        });
+      }
+
+      // Check if this index was already sold
       const existing = await prisma.nft.findFirst({
-        where: { indexNumber, collection: { name: collection } }
+        where: { indexNumber, collectionId: collectionDoc.id }
       });
 
       if (existing?.isSold) {
         return NextResponse.json({ error: "This unique ID is already taken" }, { status: 400 });
       }
 
-      // Find the Collection ID (Requirement for your Schema)
-      const collectionDoc = await prisma.collection.findFirst({
-        where: { name: { equals: collection, mode: 'insensitive' } }
-      });
-
-      if (!collectionDoc) {
-        return NextResponse.json({ error: "Collection not found in database" }, { status: 500 });
-      }
-
-      // Convert Virtual to a DB record (isSold: false until payment confirms)
-      // Or you can create it only after payment success - usually better to create a 'Pending' record
-      nft = await prisma.nft.create({
+      // Use existing record or create a "Pending" record
+      nft = existing || await prisma.nft.create({
         data: {
           name: `${collection === 'manchies' ? 'Manchie' : 'SmartSnail'} #${indexNumber}`,
           imageUrl: virtualData.image,
@@ -53,18 +54,17 @@ export async function POST(
           priceShells: virtualData.price,
           indexNumber: indexNumber,
           collectionId: collectionDoc.id,
-          isSold: false, // Will be set to true by your Webhook/Payment handler
+          isSold: false,
         }
       });
     } else {
-      // Standard DB lookup
       nft = await prisma.nft.findUnique({ where: { id: params.id } });
     }
 
     if (!nft) return NextResponse.json({ error: "NFT not found" }, { status: 404 });
 
-    // 2. Handle Shells (Internal Currency)
-    if (paymentMethod === "shells") {
+    // 2. Handle SHELLS
+    if (method === "shells") {
       const dbUser = await prisma.user.findUnique({
         where: { telegramId: BigInt(tgUser.telegramId) }
       });
@@ -73,7 +73,6 @@ export async function POST(
         return NextResponse.json({ error: "Insufficient Shells" }, { status: 400 });
       }
 
-      // Execute atomic transaction: Pay + Transfer Ownership
       await prisma.$transaction([
         prisma.user.update({
           where: { id: dbUser.id },
@@ -88,8 +87,8 @@ export async function POST(
       return NextResponse.json({ success: true, message: "Purchased with Shells" });
     }
 
-    // 3. Handle Stars (External Payment)
-    if (paymentMethod === "stars") {
+    // 3. Handle STARS
+    if (method === "stars") {
       const invoiceResponse = await fetch(
         `https://api.telegram.org/bot${process.env.BOT_TOKEN}/createInvoiceLink`,
         {
@@ -99,7 +98,7 @@ export async function POST(
             title: nft.name,
             description: `Unlock ${nft.rarity} ${nft.name}`,
             payload: JSON.stringify({ nftId: nft.id, tgId: tgUser.telegramId }),
-            provider_token: "", // Empty for Digital Goods/Stars
+            provider_token: "", 
             currency: "XTR",
             prices: [{ label: "NFT Purchase", amount: nft.priceStars }]
           })
@@ -107,13 +106,24 @@ export async function POST(
       );
 
       const invoiceData = await invoiceResponse.json();
+      if (!invoiceData.ok) throw new Error(invoiceData.description || "Stars API Error");
+      
       return NextResponse.json({ success: true, invoiceLink: invoiceData.result });
+    }
+
+    // 4. Handle TON
+    if (method === "ton") {
+      return NextResponse.json({ 
+        success: true, 
+        address: process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS, // Set this in your .env
+        amount: nft.priceTon * 1_000_000_000 // Convert to NanoTON
+      });
     }
 
     return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
 
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Purchase API Error:", error);
+    return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
   }
 }

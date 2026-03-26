@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Loader, ChevronLeft, ShieldCheck, Zap, Info, Wallet } from "lucide-react";
-import { getNftData } from "@/lib/nftHelpers"; // Make sure this path is correct
+import { Loader, ChevronLeft, Zap, Info, Loader2, PartyPopper, CheckCircle2 } from "lucide-react";
+import { getNftData } from "@/lib/nftHelpers";
+import toast, { Toaster } from "react-hot-toast";
 import "@/public/styles/marketplace.css";
 
 type Nft = {
@@ -25,18 +26,18 @@ type Nft = {
 
 export default function NFTDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [nft, setNft] = useState<Nft | null>(null);
+  const [nft, setNft] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [stats, setStats] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false); // NEW: Success State
 
   useEffect(() => {
     fetchNFT();
   }, [params.id]);
 
- async function fetchNFT() {
-  try {
-    let data;
+  async function fetchNFT() {
+    try {
+   let data;
     let collectionName = "smartsnail"; // default
     let index = 0;
 
@@ -77,92 +78,125 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
     if (statsRes.ok) {
       const statsData = await statsRes.json();
       setStats(statsData); // Make sure you have: const [stats, setStats] = useState<any>(null);
+    }    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-
-  } catch (error) {
-    console.error("Failed to fetch NFT:", error);
-  } finally {
-    setLoading(false);
-  }
-}
-
-const handlePurchase = async (method: 'stars' | 'ton' | 'shells') => {
-  // 1. Fix the 'nft is possibly null' error
-  if (!nft) {
-    alert("NFT data is still loading. Please wait.");
-    return;
   }
 
-  try {
-    // 2. Safely get the Telegram ID
-    const telegram = typeof window !== 'undefined' ? (window as any).Telegram : null;
-    const tgUserId = telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || "123456";
+  const handlePurchase = async (method: 'stars' | 'ton' | 'shells') => {
+    if (!nft) return;
+    
+    setPurchasing(true); // TRIGGER LOADING OVERLAY
+    const toastId = toast.loading(`Preparing your ${method.toUpperCase()} payment...`);
 
-    const response = await fetch(`/api/nfts/${params.id}/purchase`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-telegram-user-id": tgUserId
-      },
-      body: JSON.stringify({ 
-        paymentMethod: method,
-        indexNumber: nft.indexNumber,
-        collection: nft.collection
-      }),
-    });
+    try {
+      const telegram = typeof window !== 'undefined' ? (window as any).Telegram : null;
+      const tgUserId = telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || "123456";
 
-    const data = await response.json();
+      const response = await fetch(`/api/nfts/${params.id}/purchase`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-telegram-user-id": tgUserId
+        },
+        body: JSON.stringify({ 
+          paymentMethod: method,
+          indexNumber: nft.indexNumber,
+          collection: nft.collection
+        }),
+      });
 
-    if (data.success) {
-      if (method === 'stars' && data.invoiceLink) {
-        // 3. Fix the 'window.Telegram is possibly undefined' error
-        if (telegram?.WebApp) {
+      const data = await response.json();
+
+      if (data.success) {
+        if (method === 'stars' && data.invoiceLink) {
+          toast.dismiss(toastId);
           telegram.WebApp.openInvoice(data.invoiceLink, (status: string) => {
             if (status === 'paid') {
-              alert("Payment Successful! Redirecting to Inventory...");
-              router.push('/inventory');
+              triggerSuccessEffect();
+            } else {
+              setPurchasing(false);
+              toast.error("Payment cancelled.");
             }
           });
-        } else {
-          alert("Please open this in Telegram to complete the Stars purchase.");
+        } else if (method === 'ton' && data.address) {
+          toast.dismiss(toastId);
+          const tonUri = `ton://transfer/${data.address}?amount=${data.amount}&text=NFT-${nft.indexNumber}`;
+          window.location.href = tonUri;
+          // We keep purchasing true here because they are leaving the app to pay
+        } else if (method === 'shells') {
+          toast.success("Shells accepted!", { id: toastId });
+          triggerSuccessEffect();
         }
-      } else if (method === 'shells') {
-        alert("Success! NFT added to your collection.");
-        router.push('/inventory');
+      } else {
+        setPurchasing(false);
+        toast.error(data.error || "Purchase failed", { id: toastId });
       }
-    } else {
-      alert(data.error || "Purchase failed");
+    } catch (error) {
+      setPurchasing(false);
+      toast.error("Connection lost.", { id: toastId });
     }
-  } catch (error) {
-    console.error("Purchase error:", error);
-  }
-};
+  };
+
+  const triggerSuccessEffect = () => {
+    setPurchasing(false);
+    setShowSuccess(true);
+    // Auto redirect after 3 seconds of celebration
+    setTimeout(() => {
+      router.push('/inventory');
+    }, 3000);
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-[#0f021a] flex items-center justify-center">
       <Loader className="w-10 h-10 text-purple-500 animate-spin" />
     </div>
   );
-
-  if (!nft) return <div className="text-white text-center mt-20">NFT not found</div>;
+   if (!nft) return <div className="text-white text-center mt-20">NFT not found</div>;
 
   return (
-    <div className="min-h-screen bg-[#0f021a] pb-40">
-      {/* Background Glow */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[40%] bg-purple-600/10 blur-[120px]" />
-      </div>
+    <div className="min-h-screen bg-[#0f021a] pb-40 relative">
+      <Toaster position="top-center" reverseOrder={false} />
 
-      {/* Header */}
+      {/* --- 1. PURCHASING OVERLAY --- */}
+      {purchasing && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
+          <div className="relative">
+            <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-4" />
+            <Zap className="w-6 h-6 text-blue-300 absolute top-5 left-5 animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-black italic uppercase text-white tracking-tighter">Securing Asset</h2>
+          <p className="text-zinc-500 text-sm mt-2">Communicating with the {nft.collection} vault...</p>
+        </div>
+      )}
+
+      {/* --- 2. SUCCESS CELEBRATION MODAL --- */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-[300] bg-blue-600 flex flex-col items-center justify-center text-center p-6 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white rounded-full p-6 mb-6 shadow-[0_0_50px_rgba(255,255,255,0.4)]">
+            <CheckCircle2 className="w-20 h-20 text-blue-600 animate-bounce" />
+          </div>
+          <h2 className="text-5xl font-black italic uppercase text-white tracking-tighter mb-2">Claimed!</h2>
+          <p className="text-blue-100 font-bold uppercase tracking-widest text-xs">Redirecting to Inventory</p>
+          <div className="mt-8 flex gap-2">
+            <PartyPopper className="text-yellow-400 w-8 h-8 animate-tada" />
+            <PartyPopper className="text-yellow-400 w-8 h-8 animate-tada delay-100" />
+          </div>
+        </div>
+      )}
+
+      {/* --- HEADER --- */}
       <div className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/5 px-4 py-4 flex items-center justify-between">
-        <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-white active:scale-90 transition-transform">
+        <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-white">
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <span className="text-white/60 font-black tracking-widest text-[10px] uppercase">Asset Details</span>
+        <span className="text-white/60 font-black tracking-widest text-[10px] uppercase">Secure Terminal</span>
         <div className="w-10" /> 
       </div>
 
-      <div className="p-5 max-w-md mx-auto">
+     <div className="p-5 max-w-md mx-auto">
         {/* Main Image Container */}
         <div className="relative group rounded-[2.5rem] overflow-hidden border border-white/10 bg-white/5 p-2 mb-8">
           <div className="relative aspect-square rounded-[2rem] overflow-hidden shadow-2xl">
@@ -221,9 +255,9 @@ const handlePurchase = async (method: 'stars' | 'ton' | 'shells') => {
           <h2 className="text-purple-400 text-xs font-black uppercase tracking-[0.2em] mb-2">
             {nft.collection} — #{nft.indexNumber}
           </h2>
-          <h1 className="text-4xl font-black text-white italic tracking-tighter leading-none mb-4">
-            {nft.nickname || nft.name}
-          </h1>
+        <h1 className="text-4xl font-black text-white italic tracking-tighter mb-4">
+          {nft.nickname || nft.name}
+        </h1>
           <p className="text-zinc-400 text-sm leading-relaxed">
             {nft.description || `Exclusive digital asset from the ${nft.collection} series. Limited edition with unique traits.`}
           </p>
@@ -242,10 +276,10 @@ const handlePurchase = async (method: 'stars' | 'ton' | 'shells') => {
         </div>
       </div>
 
-      {/* Floating Sticky Purchase Bar */}
+      {/* --- FLOATING PURCHASE BAR --- */}
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0f021a] via-[#0f021a] to-transparent z-[100]">
         <div className="max-w-md mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-3 shadow-2xl flex flex-col gap-2">
-          
+                  
 {stats && (
   <div className="mt-6 mb-2">
     <div className="flex justify-between items-center mb-1">
@@ -268,38 +302,21 @@ const handlePurchase = async (method: 'stars' | 'ton' | 'shells') => {
     </div>
   </div>
 )}
-
-          {/* Main Payment Buttons */}
           <div className="flex gap-2">
-            <Button
-              onClick={() => handlePurchase('stars')}
-              disabled={purchasing}
-              className="flex-1 h-14 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl flex flex-col items-center justify-center gap-0"
-            >
+            <Button onClick={() => handlePurchase('stars')}  disabled={purchasing} className="flex-1 h-14 bg-white/5 border border-white/10 text-white rounded-2xl flex flex-col items-center justify-center">
               <span className="text-[9px] font-black uppercase opacity-40">Stars</span>
               <span className="font-black text-md">{nft.priceStars} ⭐</span>
             </Button>
 
-            <Button
-              onClick={() => handlePurchase('ton')}
-              disabled={purchasing}
-              className="flex-1 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center justify-center gap-0 shadow-lg shadow-blue-600/20"
-            >
+            <Button onClick={() => handlePurchase('ton')}  disabled={purchasing} className="flex-1 h-14 bg-blue-600 text-white rounded-2xl flex flex-col items-center justify-center">
               <span className="text-[9px] font-black uppercase text-white/60">TON</span>
               <span className="font-black text-md">{nft.priceTon} 💎</span>
             </Button>
           </div>
 
-          {/* Shells Option (The Incentive) */}
-          <Button
-            onClick={() => handlePurchase('shells')}
-            disabled={purchasing}
-            className="w-full h-12 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 rounded-2xl flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest"
-          >
-            <Zap className="w-4 h-4 fill-purple-400" />
-            Buy with {nft.priceShells?.toLocaleString()} Shells
+          <Button onClick={() => handlePurchase('shells')} className="w-full h-12 bg-purple-600/20 text-purple-400 rounded-2xl font-black uppercase text-xs tracking-widest">
+            <Zap className="w-4 h-4 mr-2" /> Buy with {nft.priceShells?.toLocaleString()} Shells
           </Button>
-
         </div>
       </div>
     </div>
