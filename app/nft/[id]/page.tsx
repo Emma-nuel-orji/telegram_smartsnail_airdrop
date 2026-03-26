@@ -30,7 +30,7 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false); // NEW: Success State
-
+  const [stats, setStats] = useState<any>(null);
   useEffect(() => {
     fetchNFT();
   }, [params.id]);
