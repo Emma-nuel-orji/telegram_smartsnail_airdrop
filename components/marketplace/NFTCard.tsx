@@ -40,11 +40,11 @@ export function NFTCard({ nft, onClick, hidePrice = false }: NFTCardProps) {
         )}
 
         {/* NEW: "Owned" Badge - only shows if hidePrice is true */}
-        {hidePrice && (
-           <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-green-500 text-white shadow-lg border border-green-400/50 flex items-center gap-1">
-             <Check className="w-2 h-2" /> Owned
-           </div>
-        )}
+        {(hidePrice || nft.isSold) && (
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-green-500 text-white shadow-lg border border-green-400/50 flex items-center gap-1">
+              <Check className="w-2 h-2" /> Owned
+            </div>
+          )}
 
         {/* Overlay Shine */}
         <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
