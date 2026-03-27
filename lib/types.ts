@@ -17,7 +17,7 @@ export type Nft = {
   priceShells?: number;
   indexNumber: number;
   isSold: boolean;
-  collection: string;
+  collection: string | Collection;
   ownerTelegramId?: string; // use undefined instead of null
   minted?: boolean;
   traits?: Trait[];

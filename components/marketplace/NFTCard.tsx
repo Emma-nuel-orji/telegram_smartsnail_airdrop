@@ -57,8 +57,11 @@ export function NFTCard({ nft, onClick, hidePrice = false }: NFTCardProps) {
             {nft.nickname || nft.name}
           </h3>
           <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest truncate">
-            {/* If nickname is shown above, maybe show the #ID here */}
-            {nft.nickname ? `${nft.collection} #${nft.indexNumber}` : nft.collection}
+            {/* FIX: Access .name if collection is an object, otherwise fallback to string */}
+            {nft.nickname 
+              ? `${typeof nft.collection === 'object' ? nft.collection.name : nft.collection} #${nft.indexNumber}` 
+              : (typeof nft.collection === 'object' ? nft.collection.name : nft.collection)
+            }
           </p>
         </div>
 
