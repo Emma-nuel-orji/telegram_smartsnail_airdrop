@@ -33,17 +33,18 @@ export function NFTCard({ nft, onClick, hidePrice = false }: NFTCardProps) {
         />
         
         {/* Rarity Tag */}
-        {nft.rarity && (
-          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-white shadow-lg border border-white/20 bg-gradient-to-br ${RARITY_COLORS[nft.rarity]}`}>
-            {nft.rarity}
-          </div>
-        )}
-
-        {/* NEW: "Owned" Badge - only shows if hidePrice is true */}
-        {(hidePrice || nft.isSold) && (
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-green-500 text-white shadow-lg border border-green-400/50 flex items-center gap-1">
-              <Check className="w-2 h-2" /> Owned
+       {(hidePrice || nft.isSold) ? (
+            /* This shows when the NFT is owned */
+            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500 text-white shadow-lg border border-green-400/50 flex items-center gap-1 z-10">
+              <Check className="w-2.5 h-2.5" /> Owned
             </div>
+          ) : (
+            /* This shows the rarity tag only if NOT owned */
+            nft.rarity && (
+              <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-white shadow-lg border border-white/20 bg-gradient-to-br ${RARITY_COLORS[nft.rarity]} z-10`}>
+                {nft.rarity}
+              </div>
+            )
           )}
 
         {/* Overlay Shine */}
