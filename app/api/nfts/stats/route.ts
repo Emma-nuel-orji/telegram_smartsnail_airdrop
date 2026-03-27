@@ -1,31 +1,51 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    // 1. Count sold Legendary Snails (Limit: 600)
+    // 1. Count sold Legendary Snails
     const soldLegendarySnails = await prisma.nft.count({
-      where: { collection: { name: 'smartsnail' }, rarity: 'Legendary', isSold: true }
+      where: { 
+        collection: { name: 'smartsnail' }, 
+        rarity: 'Legendary', 
+        isSold: true 
+      }
     });
 
-    // 2. Count sold Manchies (Since all are Legendary, Limit: 6000)
+    // 2. Count sold Manchies
     const soldManchies = await prisma.nft.count({
-      where: { collection: { name: 'manchies' }, isSold: true }
+      where: { 
+        collection: { name: 'manchies' }, 
+        isSold: true 
+      }
     });
+
+    // Calculate remaining amounts
+    const smartSnailRemaining = 600 - soldLegendarySnails;
+    const manchiesRemaining = 6000 - soldManchies;
+
+    // "Current" Logic: Bar starts at 100% and drops to 0% as items sell
+    const legendaryPercent = Math.floor((smartSnailRemaining / 600) * 100);
+    const manchiesPercent = Math.floor((manchiesRemaining / 6000) * 100);
 
     return NextResponse.json({
       smartsnail: {
-        legendaryRemaining: 600 - soldLegendarySnails,
+        legendaryRemaining: smartSnailRemaining,
         legendaryTotal: 600,
-        percent: Math.floor(((600 - soldLegendarySnails) / 600) * 100)
+        percent: legendaryPercent 
       },
       manchies: {
-        remaining: 6000 - soldManchies,
+        remaining: manchiesRemaining,
         total: 6000,
-        percent: Math.floor(((6000 - soldManchies) / 6000) * 100)
+        percent: manchiesPercent 
       }
     });
+
   } catch (error) {
+    console.error("Stats Error:", error);
     return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });
   }
 }
