@@ -24,32 +24,35 @@ export function NFTCard({ nft, onClick, hidePrice = false }: NFTCardProps) {
       className="group relative flex flex-col bg-white/5 rounded-3xl overflow-hidden border border-white/10 active:scale-95 transition-all duration-300 cursor-pointer shadow-xl"
     >
       {/* Top Section / Image */}
-      <div className="relative aspect-square overflow-hidden m-2 rounded-2xl">
-        <img
-          src={nft.imageUrl}
-          alt={nft.name}
-          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-          loading="lazy"
-        />
-        
-        {/* Rarity Tag */}
-       {(hidePrice || nft.isSold) ? (
-            /* This shows when the NFT is owned */
-            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-green-500 text-white shadow-lg border border-green-400/50 flex items-center gap-1 z-10">
-              <Check className="w-2.5 h-2.5" /> Owned
-            </div>
-          ) : (
-            /* This shows the rarity tag only if NOT owned */
-            nft.rarity && (
-              <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-white shadow-lg border border-white/20 bg-gradient-to-br ${RARITY_COLORS[nft.rarity]} z-10`}>
-                {nft.rarity}
-              </div>
-            )
-          )}
-
-        {/* Overlay Shine */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+     {/* Top Section / Image */}
+<div className="relative aspect-square overflow-hidden m-2 rounded-2xl">
+  <img
+    src={nft.imageUrl}
+    alt={nft.name}
+    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+    loading="lazy"
+  />
+  
+  {/* DYNAMIC SWAP: Sold/Owned vs Rarity */}
+  {(hidePrice || nft.isSold) ? (
+    <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-lg border flex items-center gap-1 z-10 ${
+      hidePrice 
+        ? 'bg-green-500 text-white border-green-400/50' // Inventory Style
+        : 'bg-zinc-800 text-zinc-400 border-white/10'    // Marketplace Sold Style
+    }`}>
+      <Check className="w-2.5 h-2.5" />
+      {hidePrice ? "Owned" : "Sold"}
+    </div>
+  ) : (
+    nft.rarity && (
+      <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-white shadow-lg border border-white/20 bg-gradient-to-br ${RARITY_COLORS[nft.rarity]} z-10`}>
+        {nft.rarity}
       </div>
+    )
+  )}
+
+  <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+</div>
 
       {/* Info Section */}
       <div className="px-4 pb-4 pt-1 flex flex-col gap-3">

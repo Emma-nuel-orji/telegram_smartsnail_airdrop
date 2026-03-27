@@ -43,7 +43,7 @@ export async function POST(
       });
 
       if (existing?.isSold) {
-        return NextResponse.json({ error: "This unique ID is already taken" }, { status: 400 });
+        return NextResponse.json({ error: "This NFT is already sold" }, { status: 400 });
       }
 
       nft = existing || await prisma.nft.create({
