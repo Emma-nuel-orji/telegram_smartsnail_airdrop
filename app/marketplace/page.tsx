@@ -20,7 +20,7 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
   const [activeRarity, setActiveRarity] = useState<string>("All");
-
+  const [hideSold, setHideSold] = useState(false);
   async function loadMore() {
     if (loading || !hasMore) return;
     setLoading(true);
@@ -67,10 +67,14 @@ useEffect(() => {
 }, [items, hasMore]);
 
   const filteredItems = items.filter(nft => {
-    const matchesSearch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRarity = activeRarity === "All" || nft.rarity === activeRarity;
-    return matchesSearch && matchesRarity;
-  });
+  const matchesSearch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const matchesRarity = activeRarity === "All" || nft.rarity === activeRarity;
+  
+  // If hideSold is true, we filter out any NFT where isSold is true
+  const matchesVisibility = hideSold ? !nft.isSold : true;
+
+  return matchesSearch && matchesRarity && matchesVisibility;
+});
 
  const resetMarketplace = (collection: string | null) => {
   setSelectedCollection(collection);
@@ -129,6 +133,24 @@ useEffect(() => {
                 className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all"
               />
             </div>
+          </div>
+
+          <div className="px-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div 
+                onClick={() => setHideSold(!hideSold)}
+                className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer border border-white/10 ${hideSold ? 'bg-purple-600' : 'bg-white/5'}`}
+              >
+                <div className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all duration-300 ${hideSold ? 'left-[22px]' : 'left-1'}`} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                Hide Sold NFTs
+              </span>
+            </div>
+
+            <span className="text-[9px] text-zinc-600 font-bold">
+              Showing {filteredItems.length} items
+            </span>
           </div>
 
           {/* DUAL FILTER TABS */}

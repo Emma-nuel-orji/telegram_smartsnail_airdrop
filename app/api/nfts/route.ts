@@ -40,52 +40,39 @@ export async function GET(req: Request) {
   // We use a separate counter for the loop to ensure we get exactly 20 items
   let currentId = startNumber;
 
-  while (items.length < limit && currentId <= TOTAL_SIZE) {
-    // 1. Determine Collection: If null, alternate. If specified, use that.
-    let currentColl = collection;
-    if (!collection) {
-      // Alternate: Even IDs are Snails, Odd IDs are Manchies
-      currentColl = currentId % 2 === 0 ? "smartsnail" : "manchies";
-    }
 
-    // 2. Check if this specific combo is sold
-    if (soldSet.has(`${currentColl}-${currentId}`)) {
-      currentId++;
-      continue;
-    }
+while (items.length < limit && currentId <= TOTAL_SIZE) {
+  let currentColl = collection || (currentId % 2 === 0 ? "smartsnail" : "manchies");
 
-    // 3. Get the data from helper
-    const data = getNftData(currentId, currentColl!);
+  // 1. Get the data from helper (we need this to check rarity even if sold)
+  const data = getNftData(currentId, currentColl!);
 
-    // 4. Rarity Filter Check
-    // If user is looking for "Common", and we picked a Manchie (which is Legendary), 
-    // we must skip this iteration and try the next ID.
-    if (rarity !== "All" && data.rarity !== rarity) {
-      currentId++;
-      // Optimization: If filtering Snails and we passed the rarity range, stop.
-      if (collection === 'smartsnail') {
-         if (rarity === 'Legendary' && currentId > 600) break;
-      }
-      continue;
-    }
-
-    // 5. Build the Object
-    items.push({
-      id: `virtual-${currentColl}-${currentId}`,
-      name: `${currentColl === 'manchies' ? 'Manchie' : 'SmartSnail'} #${currentId}`,
-      nickname: data.nickname,
-      imageUrl: data.image,
-      rarity: data.rarity,
-      priceShells: data.price,
-      priceTon: data.price / 1000000, 
-      priceStars: Math.floor(data.price / 1000),
-      collection: currentColl,
-      indexNumber: currentId,
-      isSold: false
-    });
-
+  // 2. Rarity Filter Check
+  if (rarity !== "All" && data.rarity !== rarity) {
     currentId++;
+    continue;
   }
+
+  // 3. Check if it is sold
+  const isActuallySold = soldSet.has(`${currentColl}-${currentId}`);
+
+  // 4. Build the Object (Include it whether sold or not)
+  items.push({
+    id: `virtual-${currentColl}-${currentId}`,
+    name: `${currentColl === 'manchies' ? 'Manchie' : 'SmartSnail'} #${currentId}`,
+    nickname: data.nickname,
+    imageUrl: data.image,
+    rarity: data.rarity,
+    priceShells: data.price,
+    priceTon: data.price / 1000000, 
+    priceStars: Math.floor(data.price / 1000),
+    collection: { name: currentColl }, // Changed to object to match your types
+    indexNumber: currentId,
+    isSold: isActuallySold // 👈 Now it will correctly pass "true" to the frontend
+  });
+
+  currentId++;
+}
   return NextResponse.json({
     items,
     page,

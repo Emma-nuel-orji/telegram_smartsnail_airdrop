@@ -27,11 +27,13 @@ export function NFTCard({ nft, onClick, hidePrice = false }: NFTCardProps) {
      {/* Top Section / Image */}
 <div className="relative aspect-square overflow-hidden m-2 rounded-2xl">
   <img
-    src={nft.imageUrl}
-    alt={nft.name}
-    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-    loading="lazy"
-  />
+  src={nft.imageUrl}
+  alt={nft.name}
+  className={`w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ${
+    nft.isSold && !hidePrice ? 'grayscale opacity-40 blur-[1px]' : ''
+  }`}
+  loading="lazy"
+/>
   
   {/* DYNAMIC SWAP: Sold/Owned vs Rarity */}
   {(hidePrice || nft.isSold) ? (
