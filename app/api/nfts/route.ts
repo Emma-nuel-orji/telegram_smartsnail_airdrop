@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getNftData } from "@/lib/nftHelpers";
@@ -32,7 +34,9 @@ export async function GET(req: Request) {
   });
   
   // Create a Set of "CollectionName-Index" so we don't skip the wrong one
-  const soldSet = new Set(soldNfts.map(n => `${n.collection.name}-${n.indexNumber}`));
+  const soldSet = new Set(
+  soldNfts.map(n => `${n.collection.name.toLowerCase()}-${n.indexNumber}`)
+);
 
   const items = [];
   const TOTAL_SIZE = 6000;
@@ -54,7 +58,7 @@ while (items.length < limit && currentId <= TOTAL_SIZE) {
   }
 
   // 3. Check if it is sold
-  const isActuallySold = soldSet.has(`${currentColl}-${currentId}`);
+  const isActuallySold = soldSet.has(`${currentColl!.toLowerCase()}-${currentId}`);
 
   // 4. Build the Object (Include it whether sold or not)
   items.push({

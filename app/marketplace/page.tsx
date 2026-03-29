@@ -66,14 +66,14 @@ useEffect(() => {
   }
 }, [items, hasMore]);
 
-  const filteredItems = items.filter(nft => {
+ const filteredItems = items.filter(nft => {
   const matchesSearch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
   const matchesRarity = activeRarity === "All" || nft.rarity === activeRarity;
   
-  // If hideSold is true, we filter out any NFT where isSold is true
-  const matchesVisibility = hideSold ? !nft.isSold : true;
+  // Logic: If hideSold is true, exclude items where isSold is true
+  const visibility = hideSold ? !nft.isSold : true;
 
-  return matchesSearch && matchesRarity && matchesVisibility;
+  return matchesSearch && matchesRarity && visibility;
 });
 
  const resetMarketplace = (collection: string | null) => {
@@ -135,23 +135,38 @@ useEffect(() => {
             </div>
           </div>
 
-          <div className="px-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div 
-                onClick={() => setHideSold(!hideSold)}
-                className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer border border-white/10 ${hideSold ? 'bg-purple-600' : 'bg-white/5'}`}
-              >
-                <div className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all duration-300 ${hideSold ? 'left-[22px]' : 'left-1'}`} />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                Hide Sold NFTs
-              </span>
-            </div>
+          <div className="px-4 py-2 flex items-center justify-between bg-white/2 space-x-4">
+  <div className="flex items-center gap-3">
+    {/* The Switch */}
+    <div 
+      onClick={() => setHideSold(!hideSold)}
+      className={`relative w-11 h-6 rounded-full cursor-pointer transition-all duration-300 border ${
+        hideSold 
+          ? 'bg-purple-500/20 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.2)]' 
+          : 'bg-zinc-900 border-zinc-700'
+      }`}
+    >
+      {/* The Sliding Knob */}
+      <div className={`absolute top-1 w-3.5 h-3.5 rounded-full transition-all duration-300 shadow-sm ${
+        hideSold 
+          ? 'left-[24px] bg-purple-400' 
+          : 'left-1 bg-zinc-500'
+      }`} />
+    </div>
 
-            <span className="text-[9px] text-zinc-600 font-bold">
-              Showing {filteredItems.length} items
-            </span>
-          </div>
+    {/* Label */}
+    <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
+      hideSold ? 'text-purple-400' : 'text-zinc-500'
+    }`}>
+      {hideSold ? 'Sold Assets Hidden' : 'Showing Sold Assets'}
+    </span>
+  </div>
+
+  {/* Item Counter */}
+  <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter">
+    {filteredItems.length} Results
+  </div>
+</div>
 
           {/* DUAL FILTER TABS */}
           <div className="px-4 pb-4 space-y-3">
@@ -202,7 +217,7 @@ useEffect(() => {
               <NFTCard
                 key={nft.id}
                 nft={nft}
-                onClick={() => router.push(`/nft/${nft.id}`)}
+                onClick={() => !nft.isSold && router.push(`/nft/${nft.id}`)}
               />
             ))}
           </div>
