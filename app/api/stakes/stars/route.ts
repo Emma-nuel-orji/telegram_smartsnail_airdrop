@@ -27,32 +27,38 @@ export async function POST(request: Request) {
       telegramId,
     });
 
-    // 👇 Call Telegram Bot API to create invoice link
+  
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const telegramRes = await fetch(
-      `https://api.telegram.org/bot${botToken}/createInvoiceLink`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "Fight Stake",
-          description: `Stake ${starsCount} Stars on this fight`,
-          payload,
-          currency: "XTR", // Telegram Stars currency code
-          prices: [{ label: "Stake", amount: starsCount }],
-        }),
-      }
-    );
+   const telegramRes = await fetch(
+  `https://api.telegram.org/bot${botToken}/createInvoiceLink`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: "Fight Stake",
+      description: `Stake ${starsCount} Stars on this fight`,
+      payload: payload, // This is your JSON string
+      provider_token: "", // 🟢 CRITICAL: Must be empty string for Telegram Stars
+      currency: "XTR",
+      prices: [
+        { 
+          label: "Stake Amount", 
+          amount: Math.floor(starsCount) // 🟢 Ensure this is a whole number
+        }
+      ],
+    }),
+  }
+);
 
     const telegramData = await telegramRes.json();
 
-    if (!telegramData.ok) {
-      console.error("Telegram API error:", telegramData);
-      return NextResponse.json(
-        { error: "Failed to create invoice link" },
-        { status: 500 }
-      );
-    }
+   if (!telegramData.ok) {
+  console.error("Telegram API Detailed Error:", telegramData);
+  return NextResponse.json(
+    { error: telegramData.description || "Failed to create invoice link" }, // 🟢 Show the real error
+    { status: 400 }
+  );
+}
 
     return NextResponse.json({ invoiceLink: telegramData.result });
 
