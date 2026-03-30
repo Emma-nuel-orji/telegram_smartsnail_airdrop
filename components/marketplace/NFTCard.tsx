@@ -18,6 +18,8 @@ const RARITY_COLORS: Record<Rarity, string> = {
 };
 
 export function NFTCard({ nft, onClick, hidePrice = false }: NFTCardProps) {
+  console.log(nft.name, "| isSold:", nft.isSold, "| type:", typeof nft.isSold);
+  
   return (
     <div
       onClick={onClick}

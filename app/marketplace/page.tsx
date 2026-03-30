@@ -31,12 +31,13 @@ export default function Marketplace() {
   collection: selectedCollection ?? "smartsnail",
   rarity: activeRarity 
 });
-      const normalized = data.items.map((nft: any) => ({
-        ...nft,
-        rarity: nft.rarity
-          ? (capitalize(nft.rarity) as Rarity)
-          : undefined,
-      }));
+      const normalized = data.items.map((nft: any) => {
+  console.log(nft.name, "isSold:", nft.isSold); // ADD THIS
+  return {
+    ...nft,
+    rarity: nft.rarity ? (capitalize(nft.rarity) as Rarity) : undefined,
+  };
+});
 
       setItems(prev => [...prev, ...normalized]);
       setPage(prev => prev + 1);
