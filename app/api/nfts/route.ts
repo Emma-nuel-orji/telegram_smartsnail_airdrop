@@ -34,12 +34,12 @@ export async function GET(req: Request) {
   });
   
   console.log("Sold NFTs from DB:", soldNfts);
-console.log("soldSet:", [...soldSet]);
+
   // Create a Set of "CollectionName-Index" so we don't skip the wrong one
   const soldSet = new Set(
   soldNfts.map(n => `${n.collection.name.toLowerCase()}-${n.indexNumber}`)
 );
-console.log("Sold NFTs from DB:", soldNfts);
+
 console.log("soldSet:", [...soldSet]);
   const items = [];
   const TOTAL_SIZE = 6000;
