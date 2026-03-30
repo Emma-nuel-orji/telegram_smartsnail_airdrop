@@ -36,22 +36,26 @@ export function NFTCard({ nft, onClick, hidePrice = false }: NFTCardProps) {
 />
   
   {/* DYNAMIC SWAP: Sold/Owned vs Rarity */}
-  {(hidePrice || nft.isSold) ? (
-    <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-lg border flex items-center gap-1 z-10 ${
-      hidePrice 
-        ? 'bg-green-500 text-white border-green-400/50' // Inventory Style
-        : 'bg-zinc-800 text-zinc-400 border-white/10'    // Marketplace Sold Style
-    }`}>
-      <Check className="w-2.5 h-2.5" />
-      {hidePrice ? "Owned" : "Sold"}
+{hidePrice ? (
+  // Inventory view — always show "Owned"
+  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-lg border flex items-center gap-1 z-10 bg-green-500 text-white border-green-400/50">
+    <Check className="w-2.5 h-2.5" />
+    Owned
+  </div>
+) : !!nft.isSold ? (
+  // Marketplace view — item is sold
+  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-lg border flex items-center gap-1 z-10 bg-zinc-800 text-zinc-400 border-white/10">
+    <Check className="w-2.5 h-2.5" />
+    Sold
+  </div>
+) : (
+  // Marketplace view — available, show rarity
+  nft.rarity && (
+    <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-white shadow-lg border border-white/20 bg-gradient-to-br ${RARITY_COLORS[nft.rarity]} z-10`}>
+      {nft.rarity}
     </div>
-  ) : (
-    nft.rarity && (
-      <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-white shadow-lg border border-white/20 bg-gradient-to-br ${RARITY_COLORS[nft.rarity]} z-10`}>
-        {nft.rarity}
-      </div>
-    )
-  )}
+  )
+)}
 
   <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 </div>

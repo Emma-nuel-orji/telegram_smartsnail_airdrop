@@ -135,29 +135,39 @@ useEffect(() => {
             </div>
           </div>
 
-          <div className="px-4 py-3 flex items-center justify-between">
-  <button 
-    onClick={() => setHideSold(!hideSold)}
-    className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all duration-300 ${
-      hideSold 
-        ? 'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.2)]' 
-        : 'bg-zinc-900 border-zinc-800 text-zinc-500'
-    }`}
-  >
-    {/* Indicator Dot */}
-    <div className={`w-2 h-2 rounded-full transition-all ${
-      hideSold ? 'bg-purple-400 animate-pulse' : 'bg-zinc-600'
-    }`} />
-    
-    <span className="text-[10px] font-black uppercase tracking-widest">
-      {hideSold ? 'Hiding Sold Assets' : 'Showing All Assets'}
-    </span>
-  </button>
+           <div className="px-4 py-2 flex items-center justify-between bg-white/2 space-x-4">
+  <div className="flex items-center gap-3">
+    {/* The Switch */}
+    <div 
+      onClick={() => setHideSold(!hideSold)}
+      className={`relative w-11 h-6 rounded-full cursor-pointer transition-all duration-300 border ${
+        hideSold 
+          ? 'bg-purple-500/20 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.2)]' 
+          : 'bg-zinc-900 border-zinc-700'
+      }`}
+    >
+      {/* The Sliding Knob */}
+      <div className={`absolute top-1 w-3.5 h-3.5 rounded-full transition-all duration-300 shadow-sm ${
+        hideSold 
+          ? 'left-[24px] bg-purple-400' 
+          : 'left-1 bg-zinc-500'
+      }`} />
+    </div>
 
-  <span className="text-[9px] font-bold text-zinc-600 uppercase">
-    {filteredItems.length} displayed
-  </span>
+    {/* Label */}
+    <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
+      hideSold ? 'text-purple-400' : 'text-zinc-500'
+    }`}>
+      {hideSold ? 'Sold Assets Hidden' : 'Showing Sold Assets'}
+    </span>
+  </div>
+
+  {/* Item Counter */}
+  <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter">
+    {filteredItems.length} Results
+  </div>
 </div>
+
 
           {/* DUAL FILTER TABS */}
           <div className="px-4 pb-4 space-y-3">
