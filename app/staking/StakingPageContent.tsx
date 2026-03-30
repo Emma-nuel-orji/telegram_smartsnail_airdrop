@@ -831,7 +831,7 @@ const NFTRewardModal: React.FC<NFTRewardModalProps> = ({ nft, userReferralCode, 
   );
 };
 
-function FighterStaking({ fighter, fight, userPoints, isActive, onImageClick, isConcluded = false, telegramId, color, position  }: FighterStakingProps) {
+function FighterStaking({ fighter, fight, userPoints, isActive, onImageClick, isConcluded = false, telegramId, color, position, onStakeSuccess   }: FighterStakingProps) {
   const [stakeType, setStakeType] = useState<'STARS' | 'POINTS'>('POINTS');
   const [barHeight, setBarHeight] = useState(0);
   const [stakeAmount, setStakeAmount] = useState(0);
