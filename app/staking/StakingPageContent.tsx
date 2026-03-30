@@ -48,6 +48,7 @@ interface FighterStakingProps {
   position: "left" | "right";
   color: "red" | "blue" | "gold" | "silver";
   onImageClick?: () => void;
+  onStakeSuccess?: () => void;
   
 }
 
@@ -125,6 +126,16 @@ export default function StakingPageContent() {
     }
   }, []);
 
+
+
+const refreshUserPoints = async () => {
+  if (!telegramId) return;
+  const userRes = await fetch(`/api/user/${telegramId}`);
+  if (userRes.ok) {
+    const userData = await userRes.json();
+    setUserPoints(userData.points);
+  }
+};
 
   // Fetch Data - MODIFIED TO GET ALL FIGHTS (not just upcoming)
  useEffect(() => {
@@ -239,7 +250,7 @@ export default function StakingPageContent() {
   >
     {fights.map((fight) => (
       <div key={fight.id} className="w-screen flex-shrink-0 px-4 flex flex-col">
-        <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} />
+        <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} onStakeSuccess={refreshUserPoints} />
       </div>
     ))}
   </div>
@@ -429,7 +440,7 @@ console.log("Raw fight.stakes array:", fight?.stakes);
   );
 }
 
-function FightCard({ fight, userPoints, telegramId }: { fight: Fight, userPoints: number, telegramId: string | null }) {
+function FightCard({ fight, userPoints, telegramId, onStakeSuccess }: { fight: Fight, userPoints: number, telegramId: string | null, onStakeSuccess?: () => void  }) {
  const [timer, setTimer] = useState<string>("");
  const [userStakes, setUserStakes] = useState<any[]>([]);
  const [loadingStakes, setLoadingStakes] = useState(true);
@@ -597,6 +608,7 @@ const handleClaim = async () => {
           position="left"
           color={getFighterColor(fight.fighter1)}
            onImageClick={() => setSelectedFighter(fight.fighter1)} 
+           onStakeSuccess={onStakeSuccess}
           />
           <p className="mt-2 text-white font-bold italic uppercase text-xs tracking-tight leading-none">
             {fight.fighter1.name}
@@ -616,6 +628,7 @@ const handleClaim = async () => {
             position="right" 
             color={getFighterColor(fight.fighter2)}
              onImageClick={() => setSelectedFighter(fight.fighter2)} 
+             onStakeSuccess={onStakeSuccess}
           />
           <p className="mt-2 text-white font-bold italic uppercase text-xs tracking-tight leading-none">
             {fight.fighter2.name}
@@ -903,6 +916,7 @@ useEffect(() => {
   const redPool = livePools.red;
   const bluePool = livePools.blue;
   const SEED = 100000;
+  const [submitting, setSubmitting] = useState(false);
   const [userOwnedNfts, setUserOwnedNfts] = useState<NFT[]>([]);
   const mySide = (color === 'red' ? redPool : bluePool) + SEED;
   const oppositeSide = (color === 'red' ? bluePool : redPool) + SEED;
@@ -1038,6 +1052,7 @@ useEffect(() => {
 
 const submitStake = async () => {
   if (!isActive || stakeAmount <= 0 || !barLocked) return;
+  setSubmitting(true);
 
   try {
     const endpoint = stakeType === 'STARS' ? '/api/stakes/stars' : '/api/stakes/place';
@@ -1048,7 +1063,7 @@ const submitStake = async () => {
       stakeAmount: stakeAmount.toString(),
       telegramId,
       stakeType,
-      multiplier: multiplier,
+      multiplier,
       nftId: userNft?.id || null,
       isNftBypass: hasMatchingNFT,
     };
@@ -1067,21 +1082,38 @@ const submitStake = async () => {
     }
 
     if (stakeType === 'STARS') {
-      // Stars: redirect user to Telegram invoice link
       if (data.invoiceLink) {
         window.location.href = data.invoiceLink;
       } else {
         alert("Failed to generate Stars invoice.");
       }
     } else {
-      // TON or normal stakes: update UI immediately
+      // Reset bar
       setBarHeight(0);
       setBarLocked(false);
-      alert("Stake placed successfully!");
+      setStakeAmount(0);
+
+      // Refresh pool totals immediately
+      const poolRes = await fetch(`/api/stakes/total/${fight.id}`);
+      if (poolRes.ok) {
+        const poolData = await poolRes.json();
+        setLivePools({
+          red: Number(poolData.totalRedStakes),
+          blue: Number(poolData.totalBlueStakes)
+        });
+      }
+
+      // Refresh parent balance
+      onStakeSuccess?.();
+
+      webApp?.HapticFeedback?.notificationOccurred("success");
+      alert("✅ Stake placed!");
     }
   } catch (e) {
     console.error("Stake submission failed:", e);
     alert("Failed to submit stake. Check your connection.");
+  } finally {
+    setSubmitting(false);
   }
 };
 
@@ -1192,14 +1224,22 @@ const submitStake = async () => {
 
 
         <button 
-        onClick={barLocked ? submitStake : toggleLock} 
-        disabled={(!barLocked && stakeAmount <= 0) || !canParticipate} 
-        className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all 
-          ${!canParticipate ? 'bg-red-900/20 text-red-500 border border-red-500/30 cursor-not-allowed' : 
-            barLocked ? 'bg-white text-black shadow-lg' : 'bg-zinc-800 text-white'}`}
-      >
-        {!canParticipate ? 'REQS NOT MET' : barLocked ? 'Confirm Stake' : 'Lock Stake'}
-      </button>
+  onClick={barLocked ? submitStake : toggleLock} 
+  disabled={(!barLocked && stakeAmount <= 0) || !canParticipate || submitting} 
+  className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all 
+    ${!canParticipate ? 'bg-red-900/20 text-red-500 border border-red-500/30 cursor-not-allowed' : 
+      submitting ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed' :
+      barLocked ? 'bg-white text-black shadow-lg' : 'bg-zinc-800 text-white'}`}
+>
+  {!canParticipate ? 'REQS NOT MET' : 
+   submitting ? (
+     <span className="flex items-center justify-center gap-2">
+       <div className="w-3 h-3 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+       PROCESSING...
+     </span>
+   ) : 
+   barLocked ? 'CONFIRM STAKE' : 'LOCK STAKE'}
+</button>
 
 
       {typeof window !== "undefined" &&

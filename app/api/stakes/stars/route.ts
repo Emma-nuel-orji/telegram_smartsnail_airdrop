@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     });
 
     // 👇 Call Telegram Bot API to create invoice link
-    const botToken = process.env.BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const telegramRes = await fetch(
       `https://api.telegram.org/bot${botToken}/createInvoiceLink`,
       {
