@@ -1,17 +1,14 @@
-// app/api/stakes/stars/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma/client";
 
 export async function POST(request: Request) {
   try {
-    const { fightId, fighterId, stakeAmount, title, description, label, telegramId } =
-      await request.json();
+    const { fightId, fighterId, stakeAmount, telegramId } = await request.json();
 
     if (!fightId || !fighterId || !stakeAmount || !telegramId) {
       return NextResponse.json({ error: "Invalid stake details" }, { status: 400 });
     }
 
-    // 1️⃣ Ensure user exists
     const user = await prisma.user.findUnique({
       where: { telegramId: BigInt(telegramId) },
     });
@@ -19,24 +16,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 2️⃣ Conversion Stars -> Shells
-    const starsCount = BigInt(Math.round(Number(stakeAmount)));
-    const shellEquivalent = starsCount * 1000n; // 1 Star = 1000 Shells
+    const starsCount = Math.round(Number(stakeAmount));
+    const shellEquivalent = starsCount * 1000;
 
-    // 3️⃣ Create invoice payload
     const payload = JSON.stringify({
       fightId,
       fighterId,
       starsCount: starsCount.toString(),
       shellEquivalent: shellEquivalent.toString(),
       telegramId,
-      title,
-      description,
-      label,
     });
 
-    // 4️⃣ Return payload to frontend to generate Telegram invoice
-    return NextResponse.json({ payload });
+    // 👇 Call Telegram Bot API to create invoice link
+    const botToken = process.env.BOT_TOKEN;
+    const telegramRes = await fetch(
+      `https://api.telegram.org/bot${botToken}/createInvoiceLink`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Fight Stake",
+          description: `Stake ${starsCount} Stars on this fight`,
+          payload,
+          currency: "XTR", // Telegram Stars currency code
+          prices: [{ label: "Stake", amount: starsCount }],
+        }),
+      }
+    );
+
+    const telegramData = await telegramRes.json();
+
+    if (!telegramData.ok) {
+      console.error("Telegram API error:", telegramData);
+      return NextResponse.json(
+        { error: "Failed to create invoice link" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ invoiceLink: telegramData.result });
 
   } catch (error) {
     console.error("Error preparing Stars stake:", error);
