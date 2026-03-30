@@ -1057,61 +1057,50 @@ const submitStake = async () => {
   try {
     const endpoint = stakeType === 'STARS' ? '/api/stakes/stars' : '/api/stakes/place';
 
-    const body = {
-      fightId: fight.id,
-      fighterId: fighter?.id,
-      stakeAmount: stakeAmount.toString(),
-      telegramId,
-      stakeType,
-      multiplier,
-      nftId: userNft?.id || null,
-      isNftBypass: hasMatchingNFT,
-    };
-
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        fightId: fight.id,
+        fighterId: fighter?.id,
+        stakeAmount: stakeAmount.toString(),
+        telegramId,
+        stakeType,
+      }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
+      webApp?.HapticFeedback?.notificationOccurred("error");
       alert(`Error: ${data.error}`);
       return;
     }
 
-    if (stakeType === 'STARS') {
-      if (data.invoiceLink) {
-        window.location.href = data.invoiceLink;
-      } else {
-        alert("Failed to generate Stars invoice.");
-      }
+    if (stakeType === 'STARS' && data.invoiceLink) {
+      // ⭐ STARS FLOW
+      webApp?.HapticFeedback?.impactOccurred("heavy"); // Big vibration before checkout
+      window.location.href = data.invoiceLink;
     } else {
-      // Reset bar
+      // 🐚 SHELLS FLOW
+      // 1. Visual/Physical Feedback
+      webApp?.HapticFeedback?.notificationOccurred("success");
+      
+      // 2. Local UI Reset
       setBarHeight(0);
       setBarLocked(false);
       setStakeAmount(0);
 
-      // Refresh pool totals immediately
-      const poolRes = await fetch(`/api/stakes/total/${fight.id}`);
-      if (poolRes.ok) {
-        const poolData = await poolRes.json();
-        setLivePools({
-          red: Number(poolData.totalRedStakes),
-          blue: Number(poolData.totalBlueStakes)
-        });
+      // 3. Trigger Parent Success (Refreshes points/shows confetti)
+      if (onStakeSuccess) {
+        onStakeSuccess(); 
       }
-
-      // Refresh parent balance
-      onStakeSuccess?.();
-
-      webApp?.HapticFeedback?.notificationOccurred("success");
-      alert("✅ Stake placed!");
+      
+      alert("✅ Stake Placed!");
     }
   } catch (e) {
-    console.error("Stake submission failed:", e);
-    alert("Failed to submit stake. Check your connection.");
+    webApp?.HapticFeedback?.notificationOccurred("error");
+    alert("Connection failed.");
   } finally {
     setSubmitting(false);
   }

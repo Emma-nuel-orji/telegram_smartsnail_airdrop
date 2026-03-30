@@ -5,68 +5,50 @@ export async function POST(request: Request) {
   try {
     const { fightId, fighterId, stakeAmount, telegramId } = await request.json();
 
+    // 1. Validation
     if (!fightId || !fighterId || !stakeAmount || !telegramId) {
-      return NextResponse.json({ error: "Invalid stake details" }, { status: 400 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { telegramId: BigInt(telegramId) },
-    });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Missing details" }, { status: 400 });
     }
 
     const starsCount = Math.round(Number(stakeAmount));
-    const shellEquivalent = starsCount * 1000;
 
+    // 2. THE MINI-PAYLOAD (Strictly < 128 bytes)
+    // We use single letters to save space
     const payload = JSON.stringify({
-      fightId,
-      fighterId,
-      starsCount: starsCount.toString(),
-      shellEquivalent: shellEquivalent.toString(),
-      telegramId,
+      f: fightId,   
+      ft: fighterId,
+      u: telegramId 
     });
 
-  
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-   const telegramRes = await fetch(
-  `https://api.telegram.org/bot${botToken}/createInvoiceLink`,
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      title: "Fight Stake",
-      description: `Stake ${starsCount} Stars on this fight`,
-      payload: payload, // This is your JSON string
-      provider_token: "", // 🟢 CRITICAL: Must be empty string for Telegram Stars
-      currency: "XTR",
-      prices: [
-        { 
-          label: "Stake Amount", 
-          amount: Math.floor(starsCount) // 🟢 Ensure this is a whole number
-        }
-      ],
-    }),
-  }
-);
+
+    // 3. Create Invoice Link
+    const telegramRes = await fetch(
+      `https://api.telegram.org/bot${botToken}/createInvoiceLink`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Fight Stake",
+          description: `Stake ${starsCount} Stars`,
+          payload: payload, 
+          provider_token: "", // Required empty for Stars
+          currency: "XTR",
+          prices: [{ label: "Stake", amount: starsCount }],
+        }),
+      }
+    );
 
     const telegramData = await telegramRes.json();
 
-   if (!telegramData.ok) {
-  console.error("Telegram API Detailed Error:", telegramData);
-  return NextResponse.json(
-    { error: telegramData.description || "Failed to create invoice link" }, // 🟢 Show the real error
-    { status: 400 }
-  );
-}
+    if (!telegramData.ok) {
+      console.error("Telegram error:", telegramData.description);
+      return NextResponse.json({ error: telegramData.description }, { status: 400 });
+    }
 
     return NextResponse.json({ invoiceLink: telegramData.result });
 
   } catch (error) {
-    console.error("Error preparing Stars stake:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unexpected error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }
