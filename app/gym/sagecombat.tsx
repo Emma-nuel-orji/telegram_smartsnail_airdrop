@@ -216,7 +216,7 @@ const SageCombat = () => {
             <button 
               onClick={() => { setIntensity('Private'); triggerHaptic('medium'); }}
               className={`p-5 rounded-[2rem] border-2 transition-all duration-300 ${
-                intensity === 'Intensive' ? 'border-red-600 bg-red-600/5 shadow-[0_0_20px_rgba(220,38,38,0.1)]' : 'border-zinc-800 opacity-40'
+                intensity === 'Private' ? 'border-red-600 bg-red-600/5 shadow-[0_0_20px_rgba(220,38,38,0.1)]' : 'border-zinc-800 opacity-40'
               }`}
             >
               <Flame size={28} className={intensity === 'Intensive' ? 'text-red-500' : 'text-zinc-700'} />
