@@ -103,7 +103,7 @@ const SageCombat = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
               telegramId,
-              serviceId: SAGE_COMBAT_SERVICE_ID, // real DB id
+              serviceId: 69cd1be79d551cabe5d1e3f3, 
               planTitle: plan.title,
               duration: plan.duration,
               intensity,
