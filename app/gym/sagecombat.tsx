@@ -5,12 +5,12 @@ import Link from "next/link";
 import CombatProgress from "./CombatProgress";
 import toast, { Toaster } from 'react-hot-toast';
 type AgeGroup = 'Adult' | 'Youth' | 'Kids';
-type TrainingType = 'Group' | 'Private';
+type TrainingType = 'Regular' | 'Private';
 
 
 const SageCombat = () => {
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('Adult');
-  const [intensity, setIntensity] = useState<TrainingType>('Group');
+  const [intensity, setIntensity] = useState<TrainingType>('Regular');
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [telegramId, setTelegramId] = useState<string | null>(null);
@@ -201,14 +201,14 @@ const SageCombat = () => {
           {/* Intensity Toggles */}
           <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={() => { setIntensity('Group'); triggerHaptic('medium'); }}
+              onClick={() => { setIntensity('Regular'); triggerHaptic('medium'); }}
               className={`p-5 rounded-[2rem] border-2 transition-all duration-300 ${
                 intensity === 'Regular' ? 'border-orange-500 bg-orange-500/5' : 'border-zinc-800 opacity-40'
               }`}
             >
               <Target size={28} className={intensity === 'Regular' ? 'text-orange-500' : 'text-zinc-700'} />
               <div className="text-left mt-2">
-                <span className="block font-black text-xs uppercase tracking-tighter">Group</span>
+                <span className="block font-black text-xs uppercase tracking-tighter">Regular</span>
                 <span className="text-[8px] text-zinc-500 uppercase font-bold">Standard</span>
               </div>
             </button>
