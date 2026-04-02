@@ -219,7 +219,7 @@ const SageCombat = () => {
                 intensity === 'Private' ? 'border-red-600 bg-red-600/5 shadow-[0_0_20px_rgba(220,38,38,0.1)]' : 'border-zinc-800 opacity-40'
               }`}
             >
-              <Flame size={28} className={intensity === 'Intensive' ? 'text-red-500' : 'text-zinc-700'} />
+              <Flame size={28} className={intensity === 'Private' ? 'text-red-500' : 'text-zinc-700'} />
               <div className="text-left mt-2">
                 <span className="block font-black text-xs uppercase tracking-tighter">Private</span>
                 <span className="text-[8px] text-zinc-500 uppercase font-bold">Hardcore</span>
