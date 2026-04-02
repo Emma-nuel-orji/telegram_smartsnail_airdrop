@@ -68,8 +68,17 @@ export async function GET(
     // Log the structure of athleteProfile to see if it's what we expect
     console.log("AthleteProfile Check:", !!user.athleteProfile, "NFT Check:", !!user.athleteProfile?.nft);
 
+    const admin = await prisma.admin.findFirst({
+  where: { telegramId: BigInt(params.telegramId) }
+});
+
     const serialized = serializeUser(user);
-    return NextResponse.json(serialized);
+    return NextResponse.json({
+  ...serialized,
+  nickname: user.username || null,       
+  name: user.firstName || null,           
+  permissions: admin?.permissions || [], 
+});
   } catch (error) {
     console.error("GET /api/user/[id] - CRITICAL ERROR:", error);
     return NextResponse.json(

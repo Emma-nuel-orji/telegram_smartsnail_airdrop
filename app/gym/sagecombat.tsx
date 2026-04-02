@@ -3,16 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Zap, Target, Star, Wallet, ChevronLeft, Clock, Loader2, Flame } from 'lucide-react';
 import Link from "next/link";
 import CombatProgress from "./CombatProgress";
-
+import toast, { Toaster } from 'react-hot-toast';
 type AgeGroup = 'Adult' | 'Youth' | 'Kids';
-type TrainingType = 'Regular' | 'Intensive';
+type TrainingType = 'Group' | 'Private';
+
 
 const SageCombat = () => {
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('Adult');
-  const [intensity, setIntensity] = useState<TrainingType>('Regular');
+  const [intensity, setIntensity] = useState<TrainingType>('Group');
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+  const [shells, setShells] = useState<number>(0);
+  const [purchasing, setPurchasing] = useState<string | null>(null);
   // Helper for Haptic Feedback
   const triggerHaptic = (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'medium') => {
     if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.HapticFeedback) {
@@ -41,8 +44,14 @@ const SageCombat = () => {
     fetchSub();
   }, []);
 
+  useEffect(() => {
+  const webApp = (window as any).Telegram?.WebApp;
+  const userId = webApp?.initDataUnsafe?.user?.id?.toString();
+  if (userId) setTelegramId(userId);
+}, []);
+
   const getPlans = () => {
-    const isIntensive = intensity === 'Intensive';
+    const isIntensive = intensity === 'Private';
     const multiplier = isIntensive ? 1.4 : 1;
 
     return [
@@ -76,46 +85,58 @@ const SageCombat = () => {
     ];
   };
 
-  const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
-    triggerHaptic('heavy');
-    const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
-    const userId = webApp?.initDataUnsafe?.user?.id;
-    
-    if (!userId) {
-      alert("Please open this app inside Telegram to continue.");
-      return;
-    }
+ const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
+  const webApp = (window as any).Telegram?.WebApp;
+  
+  // 1. Haptic Feedback
+  webApp?.HapticFeedback?.impactOccurred('heavy');
 
-    try {
-      const response = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          telegramId: userId,
-          serviceId: plan.id,
-          planTitle: plan.title,
-          intensity: intensity,
-          ageGroup: ageGroup,
-          duration: plan.duration,
-          currencyType: currency // Added this to your API payload
-        })
+  if (currency === 'SHELLS' && shells < Number(plan.priceShells)) {
+    return toast.error("Insufficient Shells! 🐚");
+  }
+
+  setPurchasing(plan.id);
+
+  try {
+    const response = await fetch("/api/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+              telegramId,
+              serviceId: SAGE_COMBAT_SERVICE_ID, // real DB id
+              planTitle: plan.title,
+              duration: plan.duration,
+              intensity,
+              ageGroup,
+              planType: "COMBAT",
+              currencyType: currency,
+              amount: currency === 'SHELLS' ? plan.shells : plan.stars,
+            })
+    });
+
+    const result = await response.json();
+
+    if (currency === 'STARS' && result.invoiceLink) {
+      // ⭐ Open Telegram Stars Invoice
+      webApp?.openInvoice(result.invoiceLink, (status: string) => {
+        if (status === 'paid') {
+          webApp?.HapticFeedback?.notificationOccurred('success');
+          toast.success("Transaction Complete!");
+          window.location.reload();
+        }
       });
-
-      const result = await response.json();
-      if (result.success) {
-        webApp.showPopup({
-          title: '🥊 Enrollment Successful!',
-          message: `You are now enrolled in ${plan.title}. Welcome to the camp!`,
-          buttons: [{ type: 'ok' }]
-        });
-        window.location.reload();
-      } else {
-        alert(result.error || "Purchase failed.");
-      }
-    } catch (error) {
-      alert("Error processing purchase. Please try again.");
+    } else if (result.success) {
+      // 🐚 Shells Success
+      webApp?.HapticFeedback?.notificationOccurred('success');
+      toast.success("🏋️ Access granted.");
+      window.location.reload();
     }
-  };
+  } catch (error) {
+    toast.error("Vault connection failed.");
+  } finally {
+    setPurchasing(null);
+  }
+};
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-orange-500" /></div>;
 
@@ -148,7 +169,7 @@ const SageCombat = () => {
 
       {subscription && subscription.status === 'ACTIVE' ? (
         <div className="relative z-10 space-y-6 animate-in slide-in-from-bottom-4 duration-700">
-          <CombatProgress sub={subscription} needsSchedule={!subscription.trainingDays?.length} />
+          <CombatProgress sub={subscription} needsSchedule={!subscription.trainingDays || subscription.trainingDays.length === 0} />
           <div className="bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-1">Active Rank</p>
              <h4 className="text-2xl font-black italic uppercase text-orange-500">{subscription.planTitle}</h4>
@@ -180,27 +201,27 @@ const SageCombat = () => {
           {/* Intensity Toggles */}
           <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={() => { setIntensity('Regular'); triggerHaptic('medium'); }}
+              onClick={() => { setIntensity('Group'); triggerHaptic('medium'); }}
               className={`p-5 rounded-[2rem] border-2 transition-all duration-300 ${
                 intensity === 'Regular' ? 'border-orange-500 bg-orange-500/5' : 'border-zinc-800 opacity-40'
               }`}
             >
               <Target size={28} className={intensity === 'Regular' ? 'text-orange-500' : 'text-zinc-700'} />
               <div className="text-left mt-2">
-                <span className="block font-black text-xs uppercase tracking-tighter">Regular</span>
+                <span className="block font-black text-xs uppercase tracking-tighter">Group</span>
                 <span className="text-[8px] text-zinc-500 uppercase font-bold">Standard</span>
               </div>
             </button>
 
             <button 
-              onClick={() => { setIntensity('Intensive'); triggerHaptic('medium'); }}
+              onClick={() => { setIntensity('Private'); triggerHaptic('medium'); }}
               className={`p-5 rounded-[2rem] border-2 transition-all duration-300 ${
                 intensity === 'Intensive' ? 'border-red-600 bg-red-600/5 shadow-[0_0_20px_rgba(220,38,38,0.1)]' : 'border-zinc-800 opacity-40'
               }`}
             >
               <Flame size={28} className={intensity === 'Intensive' ? 'text-red-500' : 'text-zinc-700'} />
               <div className="text-left mt-2">
-                <span className="block font-black text-xs uppercase tracking-tighter">Intensive</span>
+                <span className="block font-black text-xs uppercase tracking-tighter">Private</span>
                 <span className="text-[8px] text-zinc-500 uppercase font-bold">Hardcore</span>
               </div>
             </button>

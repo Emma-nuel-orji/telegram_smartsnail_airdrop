@@ -19,7 +19,7 @@ model User {
   imageUrl       String?
   tasks          Task[]          @relation("UserTasks")
   email          String?         
-  
+
   points         BigInt          @default(0)
   tappingRate    Int             @default(1)
   athleteProfile  Fighter?  @relation("AthleteRole")
@@ -421,6 +421,7 @@ model Service {
   type        ServiceType // SUBSCRIPTION, ONE_TIME
   duration    String?     // e.g., "1 Month" (only for SUBSCRIPTION)
   priceShells BigInt
+  priceStars     Int?
   partnerType String?
   partnerId   String   @db.ObjectId
   partner     Partner  @relation(fields: [partnerId], references: [id])
