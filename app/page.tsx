@@ -77,6 +77,16 @@ export default function Home() {
     if (!address) return '';
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
+
+
+
+
+  const resetAppSession = () => {
+    localStorage.clear();
+    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
+    // OR: window.location.reload(); // if you prefer reloading the app
+  };
+
   
   const triggerHaptic = (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'medium') => {
   console.log("HAPTIC TRIGGERED", style);
@@ -323,11 +333,7 @@ console.log('👤 Setting user with points:', finalUser.points);
 
   if (isLoading)
 
-     const resetAppSession = () => {
-    localStorage.clear();
-    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
-    // OR: window.location.reload(); // if you prefer reloading the app
-  };
+   
     return (
       <div className="h-screen bg-[#0f021a] flex items-center justify-center">
         <Loader />
