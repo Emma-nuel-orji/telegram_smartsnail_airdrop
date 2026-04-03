@@ -6,35 +6,34 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    console.log('🚀 Services API called');
-    
     const url = new URL(req.url);
-    const typeParam = url.searchParams.get('type');
-    const partnerType = url.searchParams.get('partnerType');
+    
+    // 1. Extract all Query Parameters
+    const typeParam = url.searchParams.get('type') || 'SUBSCRIPTION';
     const partnerId = url.searchParams.get('partnerId');
+    const partnerType = url.searchParams.get('partnerType'); // Back in!
+    const ageGroup = url.searchParams.get('ageGroup');
+    const intensity = url.searchParams.get('intensity');
 
-    console.log('📊 Query params:', { typeParam, partnerType, partnerId });
-
-    // Validate required type parameter
-    if (!typeParam || !Object.values(ServiceType).includes(typeParam as ServiceType)) {
-      console.log('❌ Invalid type parameter:', typeParam);
+    // 2. Validate ServiceType (Strict check)
+    if (!Object.values(ServiceType).includes(typeParam as ServiceType)) {
+      console.error('❌ Invalid type parameter:', typeParam);
       return new NextResponse('Invalid or missing "type" parameter', { status: 400 });
     }
 
-    const type = typeParam as ServiceType;
-
-    console.log('🔍 Querying database...');
-
-    // Build where clause
-    const whereClause = {
-      type,
+    // 3. Build the Detailed Where Clause
+    const whereClause: any = {
+      type: typeParam as ServiceType,
       active: true,
-      ...(partnerType && { partnerType }),
       ...(partnerId && { partnerId }),
+      ...(partnerType && { partnerType }), // Filters by "GYM" or "COMBAT"
+      ...(ageGroup && { ageGroup }),
+      ...(intensity && { intensity }),
     };
 
-    console.log('🔍 Where clause:', whereClause);
+    console.log('🔍 Executing Search with Clause:', whereClause);
 
+    // 4. Fetch from MongoDB
     const services = await prisma.service.findMany({
       where: whereClause,
       select: {
@@ -42,33 +41,30 @@ export async function GET(req: Request) {
         name: true,
         duration: true,
         priceShells: true,
+        priceStars: true,
         description: true,
         partnerType: true,
         partnerId: true,
+        ageGroup: true,
+        intensity: true,
       },
       orderBy: {
         priceShells: 'asc',
       },
     });
 
-    console.log('📦 Services found:', services.length);
-
-    // Transform data - handle BigInt serialization
+    // 5. Safe BigInt Serialization
     const transformed = services.map(s => ({
-      id: s.id,
-      name: s.name,
-      duration: s.duration,
-      priceShells: s.priceShells.toString(), // Convert BigInt to string for JSON
-      description: s.description,
-      partnerType: s.partnerType,
-      partnerId: s.partnerId,
+      ...s,
+      priceShells: s.priceShells.toString(),
+      priceStars: s.priceStars ? Number(s.priceStars) : 0, // Keeps Stars as a number for UI logic
     }));
 
-    console.log('✅ Returning transformed data');
     return NextResponse.json(transformed);
 
   } catch (error: any) {
-    console.error('🔥 API Error:', {
+    // 6. RESTORED: Professional Error Logging
+    console.error('🔥 API Error Details:', {
       name: error.name,
       message: error.message,
       code: error.code,
@@ -76,7 +72,7 @@ export async function GET(req: Request) {
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
 
-    // Return different errors based on type
+    // 7. RESTORED: Specific Prisma Error Responses
     if (error.code === 'P2002') {
       return NextResponse.json({ error: 'Duplicate constraint violation' }, { status: 409 });
     }
@@ -86,12 +82,12 @@ export async function GET(req: Request) {
     }
 
     if (error.name === 'PrismaClientValidationError') {
-      return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid query parameters (Prisma)' }, { status: 400 });
     }
 
     return NextResponse.json({ 
       error: 'Failed to fetch services',
-      ...(process.env.NODE_ENV === 'development' && { details: error.message })
+      details: process.env.NODE_ENV === 'development' ? error.message : "Internal Server Error"
     }, { status: 500 });
   }
 }

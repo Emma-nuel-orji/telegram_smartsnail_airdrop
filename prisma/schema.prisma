@@ -420,6 +420,8 @@ model Service {
   serviceId   String?       @db.ObjectId 
   type        ServiceType // SUBSCRIPTION, ONE_TIME
   duration    String?     // e.g., "1 Month" (only for SUBSCRIPTION)
+  ageGroup    String?   // "Adult", "Youth", "Kids"
+  intensity   String?   // "Regular", "Private"
   priceShells BigInt
   priceStars     Int?
   partnerType String?

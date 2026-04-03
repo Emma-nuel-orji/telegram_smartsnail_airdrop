@@ -2,77 +2,56 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  const PARTNER_ID = "69cd1be69d551cabe5d1e3f2";
 
-  // STEP 1: Create SageCombat Partner
-  const combatPartner = await prisma.partner.upsert({
-    where: { id: "000000000000000000000000" }, // dummy, won't match anything
-    update: {},
-    create: {
-      name: "SageCombat",
-      type: "COMBAT",
-    }
-  });
-  console.log("✅ SageCombat partner created → ID:", combatPartner.id);
+  const ageGroups = ['Adult', 'Youth', 'Kids'];
+  const intensities = ['Regular', 'Private'];
 
-  // STEP 2: Create SageCombat Service
-  const combatService = await prisma.service.upsert({
-    where: { id: "000000000000000000000000" },
-    update: {},
-    create: {
-      name: "SageCombat",
-      description: "SageCombat boxing and fitness training programs",
-      type: "SUBSCRIPTION",
-      partnerType: "COMBAT",
-      priceShells: BigInt(0),
-      priceStars: 0,
-      active: true,
-      partnerId: combatPartner.id,
-    }
-  });
-  console.log("✅ SageCombat service created → ID:", combatService.id);
-  console.log("📋 Copy this into SageCombat.tsx as SAGE_COMBAT_SERVICE_ID:", combatService.id);
+  for (const age of ageGroups) {
+    // Define Base Prices based on Age
+    let baseShells = 25000;
+    let baseStars = 150;
 
-  // STEP 3: Gym Plans
-  const gymPartnerId = "684d8d8c86d4f1a3ebf72669"; // Lilburn Gym
-
-  const gymPlans = [
-    { name: "Starter Monthly Plan", duration: "1 Month",  priceShells: 250000, priceStars: 10 },
-    { name: "3 Month Plan",         duration: "3 Months", priceShells: 300000, priceStars: 20 },
-    { name: "6 Month Plan",         duration: "6 Months", priceShells: 350000, priceStars: 30 },
-    { name: "1 Year Plan",          duration: "1 Year",   priceShells: 400000, priceStars: 40 },
-  ];
-
-  for (const plan of gymPlans) {
-    const existing = await prisma.service.findFirst({
-      where: { name: plan.name, partnerId: gymPartnerId }
-    });
-
-    if (existing) {
-      // Update pricing if it already exists
-      await prisma.service.update({
-        where: { id: existing.id },
-        data: { priceShells: BigInt(plan.priceShells), priceStars: plan.priceStars }
-      });
-      console.log(`🔄 Updated: "${plan.name}"`);
-      continue;
+    if (age === 'Youth') {
+      baseShells = 20000;
+      baseStars = 120;
+    } else if (age === 'Kids') {
+      baseShells = 15000;
+      baseStars = 90;
     }
 
-    const created = await prisma.service.create({
-      data: {
-        name: plan.name,
-        type: "SUBSCRIPTION",
-        partnerType: "GYM",
-        duration: plan.duration,
-        priceShells: BigInt(plan.priceShells),
-        priceStars: plan.priceStars,
-        active: true,
-        partnerId: gymPartnerId,
+    for (const level of intensities) {
+      const isPrivate = level === 'Private';
+      // Private sessions are 40% more expensive
+      const multiplier = isPrivate ? 1.4 : 1;
+
+      const plans = [
+        { name: "Walk-In", dur: "1 Session", factor: 1 },
+        { name: "3 Months", dur: "90 Days", factor: 10 }, // 10x walk-in price
+        { name: "6 Months", dur: "180 Days", factor: 18 }, // Bulk discount
+      ];
+
+      for (const p of plans) {
+        const finalShells = Math.round(baseShells * p.factor * multiplier);
+        const finalStars = Math.round(baseStars * p.factor * multiplier);
+
+        await prisma.service.create({
+          data: {
+            name: `${age} ${level} - ${p.name}`,
+            type: "SUBSCRIPTION",
+            duration: p.dur,
+            priceShells: BigInt(finalShells),
+            priceStars: finalStars,
+            partnerId: PARTNER_ID,
+            partnerType: "GYM",
+            ageGroup: age,
+            intensity: level,
+            active: true,
+          }
+        });
       }
-    });
-    console.log(`✅ Created: "${created.name}" → ID: ${created.id}`);
+    }
   }
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+main().catch(console.error);

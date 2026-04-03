@@ -322,6 +322,12 @@ console.log('👤 Setting user with points:', finalUser.points);
   }, [isClicking, energy]);
 
   if (isLoading)
+
+     const resetAppSession = () => {
+    localStorage.clear();
+    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
+    // OR: window.location.reload(); // if you prefer reloading the app
+  };
     return (
       <div className="h-screen bg-[#0f021a] flex items-center justify-center">
         <Loader />
@@ -387,6 +393,10 @@ console.log('👤 Setting user with points:', finalUser.points);
       </div>
     )}
       </div>
+
+       <button onClick={resetAppSession} className="mt-4 text-red-600">
+  Reset & Switch Account
+</button>
 
       <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">
         <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50">
