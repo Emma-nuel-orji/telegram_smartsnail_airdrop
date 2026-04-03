@@ -81,11 +81,11 @@ export default function Home() {
 
 
 
-  const resetAppSession = () => {
-    localStorage.clear();
-    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
-    // OR: window.location.reload(); // if you prefer reloading the app
-  };
+  // const resetAppSession = () => {
+  //   localStorage.clear();
+  //   window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
+  //   // OR: window.location.reload(); // if you prefer reloading the app
+  // };
 
   
   const triggerHaptic = (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'medium') => {
@@ -399,10 +399,10 @@ console.log('👤 Setting user with points:', finalUser.points);
       </div>
     )}
       </div>
-
+{/* 
        <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
-</button>
+</button> */}
 
       <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">
         <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50">
