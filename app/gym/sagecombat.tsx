@@ -103,11 +103,12 @@ const SageCombat = () => {
 useEffect(() => {
   const fetchServices = async () => {
     try {
-      // ADD partnerType=COMBAT to the URL below
-      const res = await fetch(
-  `/api/services?partnerId=${PARTNER_ID}&ageGroup=${ageGroup.toLowerCase()}&intensity=${intensity.toLowerCase()}&partnerType=COMBAT`
-);
+      // Use template literals correctly and ensure parameters match your DB case
+      const url = `/api/services?partnerId=${PARTNER_ID}&ageGroup=${ageGroup}&intensity=${intensity}&partnerType=COMBAT`;
+      const res = await fetch(url);
       const data = await res.json();
+      
+      console.log("DEBUG: Plans found for", { ageGroup, intensity }, data);
       setAvailableServices(data);
     } catch (err) {
       console.error("Failed to fetch plans");

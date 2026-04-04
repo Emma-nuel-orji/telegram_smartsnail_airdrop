@@ -5,24 +5,27 @@ import { Check, Flame, Trophy } from 'lucide-react';
 
 interface GymSub {
   duration: string;
-  approvedAt: string;
+   startDate: string; 
   name: string;
 }
 
 export default function PartnerProgress({ sub }: { sub: GymSub }) {
   
   // Helper to turn "1 Month" into 30, etc.
-  const parseDuration = (duration: string): number => {
-    const mapping: Record<string, number> = {
-      "1 Week": 7,
-      "2 Weeks": 14,
-      "1 Month": 30,
-      "3 Months": 90,
-      "6 Months": 180,
-      "1 Year": 365,
-    };
-    return mapping[duration] || 30; // default to 30 if string is weird
-  };
+const parseDuration = (duration: string): number => {
+  // 1. Convert everything to lowercase to ignore "M" vs "m"
+  const d = duration.toLowerCase();
+  
+  // 2. Use .includes() to ignore the "s" at the end
+  if (d.includes("year")) return 365;
+  if (d.includes("6 month")) return 180;
+  if (d.includes("3 month")) return 90;
+  if (d.includes("1 month")) return 30;
+  if (d.includes("week")) return 7;
+  if (d.includes("day") || d.includes("session")) return 1;
+  
+  return 30; // Fallback
+};
 
   const calculateProgress = (approvedAt: string) => {
     const start = new Date(approvedAt);
@@ -34,7 +37,7 @@ export default function PartnerProgress({ sub }: { sub: GymSub }) {
   };
 
   const totalDays = parseDuration(sub.duration);
-  const daysPassed = calculateProgress(sub.approvedAt);
+  const daysPassed = calculateProgress(sub.startDate); 
   const percentage = Math.min(100, Math.round((daysPassed / totalDays) * 100));
 
   return (

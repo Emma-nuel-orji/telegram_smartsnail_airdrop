@@ -25,7 +25,7 @@ export default function GymSubscriptions() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-
+  const LILBURN_PARTNER_ID = "684d8d8c86d4f1a3ebf72669";
   const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
 
   useEffect(() => {
@@ -37,10 +37,12 @@ export default function GymSubscriptions() {
     if (!telegramId) return;
     async function fetchData() {
       try {
-        const [userRes, subsRes, activeRes] = await Promise.all([
+       const [userRes, subsRes, activeRes] = await Promise.all([
           fetch(`/api/user/${telegramId}`),
-          fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&gymId=${gymId}`),
-          fetch(`/api/subscription/${telegramId}?gymId=${gymId}`)
+        
+          fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&partnerId=${gymId}`),
+          
+          fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
         ]);
 
         const userData = await userRes.json();
@@ -53,10 +55,20 @@ export default function GymSubscriptions() {
         const subsData = await subsRes.json();
         setSubscriptions(Array.isArray(subsData) ? subsData : []);
 
-        if (activeRes.ok) {
-          const subData = await activeRes.json();
-          if (subData?.status === 'ACTIVE') setActiveSub(subData);
-        }
+      if (activeRes.ok) {
+  const subData = await activeRes.json();
+  
+  // Handle case where API returns a single object or an array
+  const activeSubscription = Array.isArray(subData) 
+    ? subData.find(s => s.status === 'ACTIVE') // Better: find the active one in the list
+    : subData;
+    
+  if (activeSubscription && activeSubscription.status === 'ACTIVE') {
+    setActiveSub(activeSubscription);
+  } else {
+    setActiveSub(null); 
+  }
+}
       } catch (err) {
         console.error("Fetch Error:", err);
       } finally {

@@ -74,11 +74,23 @@ export async function POST(req: Request) {
 
       // 2. Calculate Dates
       const startDate = new Date();
-      const endDate = new Date();
-      if (duration === '3 Months') endDate.setMonth(startDate.getMonth() + 3);
-      else if (duration === '6 Months') endDate.setMonth(startDate.getMonth() + 6);
-      else if (duration === '1 Year') endDate.setFullYear(startDate.getFullYear() + 1);
-      else endDate.setMonth(startDate.getMonth() + 1);
+            const endDate = new Date();
+            const d = duration.toLowerCase(); // Defensive: ignore case
+
+            if (d.includes("year")) {
+              endDate.setFullYear(startDate.getFullYear() + 1);
+            } else if (d.includes("6 month")) {
+              endDate.setMonth(startDate.getMonth() + 6);
+            } else if (d.includes("3 month")) {
+              endDate.setMonth(startDate.getMonth() + 3);
+            } else if (d.includes("1 month")) {
+              endDate.setMonth(startDate.getMonth() + 1);
+            } else if (d.includes("week")) {
+              endDate.setDate(startDate.getDate() + 7);
+            } else {
+              // Default for Walk-in (1 Day)
+              endDate.setDate(startDate.getDate() + 1);
+            }
 
       // 3. Create Sub (Your original Prisma structure)
       return await tx.subscription.create({
