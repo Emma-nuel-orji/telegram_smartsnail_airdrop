@@ -7,7 +7,7 @@ import { Clock, Dumbbell, ChevronLeft, UserPlus, Loader2, Sparkles, Zap } from "
 import { useSearchParams, useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import PartnerProgress from "./PartnerProgress";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const GYM_BACKGROUND = "/images/bk.jpg";
 
@@ -19,7 +19,7 @@ export default function GymSubscriptions() {
   
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [shells, setShells] = useState<number>(0);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]); // This is our source of truth now
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [activeSub, setActiveSub] = useState<any>(null);
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -116,27 +116,43 @@ export default function GymSubscriptions() {
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-purple-500/30">
       <Toaster position="top-center" />
       
+      {/* ACCESS LOCK */}
       {!isRegistered && !isAdmin && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-8 backdrop-blur-2xl">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-sm bg-zinc-900 border border-purple-900/30 p-8 rounded-[3rem] text-center shadow-2xl">
             <UserPlus className="text-purple-500 w-16 h-16 mx-auto mb-6" />
             <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-2 text-white">Identity Required</h2>
-            <button onClick={() => webApp?.close()} className="w-full bg-purple-600 text-white font-black py-5 rounded-2xl uppercase text-[10px] tracking-[0.2em]">
+            <p className="text-zinc-500 text-xs mb-8 uppercase font-bold tracking-widest">Complete registration to enter</p>
+            <button onClick={() => webApp?.close()} className="w-full bg-purple-600 text-white font-black py-5 rounded-2xl uppercase text-[10px] tracking-[0.2em] shadow-[0_0_20px_rgba(147,51,234,0.3)]">
               Initialize Profile
             </button>
           </motion.div>
         </div>
       )}
 
-      {/* HEADER */}
+      {/* HEADER SECTION */}
       <div className="relative h-[45vh] w-full overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${GYM_BACKGROUND})` }} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
+        <div className="absolute inset-0 bg-purple-900/10 mix-blend-overlay" />
+        
         <div className="relative z-10 p-6 flex flex-col h-full">
-          <button onClick={() => router.back()} className="w-fit p-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl">
-            <ChevronLeft size={20} />
-          </button>
+          <div className="flex justify-between items-center">
+            <button onClick={() => router.back()} className="p-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl">
+              <ChevronLeft size={20} />
+            </button>
+            {isAdmin && (
+              <Link href="/gym/manager" className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 backdrop-blur-md border border-purple-500/30 rounded-xl">
+                <Clock size={16} className="text-purple-400" />
+                <span className="text-[10px] font-black uppercase italic">Dashboard</span>
+              </Link>
+            )}
+          </div>
+
           <div className="mt-auto mb-10">
+            <span className="inline-block px-3 py-1 bg-purple-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg mb-3 italic">
+              Premium Facility
+            </span>
             <h1 className="text-6xl font-black italic uppercase tracking-tighter leading-[0.8]">
               {gymName.split(' ')[0]}<br />
               <span className="text-purple-500">ACCESS</span>
@@ -157,28 +173,55 @@ export default function GymSubscriptions() {
                 <span className="text-2xl font-black text-white italic">{shells.toLocaleString()} <span className="text-purple-500">🐚</span></span>
               </div>
             </div>
+            <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-purple-400">Top Up</button>
         </div>
 
-        {activeSub && <PartnerProgress sub={activeSub} />}
+        {/* ACTIVE STATUS */}
+        {activeSub && (
+          <div className="mb-12">
+            <PartnerProgress sub={activeSub} />
+            <div className="mt-4 p-4 bg-purple-600/10 border border-purple-500/20 rounded-2xl flex items-center justify-between">
+               <span className="text-[10px] text-purple-300 font-bold uppercase italic tracking-widest">Plan: {activeSub.planTitle}</span>
+               <div className="flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Valid Entry</span>
+               </div>
+            </div>
+          </div>
+        )}
 
-        {/* PLANS GRID - Simplified to map 'subscriptions' directly */}
+        {/* PLANS SECTION (Simplified logic, kept design) */}
         {!activeSub && (
           <div className="flex overflow-x-auto no-scrollbar gap-5 -mx-6 px-6">
             {subscriptions.length > 0 ? subscriptions.map((plan: any) => (
-              <div key={plan.id} className="min-w-[300px] bg-zinc-900 border border-zinc-800 p-8 rounded-[3rem] flex flex-col justify-between relative overflow-hidden group">
+              <div 
+                key={plan.id}
+                className="min-w-[300px] bg-zinc-900 border border-zinc-800 p-8 rounded-[3rem] flex flex-col justify-between relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-purple-600/20 transition-all duration-700" />
+                
                 <div>
-                  <div className="w-14 h-14 bg-purple-600/10 rounded-2xl flex items-center justify-center border border-purple-500/20 mb-6">
+                  <div className="w-14 h-14 bg-purple-600/10 rounded-2xl flex items-center justify-center border border-purple-500/20 mb-6 group-hover:scale-110 transition-transform">
                     <Dumbbell size={28} className="text-purple-400" />
                   </div>
                   <h3 className="text-3xl font-black italic uppercase tracking-tighter leading-none mb-2">{plan.name}</h3>
                   <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-6">{plan.duration} All-Access</p>
+                  
+                  <div className="space-y-3 mb-8">
+                    {['Full Equipment', 'Locker Access', 'Trainer Support'].map((feat, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Sparkles size={10} className="text-purple-500" />
+                        <span className="text-[9px] font-black uppercase text-zinc-400">{feat}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-3">
                   <button 
                     onClick={() => handlePurchase(plan, 'SHELLS')}
                     disabled={!!purchasing}
-                    className="w-full py-4 bg-white text-black rounded-2xl flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-white text-black rounded-2xl flex items-center justify-center gap-2 group-hover:bg-purple-600 group-hover:text-white transition-all"
                   >
                     {purchasing === plan.id ? <Loader2 className="animate-spin" size={16} /> : (
                       <>
@@ -200,7 +243,7 @@ export default function GymSubscriptions() {
               </div>
             )) : (
               <div className="w-full py-12 text-center bg-zinc-900/30 rounded-[3rem] border border-dashed border-zinc-800">
-                <p className="text-zinc-600 text-[10px] font-black uppercase italic tracking-widest">No plans available</p>
+                <p className="text-zinc-600 text-[10px] font-black uppercase italic tracking-widest">No plans currently active</p>
               </div>
             )}
           </div>

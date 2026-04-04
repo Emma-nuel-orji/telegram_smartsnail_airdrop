@@ -31,6 +31,10 @@ export async function GET(req: Request) {
       ...(intensity && { intensity }),
     };
 
+    console.log('--- GRID DEBUG START ---');
+console.log('Query Params:', { partnerId, partnerType, ageGroup, intensity });
+console.log('Where Clause:', JSON.stringify(whereClause, null, 2));
+
     console.log('🔍 Executing Search with Clause:', whereClause);
 
     // 4. Fetch from MongoDB
@@ -53,6 +57,8 @@ export async function GET(req: Request) {
       },
     });
 
+      console.log('Total Services Found:', services.length);
+console.log('--- GRID DEBUG END ---');
     // 5. Safe BigInt Serialization
     const transformed = services.map(s => ({
       ...s,

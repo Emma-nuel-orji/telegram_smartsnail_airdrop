@@ -105,8 +105,8 @@ useEffect(() => {
     try {
       // ADD partnerType=COMBAT to the URL below
       const res = await fetch(
-        `/api/services?partnerId=${PARTNER_ID}&ageGroup=${ageGroup}&intensity=${intensity}&partnerType=COMBAT`
-      );
+  `/api/services?partnerId=${PARTNER_ID}&ageGroup=${ageGroup.toLowerCase()}&intensity=${intensity.toLowerCase()}&partnerType=COMBAT`
+);
       const data = await res.json();
       setAvailableServices(data);
     } catch (err) {
