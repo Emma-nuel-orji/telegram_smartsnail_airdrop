@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Helper to handle BigInt conversion for the entire object
+function serialize(obj: any) {
+  return JSON.parse(
+    JSON.stringify(obj, (key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    )
+  );
+}
+
 export async function GET(req: Request, { params }: { params: { telegramId: string } }) {
   try {
     const telegramId = BigInt(params.telegramId);
@@ -22,22 +31,22 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
 
     const today = new Date();
     const expiry = new Date(subscription.endDate);
-    
-    // 1. Check if the time has actually run out
     const isActive = today < expiry;
 
     if (!isActive) {
-      // If it's expired, we can either return null or mark it as inactive in DB
       return NextResponse.json({ isActive: false });
     }
 
-    return NextResponse.json({
+    // Construct the response object
+    const responseData = {
       ...subscription,
       isActive: true,
-      // 2. Identify if the Sage Admin has set the days yet
-      needsSchedule: subscription.planType === "COMBAT" && (!subscription.trainingDays || subscription.trainingDays.length === 0),
+      needsSchedule: subscription.planType === "COMBAT" && (!subscription.trainingDays || (subscription.trainingDays as string[]).length === 0),
       daysRemaining: Math.max(0, Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
-    });
+    };
+
+    // Use the serialize helper to prevent the BigInt error
+    return NextResponse.json(serialize(responseData));
 
   } catch (error) {
     console.error('Error fetching gym sub:', error);

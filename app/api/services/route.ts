@@ -22,14 +22,15 @@ export async function GET(req: Request) {
     }
 
     // 3. Build the Detailed Where Clause
-    const whereClause: any = {
-      type: typeParam as ServiceType,
-      active: true,
-      ...(partnerId && { partnerId }),
-      ...(partnerType && { partnerType }), // Filters by "GYM" or "COMBAT"
-      ...(ageGroup && { ageGroup }),
-      ...(intensity && { intensity }),
-    };
+   const whereClause: any = {
+  type: typeParam as ServiceType,
+  active: true,
+  // Ensure partnerType matches exactly (COMBAT vs combat)
+  ...(partnerType && { partnerType: partnerType.toUpperCase() }), 
+  ...(partnerId && { partnerId }),
+  ...(ageGroup && { ageGroup }),
+  ...(intensity && { intensity }),
+};
 
     console.log('--- GRID DEBUG START ---');
 console.log('Query Params:', { partnerId, partnerType, ageGroup, intensity });
