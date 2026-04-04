@@ -29,39 +29,64 @@ export default function GymSubscriptions() {
   const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
 
 
+console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
 
   useEffect(() => {
     const userId = webApp?.initDataUnsafe?.user?.id?.toString();
+    console.log("👤 TELEGRAM USER:", userId || "NOT FOUND");
     if (userId) setTelegramId(userId);
   }, [webApp]);
 
   useEffect(() => {
+    // LOG 2: Check the "Firewall" conditions
+    console.log("🛡️ FIREWALL CHECK:", { 
+      hasTelegramId: !!telegramId, 
+      hasGymId: !!gymId, 
+      gymIdLength: gymId?.length 
+    });
+
     if (!telegramId || !gymId || gymId.length !== 24) {
-    if (telegramId) setLoading(false); 
-    return;
-  }
+      if (telegramId) {
+        console.warn("⛔ FETCH ABORTED: gymId is missing or invalid format.");
+        setLoading(false);
+      }
+      return;
+    }
+
     async function fetchData() {
+      console.log("📡 API CALL STARTING for Gym:", gymId);
       try {
-       const [userRes, subsRes, activeRes] = await Promise.all([
+        const [userRes, subsRes, activeRes] = await Promise.all([
           fetch(`/api/user/${telegramId}`),
-        
           fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&partnerId=${gymId}`),
-          
           fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
         ]);
 
+        console.log("📥 API RESPONSES RECEIVED:", {
+          userStatus: userRes.status,
+          servicesStatus: subsRes.status,
+          activeSubStatus: activeRes.status
+        });
+
         const userData = await userRes.json();
+        const subsData = await subsRes.json();
+        
+        console.log("📊 DATA PARSED:", {
+          userPoints: userData.points,
+          availablePlansCount: subsData.length
+        });
         if (userData.nickname && userData.name) setIsRegistered(true);
         if (userData.permissions?.includes('SUPERADMIN') || userData.permissions?.includes('GYM_ADMIN')) {
           setIsAdmin(true);
         }
         setShells(Number(userData.points || 0));
         
-        const subsData = await subsRes.json();
+        // const subsData = await subsRes.json();
         setSubscriptions(Array.isArray(subsData) ? subsData : []);
 
       if (activeRes.ok) {
   const subData = await activeRes.json();
+  console.log("✨ ACTIVE SUB DATA:", subData);
   
   // Handle case where API returns a single object or an array
   const activeSubscription = Array.isArray(subData) 

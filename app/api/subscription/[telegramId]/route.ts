@@ -12,12 +12,17 @@ function serialize(obj: any) {
 
 export async function GET(req: Request, { params }: { params: { telegramId: string } }) {
   try {
+    const { searchParams } = new URL(req.url);
+    const partnerId = searchParams.get('partnerId'); // Grab the gymId from URL
     const telegramId = BigInt(params.telegramId);
 
+    // CRITICAL: Filter by the specific partner/gym
     const subscription = await prisma.subscription.findFirst({
       where: {
         user: { telegramId: telegramId },
-        status: "ACTIVE"
+        status: "ACTIVE",
+        // Only get the sub for THIS gym
+        ...(partnerId && { service: { partnerId: partnerId } }) 
       },
       orderBy: { startDate: 'desc' },
       include: { 
@@ -25,33 +30,31 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
       }
     });
 
+    console.log(`🔍 [SUB CHECK] User: ${params.telegramId} | Partner: ${partnerId} | Found: ${!!subscription}`);
+
     if (!subscription) {
       return NextResponse.json(null);
     }
 
     const today = new Date();
     const expiry = new Date(subscription.endDate);
-    const isActive = today < expiry;
-
-    if (!isActive) {
+    
+    // Safety check: Is it actually still valid?
+    if (today > expiry) {
       return NextResponse.json({ isActive: false });
     }
 
-    // Construct the response object
     const responseData = {
       ...subscription,
       isActive: true,
-    needsSchedule: 
-  subscription.planType === "COMBAT" && 
-  (!subscription.trainingDays || (subscription.trainingDays as unknown as string[]).length === 0),
+      planTitle: subscription.service?.name || "Standard Plan",
       daysRemaining: Math.max(0, Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
     };
 
-    // Use the serialize helper to prevent the BigInt error
     return NextResponse.json(serialize(responseData));
 
   } catch (error) {
-    console.error('Error fetching gym sub:', error);
+    console.error('🔥 Error fetching sub:', error);
     return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
   }
 }
