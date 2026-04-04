@@ -99,20 +99,22 @@ const SageCombat = () => {
   }, []);
 
   // 2. Fetch Available Plans whenever Toggles change
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const res = await fetch(
-          `/api/services?partnerId=${PARTNER_ID}&ageGroup=${ageGroup}&intensity=${intensity}`
-        );
-        const data = await res.json();
-        setAvailableServices(data);
-      } catch (err) {
-        console.error("Failed to fetch plans");
-      }
-    };
-    fetchServices();
-  }, [ageGroup, intensity]);
+
+useEffect(() => {
+  const fetchServices = async () => {
+    try {
+      // ADD partnerType=COMBAT to the URL below
+      const res = await fetch(
+        `/api/services?partnerId=${PARTNER_ID}&ageGroup=${ageGroup}&intensity=${intensity}&partnerType=COMBAT`
+      );
+      const data = await res.json();
+      setAvailableServices(data);
+    } catch (err) {
+      console.error("Failed to fetch plans");
+    }
+  };
+  fetchServices();
+}, [ageGroup, intensity]);
 
   const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
     const webApp = (window as any).Telegram?.WebApp;
