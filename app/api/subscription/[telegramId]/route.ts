@@ -41,7 +41,9 @@ export async function GET(req: Request, { params }: { params: { telegramId: stri
     const responseData = {
       ...subscription,
       isActive: true,
-      needsSchedule: subscription.planType === "COMBAT" && (!subscription.trainingDays || (subscription.trainingDays as string[]).length === 0),
+    needsSchedule: 
+  subscription.planType === "COMBAT" && 
+  (!subscription.trainingDays || (subscription.trainingDays as unknown as string[]).length === 0),
       daysRemaining: Math.max(0, Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
     };
 
