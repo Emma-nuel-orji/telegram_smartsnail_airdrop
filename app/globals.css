@@ -1735,3 +1735,13 @@ html, body, #__next, [data-nextjs] {
 .animate-shimmer {
   animation: shimmer 2s linear infinite;
 }
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

@@ -4,6 +4,7 @@ import { ShieldCheck, Zap, Target, Star, Wallet, ChevronLeft, Clock, Loader2, Fl
 import Link from "next/link";
 import CombatProgress from "./CombatProgress";
 import toast, { Toaster } from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
 type AgeGroup = 'Adult' | 'Youth' | 'Kids';
 type TrainingType = 'Regular' | 'Private';
@@ -49,7 +50,7 @@ const PLAN_FLAIR: Record<string, any> = {
 const SageCombat = () => {
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('Adult');
   const [intensity, setIntensity] = useState<TrainingType>('Regular');
-  const [subscription, setSubscription] = useState<any>(null);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [availableServices, setAvailableServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [telegramId, setTelegramId] = useState<string | null>(null);
@@ -62,7 +63,7 @@ const SageCombat = () => {
     }
   };
 
-  // 1. Setup Telegram User & Active Subscription
+  // 1. Setup Telegram User, Points, and Active Subscriptions
   useEffect(() => {
     const initApp = async () => {
       const webApp = (window as any).Telegram?.WebApp;
@@ -71,16 +72,22 @@ const SageCombat = () => {
       if (userId) {
         setTelegramId(userId);
         try {
-          // Fetch user points
-          const userRes = await fetch(`/api/user/${userId}`);
-          const userData = await userRes.json();
-          setUserPoints(Number(userData.points || 0));
+          // Fetch user points and subscriptions in parallel for speed
+          const [userRes, subRes] = await Promise.all([
+            fetch(`/api/user/${userId}`),
+            fetch(`/api/subscription/${userId}`)
+          ]);
 
-          // Fetch active sub
-          const subRes = await fetch(`/api/subscription/${userId}`);
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setUserPoints(Number(userData.points || 0));
+          }
+
           if (subRes.ok) {
-            const subData = await subRes.json();
-            setSubscription(subData);
+            const data = await subRes.json();
+            // Convert to array if single object, then filter for ACTIVE
+            const subsArray = Array.isArray(data) ? data : [data];
+            setSubscriptions(subsArray.filter((s: any) => s.status === 'ACTIVE'));
           }
         } catch (err) {
           console.error("Initialization error", err);
@@ -159,48 +166,102 @@ const SageCombat = () => {
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-orange-500" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-5 font-sans pb-24 relative overflow-x-hidden">
-      <Toaster position="top-center" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-80 bg-orange-600/10 blur-[120px] pointer-events-none z-0" />
+  <div className="min-h-screen bg-[#050505] text-white p-5 font-sans pb-24 relative overflow-x-hidden">
+    <Toaster position="top-center" />
+    <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-80 bg-orange-600/10 blur-[120px] pointer-events-none z-0" />
 
-      {/* Header */}
-      <header className="relative z-10 mb-8 flex justify-between items-center">
-        <Link href="/" onClick={() => triggerHaptic('light')} className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-full border border-zinc-800 active:scale-90 transition-transform">
-          <ChevronLeft size={24} />
-        </Link>
-        <div className="text-center">
-          <h1 className="text-2xl font-black italic uppercase tracking-[0.15em] leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500">
-            SageCombat
-          </h1>
-          <div className="flex items-center justify-center gap-2 mt-1">
-            <span className="h-[1px] w-4 bg-orange-500" />
-            <p className="text-orange-500 text-[10px] font-black uppercase tracking-[0.3em]">Gym Division</p>
-            <span className="h-[1px] w-4 bg-orange-500" />
-          </div>
-        </div>
-        <Link href="/gym/manager" onClick={() => triggerHaptic('light')} className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-full border border-zinc-800 active:scale-90 transition-transform">
-          <Clock size={20} className="text-orange-500" />
-        </Link>
-      </header>
-
-      {/* Wallet Balance */}
-      <div className="relative z-10 flex flex-col items-center mb-8">
-        <div className="bg-zinc-900/50 border border-zinc-800 px-4 py-1.5 rounded-full backdrop-blur-sm">
-          <span className="text-[10px] font-black text-yellow-500/90 uppercase tracking-[0.2em] flex items-center gap-2">
-             <Wallet size={12} className="animate-pulse" /> {userPoints.toLocaleString()} Shells
-          </span>
+    {/* Header */}
+    <header className="relative z-10 mb-8 flex justify-between items-center">
+      <Link href="/" onClick={() => triggerHaptic('light')} className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-full border border-zinc-800 active:scale-90 transition-transform">
+        <ChevronLeft size={24} />
+      </Link>
+      <div className="text-center">
+        <h1 className="text-2xl font-black italic uppercase tracking-[0.15em] leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500">
+          SageCombat
+        </h1>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <span className="h-[1px] w-4 bg-orange-500" />
+          <p className="text-orange-500 text-[10px] font-black uppercase tracking-[0.3em]">Gym Division</p>
+          <span className="h-[1px] w-4 bg-orange-500" />
         </div>
       </div>
+      <Link href="/gym/manager" onClick={() => triggerHaptic('light')} className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-full border border-zinc-800 active:scale-90 transition-transform">
+        <Clock size={20} className="text-orange-500" />
+      </Link>
+    </header>
 
-      {subscription && subscription.status === 'ACTIVE' ? (
-        <div className="relative z-10 space-y-6 animate-in slide-in-from-bottom-4 duration-700">
-          <CombatProgress sub={subscription} needsSchedule={!subscription.trainingDays || subscription.trainingDays.length === 0} />
-          <div className="bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
-             <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-1">Active Rank</p>
-             <h4 className="text-2xl font-black italic uppercase text-orange-500">{subscription.planTitle}</h4>
+    {/* Wallet Balance */}
+    <div className="relative z-10 flex flex-col items-center mb-8">
+      <div className="bg-zinc-900/50 border border-zinc-800 px-4 py-1.5 rounded-full backdrop-blur-sm">
+        <span className="text-[10px] font-black text-yellow-500/90 uppercase tracking-[0.2em] flex items-center gap-2">
+           <Wallet size={12} className="animate-pulse" /> {userPoints.toLocaleString()} Shells
+        </span>
+      </div>
+    </div>
+
+    {/* --- UPDATED: SUBSCRIPTION CAROUSEL SECTION --- */}
+    {subscriptions && subscriptions.length > 0 ? (
+      <div className="relative z-10 space-y-8 animate-in slide-in-from-bottom-4 duration-700">
+        
+        {/* Slider Header */}
+        <div className="flex justify-between items-end px-2">
+          <div>
+            <h3 className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em]">Active Passes</h3>
+            <p className="text-xs font-bold text-zinc-400">{subscriptions.length} Plans Active</p>
           </div>
+          {subscriptions.length > 1 && (
+            <span className="text-[8px] font-black uppercase bg-orange-500/10 text-orange-500 px-2 py-1 rounded-md animate-pulse">
+              Swipe to View ↔
+            </span>
+          )}
         </div>
-      ) : (
+
+        {/* The Carousel */}
+        <div className="overflow-x-auto no-scrollbar pb-4 -mx-5 px-5">
+          <motion.div 
+            drag="x"
+            dragConstraints={{ right: 0, left: -((subscriptions.length - 1) * 340) }}
+            className="flex gap-5 w-max"
+          >
+            {subscriptions.map((sub) => (
+              <div key={sub.id || sub._id} className="w-[85vw] max-w-[350px] space-y-4">
+                <CombatProgress 
+                  sub={{
+                    ...sub,
+                    trainingDays: sub.trainingDays || []
+                  }} 
+                  needsSchedule={!sub.trainingDays || sub.trainingDays.length === 0} 
+                />
+                
+                {/* Active Rank Info Card */}
+                <div className="bg-gradient-to-br from-zinc-900 to-black p-6 rounded-[2.5rem] border border-zinc-800 shadow-2xl flex justify-between items-center">
+                  <div>
+                    <p className="text-zinc-500 text-[8px] font-black uppercase tracking-widest mb-1">
+                      {sub.planTitle.includes('Kids') ? 'Youth Member' : 'Elite Fighter'}
+                    </p>
+                    <h4 className="text-xl font-black italic uppercase text-orange-500">{sub.planTitle}</h4>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[8px] font-bold text-zinc-600 uppercase">Ends</p>
+                    <p className="text-[10px] font-black text-zinc-400">
+                      {new Date(sub.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Add Member / New Plan Button */}
+        <button 
+           onClick={() => setSubscriptions([])} // This clears state locally to show shop
+           className="w-full py-4 rounded-2xl border border-dashed border-zinc-800 text-zinc-600 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all mt-4"
+        >
+          + Purchase New Membership
+        </button>
+      </div>
+    ) : (
         <div className="relative z-10 space-y-8 animate-in fade-in duration-700">
           
           {/* Age Group Selector */}

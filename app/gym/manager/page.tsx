@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, Users, Search, Loader2, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // Simple Component for Access Denied (Fixes your "Cannot find name" error)
 const AccessDeniedUI = () => (
@@ -18,6 +19,7 @@ const AccessDeniedUI = () => (
 );
 
 export default function ManagerDashboard() {
+  const router = useRouter();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(true);
@@ -59,7 +61,12 @@ export default function ManagerDashboard() {
   return (
     <div className="min-h-screen bg-black text-white p-6 pb-20">
       <header className="mb-8 flex justify-between items-center">
-        <Link href="/gym/sagecombat"><ChevronLeft size={28} /></Link>
+        <button 
+  onClick={() => router.back()} 
+  className="hover:opacity-70 transition-opacity"
+>
+  <ChevronLeft size={28} />
+</button>
         <div className="text-right">
             <h1 className="text-2xl font-black italic uppercase leading-none">Trainer Portal</h1>
             <span className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Global Roster</span>
