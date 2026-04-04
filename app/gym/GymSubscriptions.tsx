@@ -14,7 +14,7 @@ const GYM_BACKGROUND = "/images/bk.jpg";
 export default function GymSubscriptions() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gymId = searchParams?.get('gymId') || '1';
+  const gymId = searchParams?.get('gymId');
   const gymName = searchParams?.get('gymName') || 'Partner Gym';
   
   const [telegramId, setTelegramId] = useState<string | null>(null);
@@ -28,13 +28,18 @@ export default function GymSubscriptions() {
   const LILBURN_PARTNER_ID = "684d8d8c86d4f1a3ebf72669";
   const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
 
+
+
   useEffect(() => {
     const userId = webApp?.initDataUnsafe?.user?.id?.toString();
     if (userId) setTelegramId(userId);
   }, [webApp]);
 
   useEffect(() => {
-    if (!telegramId) return;
+    if (!telegramId || !gymId || gymId.length !== 24) {
+    if (telegramId) setLoading(false); 
+    return;
+  }
     async function fetchData() {
       try {
        const [userRes, subsRes, activeRes] = await Promise.all([
@@ -120,9 +125,38 @@ export default function GymSubscriptions() {
   if (loading) return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center">
       <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
-      <span className="text-purple-500 font-black italic uppercase tracking-widest text-xs">Syncing Gym Vault...</span>
+      <span className="text-purple-500 font-black italic uppercase tracking-widest text-xs">Loading Gym.</span>
     </div>
   );
+
+  if (!loading && (!gymId || gymId.length !== 24)) {
+  return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center">
+      {/* Visual: A "Locked" or "Off" icon feels more natural */}
+      <div className="relative mb-8">
+        <Dumbbell className="w-16 h-16 text-zinc-900" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-20 h-20 border border-red-500/20 rounded-full animate-ping" />
+        </div>
+      </div>
+
+      <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">
+        Facility <span className="text-red-500">Offline</span>
+      </h2>
+      
+      <p className="text-zinc-500 text-[10px] mt-4 uppercase font-bold tracking-[0.2em] max-w-[200px] leading-relaxed">
+        This gym is inaccessible. 
+      </p>
+
+      <button 
+        onClick={() => webApp?.close() || router.back()} 
+        className="mt-10 w-full max-w-[240px] py-5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 transition-all"
+      >
+        Return to Bot
+      </button>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-purple-500/30">

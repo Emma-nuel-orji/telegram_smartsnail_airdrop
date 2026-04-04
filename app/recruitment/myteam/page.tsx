@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ShieldAlert, Activity, Target } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useOnboardingTour } from '../../hooks/useOnboardingTour';
+import OnboardingTour, { TourStep } from '../../../components/OnboardingTour';
+import { AnimatePresence } from 'framer-motion';
 
 interface Fighter {
   id: string;
@@ -37,6 +40,43 @@ export default function MyRoster() {
         });
     }
   }, []);
+
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+
+useEffect(() => {
+  const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString();
+  if (id) setTelegramId(id);
+}, []);
+
+const { showTour, completeTour } = useOnboardingTour('myteam', telegramId);
+
+const MYTEAM_TOUR: TourStep[] = [
+  {
+    emoji: "🏆",
+    label: "Your PolyCombat NFTs",
+    text: "These are the real-life fighters you own. Each one is a unique 1-of-1 NFT on the TON blockchain."
+  },
+  {
+    emoji: "📊",
+    label: "Asset intel",
+    text: "Tap the blue target icon on any fighter to see their full combat record and earnings history."
+  },
+  {
+    emoji: "🛒",
+    label: "List for sale",
+    text: "Tap LIST FOR SALE to put your fighter on the market. Other managers can buy them with Shells."
+  },
+  {
+    emoji: "💸",
+    label: "How you get paid",
+    text: "Primary NFTs pay out in TON directly. Secondary resales are credited as Shells to your balance."
+  },
+  {
+    emoji: "⚡",
+    label: "Staking power",
+    text: "Owning a fighter boosts your staking power in the arena — the more fighters you hold, the more you can stake."
+  },
+];
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans">
@@ -74,10 +114,12 @@ export default function MyRoster() {
           ))
         )}
       </div>
+    <AnimatePresence>
+        {showTour && <OnboardingTour steps={MYTEAM_TOUR} onDone={completeTour} />}
+      </AnimatePresence>
     </div>
   );
 }
-
 function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
   // ✅ ALL hooks MUST be at the top — before any conditional returns
   const [showIntel, setShowIntel] = useState(false);

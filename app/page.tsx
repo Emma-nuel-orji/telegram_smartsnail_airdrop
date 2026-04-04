@@ -11,7 +11,8 @@ import UserSyncManager from '@/src/utils/userSync';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import { useOnboardingTour } from '@/app/hooks/useOnboardingTour';
+import OnboardingTour, { TourStep } from '@/components/OnboardingTour';
 // --- TYPES ---
 type Click = {
   opacity: number;
@@ -62,7 +63,7 @@ export default function Home() {
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [videoError] = useState(false); // kept, unused but harmless
   const [notification] = useState<string | null>(null);
-
+  const { showTour, completeTour } = useOnboardingTour('home', user?.telegramId ?? null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const syncManager = useRef<UserSyncManager>();
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -81,11 +82,11 @@ export default function Home() {
 
 
 
-  // const resetAppSession = () => {
-  //   localStorage.clear();
-  //   window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
-  //   // OR: window.location.reload(); // if you prefer reloading the app
-  // };
+  const resetAppSession = () => {
+    localStorage.clear();
+    window.Telegram?.WebApp?.close(); // Optional: closes the Mini App
+    // OR: window.location.reload(); // if you prefer reloading the app
+  };
 
   
   const triggerHaptic = (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'medium') => {
@@ -112,6 +113,54 @@ export default function Home() {
     if (pts <= 10000000) return 'Sensory';
     return 'African Giant Snail/god NFT';
   };
+
+  const HOME_TOUR: TourStep[] = [
+  {
+    emoji: "🐚",
+    label: "Tap to earn",
+    text: "Tap the snail to earn Shells. The faster you tap, the more you earn."
+  },
+  {
+    emoji: "⚡",
+    label: "Energy bar",
+    text: "Your energy drains as you tap and refills automatically when you rest."
+  },
+  {
+    emoji: "🥊",
+    label: "Fight arena",
+    text: "Stake your Shells on real-life fighters and win big. Enter the arena and pick your champion."
+  },
+  {
+    emoji: "🏋️",
+    label: "Gym & combat classes",
+    text: "Use your Shells to pay for real-life gym services and combat sports classes. Your points have real value."
+  },
+  {
+    emoji: "🩸",
+    label: "Become a fighter",
+    text: "Register to become an official PolyCombat fighter and compete for real rewards."
+  },
+  {
+    emoji: "🛒",
+    label: "NFT Marketplace",
+    text: "Explore the NFT marketplace — buy PolyCombat NFTs and enjoy exclusive staking rewards and perks."
+  },
+  {
+    emoji: "🚀",
+    label: "Boost your rate",
+    text: "Explore the SmartSnail marketplace and boost your tapping rate to earn even more Shells per tap."
+  },
+  {
+    emoji: "👥",
+    label: "Invite frens",
+    text: "Tap FRENS to invite friends — you earn bonus Shells for every person you bring in."
+  },
+  {
+    emoji: "🏆",
+    label: "Leaderboard",
+    text: "Tap the trophy icon to see where you rank against other SmartSnail players worldwide."
+  },
+];
 
   // --- INIT ---
   useEffect(() => {
@@ -399,10 +448,10 @@ console.log('👤 Setting user with points:', finalUser.points);
       </div>
     )}
       </div>
-{/* 
+
        <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
-</button> */}
+</button>
 
       <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">
         <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50">
@@ -564,6 +613,9 @@ console.log('👤 Setting user with points:', finalUser.points);
           100% { transform: translateX(100%); }
         }
       `}</style>
+      <AnimatePresence>
+  {showTour && <OnboardingTour steps={HOME_TOUR} onDone={completeTour} />}
+</AnimatePresence>
     </div>
   );
 }

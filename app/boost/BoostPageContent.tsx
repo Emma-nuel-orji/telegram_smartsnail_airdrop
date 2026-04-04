@@ -15,6 +15,9 @@ import { useRouter } from "next/navigation";
 import { useWallet } from '../context/walletContext';
 import Confetti from "react-confetti";
 import { useWindowSize } from 'react-use';
+import { useOnboardingTour } from '../hooks/useOnboardingTour';
+import OnboardingTour, { TourStep } from '../../components/OnboardingTour';
+import { AnimatePresence } from 'framer-motion';
 // import TicketPurchaseSystem from '@/app/tickets/page';
 
 
@@ -169,6 +172,41 @@ useEffect(() => {
   const [showHumanRelationsInfo, setShowHumanRelationsInfo] = useState(false);
   const prevStockRef = useRef(stockLimit);
   
+  const { showTour, completeTour } = useOnboardingTour('boost', telegramId);
+
+const BOOST_TOUR: TourStep[] = [
+  {
+    emoji: "📚",
+    label: "Buy books to boost",
+    text: "Purchase real books by real authors to permanently upgrade your tapping rate and earn more Shells per tap."
+  },
+  {
+    emoji: "⚡",
+    label: "Tapping rate",
+    text: "FxckedUpBags gives +5 rate and 100,000 Shells. Human Relations gives +7 rate and 30,000 Shells per copy."
+  },
+  {
+    emoji: "💎",
+    label: "Two ways to pay",
+    text: "Pay with TON from your connected wallet, or pay with Telegram Stars — both unlock your boost instantly."
+  },
+  {
+    emoji: "📦",
+    label: "Limited supply",
+    text: "Each book has a limited stock of 10,000 copies. Once they sell out, that boost tier is gone forever."
+  },
+  {
+    emoji: "🎟️",
+    label: "Event tickets",
+    text: "Scroll down to buy tickets to real PolyCombat events — attend live fights and earn bonus Shells."
+  },
+  {
+    emoji: "🔑",
+    label: "Secret codes",
+    text: "Have a referral or promo code? Enter it at the bottom to redeem 100,000 bonus Shells instantly."
+  },
+];
+
 
   useEffect(() => {
     console.log("Purchase Email:", purchaseEmail);
@@ -859,6 +897,10 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         </div>
       </div>
     )}
-  </>
-);
+
+  <AnimatePresence>
+        {showTour && <OnboardingTour steps={BOOST_TOUR} onDone={completeTour} />}
+      </AnimatePresence>
+    </>
+  );
 }

@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
 import "./staking.css";
+import { useOnboardingTour } from '@/app/hooks/useOnboardingTour';
+import OnboardingTour, { TourStep } from '@/components/OnboardingTour';
 import Loader from '@/loader';
 // --- INTERFACES ---
 interface Fighter {
@@ -95,9 +97,48 @@ function getTimeRemaining(fightDate: string) {
   return { total, days, hours, minutes, seconds };
 }
 
+const STAKING_TOUR: TourStep[] = [
+  { 
+    emoji: "👆", 
+    label: "Stake on your fighter", 
+    text: "Drag UP on the bar to set how many Shells you want to bet on a fighter." 
+  },
+  { 
+    emoji: "🔒", 
+    label: "Lock & confirm", 
+    text: "Tap the bar once to LOCK your amount, then hit CONFIRM STAKE to submit." 
+  },
+  { 
+    emoji: "💳", 
+    label: "Two ways to pay", 
+    text: "Switch between POINTS (Shells) or STARS to place your stake — tap the toggle above the bar." 
+  },
+  { 
+    emoji: "🏅", 
+    label: "Team badges", 
+    text: "The small image on each fighter shows the NFT team backing them — their squad affects staking power." 
+  },
+  { 
+    emoji: "🥊", 
+    label: "Scout Talent button", 
+    text: "Tap SCOUT TALENT to view and sign the first ever real-life NFTs — PolyCombat fighters you can own." 
+  },
+  { 
+    emoji: "👉", 
+    label: "More fights & results", 
+    text: "Swipe left or right to see other upcoming fights and past results." 
+  },
+  { 
+    emoji: "💰", 
+    label: "Collect rewards", 
+    text: "After the fight ends, tap COLLECT REWARDS to claim your winnings instantly." 
+  },
+];
+
 // --- MAIN CONTENT COMPONENT ---
 export default function StakingPageContent() {
   const [telegramId, setTelegramId] = useState<string | null>(null);
+   const { showTour, completeTour } = useOnboardingTour('staking', telegramId);
   const [fights, setFights] = useState<Fight[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -244,17 +285,17 @@ const refreshUserPoints = async () => {
   onTouchEnd={handleTouchEnd}
 >
   {/* 2. This is the div that actually slides left/right */}
-  <div 
-    className="flex h-full transition-transform duration-500 ease-out"
-    style={{ transform: `translateX(-${currentIndex * 100}vw)` }}
-  >
-    {fights.map((fight) => (
-      <div key={fight.id} className="w-screen flex-shrink-0 px-4 flex flex-col">
-        <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} onStakeSuccess={refreshUserPoints} />
+      <div 
+        className="flex h-full transition-transform duration-500 ease-out"
+        style={{ transform: `translateX(-${currentIndex * 100}vw)` }}
+        >
+          {fights.map((fight) => (
+            <div key={fight.id} className="w-screen flex-shrink-0 px-4 flex flex-col">
+              <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} onStakeSuccess={refreshUserPoints} />
+            </div>
+          ))}
+        </div>
       </div>
-    ))}
-  </div>
-</div>
 
       {/* Pagination Dots */}
       <div className="flex justify-center gap-2 p-8 relative z-50">
@@ -271,7 +312,14 @@ const refreshUserPoints = async () => {
       <div className="fixed top-20 left-4 bg-black/80 p-2 rounded text-xs z-50">
         Fight {currentIndex + 1} of {fights.length}
       </div>
+
+
+      <AnimatePresence>
+        {showTour && <OnboardingTour steps={STAKING_TOUR} onDone={completeTour} />}
+      </AnimatePresence>
     </div>
+
+
   );
 }
 function FighterModal({ fighter,  onClose, userStakes = [],fight }: { fighter: any, onClose: () => void, userStakes?: any[], fight?: any 

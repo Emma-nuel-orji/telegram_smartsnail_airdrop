@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Wallet, Zap, Shield, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWallet } from '../context/walletContext';
 import { User } from 'lucide-react';
-
+import { useOnboardingTour } from '../hooks/useOnboardingTour';
+import OnboardingTour, { TourStep } from '../../components/OnboardingTour';
+// import { motion, AnimatePresence } from 'framer-motion';
 interface Fighter {
   id: string;
   name: string;
@@ -43,6 +45,43 @@ export default function RecruitmentOffice() {
         setLoading(false);
       });
   }, []);
+
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+
+useEffect(() => {
+  const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString();
+  if (id) setTelegramId(id);
+}, []);
+
+const { showTour, completeTour } = useOnboardingTour('recruitment', telegramId);
+
+const RECRUITMENT_TOUR: TourStep[] = [
+  {
+    emoji: "🥊",
+    label: "Real-life NFTs",
+    text: "These are the first ever real-life NFTs — actual PolyCombat fighters you can sign and own."
+  },
+  {
+    emoji: "📋",
+    label: "Sign a fighter",
+    text: "Tap any fighter card to view their stats and sign them to your roster using TON or Shells."
+  },
+  {
+    emoji: "💰",
+    label: "Earn as a manager",
+    text: "Once you sign a fighter, you earn 10% from every stake placed on them in the arena."
+  },
+  {
+    emoji: "🔄",
+    label: "Resell your NFT",
+    text: "Don't want a fighter anymore? List them back on the market and earn Shells from the resale."
+  },
+  {
+    emoji: "👤",
+    label: "Your roster",
+    text: "Tap the blue button in the top right to view all the fighters you currently own."
+  },
+];
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col">
@@ -118,6 +157,9 @@ export default function RecruitmentOffice() {
           <Zap size={20} className="text-yellow-400 fill-yellow-400" />
         </div>
       </div>
+    <AnimatePresence>
+        {showTour && <OnboardingTour steps={RECRUITMENT_TOUR} onDone={completeTour} />}
+      </AnimatePresence>
     </div>
   );
 }
