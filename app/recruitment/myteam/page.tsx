@@ -17,6 +17,8 @@ interface Fighter {
   losses: number;
   salePriceTon?: number;
   ownerId?: string;
+  currentStreak: number; 
+  isPrivate?: boolean;
   collection?: { name: string };
   isForSale: boolean;
 }
@@ -52,30 +54,29 @@ const { showTour, completeTour } = useOnboardingTour('myteam', telegramId);
 
 const MYTEAM_TOUR: TourStep[] = [
   {
+    targetId: "first-nft-card",
     emoji: "🏆",
-    label: "Your PolyCombat NFTs",
-    text: "These are the real-life fighters you own. Each one is a unique 1-of-1 NFT on the TON blockchain."
+    label: "Your Assets",
+    text: "Every fighter here earns you 50% of all stakes placed on them. They are your 1-of-1 digital employees."
   },
   {
+    targetId: "intel-btn-0",
     emoji: "📊",
-    label: "Asset intel",
-    text: "Tap the blue target icon on any fighter to see their full combat record and earnings history."
+    label: "Performance Tracking",
+    text: "Check 'Asset Intel' to see their win streak. Remember: 3 wins in a row triggers a FREE NFT reward!"
   },
   {
+    targetId: "list-btn-0",
     emoji: "🛒",
-    label: "List for sale",
-    text: "Tap LIST FOR SALE to put your fighter on the market. Other managers can buy them with Shells."
+    label: "Exit Strategy",
+    text: "Ready to take profits? List your fighter for sale. Secondary sales are credited to your Shells balance."
   },
   {
+    targetId: "valuation-box-0",
     emoji: "💸",
-    label: "How you get paid",
-    text: "Primary NFTs pay out in TON directly. Secondary resales are credited as Shells to your balance."
-  },
-  {
-    emoji: "⚡",
-    label: "Staking power",
-    text: "Owning a fighter boosts your staking power in the arena — the more fighters you hold, the more you can stake."
-  },
+    label: "Payout Logic",
+    text: "Primary fighters pay in TON. Resold fighters pay in Shells, which you can use for high-stakes arena entries."
+  }
 ];
 
   return (
@@ -109,18 +110,24 @@ const MYTEAM_TOUR: TourStep[] = [
             </Link>
           </div>
         ) : (
-          fighters.map((fighter) => (
-            <PolyCombatNFTCard key={fighter.id} fighter={fighter} />
+          fighters.map((fighter, index) => ( 
+      <PolyCombatNFTCard 
+        key={fighter.id} 
+        fighter={fighter} 
+        index={index}
+      />
           ))
         )}
       </div>
     <AnimatePresence>
         {showTour && <OnboardingTour steps={MYTEAM_TOUR} onDone={completeTour} />}
       </AnimatePresence>
+  {/* THE POPUP LAYER */}
+      <div id="popup-layer" className="fixed inset-0 pointer-events-none z-[9999]" />
     </div>
   );
 }
-function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
+function PolyCombatNFTCard({ fighter, index }: { fighter: Fighter; index: number }) {
   // ✅ ALL hooks MUST be at the top — before any conditional returns
   const [showIntel, setShowIntel] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -185,6 +192,7 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
  return (
   <>
     <motion.div 
+    id={index === 0 ? "first-nft-card" : undefined}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative group bg-gradient-to-b from-zinc-800/40 to-black p-[1px] rounded-3xl border border-white/5 hover:border-blue-500/50 transition-all duration-500 overflow-hidden"
@@ -237,7 +245,7 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
         </div>
 
         {/* --- DUAL CURRENCY DISPLAY BLOCK --- */}
-        <div className="bg-zinc-900/50 rounded-2xl p-3 border border-white/5">
+        <div id={index === 0 ? "valuation-box-0" : undefined} className="bg-zinc-900/50 rounded-2xl p-3 border border-white/5">
           <div className="flex justify-between items-center mb-1">
             <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest">Market Valuation</span>
             <span className="text-[7px] font-black text-blue-500 uppercase">
@@ -268,7 +276,7 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-            <button 
+            <button id={index === 0 ? "list-btn-0" : undefined}
               onClick={fighter.isForSale ? handleWithdraw : handleListForSale}
               disabled={isUpdating}
               className={`flex-1 py-2 text-[9px] font-black uppercase rounded-xl border transition-all ${
@@ -280,7 +288,7 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
               {isUpdating ? "SYNCING..." : fighter.isForSale ? "Withdraw Asset" : "List for Sale"}
             </button>
 
-            <button 
+            <button id={index === 0 ? "intel-btn-0" : undefined}
               onClick={() => setShowIntel(true)}
               className="px-3 bg-blue-600/10 border border-blue-500/30 text-blue-500 rounded-xl hover:bg-blue-600/20 transition-all"
             >
@@ -304,21 +312,46 @@ function PolyCombatNFTCard({ fighter }: { fighter: Fighter }) {
 
             <h2 className="text-lg font-black italic uppercase text-blue-500 mb-4">Asset Intel</h2>
             
-            <div className="space-y-4">
-              <div className="flex justify-between border-b border-zinc-800 pb-2">
-                <span className="text-[10px] text-zinc-500 uppercase font-bold">Combat Record</span>
-                <span className="text-[10px] font-mono text-white">{fighter.wins}W - {fighter.losses}L</span>
-              </div>
-              <div className="flex justify-between border-b border-zinc-800 pb-2">
-                <span className="text-[10px] text-zinc-500 uppercase font-bold">Shells Earned</span>
-                <span className="text-[10px] font-mono text-yellow-500">{(fighter.wins * 150).toLocaleString()} 🐚</span>
-              </div>
-              <div className="flex justify-between border-b border-zinc-800 pb-2">
-                <span className="text-[10px] text-zinc-500 uppercase font-bold">Ownership ID</span>
-                <span className="text-[10px] font-mono text-zinc-400">
-                  {fighter.ownerId?.slice(0, 6)}...{fighter.ownerId?.slice(-4)}
-                </span>
-              </div>
+           <div className="space-y-4">
+  <div className="flex justify-between border-b border-zinc-800 pb-2">
+    <span className="text-[10px] text-zinc-500 uppercase font-bold">Combat Record</span>
+    <span className="text-[10px] font-mono text-white">{fighter.wins}W - {fighter.losses}L</span>
+  </div>
+
+  {/* NEW: Streak Tracker */}
+  <div className="flex justify-between border-b border-zinc-800 pb-2">
+    <span className="text-[10px] text-zinc-500 uppercase font-bold">Current Streak</span>
+    <div className="flex flex-col items-end">
+      <span className="text-[10px] font-mono text-blue-400">{fighter.currentStreak} Wins</span>
+      <span className="text-[7px] text-zinc-600 uppercase font-bold">
+        {3 - (fighter.currentStreak % 3)} more to Free NFT
+      </span>
+    </div>
+  </div>
+
+  <div className="flex justify-between border-b border-zinc-800 pb-2">
+    <span className="text-[10px] text-zinc-500 uppercase font-bold">Estimated Earnings</span>
+    <span className="text-[10px] font-mono text-yellow-500">
+      {((fighter.wins || 0) * 150).toLocaleString()} 🐚
+    </span>
+  </div>
+
+  <div className="flex justify-between border-b border-zinc-800 pb-2">
+    <span className="text-[10px] text-zinc-500 uppercase font-bold">Management Tier</span>
+    <span className="text-[10px] font-mono text-green-500">50% INSTANT CUT</span>
+  </div>
+</div>
+
+            {/* // Inside your Intel Modal Overlay */}
+            <div className="flex justify-between border-b border-zinc-800 pb-2">
+              <span className="text-[10px] text-zinc-500 uppercase font-bold">Streak Progress</span>
+              <span className="text-[10px] font-mono text-blue-400">
+                {fighter.currentStreak % 3}/3 Wins to Next NFT
+              </span>
+            </div>
+            <div className="flex justify-between border-b border-zinc-800 pb-2">
+              <span className="text-[10px] text-zinc-500 uppercase font-bold">Management Tier</span>
+              <span className="text-[10px] font-mono text-green-500">50% Commission</span>
             </div>
 
             <button 

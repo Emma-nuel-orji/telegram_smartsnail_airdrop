@@ -176,34 +176,40 @@ useEffect(() => {
 
 const BOOST_TOUR: TourStep[] = [
   {
+    targetId: "boost-books-list", // 👈 Changed from 'target' to 'targetId'
     emoji: "📚",
     label: "Buy books to boost",
-    text: "Purchase real books by real authors to permanently upgrade your tapping rate and earn more Shells per tap."
+    text: "Purchase real books by real authors to permanently upgrade your tapping rate."
   },
   {
+    targetId: "checkout-summary", 
     emoji: "⚡",
     label: "Tapping rate",
-    text: "FxckedUpBags gives +5 rate and 100,000 Shells. Human Relations gives +7 rate and 30,000 Shells per copy."
+    text: "FxckedUpBags gives +5 rate. Human Relations gives +7 rate per copy."
   },
   {
+    targetId: "checkout-summary", 
     emoji: "💎",
     label: "Two ways to pay",
-    text: "Pay with TON from your connected wallet, or pay with Telegram Stars — both unlock your boost instantly."
+    text: "Pay with TON or Telegram Stars — both unlock your boost instantly."
   },
   {
+    targetId: "supply-tracker", 
     emoji: "📦",
     label: "Limited supply",
-    text: "Each book has a limited stock of 10,000 copies. Once they sell out, that boost tier is gone forever."
+    text: "Each book has a limited stock. Once they sell out, that boost is gone."
   },
   {
+    targetId: "ticket-section", 
     emoji: "🎟️",
     label: "Event tickets",
-    text: "Scroll down to buy tickets to real PolyCombat events — attend live fights and earn bonus Shells."
+    text: "Scroll down to buy tickets to real PolyCombat events."
   },
   {
+    targetId: "referral-section", 
     emoji: "🔑",
     label: "Secret codes",
-    text: "Have a referral or promo code? Enter it at the bottom to redeem 100,000 bonus Shells instantly."
+    text: "Enter a referral or promo code to redeem 100,000 bonus Shells."
   },
 ];
 
@@ -735,7 +741,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         </header>
 
         {/* BOOKS GRID */}
-        <div className="grid gap-4">
+        <div id="boost-books-list" className="grid gap-4">
           {[
             {
               id: 'fub',
@@ -796,7 +802,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
               </div>
 
               {/* PROGRESS BAR */}
-              <div className="space-y-1">
+              <div id="supply-tracker" className="space-y-1">
                 <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter text-zinc-500">
                   <span>Supply Status</span>
                   <span>{book.used.toLocaleString()} / {book.limit.toLocaleString()}</span>
@@ -813,7 +819,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         </div>
 
         {/* SUMMARY & CHECKOUT */}
-        <div className="bg-purple-600/10 border-2 border-purple-500/30 rounded-[2.5rem] p-6 space-y-6">
+        <div id="checkout-summary" className="bg-purple-600/10 border-2 border-purple-500/30 rounded-[2.5rem] p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-black/40 p-3 rounded-2xl border border-white/5">
               <p className="text-[10px] text-zinc-500 font-bold uppercase">Tap Boost</p>
@@ -855,7 +861,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         </div>
 
         {/* REDEMPTION SECTION */}
-        <div className="border-t border-zinc-800 pt-8 space-y-4">
+        <div id="referral-section" className="border-t border-zinc-800 pt-8 space-y-4">
           <h3 className="text-center font-black italic uppercase tracking-widest text-zinc-500 text-sm">Have a secret code?</h3>
           <div className="bg-zinc-900/30 p-4 rounded-3xl border border-zinc-800 space-y-3">
              <input type="text" value={uniqueCode} onChange={(e) => setUniqueCode(e.target.value)} placeholder="Enter Code" className="w-full bg-transparent border-b border-zinc-800 p-3 outline-none focus:border-purple-500 font-bold italic text-center text-xl"/>
@@ -864,7 +870,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         </div>
 
         {/* TICKET SECTION */}
-        <div className="pt-10">
+        <div id="ticket-section" className="pt-10">
           <div className="flex items-center gap-4 mb-6">
             <div className="h-px flex-1 bg-zinc-800"></div>
             <h2 className="font-black italic uppercase text-zinc-500">Event Tickets</h2>

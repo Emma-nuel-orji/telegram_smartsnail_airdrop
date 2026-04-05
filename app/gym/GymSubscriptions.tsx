@@ -30,31 +30,31 @@ export default function GymSubscriptions() {
 
 
 console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
-
-  useEffect(() => {
+useEffect(() => {
+    // 1. Get Telegram User ID
     const userId = webApp?.initDataUnsafe?.user?.id?.toString();
-    console.log("👤 TELEGRAM USER:", userId || "NOT FOUND");
     if (userId) setTelegramId(userId);
   }, [webApp]);
 
   useEffect(() => {
-    // LOG 2: Check the "Firewall" conditions
-    console.log("🛡️ FIREWALL CHECK:", { 
-      hasTelegramId: !!telegramId, 
-      hasGymId: !!gymId, 
-      gymIdLength: gymId?.length 
-    });
+    // 2. The "Patient" Firewall
+    // Stay in loading state until we have both a user and a gymId
+    if (!telegramId || !gymId) {
+      console.log("⏳ Waiting for Telegram ID and Gym ID...");
+      return; 
+    }
 
-    if (!telegramId || !gymId || gymId.length !== 24) {
-      if (telegramId) {
-        console.warn("⛔ FETCH ABORTED: gymId is missing or invalid format.");
-        setLoading(false);
-      }
+    // 3. Validation: If the ID is clearly broken, stop loading and show "Offline"
+    if (gymId.length !== 24) {
+      console.warn("⛔ INVALID ID FORMAT:", gymId);
+      setLoading(false);
       return;
     }
 
     async function fetchData() {
       console.log("📡 API CALL STARTING for Gym:", gymId);
+      setLoading(true); 
+      
       try {
         const [userRes, subsRes, activeRes] = await Promise.all([
           fetch(`/api/user/${telegramId}`),
@@ -62,51 +62,45 @@ console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toStri
           fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
         ]);
 
-        console.log("📥 API RESPONSES RECEIVED:", {
-          userStatus: userRes.status,
-          servicesStatus: subsRes.status,
-          activeSubStatus: activeRes.status
-        });
+        // Check if any requests failed fundamentally
+        if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
         const userData = await userRes.json();
         const subsData = await subsRes.json();
         
-        console.log("📊 DATA PARSED:", {
-          userPoints: userData.points,
-          availablePlansCount: subsData.length
-        });
-        if (userData.nickname && userData.name) setIsRegistered(true);
-        if (userData.permissions?.includes('SUPERADMIN') || userData.permissions?.includes('GYM_ADMIN')) {
-          setIsAdmin(true);
-        }
+        // Update User State
         setShells(Number(userData.points || 0));
-        
-        // const subsData = await subsRes.json();
+        setIsRegistered(!!(userData.nickname && userData.name));
+        setIsAdmin(userData.permissions?.some((p: string) => 
+          ['SUPERADMIN', 'GYM_ADMIN'].includes(p)
+        ));
+
+        // Update Subscriptions List
         setSubscriptions(Array.isArray(subsData) ? subsData : []);
 
-      if (activeRes.ok) {
-  const subData = await activeRes.json();
-  console.log("✨ ACTIVE SUB DATA:", subData);
-  
-  // Handle case where API returns a single object or an array
-  const activeSubscription = Array.isArray(subData) 
-    ? subData.find(s => s.status === 'ACTIVE') // Better: find the active one in the list
-    : subData;
-    
-  if (activeSubscription && activeSubscription.status === 'ACTIVE') {
-    setActiveSub(activeSubscription);
-  } else {
-    setActiveSub(null); 
-  }
-}
+        // Update Active Subscription Status
+        if (activeRes.ok) {
+          const subData = await activeRes.json();
+          const activeSubscription = Array.isArray(subData) 
+            ? subData.find((s: any) => s.status === 'ACTIVE') 
+            : subData;
+            
+          if (activeSubscription?.status === 'ACTIVE') {
+            setActiveSub(activeSubscription);
+          } else {
+            setActiveSub(null);
+          }
+        }
       } catch (err) {
-        console.error("Fetch Error:", err);
+        console.error("❌ Fetch Error:", err);
+        toast.error("Failed to sync with gym database.");
       } finally {
         setLoading(false);
       }
     }
+
     fetchData();
-  }, [telegramId, gymId]);
+  }, [telegramId, gymId]); 
 
   const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
     const amount = currency === 'SHELLS' ? plan.priceShells : plan.priceStars;

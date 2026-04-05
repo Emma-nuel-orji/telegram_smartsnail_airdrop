@@ -68,7 +68,7 @@ export default function Home() {
   const syncManager = useRef<UserSyncManager>();
   const inactivityTimeout = useRef<NodeJS.Timeout | null>(null);
   const { isConnected, walletAddress } = useWallet();
-
+  const canShowTour = showTour && !showWelcomePopup && !isLoading;
   const maxEnergy = 1500;
   const ENERGY_REDUCTION_RATE = 20;
   const STORAGE_KEY = (telegramId: string) => `user_${telegramId}`;
@@ -114,54 +114,44 @@ export default function Home() {
     return 'African Giant Snail/god NFT';
   };
 
-  const HOME_TOUR: TourStep[] = [
+ const HOME_TOUR: TourStep[] = [
   {
+    targetId: "clicker-main", // ID for the central snail video
     emoji: "🐚",
     label: "Tap to earn",
     text: "Tap the snail to earn Shells. The faster you tap, the more you earn."
   },
   {
+    targetId: "energy-section", // ID for the rocket energy bar
     emoji: "⚡",
     label: "Energy bar",
     text: "Your energy drains as you tap and refills automatically when you rest."
   },
   {
+    targetId: "nav-staking", // ID for the gloves icon
     emoji: "🥊",
     label: "Fight arena",
-    text: "Stake your Shells on real-life fighters and win big. Enter the arena and pick your champion."
+    text: "Stake your Shells on real-life fighters and win big."
   },
   {
-    emoji: "🏋️",
-    label: "Gym & combat classes",
-    text: "Use your Shells to pay for real-life gym services and combat sports classes. Your points have real value."
-  },
-  {
-    emoji: "🩸",
-    label: "Become a fighter",
-    text: "Register to become an official PolyCombat fighter and compete for real rewards."
-  },
-  {
+    targetId: "nav-marketplace", // ID for the shop icon
     emoji: "🛒",
     label: "NFT Marketplace",
-    text: "Explore the NFT marketplace — buy PolyCombat NFTs and enjoy exclusive staking rewards and perks."
+    text: "Explore the marketplace — buy PolyCombat NFTs and enjoy exclusive rewards."
   },
   {
-    emoji: "🚀",
-    label: "Boost your rate",
-    text: "Explore the SmartSnail marketplace and boost your tapping rate to earn even more Shells per tap."
-  },
-  {
+    targetId: "bottom-frens", // ID for the FRENS button
     emoji: "👥",
     label: "Invite frens",
-    text: "Tap FRENS to invite friends — you earn bonus Shells for every person you bring in."
+    text: "Tap FRENS to invite friends — you earn bonus Shells for every referral."
   },
   {
+    targetId: "header-rank", // ID for the trophy/rank icon in header
     emoji: "🏆",
     label: "Leaderboard",
-    text: "Tap the trophy icon to see where you rank against other SmartSnail players worldwide."
+    text: "Check where you rank against other players worldwide."
   },
 ];
-
   // --- INIT ---
   useEffect(() => {
     const initApp = async () => {
@@ -406,7 +396,7 @@ console.log('👤 Setting user with points:', finalUser.points);
         </div>
         
         <div className="flex items-center gap-3 bg-white/5 backdrop-blur-lg p-1.5 rounded-2xl border border-white/10">
-          <Link href="/Leaderboard">
+          <Link href="/Leaderboard" id="header-rank">
             <img src="/images/info/output-onlinepngtools (4).png" className="w-6 h-6 p-1" alt="rank" />
           </Link>
           <ConnectButton />
@@ -456,12 +446,12 @@ console.log('👤 Setting user with points:', finalUser.points);
       <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">
         <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50">
           {[
-            { href: "/staking", img: "/images/boxing-gloves.png" },
+            { href: "/staking", img: "/images/boxing-gloves.png", id: "nav-staking" },
             { href: "/gym", img: "/images/gym.png" },
             { href: "/register", img: "/images/register.png" },
-            { href: "/marketplace", img: "/images/shop.png" }
+            { href: "/marketplace", img: "/images/shop.png", id: "nav-marketplace" }
           ].map((item, idx) => (
-            <Link key={idx} href={item.href}>
+            <Link key={idx} href={item.href} id={item.id}>
               <div
                 onPointerDown={() => triggerHaptic('rigid')}
                 className="w-12 h-12 bg-purple-900/40 backdrop-blur-xl border border-purple-500/30 rounded-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl">
@@ -473,6 +463,7 @@ console.log('👤 Setting user with points:', finalUser.points);
 
         {/* CLICKER VIDEO WITH REPAIRED VIBRATION */}
         <motion.div
+        id="clicker-main"
           onPointerDown={(e) => {
             if (showWelcomePopup || energy <= 0) return;
             setIsPressing(true);
@@ -533,7 +524,7 @@ console.log('👤 Setting user with points:', finalUser.points);
       </div>
 
       <div className="fixed bottom-0 left-0 w-full z-40 p-6 pb-8 bg-gradient-to-t from-[#0f021a] via-[#0f021a]/90 to-transparent">
-        <div className="max-w-md mx-auto pointer-events-auto">
+        <div className="max-w-md mx-auto pointer-events-auto" id="energy-section">
           {/* HIGH VISIBILITY ROCKET FIRE ENERGY BAR */}
           <div className="flex justify-between items-end mb-2 px-1">
             <div className="flex items-center gap-2">
@@ -554,7 +545,7 @@ console.log('👤 Setting user with points:', finalUser.points);
           </div>
 
           <nav className="mt-6 bg-[#1a0b2e]/90 backdrop-blur-2xl border border-purple-500/20 rounded-[2.5rem] flex items-center justify-around p-2 shadow-2xl">
-            <Link href="/referralsystem" className="flex flex-col items-center py-2 px-6 rounded-3xl hover:bg-white/5 transition-all">
+            <Link href="/referralsystem" id="bottom-frens" className="flex flex-col items-center py-2 px-6 rounded-3xl hover:bg-white/5 transition-all">
               <img src="/images/SNAILNEW.png" className="w-8 h-8" alt="frens" />
               <span className="text-[9px] font-black mt-1 text-zinc-400">FRENS</span>
             </Link>
@@ -614,7 +605,7 @@ console.log('👤 Setting user with points:', finalUser.points);
         }
       `}</style>
       <AnimatePresence>
-  {showTour && <OnboardingTour steps={HOME_TOUR} onDone={completeTour} />}
+  {canShowTour && <OnboardingTour steps={HOME_TOUR} onDone={completeTour} />}
 </AnimatePresence>
     </div>
   );

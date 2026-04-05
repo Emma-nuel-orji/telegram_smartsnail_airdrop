@@ -57,35 +57,40 @@ const { showTour, completeTour } = useOnboardingTour('recruitment', telegramId);
 
 const RECRUITMENT_TOUR: TourStep[] = [
   {
+    targetId: "market-stats",
+    emoji: "📊",
+    label: "Market Analysis",
+    text: "This is the PolyCombat NFT marketplace. These are the first ever real-life unique NFTs — you can sign and own them and they generate rewards for you."
+  },
+
+   {
+    targetId: "market-stats", // Highlights the Active Deals/Value box
     emoji: "🥊",
     label: "Real-life NFTs",
     text: "These are the first ever real-life NFTs — actual PolyCombat fighters you can sign and own."
   },
   {
+    targetId: "fighter-card-0",
     emoji: "📋",
-    label: "Sign a fighter",
-    text: "Tap any fighter card to view their stats and sign them to your roster using TON or Shells."
+    label: "Sign Talent",
+    text: "Recruit a fighter to your team. Once you own them, you earn 50% of every stake placed on them instantly!"
   },
   {
-    emoji: "💰",
-    label: "Earn as a manager",
-    text: "Once you sign a fighter, you earn 10% from every stake placed on them in the arena."
+    targetId: "management-bonus-bar",
+    emoji: "🎁",
+    label: "Owner Rewards",
+    text: "Managers also get a 10% bonus from the winner's pot and a FREE NFT for every 3-win streak."
   },
   {
-    emoji: "🔄",
-    label: "Resell your NFT",
-    text: "Don't want a fighter anymore? List them back on the market and earn Shells from the resale."
-  },
-  {
+    targetId: "my-roster-btn",
     emoji: "👤",
-    label: "Your roster",
-    text: "Tap the blue button in the top right to view all the fighters you currently own."
+    label: "Your Empire",
+    text: "Access your roster here to see your active fighters and claim your accumulated management earnings."
   },
 ];
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col">
-      {/* Shimmer Effect Global CSS */}
       <style jsx global>{`
         @keyframes shimmer {
           0% { transform: translateX(-150%) skewX(-20deg); }
@@ -102,69 +107,70 @@ const RECRUITMENT_TOUR: TourStep[] = [
 
       {/* Header Area */}
       <header className="p-6 border-b border-zinc-900 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-  <div className="flex justify-between items-center mb-4">
-    <Link href="/staking" className="p-2 bg-zinc-900 rounded-full"><ChevronLeft /></Link>
-    <div className="text-center">
-       <h1 className="text-xl font-black italic uppercase tracking-tighter">Scouting Deck</h1>
-       <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.3em]">PolyCombat NFTs</p>
-    </div>
-    
-    {/* NEW: Button to My Roster */}
-    <Link href="/recruitment/myteam" className="relative p-2 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-900/40">
-      <User size={20} />
-      
-      {/* The Notification Badge */}
-      {hasNewEarnings && (
-        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-black"></span>
-        </span>
-      )}
-    </Link>
-  </div>
-</header>
+        <div className="flex justify-between items-center mb-4">
+          <Link href="/staking" className="p-2 bg-zinc-900 rounded-full"><ChevronLeft /></Link>
+          <div className="text-center">
+             <h1 className="text-xl font-black italic uppercase tracking-tighter">Scouting Deck</h1>
+             <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.3em]">PolyCombat NFTs</p>
+          </div>
+          
+          <Link href="/recruitment/myteam" id="my-roster-btn" className="relative p-2 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-900/40">
+            <User size={20} />
+            {hasNewEarnings && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-black"></span>
+              </span>
+            )}
+          </Link>
+        </div>
+      </header>
 
-      {/* Market Stats */}
-      <div className="p-6 grid grid-cols-2 gap-3">
-       <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-          <p className="text-[8px] text-zinc-500 font-black uppercase">Active Deals</p>
-          <p className="text-lg font-mono font-bold">{activeDeals}</p>
-        </div>
-        <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-          <p className="text-[8px] text-zinc-500 font-black uppercase">Market Value</p>
-          <p className="text-lg font-mono font-bold text-blue-400">{totalVolume.toFixed(1)} TON</p>
-        </div>
+      {/* Market Stats (Tour Step 1) */}
+      <div id="market-stats" className="p-6 grid grid-cols-2 gap-3">
+         <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
+            <p className="text-[8px] text-zinc-500 font-black uppercase">Active Deals</p>
+            <p className="text-lg font-mono font-bold">{activeDeals}</p>
+          </div>
+          <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
+            <p className="text-[8px] text-zinc-500 font-black uppercase">Market Value</p>
+            <p className="text-lg font-mono font-bold text-blue-400">{totalVolume.toFixed(1)} TON</p>
+          </div>
       </div>
 
-      {/* NFT Grid */}
+      {/* NFT Grid (First card will have id="fighter-card-0") */}
       <div className="flex-1 p-6 grid grid-cols-2 gap-6 overflow-y-auto pb-24">
-        {fighters.map((fighter: any) => (
-          <FighterNFTCard key={fighter.id} fighter={fighter} />
+        {fighters.map((fighter: any, index: number) => (
+          <FighterNFTCard key={fighter.id} fighter={fighter} index={index} />
         ))}
       </div>
 
-      {/* Footer Instructions */}
+      {/* Footer Instructions (Tour Step 3) */}
       <div className="fixed bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black to-transparent pointer-events-none">
-        <div className="bg-blue-600 p-4 rounded-2xl flex items-center justify-between pointer-events-auto shadow-2xl shadow-blue-900/50">
+        <div id="management-bonus-bar" className="bg-blue-600 p-4 rounded-2xl flex items-center justify-between pointer-events-auto shadow-2xl shadow-blue-900/50">
           <div className="flex items-center gap-3">
             <Shield className="text-white" size={20} />
             <div>
               <p className="text-[10px] font-black uppercase leading-none">Management Bonus</p>
-              <p className="text-[9px] text-blue-100 opacity-80">Earn 10% from every stake</p>
+              <p className="text-[9px] text-blue-100 opacity-80">Earn up to 50% from every stake</p>
             </div>
           </div>
           <div className="h-8 w-[1px] bg-white/20" />
           <Zap size={20} className="text-yellow-400 fill-yellow-400" />
         </div>
       </div>
-    <AnimatePresence>
-        {showTour && <OnboardingTour steps={RECRUITMENT_TOUR} onDone={completeTour} />}
+
+      <AnimatePresence>
+        {showTour && !loading && <OnboardingTour steps={RECRUITMENT_TOUR} onDone={completeTour} />}
       </AnimatePresence>
+
+      {/* THE POPUP LAYER (Required for tour/interaction feedback) */}
+      <div id="popup-layer" className="fixed inset-0 pointer-events-none z-[9999]" />
     </div>
   );
 }
 
-function FighterNFTCard({ fighter }: { fighter: any }) {
+function FighterNFTCard({ fighter, index }: { fighter: any; index: number }) {
   const { isConnected, tonConnectUI, walletAddress } = useWallet();
   const [isProcessing, setIsProcessing] = useState(false);
   const shellPrice = fighter.salePriceShells || (fighter.salePriceTon ? fighter.salePriceTon * 1000 : 5000);
@@ -261,7 +267,7 @@ function FighterNFTCard({ fighter }: { fighter: any }) {
 };
 
   return (
-    <motion.div className="relative flex flex-col p-3 bg-zinc-900/50 rounded-2xl border border-zinc-800">
+    <motion.div id={index === 0 ? "fighter-card-0" : undefined} className="relative flex flex-col p-3 bg-zinc-900/50 rounded-2xl border border-zinc-800">
       <img src={fighter.imageUrl} className="w-full aspect-square object-cover rounded-xl mb-3" />
       <h3 className="text-xs font-black uppercase italic">{fighter.name}</h3>
       
