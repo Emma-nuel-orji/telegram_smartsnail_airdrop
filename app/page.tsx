@@ -119,7 +119,7 @@ export default function Home() {
     targetId: "clicker-main", // ID for the central snail video
     emoji: "🐚",
     label: "Tap to earn",
-    text: "Tap the snail to earn Shells. The faster you tap, the more you earn."
+    text: "Tap the snail repeatedly to earn points. The faster you tap, the more you earn."
   },
   {
     targetId: "energy-section", // ID for the rocket energy bar
@@ -137,7 +137,7 @@ export default function Home() {
     targetId: "nav-marketplace", // ID for the shop icon
     emoji: "🛒",
     label: "NFT Marketplace",
-    text: "Explore the marketplace — buy PolyCombat NFTs and enjoy exclusive rewards."
+    text: "Explore the marketplace — buy SmartSnails or Manchies NFTs and enjoy exclusive rewards."
   },
   {
     targetId: "bottom-frens", // ID for the FRENS button
@@ -150,6 +150,13 @@ export default function Home() {
     emoji: "🏆",
     label: "Leaderboard",
     text: "Check where you rank against other players worldwide."
+  },
+
+  {
+    targetId: "gym-membership-card",
+    emoji: "🐚",
+    label: "Shell-Powered Fitness",
+    text: "Use your earned Shells to pay for memberships at our partnered elite gyms. Your tapping literally pays for your training."
   },
 ];
   // --- INIT ---
@@ -447,7 +454,7 @@ console.log('👤 Setting user with points:', finalUser.points);
         <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50">
           {[
             { href: "/staking", img: "/images/boxing-gloves.png", id: "nav-staking" },
-            { href: "/gym", img: "/images/gym.png" },
+            { href: "/gym", img: "/images/gym.png",id:"gym-membership-card" },
             { href: "/register", img: "/images/register.png" },
             { href: "/marketplace", img: "/images/shop.png", id: "nav-marketplace" }
           ].map((item, idx) => (
