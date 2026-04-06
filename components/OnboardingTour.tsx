@@ -85,56 +85,72 @@ export default function OnboardingTour({ steps, onDone }: Props) {
       />
 
       {/* 3. FLOATING TOOLTIP */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, y: isTooltipAbove ? 20 : -20 }}
-          animate={{ 
-            opacity: 1, 
-            y: 0,
-            top: isTooltipAbove ? (coords.top - 180) : (coords.top + coords.height + 24),
-            left: Math.max(20, Math.min(window.innerWidth - 300, coords.left - 20))
-          }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="absolute w-[280px] pointer-events-auto z-[10002]"
+
+<AnimatePresence mode="wait">
+  <motion.div
+    key={step}
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ 
+      opacity: 1, 
+      scale: 1,
+      // Logic: Position it relative to the target, but "clamped" within screen bounds
+      top: isTooltipAbove 
+        ? Math.max(10, coords.top - 210) // Prevents going off the top
+        : Math.min(window.innerHeight - 250, coords.top + coords.height + 20), // Prevents going off the bottom
+      
+      // Magic Centering: Try to center on target, but keep at least 20px from screen edges
+      left: Math.max(20, Math.min(window.innerWidth - 300, coords.left + (coords.width / 2) - 140))
+    }}
+    exit={{ opacity: 0, scale: 0.95 }}
+    // Changed to fixed for better stability during scrolls
+    className="fixed w-[280px] pointer-events-auto z-[10002]"
+  >
+    {/* Arrow - Centered relative to the target if possible */}
+    <div 
+      className={`absolute w-4 h-4 bg-zinc-950 rotate-45 border-zinc-800 ${
+        isTooltipAbove ? '-bottom-2 border-r border-b' : '-top-2 border-l border-t'
+      }`} 
+      style={{ 
+        left: 'calc(50% - 8px)', // Keeps arrow centered on the tooltip bubble
+      }}
+    />
+
+    <div className="bg-zinc-950 border border-zinc-800 rounded-[2rem] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <div className="flex items-center gap-3 mb-3">
+        {current.emoji && <span className="text-2xl">{current.emoji}</span>}
+        <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-yellow-500 transition-all duration-500" 
+            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-500 mb-1">
+        {current.label}
+      </p>
+      
+      {/* Added max-height and overflow-y-auto in case text is very long */}
+      <div className="max-h-[120px] overflow-y-auto mb-5 pr-1 custom-scrollbar">
+        <p className="text-sm text-zinc-300 leading-snug font-medium">
+          {current.text}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button onClick={onDone} className="px-3 py-2 text-[10px] text-zinc-500 font-bold uppercase active:opacity-50">
+          Skip
+        </button>
+        <button 
+          onClick={next} 
+          className="flex-1 py-3 bg-yellow-500 text-black rounded-xl text-[10px] font-black uppercase shadow-lg shadow-yellow-500/20 active:scale-95 transition-transform"
         >
-          {/* Arrow */}
-          <div className={`absolute left-8 w-4 h-4 bg-zinc-900 rotate-45 border-zinc-800 ${
-            isTooltipAbove ? '-bottom-2 border-r border-b' : '-top-2 border-l border-t'
-          }`} />
-
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              {current.emoji && <span className="text-2xl">{current.emoji}</span>}
-              <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-yellow-500 transition-all duration-500" 
-                  style={{ width: `${((step + 1) / steps.length) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-500 mb-1">
-              {current.label}
-            </p>
-            <p className="text-sm text-zinc-300 leading-snug font-medium mb-5">
-              {current.text}
-            </p>
-
-            <div className="flex items-center gap-2">
-              <button onClick={onDone} className="px-3 py-2 text-[10px] text-zinc-500 font-bold uppercase">
-                Skip
-              </button>
-              <button 
-                onClick={next} 
-                className="flex-1 py-3 bg-yellow-500 text-black rounded-xl text-[10px] font-black uppercase shadow-lg shadow-yellow-500/20 active:scale-95 transition-transform"
-              >
-                {step < steps.length - 1 ? 'Next →' : 'Finish'}
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+          {step < steps.length - 1 ? 'Next →' : 'Finish'}
+        </button>
+      </div>
+    </div>
+  </motion.div>
+</AnimatePresence>
     </div>
   );
 }

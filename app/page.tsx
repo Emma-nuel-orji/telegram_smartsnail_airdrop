@@ -564,37 +564,65 @@ console.log('👤 Setting user with points:', finalUser.points);
       </div>
 
       <AnimatePresence>
-        {showWelcomePopup && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6"
+  {showWelcomePopup && (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6"
+    >
+      <motion.div 
+        initial={{ scale: 0.9, y: 30 }} 
+        animate={{ scale: 1, y: 0 }}
+        className="bg-[#1a0b2e] border border-purple-500/30 p-6 rounded-[2.5rem] w-full max-w-sm text-center shadow-[0_0_80px_rgba(168,85,247,0.25)]"
+      >
+        <h2 className="text-2xl font-black mb-1 uppercase italic text-transparent bg-clip-text bg-gradient-to-b from-white to-purple-400">
+          Welcome, {firstName}!
+        </h2>
+        
+        {/* VIDEO CONTAINER */}
+        <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black/40 border border-white/5 mb-4 relative">
+          {isVideoLoading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-[10px] font-black tracking-widest text-purple-500/50">INITIALIZING...</span>
+            </div>
+          )}
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            onLoadedData={() => setIsVideoLoading(false)}
+            className={`w-full h-full object-cover transition-opacity duration-700 ${isVideoLoading ? 'opacity-0' : 'opacity-1'}`}
           >
-            <motion.div 
-              initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }}
-              className="bg-[#1a0b2e] border border-purple-500/30 p-8 rounded-[3rem] w-full max-w-sm text-center shadow-[0_0_80px_rgba(168,85,247,0.2)]"
+            <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
+          </video>
+        </div>
+
+        <ScrollingText />
+
+        {/* BUTTON APPEARS ONLY AFTER LOAD */}
+        <AnimatePresence>
+          {!isVideoLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
             >
-              <h2 className="text-2xl font-black mb-2 uppercase">Welcome, {firstName}!</h2>
-              <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/5 mb-6 relative">
-                {isVideoLoading && <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">LOADING...</div>}
-                <video 
-                  autoPlay loop muted playsInline 
-                  onLoadedData={() => setIsVideoLoading(false)}
-                  className="w-full h-full object-cover"
-                >
-                  <source src="/videos/speedsnail-optimized.mp4" type="video/mp4" />
-                </video>
-              </div>
-              <ScrollingText />
               <button 
                 onClick={handleClaim}
-                className="w-full mt-6 bg-gradient-to-r from-purple-600 to-indigo-600 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-purple-500/20 active:scale-95 transition-transform"
+                className="w-full mt-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 bg-[length:200%_auto] hover:bg-right py-4 rounded-2xl font-black uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] active:scale-95 transition-all duration-500"
               >
                 Claim Bonus
               </button>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {error && <div className="fixed bottom-32 bg-red-600/80 px-4 py-2 rounded-lg text-xs z-50 backdrop-blur-md">{error}</div>}
       
