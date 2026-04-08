@@ -360,6 +360,8 @@ model Partner {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   type        String   // e.g., "GYM", "SALON", "RESTAURANT"
+  country     String? 
+  cityState   String?
   address     String?
   contactInfo String?
   telegramId  BigInt?  @unique

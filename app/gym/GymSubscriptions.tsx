@@ -18,33 +18,33 @@ export default function GymSubscriptions() {
   const gymName = searchParams?.get('gymName') || 'Partner Gym';
   
   const [telegramId, setTelegramId] = useState<string | null>(null);
-  const [shells, setShells] = useState<number>(0);
+  const [userPoints, setUserPoints] = useState<number>(0); 
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [activeSub, setActiveSub] = useState<any>(null);
-  const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const LILBURN_PARTNER_ID = "684d8d8c86d4f1a3ebf72669";
+  
   const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
 
+  console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
 
-console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
-useEffect(() => {
-    // 1. Get Telegram User ID
+  useEffect(() => {
     const userId = webApp?.initDataUnsafe?.user?.id?.toString();
     if (userId) setTelegramId(userId);
   }, [webApp]);
 
   useEffect(() => {
-    // 2. The "Patient" Firewall
-    // Stay in loading state until we have both a user and a gymId
+    // Safety Firewall: If loading hangs for > 7s, stop the spinner
+    const timeout = setTimeout(() => {
+      if (loading) setLoading(false);
+    }, 7000);
+
     if (!telegramId || !gymId) {
       console.log("⏳ Waiting for Telegram ID and Gym ID...");
       return; 
     }
 
-    // 3. Validation: If the ID is clearly broken, stop loading and show "Offline"
     if (gymId.length !== 24) {
       console.warn("⛔ INVALID ID FORMAT:", gymId);
       setLoading(false);
@@ -62,49 +62,73 @@ useEffect(() => {
           fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
         ]);
 
-        // Check if any requests failed fundamentally
         if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
         const userData = await userRes.json();
         const subsData = await subsRes.json();
         
-        // Update User State
-        setShells(Number(userData.points || 0));
-        setIsRegistered(!!(userData.nickname && userData.name));
+        // --- 1. REGISTRATION CHECK & REDIRECT ---
+        if (!userData.nickname || !userData.name) {
+          window.Telegram?.WebApp?.showPopup({
+            title: "Registration Required",
+            message: "You need a SmartSnail Pass to access the Gym. Register in the bot now?",
+            buttons: [
+              { id: "reg", type: "default", text: "Register Now" },
+              { id: "cancel", type: "destructive", text: "Later" }
+            ]
+          }, (buttonId) => {
+            if (buttonId === "reg") {
+              window.Telegram?.WebApp?.openTelegramLink("https://t.me/SmartSnailBot?start=register");
+            } else {
+              router.back();
+            }
+          });
+          return; 
+        }
+
+        // --- 2. UPDATE UNIFIED STATES ---
+        setUserPoints(Number(userData.points || 0));
         setIsAdmin(userData.permissions?.some((p: string) => 
           ['SUPERADMIN', 'GYM_ADMIN'].includes(p)
         ));
 
-        // Update Subscriptions List
         setSubscriptions(Array.isArray(subsData) ? subsData : []);
 
-        // Update Active Subscription Status
         if (activeRes.ok) {
           const subData = await activeRes.json();
           const activeSubscription = Array.isArray(subData) 
             ? subData.find((s: any) => s.status === 'ACTIVE') 
             : subData;
             
-          if (activeSubscription?.status === 'ACTIVE') {
-            setActiveSub(activeSubscription);
-          } else {
-            setActiveSub(null);
-          }
+          setActiveSub(activeSubscription?.status === 'ACTIVE' ? activeSubscription : null);
         }
       } catch (err) {
         console.error("❌ Fetch Error:", err);
         toast.error("Failed to sync with gym database.");
       } finally {
         setLoading(false);
+        clearTimeout(timeout);
       }
     }
 
     fetchData();
-  }, [telegramId, gymId]); 
+    return () => clearTimeout(timeout);
+  }, [telegramId, gymId, router]); 
 
+  // --- 3. THE "INSTANT-UPDATE" PURCHASE LOGIC ---
   const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
     const amount = currency === 'SHELLS' ? plan.priceShells : plan.priceStars;
-    if (currency === 'SHELLS' && shells < amount) return toast.error("Insufficient Shells! 🐚");
+    
+    if (currency === 'SHELLS' && userPoints < amount) {
+      return toast.error("Insufficient Shells! 🐚");
+    }
+
+    if (currency === 'SHELLS') {
+      const confirmed = await new Promise((resolve) => {
+        webApp?.showConfirm(`Spend ${amount.toLocaleString()} Shells for ${plan.name}?`, (ok) => resolve(ok));
+      });
+      if (!confirmed) return;
+    }
 
     setPurchasing(plan.id);
     try {
@@ -123,16 +147,21 @@ useEffect(() => {
       });
 
       const result = await response.json();
+      
       if (currency === 'STARS' && result.invoiceLink) {
         webApp?.openInvoice(result.invoiceLink, (status) => {
           if (status === 'paid') {
             toast.success("Transaction Complete!");
-            window.location.reload();
+            window.location.reload(); 
           }
         });
       } else if (result.success) {
+        // Instant UI feedback
+        if (currency === 'SHELLS') setUserPoints(prev => prev - amount);
+        setActiveSub({ ...plan, status: 'ACTIVE', planTitle: plan.name });
+        
+        webApp?.HapticFeedback.notificationOccurred('success');
         toast.success("🏋️ Access granted.");
-        window.location.reload();
       }
     } catch (error) {
       toast.error("Connection failed.");
@@ -140,6 +169,8 @@ useEffect(() => {
       setPurchasing(null);
     }
   };
+
+  // --- RENDERING ---
 
   if (loading) return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center">
@@ -149,57 +180,32 @@ useEffect(() => {
   );
 
   if (!loading && (!gymId || gymId.length !== 24)) {
-  return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center">
-      {/* Visual: A "Locked" or "Off" icon feels more natural */}
-      <div className="relative mb-8">
-        <Dumbbell className="w-16 h-16 text-zinc-900" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-20 h-20 border border-red-500/20 rounded-full animate-ping" />
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center">
+        <div className="relative mb-8">
+          <Dumbbell className="w-16 h-16 text-zinc-900" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-20 h-20 border border-red-500/20 rounded-full animate-ping" />
+          </div>
         </div>
+        <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">
+          Facility <span className="text-red-500">Offline</span>
+        </h2>
+        <button onClick={() => webApp?.close() || router.back()} className="mt-10 w-full max-w-[240px] py-5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+          Return to Bot
+        </button>
       </div>
-
-      <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">
-        Facility <span className="text-red-500">Offline</span>
-      </h2>
-      
-      <p className="text-zinc-500 text-[10px] mt-4 uppercase font-bold tracking-[0.2em] max-w-[200px] leading-relaxed">
-        This gym is inaccessible. 
-      </p>
-
-      <button 
-        onClick={() => webApp?.close() || router.back()} 
-        className="mt-10 w-full max-w-[240px] py-5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 transition-all"
-      >
-        Return to Bot
-      </button>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-purple-500/30">
       <Toaster position="top-center" />
       
-      {/* ACCESS LOCK */}
-      {!isRegistered && !isAdmin && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-8 backdrop-blur-2xl">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-sm bg-zinc-900 border border-purple-900/30 p-8 rounded-[3rem] text-center shadow-2xl">
-            <UserPlus className="text-purple-500 w-16 h-16 mx-auto mb-6" />
-            <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-2 text-white">Identity Required</h2>
-            <p className="text-zinc-500 text-xs mb-8 uppercase font-bold tracking-widest">Complete registration to enter</p>
-            <button onClick={() => webApp?.close()} className="w-full bg-purple-600 text-white font-black py-5 rounded-2xl uppercase text-[10px] tracking-[0.2em] shadow-[0_0_20px_rgba(147,51,234,0.3)]">
-              Initialize Profile
-            </button>
-          </motion.div>
-        </div>
-      )}
-
       {/* HEADER SECTION */}
       <div className="relative h-[45vh] w-full overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${GYM_BACKGROUND})` }} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
-        <div className="absolute inset-0 bg-purple-900/10 mix-blend-overlay" />
         
         <div className="relative z-10 p-6 flex flex-col h-full">
           <div className="flex justify-between items-center">
@@ -235,7 +241,7 @@ useEffect(() => {
               </div>
               <div>
                 <span className="block text-[10px] text-zinc-500 font-black uppercase tracking-widest">Available Credits</span>
-                <span className="text-2xl font-black text-white italic">{shells.toLocaleString()} <span className="text-purple-500">🐚</span></span>
+                <span className="text-2xl font-black text-white italic">{userPoints.toLocaleString()} <span className="text-purple-500">🐚</span></span>
               </div>
             </div>
             <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-purple-400">Top Up</button>
@@ -246,16 +252,16 @@ useEffect(() => {
           <div className="mb-12">
             <PartnerProgress sub={activeSub} />
             <div className="mt-4 p-4 bg-purple-600/10 border border-purple-500/20 rounded-2xl flex items-center justify-between">
-               <span className="text-[10px] text-purple-300 font-bold uppercase italic tracking-widest">Plan: {activeSub.planTitle}</span>
-               <div className="flex items-center gap-2">
-                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Valid Entry</span>
-               </div>
+                <span className="text-[10px] text-purple-300 font-bold uppercase italic tracking-widest">Plan: {activeSub.planTitle}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Valid Entry</span>
+                </div>
             </div>
           </div>
         )}
 
-        {/* PLANS SECTION (Simplified logic, kept design) */}
+        {/* PLANS SECTION */}
         {!activeSub && (
           <div className="flex overflow-x-auto no-scrollbar gap-5 -mx-6 px-6">
             {subscriptions.length > 0 ? subscriptions.map((plan: any) => (
