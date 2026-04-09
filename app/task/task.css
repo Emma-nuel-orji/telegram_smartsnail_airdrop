@@ -1,126 +1,84 @@
-:root {
-  --primary: #8a2be2;
-  --primary-glow: rgba(138, 43, 226, 0.4);
-  --bg-dark: #0f0a1a;
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --text-main: #ffffff;
-  --text-muted: #a0a0a0;
-  --accent-gold: #ffcf4d;
+.premium-task-wrapper {
+  background: radial-gradient(circle at top, #1a1a2e 0%, #0d0d0d 100%);
+  min-height: 100vh;
+  padding: 20px;
+  color: white;
 }
 
-/* Base Container Upgrades */
-.task-container {
-  padding: 16px;
-  background: var(--bg-dark);
-  min-h: 100vh;
-  color: var(--text-main);
-}
-
-/* Modern Header with a Glow */
-.task-container h2 {
-  text-align: center;
-  font-size: 1.25rem;
-  background: linear-gradient(to right, #fff, var(--primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 1.5rem 0;
-}
-
-/* Segmented Control (Better than standard buttons) */
-.task-buttons {
-  display: flex;
+/* Glass Task Cards */
+.glass-task-card {
   background: rgba(255, 255, 255, 0.05);
-  padding: 4px;
-  border-radius: 14px;
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.glass-task-card:active {
+  transform: scale(0.98);
+}
+
+.glass-task-card.is-done {
+  opacity: 0.6;
+  background: rgba(0, 255, 127, 0.03);
+}
+
+/* Bottom Drawer */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bottom-drawer {
+  width: 100%;
+  background: #1c1c1e;
+  border-radius: 24px 24px 0 0;
+  padding: 24px;
+  animation: slideUp 0.3s ease-out;
+  text-align: center;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.btn-confirm {
+  background: #007aff;
+  color: white;
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.segmented-control {
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 4px;
+  display: flex;
   margin-bottom: 20px;
 }
 
-.task-buttons button {
+.segment-btn {
   flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-weight: 600;
-  padding: 10px;
+  padding: 8px;
   border-radius: 10px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.task-buttons button.active {
-  background: var(--primary);
-  color: white;
-  box-shadow: 0 4px 15px var(--primary-glow);
-}
-
-/* High-End Task Cards */
-.tasks-grid {
-  display: flex;
-  flex-direction: column; /* Vertical list feels more native on Telegram */
-  gap: 12px;
-}
-
-.task-card {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  background: var(--card-bg);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  gap: 15px;
-}
-
-.task-image {
-  width: 50px !important; /* Smaller thumbnails for lists */
-  height: 50px !important;
-  border-radius: 12px;
-  background: #2d1b4e;
-  object-fit: cover;
-}
-
-.task-info {
-  background: transparent !important; /* Remove that gray background */
-  flex: 1;
-}
-
-.task-description {
-  color: white;
   font-weight: 600;
-  font-size: 0.95rem;
-  margin-bottom: 4px;
 }
 
-.task-reward {
-  color: var(--accent-gold);
-  font-size: 0.85rem;
-  font-weight: bold;
-}
-
-/* Status: Completed */
-.task-card.completed {
-  opacity: 0.5;
-  filter: grayscale(0.8);
-  border-color: transparent;
-}
-
-/* Glassmorphism Popup */
-.popup-overlay {
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-}
-
-.task-popup {
-  background: #1a1425;
-  border: 1px solid var(--primary);
-  border-radius: 24px;
-  padding: 30px;
-  color: white;
-}
-
-.popup-button {
-  border-radius: 12px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 800;
+.segment-btn.active {
+  background: #3a3a3c;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
