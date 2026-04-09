@@ -6,10 +6,11 @@ import { Dumbbell, MapPin, Star, Users, Clock, ChevronRight, Flame, Target, Load
 const GYM_BACKGROUND = "/images/gymfit2.jpg";
 
 interface Gym {
-  id: number;
+  id: string; 
   name: string;
   location: string;
   rating: number;
+  mongoId: string; 
   members: number;
   openTime: string;
   closeTime: string;
@@ -21,7 +22,8 @@ interface Gym {
 
 const PARTNER_GYMS: Gym[] = [
   {
-    id: 1,
+    id: "1",
+    mongoId: "684d8d8c86d4f1a3ebf72669",
     name: "Lilburn Fitness Center",
     location: "Lilburn, GA",
     rating: 8.8,
@@ -33,8 +35,8 @@ const PARTNER_GYMS: Gym[] = [
     description: "Premium fitness facility with state-of-the-art equipment and expert trainers.",
     type: 'GYM'
   },
-  {
-    id: 2,
+  {  id: "2",
+    mongoId: "69cd1be69d551cabe5d1e3f2",
     name: "Sage Combat",
     location: "Lilburn Gym",
     rating: 7.6,
@@ -46,32 +48,32 @@ const PARTNER_GYMS: Gym[] = [
     description: "Urban warrior meets mental discipline. Professional boxing and combat sports training.",
     type: 'COMBAT_SPORTS'
   },
-  {
-    id: 3,
-    name: "Elite Fitness Studio",
-    location: "Buckhead, GA",
-    rating: 4.9,
-    members: 850,
-    openTime: "6:00 AM",
-    closeTime: "10:00 PM",
-    amenities: ["Yoga Studio", "Pilates", "Spin Classes", "Nutrition Counseling"],
-    image: "/images/gyms/elite-fitness.jpg",
-    description: "Boutique fitness studio focusing on holistic wellness and personalized training.",
-    type: 'GYM'
-  },
-  {
-    id: 4,
-    name: "Iron Temple Gym",
-    location: "Marietta, GA",
-    rating: 4.7,
-    members: 1600,
-    openTime: "5:30 AM",
-    closeTime: "11:30 PM",
-    amenities: ["Olympic Lifting", "Powerlifting", "MMA Training", "Recovery Center"],
-    image: "/images/gyms/iron-temple.jpg",
-    description: "Hardcore training facility for serious athletes and fitness enthusiasts.",
-    type: 'GYM'
-  }
+  // {
+  //   id: 3,
+  //   name: "Elite Fitness Studio",
+  //   location: "Buckhead, GA",
+  //   rating: 4.9,
+  //   members: 850,
+  //   openTime: "6:00 AM",
+  //   closeTime: "10:00 PM",
+  //   amenities: ["Yoga Studio", "Pilates", "Spin Classes", "Nutrition Counseling"],
+  //   image: "/images/gyms/elite-fitness.jpg",
+  //   description: "Boutique fitness studio focusing on holistic wellness and personalized training.",
+  //   type: 'GYM'
+  // },
+  // {
+  //   id: 4,
+  //   name: "Iron Temple Gym",
+  //   location: "Marietta, GA",
+  //   rating: 4.7,
+  //   members: 1600,
+  //   openTime: "5:30 AM",
+  //   closeTime: "11:30 PM",
+  //   amenities: ["Olympic Lifting", "Powerlifting", "MMA Training", "Recovery Center"],
+  //   image: "/images/gyms/iron-temple.jpg",
+  //   description: "Hardcore training facility for serious athletes and fitness enthusiasts.",
+  //   type: 'GYM'
+  // }
 ];
 
 export default function GymListing() {

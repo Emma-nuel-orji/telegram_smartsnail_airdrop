@@ -16,7 +16,7 @@ export default function GymSubscriptions() {
   const searchParams = useSearchParams();
 
   const LILBURN_ID = "684d8d8c86d4f1a3ebf72669";
-  
+  const [notRegistered, setNotRegistered] = useState(false);
  
   const gymId = searchParams?.get('gymId') || LILBURN_ID;
   
@@ -56,57 +56,42 @@ export default function GymSubscriptions() {
       return;
     }
 
-    async function fetchData() {
-  console.log("📡 API CALL STARTING for Partner:", gymId);
-  setLoading(true); 
-  
-  try {
-    // Determine if we should filter by type or just ID
-    // We remove the hardcoded partnerType=GYM to allow SageCombat (COMBAT) to work
-    const [userRes, subsRes, activeRes] = await Promise.all([
-      fetch(`/api/user/${telegramId}`),
-      fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`), // Removed &partnerType=GYM
-      fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
-    ]);
+   async function fetchData() {
+      console.log("📡 API CALL STARTING for Partner:", gymId);
+      setLoading(true); 
+      
+      try {
+        const [userRes, subsRes, activeRes] = await Promise.all([
+          fetch(`/api/user/${telegramId}`),
+          fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`),
+          fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
+        ]);
 
-    if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
+        if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
-    const userData = await userRes.json();
-    const subsData = await subsRes.json();
-    
-    // --- 1. REGISTRATION CHECK ---
-    // Using your specific payload: signup_smartsnail_pass
-    if (!userData.nickname) {
-      window.Telegram?.WebApp?.showPopup({
-        title: "Access Denied",
-        message: `You need a SmartSnail Pass to enter ${gymName}.`,
-        buttons: [
-          { id: "reg", type: "default", text: "Get My Pass" },
-          { id: "cancel", type: "destructive", text: "Go Back" }
-        ]
-      }, (buttonId) => {
-        if (buttonId === "reg") {
-          window.Telegram?.WebApp?.openTelegramLink("https://t.me/SmartSnailBot?start=signup_smartsnail_pass");
-        } else {
-          router.back();
+        const userData = await userRes.json();
+        const subsData = await subsRes.json();
+        
+        // --- THE "SMARTSNAIL PASS" TRIGGER ---
+        // If they don't have a nickname, we show the custom registration UI
+        if (!userData.nickname) {
+          setNotRegistered(true);
+          setLoading(false); // Stop loading so the screen shows
+          return; 
         }
-      });
-      return; 
-    }
-        // --- 2. UPDATE STATE ---
+
+        // --- SUCCESS: LOAD DATA ---
         setUserPoints(Number(userData.points || 0));
         setSubscriptions(Array.isArray(subsData) ? subsData : []);
 
         if (activeRes.ok) {
           const subData = await activeRes.json();
-          // Find the active one if it's an array, otherwise use the object
           const activeSubscription = Array.isArray(subData) 
             ? subData.find((s: any) => s.status === 'ACTIVE') 
             : subData;
             
           setActiveSub(activeSubscription?.status === 'ACTIVE' ? activeSubscription : null);
         }
-
       } catch (err) {
         console.error("❌ Fetch Error:", err);
         toast.error("Failed to sync with gym database.");
@@ -114,7 +99,7 @@ export default function GymSubscriptions() {
         setLoading(false);
         clearTimeout(timeout);
       }
-    } // <-- Close fetchData
+    }
 
     fetchData();
     return () => clearTimeout(timeout);
@@ -185,38 +170,47 @@ export default function GymSubscriptions() {
   );
 
   console.log("🚨 OFFLINE CHECK:", { gymId, length: gymId?.length, loading });
-  if (!loading && gymId && gymId.length !== 24)  {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center">
-        <div className="relative mb-8">
-          <Dumbbell className="w-16 h-16 text-zinc-900" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-20 h-20 border border-red-500/20 rounded-full animate-ping" />
-          </div>
-        </div>
-        <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">
-          Facility <span className="text-red-500">Offline</span>
-        </h2>
-         <button 
-        onClick={() => {
-          if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-            // ✅ Opens bot with command — Telegram will send /start gym_access to bot
-            // User lands in bot, bot processes it, bot can re-open the mini app
-            window.Telegram.WebApp.openTelegramLink(
-              `https://t.me/${BOT_USERNAME}?start=gym_access`
-            );
-          } else {
-            router.back();
-          }
-        }} 
-        className="mt-10 w-full max-w-[240px] py-5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.1)]"
-      >
-        Return to Bot
-      </button>
+if (notRegistered) {
+  return (
+    <motion.div 
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  
+     className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-8 text-center">
+      <div className="w-20 h-20 bg-purple-600/10 border border-purple-500/20 rounded-3xl flex items-center justify-center mb-6">
+        <UserPlus size={36} className="text-purple-400" />
       </div>
-    );
-  }
-
+      <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">
+        SmartSnail<br /><span className="text-purple-500">Pass Required</span>
+      </h2>
+      <p className="text-zinc-500 text-xs mt-4 max-w-[260px] leading-relaxed">
+        You need to register for the SmartSnail Pass to access <span className="text-white font-bold">{gymName}</span>.
+      </p>
+      <button
+        onClick={() => {
+          localStorage.setItem('pendingGymReturn', JSON.stringify({
+            gymId,
+            gymName,
+            route: window.location.pathname
+          }));
+          window.Telegram?.WebApp?.openTelegramLink(
+            `https://t.me/SmartSnailBot?start=signup_smartsnail_pass`
+          );
+        }}
+        className="mt-8 w-full max-w-[300px] py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+      >
+        Get My SmartSnail Pass 🐚
+      </button>
+      <button
+        onClick={() => window.Telegram?.WebApp?.close()}
+        className="mt-3 w-full max-w-[300px] py-4 bg-zinc-900 border border-zinc-800 text-zinc-500 rounded-2xl text-[10px] font-black uppercase tracking-widest"
+      >
+        Maybe Later
+      </button>
+    
+   </motion.div>
+  );
+}
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-purple-500/30">
       <Toaster position="top-center" />
