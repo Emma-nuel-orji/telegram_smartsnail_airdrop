@@ -31,7 +31,7 @@ export default function GymSubscriptions() {
   const [purchasing, setPurchasing] = useState<string | null>(null);
   
   const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
-
+  const BOT_USERNAME = "SmartSnails_Bot";
   console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function GymSubscriptions() {
     // We remove the hardcoded partnerType=GYM to allow SageCombat (COMBAT) to work
     const [userRes, subsRes, activeRes] = await Promise.all([
       fetch(`/api/user/${telegramId}`),
-      fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&gymId=${gymId}`),
+      fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`), // Removed &partnerType=GYM
       fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
     ]);
 
@@ -184,7 +184,8 @@ export default function GymSubscriptions() {
     </div>
   );
 
-  if (!loading && (!gymId || gymId.length !== 24)) {
+  console.log("🚨 OFFLINE CHECK:", { gymId, length: gymId?.length, loading });
+  if (!loading && gymId && gymId.length !== 24)  {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center">
         <div className="relative mb-8">
@@ -196,9 +197,22 @@ export default function GymSubscriptions() {
         <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">
           Facility <span className="text-red-500">Offline</span>
         </h2>
-        <button onClick={() => webApp?.close() || router.back()} className="mt-10 w-full max-w-[240px] py-5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-          Return to Bot
-        </button>
+         <button 
+        onClick={() => {
+          if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+            // ✅ Opens bot with command — Telegram will send /start gym_access to bot
+            // User lands in bot, bot processes it, bot can re-open the mini app
+            window.Telegram.WebApp.openTelegramLink(
+              `https://t.me/${BOT_USERNAME}?start=gym_access`
+            );
+          } else {
+            router.back();
+          }
+        }} 
+        className="mt-10 w-full max-w-[240px] py-5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+      >
+        Return to Bot
+      </button>
       </div>
     );
   }
