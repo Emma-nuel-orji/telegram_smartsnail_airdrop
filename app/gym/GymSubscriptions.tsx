@@ -30,7 +30,8 @@ export default function GymSubscriptions() {
   const [loading, setLoading] = useState<boolean>(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   
-  const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+  // This ensures TypeScript knows about HapticFeedback and showConfirm
+const webApp = typeof window !== 'undefined' ? (window.Telegram?.WebApp as TelegramWebApp) : null;
   const BOT_USERNAME = "SmartSnails_Bot";
   console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
 
@@ -115,8 +116,8 @@ export default function GymSubscriptions() {
 
     if (currency === 'SHELLS') {
       const confirmed = await new Promise((resolve) => {
-        webApp?.showConfirm(`Spend ${amount.toLocaleString()} Shells for ${plan.name}?`, (ok) => resolve(ok));
-      });
+  webApp?.showConfirm(`Spend ${amount.toLocaleString()} Shells for ${plan.name}?`, (ok: boolean) => resolve(ok));
+});
       if (!confirmed) return;
     }
 
@@ -139,12 +140,12 @@ export default function GymSubscriptions() {
       const result = await response.json();
       
       if (currency === 'STARS' && result.invoiceLink) {
-        webApp?.openInvoice(result.invoiceLink, (status) => {
-          if (status === 'paid') {
-            toast.success("Transaction Complete!");
-            window.location.reload(); 
-          }
-        });
+        webApp?.openInvoice(result.invoiceLink, (status: string) => {
+  if (status === 'paid') {
+    toast.success("Transaction Complete!");
+    window.location.reload(); 
+  }
+});
       } else if (result.success) {
         // Instant UI feedback
         if (currency === 'SHELLS') setUserPoints(prev => prev - amount);

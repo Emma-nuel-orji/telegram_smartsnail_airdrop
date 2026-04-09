@@ -115,14 +115,6 @@ const requestSchema = z.object({
 
 });
 
-// console.log("Request Body:", req.body);
-// console.log("Query Params:", req.query);
-// console.log("Authenticated User:", req.user);
-
-
-// const orderId = generatedOrderId ? String(generatedOrderId) : undefined;
-// const userIdString = String(userId);
-// const bookIdString = bookId ? String(bookId) : "";
 
 async function getCurrentStock(
   tx: Prisma.TransactionClient,
@@ -935,12 +927,31 @@ async function validateStockAndCalculateTotals(
         console.log("Total Coins Reward (Number):", Number(totalCoinsReward));
         
 
+
+        const totalBooksPurchased = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
+
+// 1. Calculate the boost duration (24 hours per book in milliseconds)
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const boostDurationMs = totalBooksPurchased * MS_PER_DAY;
+
+const now = new Date();
+
+// 2. Determine the starting point for the boost
+// If user has an active boost, stack on top of it. Otherwise, start from now.
+const currentExpiry = user.boostExpiresAt && user.boostExpiresAt > now 
+  ? user.boostExpiresAt 
+  : now;
+
+const newBoostExpiry = new Date(currentExpiry.getTime() + boostDurationMs);
+
+
         // Update user points & tapping rate
-        await tx.user.update({
+       const updatedUser = await tx.user.update({
           where: { telegramId: BigInt(telegramId) },
           data: {
             tappingRate: { increment: tappingRate },
             points: { increment: points },
+            boostExpiresAt: newBoostExpiry, // Apply the 24hr per book boost
           },
         });
 
@@ -993,9 +1004,11 @@ async function validateStockAndCalculateTotals(
 
 
         return {
-        ...user,
-        telegramId: user.telegramId.toString(), 
-      };
+          ...updatedUser,
+          id: updatedUser.id.toString(), // Convert ObjectId to string
+          telegramId: updatedUser.telegramId.toString(), // Convert BigInt to string
+          boostExpiresAt: updatedUser.boostExpiresAt?.toISOString(), 
+        };
 
       } catch (error) {
         // Handle the 'error is of type unknown' issue by type checking

@@ -300,7 +300,7 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
       {/* Header */}
-      <div className="max-w-6xl mx-auto mb-8">
+      <div id="ticket-section" className="max-w-6xl mx-auto mb-8">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold text-white flex items-center gap-2">
@@ -472,23 +472,26 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
 
       {/* Purchased Tickets */}
       {/* Purchased Tickets Section */}
-{purchasedTickets.length > 0 && (
+{/* Purchased Tickets Section */}
+{purchasedTickets.length > 0 ? (
   <div className="max-w-6xl mx-auto mt-12 px-4">
     <h2 className="text-2xl font-black italic text-white uppercase mb-6 tracking-tighter">
       Your Collection
     </h2>
     
     <div className="flex flex-col gap-6">
-      {purchasedTickets.map((purchase) => (
-        <div key={purchase.id} className="relative group">
-          
-          {/* Use the new Ticket Design here */}
+      {purchasedTickets.map((purchase, index) => (
+        <div 
+          key={purchase.id} 
+          className="relative group" 
+          id={index === 0 ? "tour-ticket-item" : undefined}
+        >
+          {/* Ticket Design */}
           <div className="ticket-container">
             {/* Left Stub: The "Scan" Area */}
             <div className="ticket-stub-left">
                {purchase.status === 'approved' ? (
                  <div className="bg-white p-2 rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                   {/* You can replace this with a real QRCode component later */}
                    <div className="w-12 h-12 bg-black flex items-center justify-center text-[8px] text-white font-bold">QR</div>
                  </div>
                ) : (
@@ -520,21 +523,19 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
               </div>
 
               <div className="grid grid-cols-2 gap-4 mt-4">
-  <div className="detail-group">
-    <span>HOLDER</span>
-    {/* Use the userName state here */}
-    <p className="text-white font-bold text-sm uppercase truncate">
-      {userName || 'Player'} 
-    </p>
-  </div>
-  <div className="detail-group">
-    <span>QUANTITY</span>
-    {/* Use purchase.quantity from the map iteration */}
-    <p className="text-white font-bold text-sm">
-      x{purchase.quantity}
-    </p>
-  </div>
-</div>
+                <div className="detail-group">
+                  <span>HOLDER</span>
+                  <p className="text-white font-bold text-sm uppercase truncate">
+                    {userName || 'Player'} 
+                  </p>
+                </div>
+                <div className="detail-group">
+                  <span>QUANTITY</span>
+                  <p className="text-white font-bold text-sm">
+                    x{purchase.quantity}
+                  </p>
+                </div>
+              </div>
 
               <div className="mt-auto pt-3 border-t border-white/5 flex justify-between items-end">
                  <p className="text-[10px] text-zinc-500 font-bold">
@@ -550,7 +551,7 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
             </div>
           </div>
 
-          {/* Action Button: Hovering over the ticket shows the button */}
+          {/* Action Button */}
           <button
             onClick={() => handlePresentTicket(purchase.ticketId)}
             className="w-full mt-2 py-3 rounded-xl font-black italic uppercase text-xs tracking-widest bg-zinc-800 text-zinc-400 hover:bg-white hover:text-black transition-all"
@@ -559,6 +560,15 @@ const handleTicketPurchase = async (paymentMethod: 'stars' | 'shells') => {
           </button>
         </div>
       ))}
+    </div>
+  </div>
+) : (
+  /* Empty State for Tour when no tickets are bought */
+  <div id="tour-ticket-empty" className="max-w-6xl mx-auto mt-12 px-4">
+    <div className="p-10 border-2 border-dashed border-zinc-800 rounded-[2.5rem] text-center">
+      <p className="text-zinc-600 font-black italic uppercase text-xs tracking-widest">
+        Your ticket collection is empty
+      </p>
     </div>
   </div>
 )}

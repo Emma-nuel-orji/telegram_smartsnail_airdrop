@@ -11,6 +11,7 @@ import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import TelegramInit from "@/components/TelegramInit";
 import "./BoostPage.css";
+import BoostIndicator from './BoostIndicator';
 import { useRouter } from "next/navigation";
 import { useWallet } from '../context/walletContext';
 import Confetti from "react-confetti";
@@ -67,6 +68,18 @@ interface PurchasePayload {
   referrerId?: string;
   userId?: string | null;
   status: 'PENDING' | 'COMPLETED' | 'FAILED';
+}
+
+interface BoostUser {
+  boostExpiresAt?: string | Date | null;
+  fxckedUpBagsQty: number;
+  humanRelationsQty: number;
+}
+
+interface BoostUser {
+  boostExpiresAt?: string | Date | null;
+  fxckedUpBagsQty: number;
+  humanRelationsQty: number;
 }
 
 // Initial Stock Limit
@@ -181,11 +194,18 @@ const BOOST_TOUR: TourStep[] = [
     label: "Buy books to boost",
     text: "Purchase real books by real authors to permanently upgrade your tapping rate."
   },
+
+  {
+  targetId: 'boost-books-list',
+  emoji: "⏳",
+    label:  'Power Duration ',
+  text: 'Each book grants you its specific Tapping Rate for exactly 24 hours. Buying multiple books extends this duration—for example, 3 books equals 3 full days of upgraded power!',
+},
   {
     targetId: "checkout-summary", 
     emoji: "⚡",
     label: "Tapping rate",
-    text: "FxckedUpBags gives +5 rate. Human Relations gives +7 rate per copy."
+    text: "FxckedUpBags gives +1 rate. Human Relations gives +3 rate per copy."
   },
   {
     targetId: "checkout-summary", 
@@ -205,6 +225,14 @@ const BOOST_TOUR: TourStep[] = [
     label: "Event tickets",
     text: "Scroll down to buy tickets to real PolyCombat events."
   },
+
+  {
+  // Point to the first ticket if it exists, otherwise point to the empty state
+  targetId: 'ticket-section', 
+  emoji: "🎫",
+  label: 'Event Access',
+  text: 'Purchase tickets here to enter exclusive live events. Your collection will appear below once you secure your spot!',
+},
   {
     targetId: "referral-section", 
     emoji: "🔑",
@@ -246,7 +274,7 @@ const BOOST_TOUR: TourStep[] = [
 
   // Calculations
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
-  const tappingRate = fxckedUpBagsQty * 4 + humanRelationsQty * 7;
+  const tappingRate = fxckedUpBagsQty * 1 + humanRelationsQty * 3;
   const points = fxckedUpBagsQty * 100000 + humanRelationsQty * 30000;
   const priceTon = totalBooks * 0.001;
   const priceStars = totalBooks * 4 * 100;
@@ -359,7 +387,33 @@ const syncStockFromAPI = async () => {
   }
 };
 
+// const calculateBoostDisplay = (user: BoostUser) => {
+//   const now = new Date();
+  
+//   // Handle null/undefined dates safely
+//   if (!user.boostExpiresAt) {
+//     return { isActive: false, timeString: "0d 0h", totalPower: 1 };
+//   }
 
+//   const expiry = new Date(user.boostExpiresAt);
+//   const isActive = expiry > now;
+
+//   // FIX: Use .getTime() to avoid the "arithmetic operation" error
+//   const diff = expiry.getTime() - now.getTime();
+  
+//   const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+//   const hours = Math.max(0, Math.floor((diff / (1000 * 60 * 60)) % 24));
+
+//   // Calculate the power: bags = +1, relations = +3
+//   // Using || 0 to prevent NaN if the value is missing
+//   const currentRate = (user.fxckedUpBagsQty * 1) + (user.humanRelationsQty * 3);
+
+//   return {
+//     isActive,
+//     timeString: `${days}d ${hours}h`,
+//     totalPower: currentRate > 0 ? currentRate : 1, 
+//   };
+// };
 
 
   // Modify your handlePurchase function to ensure stock updates:
@@ -821,10 +875,13 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         {/* SUMMARY & CHECKOUT */}
         <div id="checkout-summary" className="bg-purple-600/10 border-2 border-purple-500/30 rounded-[2.5rem] p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-black/40 p-3 rounded-2xl border border-white/5">
-              <p className="text-[10px] text-zinc-500 font-bold uppercase">Tap Boost</p>
-              <p className="text-xl font-black italic text-purple-400">+{tappingRate}</p>
-            </div>
+                      <BoostIndicator 
+                      user={{
+                        boostExpiresAt: (user as any)?.boostExpiresAt, 
+                        fxckedUpBagsQty: fxckedUpBagsQty, 
+                        humanRelationsQty: humanRelationsQty
+                      }} 
+                    />
             <div className="bg-black/40 p-3 rounded-2xl border border-white/5">
               <p className="text-[10px] text-zinc-500 font-bold uppercase">Coin Reward</p>
               <p className="text-xl font-black italic text-yellow-500">{points.toLocaleString()}</p>
@@ -870,7 +927,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         </div>
 
         {/* TICKET SECTION */}
-        <div id="ticket-section" className="pt-10">
+        <div  className="pt-10">
           <div className="flex items-center gap-4 mb-6">
             <div className="h-px flex-1 bg-zinc-800"></div>
             <h2 className="font-black italic uppercase text-zinc-500">Event Tickets</h2>

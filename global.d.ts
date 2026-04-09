@@ -1,23 +1,26 @@
 // global.d.ts
-interface TelegramWebApp {
+
+export {}; // This ensures the file is treated as a module
+
+declare global {
+  interface TelegramUser {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+  }
+
+  interface TelegramWebApp {
     initData: string;
     initDataUnsafe: {
-      user?: {
-        id: number;
-        first_name: string;
-        last_name?: string;
-        username?: string;
-        language_code?: string;
-      };
+      user?: TelegramUser;
       auth_date?: number;
       hash?: string;
     };
-    ready: () => void;
-    close: () => void;
-    sendData: (data: string) => void;
-    expand: () => void;
-    isExpanded: boolean;
+    version: string;
     platform: string;
+    isExpanded: boolean;
     themeParams: {
       bg_color?: string;
       text_color?: string;
@@ -26,6 +29,34 @@ interface TelegramWebApp {
       button_color?: string;
       button_text_color?: string;
     };
+    
+    // --- CORE METHODS ---
+    ready: () => void;
+    close: () => void;
+    expand: () => void;
+    sendData: (data: string) => void;
+    showAlert: (message: string) => void;
+    showConfirm: (message: string, callback: (ok: boolean) => void) => void;
+    
+    // FIX FOR BOOST PAGE ERROR
+    showPopup: (
+        params: { title?: string; message: string; buttons?: { id?: string; type?: string; text: string }[] }, 
+        callback?: (buttonId: string) => void
+    ) => void;
+
+    // --- GYM & UTILITY METHODS ---
+    openInvoice: (url: string, callback: (status: string) => void) => void;
+    openTelegramLink: (url: string) => void;
+    openLink: (url: string) => void;
+    
+    // --- HAPTICS ---
+    HapticFeedback: {
+      impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+      notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
+      selectionChanged: () => void;
+    };
+
+    // --- TASK METHODS ---
     shareToStory: (
       media: string,
       mediaType: "photo" | "video",
@@ -37,32 +68,6 @@ interface TelegramWebApp {
         position?: { x: number; y: number };
       }
     ) => void;
-    version: string;
-    showAlert: (message: string) => void;
-  }
-
-  
-  
-interface TelegramWebAppInitData {
-  user?: TelegramUser;
-  // Add other properties as needed
-}
-  
- 
-declare global {
-    interface Window {
-      Telegram?: {
-        WebApp: TelegramWebApp; // Ensure this matches the correct type
-      };
-    }
-  }
-
-  interface TelegramUser {
-    id: number;
-    first_name: string;
-    last_name?: string;
-    username?: string;
-    language_code?: string;
   }
 
   interface Window {
@@ -70,3 +75,4 @@ declare global {
       WebApp: TelegramWebApp;
     };
   }
+}
