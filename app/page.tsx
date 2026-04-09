@@ -131,7 +131,7 @@ export default function Home() {
     targetId: "nav-staking", // ID for the gloves icon
     emoji: "🥊",
     label: "Fight arena",
-    text: "Stake your Shells on real-life fighters and win big."
+    text: "Stake your Points/Shells on real-life fighters and win big."
   },
   {
     targetId: "nav-marketplace", // ID for the shop icon
@@ -143,7 +143,7 @@ export default function Home() {
     targetId: "bottom-frens", // ID for the FRENS button
     emoji: "👥",
     label: "Invite frens",
-    text: "Tap FRENS to invite friends — you earn bonus Shells for every referral."
+    text: "Tap FRENS to invite friends — you earn bonus Points/Shells for every referral."
   },
   {
     targetId: "header-rank", // ID for the trophy/rank icon in header
@@ -156,7 +156,7 @@ export default function Home() {
     targetId: "gym-membership-card",
     emoji: "🐚",
     label: "Shell-Powered Fitness",
-    text: "Use your earned Shells to pay for memberships at our partnered elite gyms. Your tapping literally pays for your training."
+    text: "Use your earned points to pay for memberships at our partnered elite gyms. Your tapping literally pays for your training."
   },
 ];
   // --- INIT ---

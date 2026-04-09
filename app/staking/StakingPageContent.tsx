@@ -43,6 +43,7 @@ interface FighterStakingProps {
   fighter: Fighter | undefined;
   opponent: Fighter | undefined;
   fight: Fight;
+  side: string;
   userPoints: number;
   isActive: boolean;
   isConcluded?: boolean;
@@ -98,44 +99,54 @@ function getTimeRemaining(fightDate: string) {
 }
 
 const STAKING_TOUR: TourStep[] = [
-  { targetId: "staking-bar", emoji: "👆", label: "Stake", text: "Drag UP to set your Shells." },
-  { targetId: "confirm-stake-btn", emoji: "🔒", label: "Confirm", text: "Tap once to lock, then confirm." },
-  { targetId: "currency-toggle", emoji: "💳", label: "Pay", text: "Switch between Shells or Stars." },
-  { targetId: "team-badge-icon", emoji: "🏅", label: "Badges", text: "The NFT team affects staking power." },
-  { targetId: "scout-talent-btn", emoji: "🥊", label: "Scout", text: "Tap here to sign real-life NFTs." },
+  { targetId: "staking-bar", emoji: "👆", label: "Stake", text: "Drag UP to set your Stake, the higher the bar the higher the earning." },
+  { targetId: "staking-bar", emoji: "🔒", label: "Confirm", text: "Tap once to lock-in your stake, then confirm." },
+  { targetId: "currency-toggle", emoji: "💳", label: "Switch Currency", text: "Switch between Points/Shells or Stars." },
+  { targetId: "confirm-stake", emoji: "🔒", label: "Confirm", text: "Click to Pay." },
+  
+  { targetId: "team-badge-icon1", emoji: "🏅", label: "Badges", text: "This is the NFT team this fighter is signed under, in this case SmartSnail NFT." },
+    { targetId: "team-badge-icon2", emoji: "🏅", label: "Badges", text: "This is the NFT team this fighter is signed under, in this case Manchies NFT." },
+
+  { targetId: "scout-talent-btn", emoji: "🥊", label: "Scout", text: "Tap here to sign real-life Fighter NFTs. Don't just bet—own the talent. Managers earn a cut of every fight their NFT wins" },
   { targetId: "fights-slider", emoji: "👉", label: "Swipe", text: "Swipe to see other fights." },
-  { targetId: "claim-button", emoji: "💰", label: "Rewards", text: "Tap here to claim winnings." },
+  // { targetId: "claim-button", emoji: "💰", label: "Rewards", text: "Tap here to claim winnings." },
   { 
-    targetId: "staking-bar", 
+    targetId: "multiplier-badge-1", 
     emoji: "📈", 
     label: "Yield", 
-    text: "Stakers split 70% of the losing side's pool. Drag up to increase your share!" 
+    text: "winning stakers receive their stake multiplied by the fighter's payout." 
   },
   { 
-    targetId: "currency-toggle", 
-    emoji: "💎", 
-    label: "Stars", 
-    text: "Staking with Stars bypasses point requirements and boosts the prize pool." 
+    targetId: "multiplier-badge-2", 
+    emoji: "⚖️", 
+    label: "Dynamic Odds", 
+    text: "Caution: Payout chaange in real-time! If more people stake on this side, the payout drops and increases on the other side. Strategy is key." 
   },
-  { 
-    targetId: "team-badge-icon", 
-    emoji: "🛡️", 
-    label: "Manager Bonus", 
-    text: "Owning this NFT collection grants you staking rights and specialized rewards." 
-  },
-  { 
-    targetId: "scout-talent-btn", 
-    emoji: "🤝", 
-    label: "Ownership", 
-    text: "Don't just bet—own the talent. Managers earn a cut of every fight their NFT wins." 
-  },
+  // { 
+  //   targetId: "currency-toggle", 
+  //   emoji: "💎", 
+  //   label: "Stars", 
+  //   text: "Staking with Stars bypasses point requirements and boosts the prize pool." 
+  // },
+  // { 
+  //   targetId: "team-badge-icon", 
+  //   emoji: "🛡️", 
+  //   label: "Manager Bonus", 
+  //   text: "Owning this NFT collection grants you staking rights and specialized rewards." 
+  // },
+  // { 
+  //   targetId: "scout-talent-btn", 
+  //   emoji: "🤝", 
+  //   label: "Ownership", 
+  //   text: "Don't just bet—own the talent. Managers earn a cut of every fight their NFT wins." 
+  // },
 
   { 
-    targetId: "team-badge-icon", 
-    emoji: "👑", 
-    label: "Manager Perks", 
-    text: "Own this NFT to earn 50% of every stake placed on this fighter, win or lose!" 
-  },
+  targetId: `fighter-portrait`, 
+  emoji: "👑", 
+  label: "Manager Revenue", 
+  text: "Manager Math: 1️⃣ Earn 50% of every stake instantly (win or lose) + 2️⃣ 10% of the entire losing pool on every victory!" 
+},
 ];
 
 // --- MAIN CONTENT COMPONENT ---
@@ -257,7 +268,7 @@ useEffect(() => {
   if (fights.length === 0) return <div className="h-screen bg-black flex items-center justify-center text-white font-black italic">NO FIGHTS AVAILABLE</div>;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col overflow-hidden">
+    <div id='fights-slider' className="min-h-screen bg-[#050505] text-white flex flex-col overflow-hidden">
       {/* Background Glow */}
       <div className="fixed inset-0 pointer-events-none opacity-30">
         <div className="absolute top-0 left-[-10%] w-full h-[40%] bg-red-900/40 blur-[100px]" />
@@ -658,6 +669,7 @@ const handleClaim = async () => {
         <div className="flex flex-col items-center">
           <FighterStaking 
              fighter={fight?.fighter1 || undefined}
+             side="1"
           opponent={fight?.fighter2 || undefined}
           fight={fight}
           userPoints={userPoints}
@@ -680,6 +692,7 @@ const handleClaim = async () => {
             fighter={fight.fighter2} 
             opponent={fight.fighter1} 
             fight={fight} 
+            side="2"
             userPoints={userPoints} 
             isActive={isActive && canUserStake}
             isConcluded={isConcluded}
@@ -890,7 +903,7 @@ const NFTRewardModal: React.FC<NFTRewardModalProps> = ({ nft, userReferralCode, 
   );
 };
 
-function FighterStaking({ fighter, fight, userPoints, isActive, onImageClick, isConcluded = false, telegramId, color, position, onStakeSuccess   }: FighterStakingProps) {
+function FighterStaking({ fighter, fight, userPoints, isActive, onImageClick, isConcluded = false, telegramId, color, side, position, onStakeSuccess   }: FighterStakingProps) {
   const [stakeType, setStakeType] = useState<'STARS' | 'POINTS'>('POINTS');
   const [barHeight, setBarHeight] = useState(0);
   const [stakeAmount, setStakeAmount] = useState(0);
@@ -1174,14 +1187,14 @@ const submitStake = async () => {
       className="relative cursor-pointer active:scale-95 transition-transform group"
      >
       {/* Main Portrait Frame */}
-      <div className={`w-20 h-20 rounded-full p-[3px] transition-all duration-500 ${color === 'gold' ? 'gold-shimmer-border' : activeTheme.border} ${activeTheme.glow}`}>
+      <div id={`fighter-portrait-${side}`} className={`w-20 h-20 rounded-full p-[3px] transition-all duration-500 ${color === 'gold' ? 'gold-shimmer-border' : activeTheme.border} ${activeTheme.glow}`}>
         <div className="w-full h-full rounded-full overflow-hidden bg-black">
           <img src={fighter?.imageUrl} className="w-full h-full object-cover" />
         </div>
       </div>
 
       {/* TINY NFT IMAGE / TEAM BADGE (Conditional Rendering) */}
-      <div id="team-badge-icon" className="absolute -bottom-1 -right-1 flex items-center">
+     <div id={`team-badge-icon${side}`} className="absolute -bottom-1 -right-1 flex items-center">
         {/* If it's NOT gold (not private) AND has a team image, show the badge */}
         {color !== 'gold' && fighter?.collection?.imageUrl ? (
           <div className="w-8 h-8 rounded-lg border-2 border-zinc-900 overflow-hidden shadow-xl rotate-12 bg-zinc-800">
@@ -1198,7 +1211,7 @@ const submitStake = async () => {
   </div>
       
       {/* NEW: Risk Multiplier Badge */}
-      <div className="mb-2 px-3 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-black text-green-400 italic">
+      <div id={`multiplier-badge-${side}`}className="mb-2 px-3 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-black text-green-400 italic">
         {multiplier}x PAYOUT
       </div>
        {/* Currency Switcher */}
@@ -1216,7 +1229,7 @@ const submitStake = async () => {
 
       <div 
   ref={barRef}
-  id="staking-bar"
+  id="staking-bar" 
   className={`w-14 min-h-[180px] flex-1 rounded-2xl border bg-black/60 relative overflow-hidden transition-all duration-300 
     ${barLocked ? 'border-yellow-500/50 scale-95 shadow-[0_0_15px_rgba(234,179,8,0.1)]' : 'border-zinc-800'}
     ${!canParticipate ? 'opacity-40 grayscale cursor-not-allowed' : 'cursor-ns-resize'}`} 
@@ -1272,7 +1285,7 @@ const submitStake = async () => {
 </div>
 
 
-        <button id="confirm-stake-btn"
+        <button id="confirm-stake"
   onClick={barLocked ? submitStake : toggleLock} 
   disabled={(!barLocked && stakeAmount <= 0) || !canParticipate || submitting} 
   className={`mt-4 w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all 

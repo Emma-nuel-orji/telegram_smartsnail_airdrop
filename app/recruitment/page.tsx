@@ -73,13 +73,13 @@ const RECRUITMENT_TOUR: TourStep[] = [
     targetId: "fighter-card-0",
     emoji: "📋",
     label: "Sign Talent",
-    text: "Recruit a fighter to your team. Once you own them, you earn 50% of every stake placed on them instantly!"
+    text: "Recruit a fighter to your team. Once you own them, Earn 50% of every stake instantly (win or lose) + 2️⃣ 10% of the entire losing pool on every victory!"
   },
   {
     targetId: "management-bonus-bar",
     emoji: "🎁",
     label: "Owner Rewards",
-    text: "Managers also get a 10% bonus from the winner's pot and a FREE NFT for every 3-win streak."
+    text: "Managers not only get a 10% bonus from the winner's pot they also get a FREE NFT for every 3-win streak."
   },
   {
     targetId: "my-roster-btn",
@@ -90,7 +90,7 @@ const RECRUITMENT_TOUR: TourStep[] = [
 ];
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col">
+    <div id="market-stats" className="min-h-screen bg-[#050505] text-white flex flex-col">
       <style jsx global>{`
         @keyframes shimmer {
           0% { transform: translateX(-150%) skewX(-20deg); }
@@ -127,7 +127,7 @@ const RECRUITMENT_TOUR: TourStep[] = [
       </header>
 
       {/* Market Stats (Tour Step 1) */}
-      <div id="market-stats" className="p-6 grid grid-cols-2 gap-3">
+      <div  className="p-6 grid grid-cols-2 gap-3">
          <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
             <p className="text-[8px] text-zinc-500 font-black uppercase">Active Deals</p>
             <p className="text-lg font-mono font-bold">{activeDeals}</p>
