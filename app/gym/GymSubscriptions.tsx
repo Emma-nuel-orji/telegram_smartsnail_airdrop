@@ -14,8 +14,13 @@ const GYM_BACKGROUND = "/images/bk.jpg";
 export default function GymSubscriptions() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gymId = searchParams?.get('gymId');
-  const gymName = searchParams?.get('gymName') || 'Partner Gym';
+
+  const LILBURN_ID = "684d8d8c86d4f1a3ebf72669";
+  
+ 
+  const gymId = searchParams?.get('gymId') || LILBURN_ID;
+  
+  const gymName = searchParams?.get('gymName') || (gymId === LILBURN_ID ? 'Lilburn Gym' : 'Partner Gym');
   
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0); 
@@ -52,56 +57,56 @@ export default function GymSubscriptions() {
     }
 
     async function fetchData() {
-      console.log("📡 API CALL STARTING for Gym:", gymId);
-      setLoading(true); 
-      
-      try {
-        const [userRes, subsRes, activeRes] = await Promise.all([
-          fetch(`/api/user/${telegramId}`),
-          fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&partnerId=${gymId}`),
-          fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
-        ]);
+  console.log("📡 API CALL STARTING for Partner:", gymId);
+  setLoading(true); 
+  
+  try {
+    // Determine if we should filter by type or just ID
+    // We remove the hardcoded partnerType=GYM to allow SageCombat (COMBAT) to work
+    const [userRes, subsRes, activeRes] = await Promise.all([
+      fetch(`/api/user/${telegramId}`),
+      fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`), // Removed &partnerType=GYM
+      fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
+    ]);
 
-        if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
+    if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
-        const userData = await userRes.json();
-        const subsData = await subsRes.json();
-        
-        // --- 1. REGISTRATION CHECK & REDIRECT ---
-        if (!userData.nickname || !userData.name) {
-          window.Telegram?.WebApp?.showPopup({
-            title: "Registration Required",
-            message: "You need a SmartSnail Pass to access the Gym. Register in the bot now?",
-            buttons: [
-              { id: "reg", type: "default", text: "Register Now" },
-              { id: "cancel", type: "destructive", text: "Later" }
-            ]
-          }, (buttonId) => {
-            if (buttonId === "reg") {
-              window.Telegram?.WebApp?.openTelegramLink("https://t.me/SmartSnailBot?start=register");
-            } else {
-              router.back();
-            }
-          });
-          return; 
+    const userData = await userRes.json();
+    const subsData = await subsRes.json();
+    
+    // --- 1. REGISTRATION CHECK ---
+    // Using your specific payload: signup_smartsnail_pass
+    if (!userData.nickname) {
+      window.Telegram?.WebApp?.showPopup({
+        title: "Access Denied",
+        message: `You need a SmartSnail Pass to enter ${gymName}.`,
+        buttons: [
+          { id: "reg", type: "default", text: "Get My Pass" },
+          { id: "cancel", type: "destructive", text: "Go Back" }
+        ]
+      }, (buttonId) => {
+        if (buttonId === "reg") {
+          window.Telegram?.WebApp?.openTelegramLink("https://t.me/SmartSnailBot?start=signup_smartsnail_pass");
+        } else {
+          router.back();
         }
-
-        // --- 2. UPDATE UNIFIED STATES ---
+      });
+      return; 
+    }
+        // --- 2. UPDATE STATE ---
         setUserPoints(Number(userData.points || 0));
-        setIsAdmin(userData.permissions?.some((p: string) => 
-          ['SUPERADMIN', 'GYM_ADMIN'].includes(p)
-        ));
-
         setSubscriptions(Array.isArray(subsData) ? subsData : []);
 
         if (activeRes.ok) {
           const subData = await activeRes.json();
+          // Find the active one if it's an array, otherwise use the object
           const activeSubscription = Array.isArray(subData) 
             ? subData.find((s: any) => s.status === 'ACTIVE') 
             : subData;
             
           setActiveSub(activeSubscription?.status === 'ACTIVE' ? activeSubscription : null);
         }
+
       } catch (err) {
         console.error("❌ Fetch Error:", err);
         toast.error("Failed to sync with gym database.");
@@ -109,11 +114,11 @@ export default function GymSubscriptions() {
         setLoading(false);
         clearTimeout(timeout);
       }
-    }
+    } // <-- Close fetchData
 
     fetchData();
     return () => clearTimeout(timeout);
-  }, [telegramId, gymId, router]); 
+  }, [telegramId, gymId, router]); // <-- Close useEffect
 
   // --- 3. THE "INSTANT-UPDATE" PURCHASE LOGIC ---
   const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
