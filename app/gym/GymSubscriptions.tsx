@@ -65,7 +65,7 @@ export default function GymSubscriptions() {
     // We remove the hardcoded partnerType=GYM to allow SageCombat (COMBAT) to work
     const [userRes, subsRes, activeRes] = await Promise.all([
       fetch(`/api/user/${telegramId}`),
-      fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`), // Removed &partnerType=GYM
+      fetch(`/api/services?partnerType=GYM&type=SUBSCRIPTION&gymId=${gymId}`),
       fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
     ]);
 
