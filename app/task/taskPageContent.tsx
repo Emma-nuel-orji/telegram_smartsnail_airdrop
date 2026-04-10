@@ -690,7 +690,7 @@ const handleShareToStory = async () => {
               {/* Verify Task */}
               <button 
                 className="btn-verify" 
-                onClick={handleValidate}
+                // onClick={handleValidate}
                 disabled={loading}
               >
                 {loading ? "Verifying..." : "Verify & Claim"}
