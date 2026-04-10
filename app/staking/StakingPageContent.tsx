@@ -1187,8 +1187,8 @@ const submitStake = async () => {
       className="relative cursor-pointer active:scale-95 transition-transform group"
      >
       {/* Main Portrait Frame */}
-      <div id={`fighter-portrait-${side}`} className={`w-20 h-20 rounded-full p-[3px] transition-all duration-500 ${color === 'gold' ? 'gold-shimmer-border' : activeTheme.border} ${activeTheme.glow}`}>
-        <div className="w-full h-full rounded-full overflow-hidden bg-black">
+      <div  className={`w-20 h-20 rounded-full p-[3px] transition-all duration-500 ${color === 'gold' ? 'gold-shimmer-border' : activeTheme.border} ${activeTheme.glow}`}>
+        <div id={`fighter-portrait-${side}`} className="w-full h-full rounded-full overflow-hidden bg-black">
           <img src={fighter?.imageUrl} className="w-full h-full object-cover" />
         </div>
       </div>

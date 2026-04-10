@@ -624,102 +624,77 @@ const handleShareToStory = async () => {
     }
   };
   return (
-    <div className="premium-task-wrapper">
-      {/* 1. Header with Stats Area */}
-      <div className="task-header-v2">
-        <div className="header-top">
-          <Link href="/" className="icon-back-bg">
-            <img src="/images/info/left-arrow.png" alt="back" className="back-img" />
-          </Link>
-          <div className="wallet-pill">
-            <img src="/images/shell-icon.png" className="mini-shell" alt="" />
-            <span>{totalPoints.toLocaleString()}</span>
-          </div>
-        </div>
-        <div className="header-text">
-          <h1>Earn Shells</h1>
-          <p>Complete quests to unlock exclusive rewards</p>
+    <div className="task-container">
+      {/* Refined Header (No more giant arrow) */}
+      <div className="task-header-premium">
+        <Link href="/"><img src="/images/info/left-arrow.png" alt="back" className="back-btn-small" /></Link>
+        <div className="balance-pill">
+          <span>{totalPoints.toLocaleString()}</span>
+          <img src="/images/shell-icon.png" alt="shells" />
         </div>
       </div>
 
-      {/* 2. Custom Segmented Control (Tabs) */}
-      <div className="segmented-control">
-        {(['main', 'daily', 'partners'] as const).map(tab => (
+      <h1 className="main-title">Quests</h1>
+
+      {/* Tabs */}
+      <div className="task-tabs">
+        {['main', 'daily', 'partners'].map((tab: any) => (
           <button 
             key={tab}
-            className={`segment-btn ${selectedSection === tab ? "active" : ""}`} 
+            className={selectedSection === tab ? "active" : ""} 
             onClick={() => setSelectedSection(tab)}
           >
-            {tab.toUpperCase()}
+            {tab}
           </button>
         ))}
       </div>
 
-      {/* 3. Task List with Premium Glass Cards */}
-      <div className="task-scroll-area">
-        {filteredTasks.map((task) => (
-          <div
-            key={task.id}
-            className={`glass-task-card ${task.completed && task.type !== 'flexible' ? 'is-done' : ''}`}
-            onClick={() => task.active !== false && handleTaskClick(task)}
+      {/* Grid of Tasks */}
+      <div className="tasks-list">
+        {tasks.filter(t => t.section === selectedSection).map(task => (
+          <div 
+            key={task.id} 
+            className={`task-row ${task.completed ? 'task-done' : ''}`}
+            onClick={() => !task.completed && setSelectedTask(task)}
           >
-            <div className="card-left">
-              <div className="img-container">
-                <img src={task.image} alt="" />
-                {task.completed && <div className="inner-check">✓</div>}
-              </div>
-              <div className="text-content">
-                <h3>{task.description}</h3>
-                <div className="reward-badge">
-                  <img src="/images/shell-icon.png" alt="" />
-                  <span>+{task.reward}</span>
-                </div>
-              </div>
+            <img src={task.image} alt="" className="task-icon" />
+            <div className="task-details">
+              <p className="task-name">{task.description}</p>
+              <p className="task-reward">+{task.reward} Shells</p>
             </div>
-            <div className="card-right">
-              <div className={`action-indicator ${task.completed ? 'check' : 'arrow'}`}>
-                 {task.completed ? "Done" : "→"}
-              </div>
+            <div className="task-action-icon">
+              {task.completed ? "✓" : "→"}
             </div>
           </div>
         ))}
       </div>
 
-      {/* 4. The Bottom Drawer (Action Sheet) */}
+      {/* FIXED POPUP (With Close and Perform Task) */}
       {selectedTask && (
-        <div className={`drawer-overlay ${selectedTask ? 'show' : ''}`} onClick={() => setSelectedTask(null)}>
-          <div className="bottom-drawer" onClick={e => e.stopPropagation()}>
-            <div className="drawer-handle" />
+        <div className="popup-overlay" onClick={() => setSelectedTask(null)}>
+          <div className="task-popup-clean" onClick={e => e.stopPropagation()}>
+            {/* Close Button is back! */}
+            <button className="close-btn" onClick={() => setSelectedTask(null)}>×</button>
             
-            <img src={selectedTask.image} className="drawer-main-img" alt="" />
-            <h2>{selectedTask.description}</h2>
-            <p className="drawer-sub">Reward: <span>{selectedTask.reward} Shells</span></p>
-
-            <div className="drawer-content">
-              {/* Conditional logic for Code/Wallet/Story as you had before */}
-              {selectedTask.id === "22" && (
-                <input 
-                  className="drawer-input" 
-                  placeholder="Paste secret code here..." 
-                  value={inputCode}
-                  onChange={(e) => setInputCode(e.target.value)}
-                />
-              )}
-              
-              <div className="button-group">
-                {!selectedTask.isStoryTask && selectedTask.id !== "22" && (
-                  <button className="btn-main" onClick={() => window.open(selectedTask.link, "_blank")}>
-                    Launch Task
-                  </button>
-                )}
-                
-                <button 
-                  className="btn-confirm" 
-                  onClick={selectedTask.isStoryTask ? handleShareToStory : handleValidateClick}
-                >
-                  Verify Task
+            <img src={selectedTask.image} className="popup-img" alt="" />
+            <h3>{selectedTask.description}</h3>
+            
+            <div className="popup-buttons">
+              {/* Perform Task - Only shows if it's a link task */}
+              {selectedTask.link && (
+                <button className="btn-perform" onClick={() => window.open(selectedTask.link, '_blank')}>
+                  Perform Task
                 </button>
-              </div>
+              )}
+
+              {/* Verify Task */}
+              <button 
+                className="btn-verify" 
+                onClick={handleValidate}
+                disabled={loading}
+              >
+                {loading ? "Verifying..." : "Verify & Claim"}
+              </button>
             </div>
           </div>
         </div>
