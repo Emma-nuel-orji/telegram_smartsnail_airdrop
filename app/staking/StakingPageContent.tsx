@@ -108,6 +108,9 @@ const STAKING_TOUR: TourStep[] = [
     { targetId: "team-badge-icon2", emoji: "🏅", label: "Badges", text: "This is the NFT team this fighter is signed under, in this case Manchies NFT." },
 
   { targetId: "scout-talent-btn", emoji: "🥊", label: "Scout", text: "Tap here to sign real-life Fighter NFTs. Don't just bet—own the talent. Managers earn a cut of every fight their NFT wins" },
+
+
+
   { targetId: "fights-slider", emoji: "👉", label: "Swipe", text: "Swipe to see other fights." },
   // { targetId: "claim-button", emoji: "💰", label: "Rewards", text: "Tap here to claim winnings." },
   { 
@@ -120,7 +123,7 @@ const STAKING_TOUR: TourStep[] = [
     targetId: "multiplier-badge-2", 
     emoji: "⚖️", 
     label: "Dynamic Odds", 
-    text: "Caution: Payout chaange in real-time! If more people stake on this side, the payout drops and increases on the other side. Strategy is key." 
+    text: "Caution: Payout multiplier changes in real-time! If more people stake on this side, the payout drops and increases on the other side. Strategy is key." 
   },
   // { 
   //   targetId: "currency-toggle", 
@@ -142,11 +145,20 @@ const STAKING_TOUR: TourStep[] = [
   // },
 
   { 
-  targetId: `fighter-portrait`, 
+  targetId: `fighter-portrait-1`, 
   emoji: "👑", 
   label: "Manager Revenue", 
-  text: "Manager Math: 1️⃣ Earn 50% of every stake instantly (win or lose) + 2️⃣ 10% of the entire losing pool on every victory!" 
+  text: "Don't just bet—sign this talent and receive manager benefits   1️⃣ 50% of every stake on your fighter instantly (win or lose) + 2️⃣ 10% of the entire losing pool on every victory!" 
 },
+
+{ 
+  targetId: `fighter-portrait-2`, 
+  emoji: "👑", 
+  label: "Manager Revenue", 
+  text: "Don't just bet—sign this talent and receive manager benefits   1️⃣ 50% of every stake on your fighter instantly (win or lose) + 2️⃣ 10% of the entire losing pool on every victory!" 
+},
+
+  { targetId: "fights-slider", emoji: "🛡️", label: "Swipe", text: "to enage in this staking you need a minimum of 200,000 points/shells or either of the SmartSnail or Manchies NFTs." },
 ];
 
 // --- MAIN CONTENT COMPONENT ---
@@ -1293,7 +1305,7 @@ const submitStake = async () => {
       submitting ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed' :
       barLocked ? 'bg-white text-black shadow-lg' : 'bg-zinc-800 text-white'}`}
 >
-  {!canParticipate ? 'REQS NOT MET' : 
+  {!canParticipate ? 'NOT QUALIFIED' : 
    submitting ? (
      <span className="flex items-center justify-center gap-2">
        <div className="w-3 h-3 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />

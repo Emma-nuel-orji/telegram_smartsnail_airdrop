@@ -159,138 +159,131 @@ export default function Home() {
     text: "Use your earned points to pay for memberships at our partnered elite gyms. Your tapping literally pays for your training."
   },
 ];
-  // --- INIT ---
-  useEffect(() => {
-    const initApp = async () => {
-      setLoading(true);
-      try {
+
+const createNewUser = async (telegramId: string, tg: any) => {
+  try {
+    const newUser = {
+      telegramId,
+      username: tg.initDataUnsafe.user.username || "",
+      first_name: tg.initDataUnsafe.user.first_name || "",
+      last_name: tg.initDataUnsafe.user.last_name || "",
+      points: 0,
+      tappingRate: 1,
+      hasClaimedWelcome: false,
+    };
+
+    const createRes = await axios.post('/api/user', newUser);
+    const createdUser = createRes.data;
+
+    localStorage.setItem(STORAGE_KEY(telegramId), JSON.stringify(createdUser));
+    setUser(createdUser);
+    setShowWelcomePopup(true);
+  } catch (err) {
+    console.error("Failed to create new user", err);
+  }
+};
+
+const initUserData = async (telegramId: string, tg: any, retries = 2) => {
+  try {
+    const res = await axios.get(`/api/user/${telegramId}`);
+    const serverUser = res.data;
+
+    syncManager.current?.resetPendingPoints();
+
+    setUser(serverUser);
+    localStorage.setItem(STORAGE_KEY(telegramId), JSON.stringify(serverUser));
+    setShowWelcomePopup(!serverUser.hasClaimedWelcome);
+
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      await createNewUser(telegramId, tg);
+    } else if (retries > 0) {
+      setTimeout(() => initUserData(telegramId, tg, retries - 1), 1000);
+    } else {
+      console.error("User fetch failed", err);
+    }
+  }
+};
+
+// --- INIT ---
+useEffect(() => {
+  const waitForTelegram = (): Promise<any> =>
+    new Promise((resolve, reject) => {
+      let tries = 0;
+      const check = () => {
         const tg = (window as any).Telegram?.WebApp;
-        if (!tg?.initDataUnsafe?.user?.id) {
-          throw new Error("Telegram not initialized");
+        if (tg?.initDataUnsafe?.user?.id) return resolve(tg);
+        if (tries++ > 40) return reject(new Error("Telegram failed to initialize"));
+        setTimeout(check, 150);
+      };
+      check();
+    });
+
+  const initApp = async () => {
+    setLoading(true); 
+    try {
+      const tg = await waitForTelegram();
+
+      tg.ready();
+      tg.expand();
+
+      const telegramId = tg.initDataUnsafe.user.id.toString();
+      setFirstName(tg.initDataUnsafe.user.first_name || "Snail");
+
+      const storageKey = STORAGE_KEY(telegramId);
+      const cached = localStorage.getItem(storageKey);
+
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          setUser(parsed);
+          setShowWelcomePopup(!parsed.hasClaimedWelcome);
+        } catch {
+          localStorage.removeItem(storageKey);
         }
-
-        tg.ready();
-        tg.expand();
-
-        const telegramId = tg.initDataUnsafe.user.id.toString();
-        setFirstName(tg.initDataUnsafe.user.first_name || "Snail");
-
-        const storageKey = STORAGE_KEY(telegramId);
-        const cached = localStorage.getItem(storageKey);
-        let cachedUser: User | null = null;
-
-        if (cached) {
-          try {
-            cachedUser = JSON.parse(cached);
-            setUser(cachedUser);
-            setShowWelcomePopup(!cachedUser!.hasClaimedWelcome); 
-          } catch {
-            localStorage.removeItem(storageKey);
-          }
-        }
-
-       // 1. Initialize Sync Manager FIRST
-if (!syncManager.current) {
-  syncManager.current = new UserSyncManager(telegramId);
-}
-
-try {
- const res = await axios.get(`/api/user/${telegramId}`);
-const serverUser = res.data;
-console.log('🌐 Server user points on load:', serverUser.points);
-
-syncManager.current.resetPendingPoints();
-console.log('🔁 After reset, pending points:', syncManager.current.getPendingPoints());
-
-const finalUser = serverUser;
-console.log('👤 Setting user with points:', finalUser.points);
-
-  localStorage.setItem(storageKey, JSON.stringify(finalUser));
-  setUser(finalUser);
-  setShowWelcomePopup(!finalUser.hasClaimedWelcome);
-} catch (fetchError: any) {
-          // --- NEW USER FALLBACK ---
-          if (!cachedUser && fetchError?.response?.status === 404) {
-            const newUser = {
-              telegramId,
-              username: tg.initDataUnsafe.user.username || "",
-              first_name: tg.initDataUnsafe.user.first_name || "",
-              last_name: tg.initDataUnsafe.user.last_name || "",
-              points: 0,
-              tappingRate: 1,
-              hasClaimedWelcome: false,
-            };
-
-            const createRes = await axios.post('/api/user', newUser);
-            const createdUser = createRes.data;
-
-            localStorage.setItem(storageKey, JSON.stringify(createdUser)); // ✅ FIX
-            setUser(createdUser);
-            setShowWelcomePopup(true); // ✅ FIX
-          }
-        }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        // ✅ FIX: clean legacy keys
-        localStorage.removeItem('points');
-        localStorage.removeItem('telegramId');
-        localStorage.removeItem('tappingRate');
-        localStorage.removeItem('hasClaimedWelcome');
-
-        setLoading(false);
       }
-    };
 
-    initApp();
-  }, []);
+      if (!syncManager.current) {
+        syncManager.current = new UserSyncManager(telegramId);
+      }
 
-  // --- GLOBAL USER UPDATE LISTENER (CRITICAL FIX) ---
-  useEffect(() => {
-    const handler = (event: CustomEvent<User>) => {
-      // setUser(prev => {
-      //   if (!prev) return event.detail;
+      // No setTimeout - just call directly, it's async and won't block UI
+        await initUserData(telegramId, tg);
 
-      //   const merged = {
-      //     ...prev,
-      //     ...event.detail,
-      //     points: event.detail.points,
-      //   };
+    } catch (err: any) {
+      setError("Connection issue. Please restart the app.");
+    } finally {
+      // Clean up legacy keys
+      localStorage.removeItem('points');
+      localStorage.removeItem('telegramId');
+      localStorage.removeItem('tappingRate');
+      localStorage.removeItem('hasClaimedWelcome');
 
-      //   localStorage.setItem(
-      //     STORAGE_KEY(prev.telegramId),
-      //     JSON.stringify(merged)
-      //   );
+      setLoading(false);
+    }
+  };
 
-      //   return merged;
-      // });
-    };
+  initApp();
+}, []);
 
-    window.addEventListener('userDataUpdate', handler as EventListener);
-    return () =>
-      window.removeEventListener('userDataUpdate', handler as EventListener);
-  }, []);
+// --- GLOBAL USER UPDATE LISTENER ---
+useEffect(() => {
+  const handler = (event: CustomEvent<User>) => {};
+  window.addEventListener('userDataUpdate', handler as EventListener);
+  return () => window.removeEventListener('userDataUpdate', handler as EventListener);
+}, []);
 
-  // --- SYNC CALLBACK ---
-  useEffect(() => {
-    if (!syncManager.current || !user?.telegramId) return;
+// --- SYNC CALLBACK ---
+useEffect(() => {
+  if (!syncManager.current || !user?.telegramId) return;
+  syncManager.current.onSyncSuccess = (serverPoints: number) => {};
+  return () => syncManager.current?.cleanup();
+}, [user?.telegramId]);
 
-    syncManager.current.onSyncSuccess = (serverPoints: number) => {
-      // setUser(prev => {
-      //   if (!prev) return prev;
-      //   const updated = { ...prev, points: serverPoints };
-      //   localStorage.setItem(STORAGE_KEY(prev.telegramId), JSON.stringify(updated));
-      //   return updated;
-      // });
-    };
-
-    return () => syncManager.current?.cleanup();
-  }, [user?.telegramId]);
-
-  // --- VIDEO PLAY SAFETY ---
-  useEffect(() => {
-    videoRef.current?.play().catch(() => {});
-  }, [isLoading]);
+// --- VIDEO PLAY SAFETY ---
+useEffect(() => {
+  videoRef.current?.play().catch(() => {});
+}, [isLoading]);
 
   // --- CLICK HANDLER ---
   const handleClick = async (e: React.MouseEvent) => {

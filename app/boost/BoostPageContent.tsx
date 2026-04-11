@@ -205,7 +205,7 @@ const BOOST_TOUR: TourStep[] = [
     targetId: "checkout-summary", 
     emoji: "⚡",
     label: "Tapping rate",
-    text: "FxckedUpBags gives +1 rate. Human Relations gives +3 rate per copy."
+    text: "FxckedUpBags gives +2 rate. Human Relations gives +4 rate per copy."
   },
   {
     targetId: "checkout-summary", 
@@ -274,7 +274,7 @@ const BOOST_TOUR: TourStep[] = [
 
   // Calculations
   const totalBooks = fxckedUpBagsQty + humanRelationsQty;
-  const tappingRate = fxckedUpBagsQty * 1 + humanRelationsQty * 3;
+  const tappingRate = fxckedUpBagsQty * 2 + humanRelationsQty * 4;
   const points = fxckedUpBagsQty * 100000 + humanRelationsQty * 30000;
   const priceTon = totalBooks * 0.001;
   const priceStars = totalBooks * 4 * 100;
@@ -801,7 +801,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
               id: 'fub',
               title: 'FxckedUpBags',
               img: '/images/fuckedup.jpg',
-              rate: '+5',
+              rate: '+4',
               shells: '100,000',
               qty: fxckedUpBagsQty,
               setQty: setFxckedUpBagsQty,
@@ -813,7 +813,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
               id: 'hr',
               title: 'Human Relations',
               img: '/images/human.jpg',
-              rate: '+7',
+              rate: '+2',
               shells: '30,000',
               qty: humanRelationsQty,
               setQty: setHumanRelationsQty,
@@ -874,19 +874,43 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
 
         {/* SUMMARY & CHECKOUT */}
         <div id="checkout-summary" className="bg-purple-600/10 border-2 border-purple-500/30 rounded-[2.5rem] p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-                      <BoostIndicator 
-                      user={{
-                        boostExpiresAt: (user as any)?.boostExpiresAt, 
-                        fxckedUpBagsQty: fxckedUpBagsQty, 
-                        humanRelationsQty: humanRelationsQty
-                      }} 
-                    />
-            <div className="bg-black/40 p-3 rounded-2xl border border-white/5">
-              <p className="text-[10px] text-zinc-500 font-bold uppercase">Coin Reward</p>
-              <p className="text-xl font-black italic text-yellow-500">{points.toLocaleString()}</p>
-            </div>
-          </div>
+  
+  {/* LIVE PREVIEW SECTION */}
+  {(fxckedUpBagsQty > 0 || humanRelationsQty > 0) && (
+    <div className="grid grid-cols-2 gap-3 animate-in zoom-in duration-300">
+      <div className="bg-white/5 border border-white/10 p-3 rounded-2xl text-center">
+        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Added Power</p>
+        <p className="text-2xl font-black italic text-purple-500">
+          +{(fxckedUpBagsQty * 5) + (humanRelationsQty * 7)}
+        </p>
+      </div>
+      <div className="bg-white/5 border border-white/10 p-3 rounded-2xl text-center">
+        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Added Duration</p>
+        <p className="text-2xl font-black italic text-green-400">
+          {fxckedUpBagsQty + humanRelationsQty} Days
+        </p>
+      </div>
+    </div>
+  )}
+
+  <div className="grid grid-cols-2 gap-4">
+    <div className="relative">
+      {/* Current Active Status */}
+      <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1 ml-1">Current Active Boost</p>
+      <BoostIndicator 
+        user={{
+          boostExpiresAt: (user as any)?.boostExpiresAt, 
+          fxckedUpBagsQty: fxckedUpBagsQty, 
+          humanRelationsQty: humanRelationsQty
+        }} 
+      />
+    </div>
+    
+    <div className="bg-black/40 p-3 rounded-2xl border border-white/5 flex flex-col justify-center">
+      <p className="text-[10px] text-zinc-500 font-bold uppercase">Coin Reward</p>
+      <p className="text-xl font-black italic text-yellow-500">{points.toLocaleString()}</p>
+    </div>
+  </div>
 
           <div className="relative">
             <input

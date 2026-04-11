@@ -1,12 +1,87 @@
 "use client";
 import WebApp from "@twa-dev/sdk";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import "./task.css";
 import Link from "next/link";
+import dynamic from 'next/dynamic';
+import type { Task } from '@/types';
 import confetti from 'canvas-confetti';
 import { useWallet } from '../context/walletContext';
-import type { Task } from '@/types';
+// import { useSignal, useInitData } from "@telegram-apps/sdk-react";
 
+
+interface ShowStoryOptions {
+  media: string;
+  mediaType: 'photo' | 'video';
+  text?: string;
+  sticker?: {
+    url: string;
+    width: number;
+    height: number;
+    position: {
+      x: number;
+      y: number;
+    };
+  };
+}
+
+interface TelegramWebAppUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+}
+
+interface ShareOptions {
+  text?: string;
+  widget_link?: {
+    url: string;
+    name: string;
+  };
+  sticker?: {
+    url: string;
+    width: number;
+    height: number;
+    position: {
+      x: number;
+      y: number;
+    };
+  };
+}
+
+interface ShareToStoryParams {
+  media: string;   // Changed from media to media_url
+  media_type: "photo" | "video";
+  text?: string;
+  sticker?: {
+    url: string;
+    width: number;
+    height: number;
+    position: { x: number; y: number };
+  };
+}
+
+interface TelegramWebAppBasic {
+  showAlert: (message: string) => void;
+  openLink: (url: string) => void;
+  shareToStory?: (params: ShareToStoryParams) => void;
+}
+
+// Update the WebApp type definition
+declare global {
+  interface TelegramWebApp extends Omit<typeof WebApp, 'showStory'> {
+    showStory(options: ShowStoryOptions): Promise<void>;
+  }
+}
+
+const getTelegramWebApp = (): TelegramWebApp => {
+  if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+    return window.Telegram.WebApp as TelegramWebApp;
+  }
+  throw new Error("Telegram WebApp is not available");
+};
+
+// Main TaskPageContent Component
 const TaskPageContent: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([
     { id: "1", description: "Main Task 1", completed: false, reward: 5000, section: "main", type: "permanent", image: "/images/tasks/smartsnail telegram.png", link: "https://t.me/smartsnails", completedTime: null },
@@ -335,126 +410,53 @@ useEffect(() => {
  
 
 const handleShareToStory = async () => {
-  if (typeof window === "undefined" || !window.Telegram?.WebApp) {
-    WebApp.showAlert("Telegram WebApp is not supported on this device.");
+  if (!window.Telegram?.WebApp?.shareToStory) {
+    WebApp.showAlert("Story sharing not supported.");
     return;
   }
 
-  if (!selectedTask || !telegramId) {
-    WebApp.showAlert("⚠️ Something went wrong. Please try again.");
-    return;
-  }
+  // 1. Define your URLs (Fixes the "Cannot find name" errors)
+  const baseUrl = window.location.origin;
+  const mediaPath = selectedTask?.mediaUrl || "/videos/speedsnail.mp4";
+  const mediaUrlString = `${baseUrl}${mediaPath.startsWith('/') ? '' : '/'}${mediaPath}`;
+  const stickerUrl = `${baseUrl}/stickers/snail.png`;
+
+  setSharing(true);
 
   try {
-    console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
-    console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
-    console.log("🟢 Share attempt:", { telegramId });
-
-    if (!window.Telegram.WebApp.shareToStory) {
-      WebApp.showAlert("Telegram Story sharing is not supported.");
-      return;
-    }
-
-    // Get media URL from the selected task
-    let mediaUrl = selectedTask.mediaUrl;
-    
-    // Validate mediaUrl
-    console.log("🟢 mediaUrl Type:", typeof mediaUrl);
-    console.log("🟢 mediaUrl Value:", mediaUrl);
-
-    if (!mediaUrl || typeof mediaUrl !== "string") {
-      console.error("🚨 Invalid media URL:", mediaUrl);
-      WebApp.showAlert("Invalid media URL. Please try again.");
-      return;
-    }
-
-    // Construct full URL properly
-    const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
-    
-    // Handle relative or absolute URLs - clean the path
-    const cleanPath = mediaUrl.startsWith("/") ? mediaUrl.substring(1) : mediaUrl;
-    const fullMediaUrl = `${baseUrl}/${cleanPath}`;
-
-    console.log("📢 Final Media URL:", fullMediaUrl);
-    
-    // Important: Force string type and ensure it's not an object
-    const mediaUrlString = String(fullMediaUrl).toString();
-    
-    // Determine media type
-    const isVideo = mediaUrlString.toLowerCase().endsWith('.mp4');
-    const mediaType = isVideo ? "video" : "photo";
-    
-    // Create sticker object
-    const stickerUrl = `${baseUrl}/stickers/snail.png`;
-    
-    console.log("📢 Calling Telegram shareToStory with parameters:");
-
-    console.log({
-      media: mediaUrlString,
-      media_type: mediaType,
-      text: "Join SmartSnail Airdrop!\nEarn Shells",
-      sticker: {
-        url: stickerUrl,
-        width: 150,
-        height: 150,
-        position: {
-          x: 0.5,
-          y: 0.5
-        }
-      }
-    });
-    
-   
+    // 2. The Telegram Call with Referral Link
     window.Telegram.WebApp.shareToStory(
-      mediaUrlString,
-      mediaType,
-      "Join SmartSnail Airdrop!\nEarn Shells",
+      mediaUrlString, 
+      "video", 
+      `Join SmartSnail Airdrop!\nEarn Shells 🐌\n\nPlay here: ${userReferralLink}`, // Caption Link
       {
+        // THIS is what creates the clickable button on the story
+        widget_link: {
+          url: userReferralLink,
+          name: "Play Now"
+        },
+        // Optional sticker
         url: stickerUrl,
         width: 150,
         height: 150,
-        position: {
-          x: 0.5,
-          y: 0.5
-        }
-      }
+        position: { x: 0.5, y: 0.5 }
+      } as any
     );
 
-    // Record share attempt in database/backend
-    try {
-      // Optional: Send share attempt to backend for tracking
-      await fetch(`${baseUrl}/api/record-share`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId, taskId: selectedTask.id })
-      });
-    } catch (trackingError) {
-      console.error("Failed to record share attempt:", trackingError);
-          }
-    const reward = selectedTask.reward || 0;
-
-    // This replaces the "onShareSuccess" call
+    // 3. Reward Logic
     setTimeout(() => {
-      WebApp.showAlert(`🎉 You earned ${reward} Shells for sharing!`);
-      
-      // Update the UI and LocalStorage directly
-      setTotalPoints((prev) => {
-        const newPoints = prev + reward;
-        localStorage.setItem("totalPoints", newPoints.toString());
-        return newPoints;
-      });
-
-      // Mark task as completed in the list
-      setTasks(prev => prev.map(t => 
-        t.id === selectedTask.id ? { ...t, completed: true } : t
-      ));
-
+      const rewardAmount = selectedTask?.reward || 0;
+      handleTaskCompleted(selectedTask!.id, rewardAmount);
+      WebApp.showAlert(`🎉 Success! ${rewardAmount} Shells added.`);
+      setSharing(false);
+      setSelectedTask(null);
       triggerConfetti();
-    }, 5000);
-    
-  } catch (error) {
-    console.error("❌ Share failed:", error);
-    WebApp.showAlert("Failed to share story. Please try again.");
+    }, 5000); 
+
+  } catch (e) {
+    setSharing(false);
+    console.error("Story Error:", e);
+    WebApp.showAlert("Sharing failed.");
   }
 };
 
@@ -623,82 +625,189 @@ const handleShareToStory = async () => {
       setInputCode("");
     }
   };
+
+
   return (
     <div className="task-container">
-      {/* Refined Header (No more giant arrow) */}
-      <div className="task-header-premium">
-        <Link href="/"><img src="/images/info/left-arrow.png" alt="back" className="back-btn-small" /></Link>
-        <div className="balance-pill">
-          <span>{totalPoints.toLocaleString()}</span>
-          <img src="/images/shell-icon.png" alt="shells" />
-        </div>
+
+  
+      <div className="task-header">
+        <Link href="/">
+          <img
+            src="/images/info/left-arrow.png" 
+            width={40}
+            height={40}
+            alt="back"
+          />
+        </Link>
+        <h2>Perform tasks to earn more Shells!</h2>
       </div>
 
-      <h1 className="main-title">Quests</h1>
-
-      {/* Tabs */}
-      <div className="task-tabs">
-        {['main', 'daily', 'partners'].map((tab: any) => (
-          <button 
-            key={tab}
-            className={selectedSection === tab ? "active" : ""} 
-            onClick={() => setSelectedSection(tab)}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="task-buttons">
+        <button 
+          className={selectedSection === "main" ? "active" : ""}
+          onClick={() => setSelectedSection("main")}
+        >
+          🎯 Main Tasks
+        </button>
+        <button 
+          className={selectedSection === "daily" ? "active" : ""}
+          onClick={() => setSelectedSection("daily")}
+        >
+          🌟 Daily
+        </button>
+        <button 
+          className={selectedSection === "partners" ? "active" : ""}
+          onClick={() => setSelectedSection("partners")}
+        >
+          🤝 Partners
+        </button>
       </div>
 
-      {/* Grid of Tasks */}
-      <div className="tasks-list">
-        {tasks.filter(t => t.section === selectedSection).map(task => (
-          <div 
-            key={task.id} 
-            className={`task-row ${task.completed ? 'task-done' : ''}`}
-            onClick={() => !task.completed && setSelectedTask(task)}
-          >
-            <img src={task.image} alt="" className="task-icon" />
-            <div className="task-details">
-              <p className="task-name">{task.description}</p>
-              <p className="task-reward">+{task.reward} Shells</p>
-            </div>
-            <div className="task-action-icon">
-              {task.completed ? "✓" : "→"}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* FIXED POPUP (With Close and Perform Task) */}
-      {selectedTask && (
-        <div className="popup-overlay" onClick={() => setSelectedTask(null)}>
-          <div className="task-popup-clean" onClick={e => e.stopPropagation()}>
-            {/* Close Button is back! */}
-            <button className="close-btn" onClick={() => setSelectedTask(null)}>×</button>
-            
-            <img src={selectedTask.image} className="popup-img" alt="" />
-            <h3>{selectedTask.description}</h3>
-            
-            <div className="popup-buttons">
-              {/* Perform Task - Only shows if it's a link task */}
-              {selectedTask.link && (
-                <button className="btn-perform" onClick={() => window.open(selectedTask.link, '_blank')}>
-                  Perform Task
-                </button>
+      <div className="tasks-grid">
+        {filteredTasks.map((task) => (
+         <div
+         key={task.id}
+         className={`task-card ${task.completed && task.type !== 'flexible' ? 'completed' : ''} ${task.active === false ? 'inactive' : ''}`}
+         onClick={() => {
+           if (task.active !== false && (task.type === 'flexible' || !task.completed)) {
+             handleTaskClick(task);
+           }
+         }}
+       >
+       
+            <div>
+              <img src={task.image} alt={task.description} className="task-image" />
+              {task.completed && (
+                <div className="checkmark-overlay">
+                  <span className="checkmark">✓</span>
+                </div>
               )}
-
-              {/* Verify Task */}
-              <button 
-                className="btn-verify" 
-                // onClick={handleValidate}
-                disabled={loading}
-              >
-                {loading ? "Verifying..." : "Verify & Claim"}
-              </button>
+            </div>
+            <div className="task-info">
+              <p className="task-description">{task.description}</p>
+              <p className="task-reward">Reward: {task.reward} shells</p>
             </div>
           </div>
-        </div>
+        ))}
+      </div>
+
+      {selectedTask && (
+  <div className="popup-overlay">
+    <div className="task-popup">
+      <button 
+        className="popup-close" 
+        onClick={() => setSelectedTask(null)}
+      >
+        ×
+      </button>
+
+      <p className="popup-description">{selectedTask.description}
+        {selectedTask.id === "28" && (
+          <div className="popup-message">
+            Make a content of you reading the book Fxckedupbags. <br></br>
+            Make sure you use the hashtags: <strong>#Fxckedupbags, #SmartSnailNFT</strong>. <br></br>
+            If you haven't gotten a hardcopy, go to <strong>Main Task 11</strong> and order a copy. Good luck!
+          </div>
+        )}
+      </p>
+
+      {selectedTask.id === "22" ? (
+        <>
+          <input
+            className="popup-input"
+            type="text"
+            value={inputCode}
+            onChange={(e) => setInputCode(e.target.value)}
+            placeholder="Insert unique code"
+            disabled={loading}
+          />
+          <button 
+            className="popup-button"
+            onClick={handleRedeemCode} 
+            disabled={loading || (selectedTask.completed && selectedTask.id !== "22")}
+          >
+            {loading ? "Redeeming..." : "Redeem Code"}
+          </button>
+          {message && (
+            <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
+              {message}
+            </p>
+          )}
+          {reward > 0 && (
+            <p className="popup-message reward">
+              🎉 You earned: {reward} shells!
+            </p>
+          )}
+        </>
+      ) : selectedTask.id === "18" ? (
+        <>
+          <button 
+            className="popup-button"
+            onClick={handleWalletAction}
+            disabled={loading || (selectedTask.completed && selectedTask.id !== "18")}
+          >
+            {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
+          </button>
+          {message && (
+            <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
+              {message}
+            </p>
+          )}
+        </>
+      ) : selectedTask.isStoryTask ? (
+        <>
+          <p className="popup-message">
+            📢 <strong>Copy and paste the following text into your caption.</strong><br />
+            This helps us **track and verify your share**.<br />
+            ⏳ **Verification may take up to 24 hours.**
+          </p>
+
+          <div className="popup-text-box">
+            <p>
+              <strong>Join the SmartSnail farm, pick $Shells, and earn SmartSnailNFT!
+                #smartsnail #smartsnailnft #shells</strong> <br />
+              {userReferralLink} {/* Referral link dynamically inserted */}
+            </p>
+            <button 
+              className="copy-button"
+              onClick={() => {
+                navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
+                alert("✅ Caption copied to clipboard!");
+              }}
+            >
+              📋 Copy Text
+            </button>
+          </div>
+
+          <button 
+            className="popup-button"
+            onClick={handleShareToStory}
+            disabled={sharing}
+          >
+            {sharing ? "📤 Sharing..." : "📤 Share to Story"}
+          </button>
+        </>
+      ) : selectedTask.id !== "28" && (
+        <>
+          <button 
+            className="popup-button"
+            onClick={() => window.open(selectedTask.link, "_blank")}
+          >
+            🎯 Perform Task
+          </button>
+          <button 
+            className="popup-button"
+            onClick={handleValidateClick}
+          >
+            ✅ Validate and Reward
+          </button>
+        </>
       )}
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
