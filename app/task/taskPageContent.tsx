@@ -128,6 +128,7 @@ const TaskPageContent: React.FC = () => {
     }
     return 0;
   });
+  
   const [selectedSection, setSelectedSection] = useState<"main" | "daily" | "partners">("main");
   const { connect, disconnect } = useWallet();
   const { isConnected } = useWallet();
@@ -410,56 +411,123 @@ useEffect(() => {
  
 
 const handleShareToStory = async () => {
-  if (!window.Telegram?.WebApp?.shareToStory) {
-    WebApp.showAlert("Story sharing not supported.");
+  if (typeof window === "undefined" || !window.Telegram?.WebApp) {
+    WebApp.showAlert("Telegram WebApp is not supported on this device.");
     return;
   }
 
-  // 1. Define your URLs (Fixes the "Cannot find name" errors)
-  const baseUrl = window.location.origin;
-  const mediaPath = selectedTask?.mediaUrl || "/videos/speedsnail.mp4";
-  const mediaUrlString = `${baseUrl}${mediaPath.startsWith('/') ? '' : '/'}${mediaPath}`;
-  const stickerUrl = `${baseUrl}/stickers/snail.png`;
-
-  setSharing(true);
+  if (!selectedTask || !telegramId) {
+    WebApp.showAlert("⚠️ Something went wrong. Please try again.");
+    return;
+  }
 
   try {
-    // 2. The Telegram Call with Referral Link
-    window.Telegram.WebApp.shareToStory(
-      mediaUrlString, 
-      "video", 
-      `Join SmartSnail Airdrop!\nEarn Shells 🐌\n\nPlay here: ${userReferralLink}`, // Caption Link
-      {
-        // THIS is what creates the clickable button on the story
-        widget_link: {
-          url: userReferralLink,
-          name: "Play Now"
-        },
-        // Optional sticker
+    console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
+    console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
+    console.log("🟢 Share attempt:", { telegramId });
+
+    if (!window.Telegram.WebApp.shareToStory) {
+      WebApp.showAlert("Telegram Story sharing is not supported.");
+      return;
+    }
+
+    // Get media URL from the selected task
+    let mediaUrl = selectedTask.mediaUrl;
+    
+    // Validate mediaUrl
+    console.log("🟢 mediaUrl Type:", typeof mediaUrl);
+    console.log("🟢 mediaUrl Value:", mediaUrl);
+
+    if (!mediaUrl || typeof mediaUrl !== "string") {
+      console.error("🚨 Invalid media URL:", mediaUrl);
+      WebApp.showAlert("Invalid media URL. Please try again.");
+      return;
+    }
+
+    // Construct full URL properly
+    const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
+    
+    // Handle relative or absolute URLs - clean the path
+    const cleanPath = mediaUrl.startsWith("/") ? mediaUrl.substring(1) : mediaUrl;
+    const fullMediaUrl = `${baseUrl}/${cleanPath}`;
+
+    console.log("📢 Final Media URL:", fullMediaUrl);
+    
+    // Important: Force string type and ensure it's not an object
+    const mediaUrlString = String(fullMediaUrl).toString();
+    
+    // Determine media type
+    const isVideo = mediaUrlString.toLowerCase().endsWith('.mp4');
+    const mediaType = isVideo ? "video" : "photo";
+    
+    // Create sticker object
+    const stickerUrl = `${baseUrl}/stickers/snail.png`;
+    
+    console.log("📢 Calling Telegram shareToStory with parameters:");
+    
+    // CRITICAL FIX: Direct parameter passing without creating an object variable first
+    // This bypasses the issue where an object gets stringified incorrectly
+    console.log({
+      media: mediaUrlString,
+      media_type: mediaType,
+      text: "Join SmartSnail Airdrop!\nEarn Shells",
+      sticker: {
         url: stickerUrl,
         width: 150,
         height: 150,
-        position: { x: 0.5, y: 0.5 }
-      } as any
+        position: {
+          x: 0.5,
+          y: 0.5
+        }
+      }
+    });
+    
+    // CRITICAL FIX: Use the direct method call with arguments, not through a wrapper function
+    // @ts-ignore - Bypass TypeScript interface constraints
+    window.Telegram.WebApp.shareToStory(
+      mediaUrlString,
+      mediaType,
+      "Join SmartSnail Airdrop!\nEarn Shells",
+      {
+        url: stickerUrl,
+        width: 150,
+        height: 150,
+        position: {
+          x: 0.5,
+          y: 0.5
+        }
+      }
     );
 
-    // 3. Reward Logic
-    setTimeout(() => {
-      const rewardAmount = selectedTask?.reward || 0;
-      handleTaskCompleted(selectedTask!.id, rewardAmount);
-      WebApp.showAlert(`🎉 Success! ${rewardAmount} Shells added.`);
-      setSharing(false);
-      setSelectedTask(null);
-      triggerConfetti();
-    }, 5000); 
+    // Record share attempt in database/backend
+    try {
+      // Optional: Send share attempt to backend for tracking
+      await fetch(`${baseUrl}/api/record-share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId, taskId: selectedTask.id })
+      });
+    } catch (trackingError) {
+      console.error("Failed to record share attempt:", trackingError);
+      // Continue execution - we don't want to block the success message due to tracking failure
+    }
 
-  } catch (e) {
-    setSharing(false);
-    console.error("Story Error:", e);
-    WebApp.showAlert("Sharing failed.");
+    // WebApp.showAlert("✅ Shared successfully! It may take up to 24 hours to verify your task.");
+
+    // Success callback after delay (for demo/testing, set to 5 seconds; in production use longer time)
+    const reward = selectedTask.reward || 0;
+    setTimeout(() => {
+      WebApp.showAlert(`🎉 You earned ${reward} Shells for sharing!`);
+      if (typeof onShareSuccess === "function") {
+        onShareSuccess(reward);
+      }
+    }, 900000); // 5 seconds for testing - use 900000 (15 minutes) or longer in production
+    
+  } catch (error) {
+    console.error("❌ Share failed:", error);
+    WebApp.showAlert("Failed to share story. Please try again.");
   }
 };
-
 
   
   const handleValidateClick = async () => {
