@@ -21,36 +21,48 @@ const BoostIndicator = ({ user }: { user: BoostUser }) => {
       const expiry = user.boostExpiresAt ? new Date(user.boostExpiresAt).getTime() : 0;
       const diff = expiry - now;
 
-      if (diff > 0) {
-        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        const m = Math.floor((diff / (1000 * 60)) % 60);
+      // 1. Calculate the "Selected" boost from the books in the cart
+      const cartPower = (user.fxckedUpBagsQty * 5) + (user.humanRelationsQty * 7);
+      const cartDays = user.fxckedUpBagsQty + user.humanRelationsQty;
+
+      // 2. Logic: Is there a current boost OR a selected boost?
+      const hasActiveBoost = diff > 0;
+      const hasCartBoost = cartPower > 0;
+
+      if (hasActiveBoost || hasCartBoost) {
+        let timeString = "0d 0h 0m";
         
-        // Calculate power based on your weights (+1 and +3)
-        const power = (user.fxckedUpBagsQty * 1) + (user.humanRelationsQty * 3);
-        
+        if (hasActiveBoost) {
+          const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+          const m = Math.floor((diff / (1000 * 60)) % 60);
+          timeString = `${d}d ${h}h ${m}m`;
+        } else {
+          // If no active boost, show the duration of what they are about to buy
+          timeString = `+${cartDays} Days`;
+        }
+
         setDisplay({
-          isActive: true,
-          timeString: `${d}d ${h}h ${m}m`,
-          totalPower: power > 0 ? power : 1
+          isActive: true, // It is now "active" if books are selected!
+          timeString: timeString,
+          totalPower: cartPower > 0 ? cartPower : 1
         });
       } else {
-        // Boost is expired - reset to base power
         setDisplay({ isActive: false, timeString: "Expired", totalPower: 1 });
       }
     };
 
-    updateTimer(); // Run once immediately
-    const interval = setInterval(updateTimer, 60000); // Update every minute
+    updateTimer();
+    const interval = setInterval(updateTimer, 10000); // Check more often (10s)
     return () => clearInterval(interval);
   }, [user.boostExpiresAt, user.fxckedUpBagsQty, user.humanRelationsQty]);
 
-  // 3. The Visual UI
-  if (!display.isActive) {
+  // 3. The Visual UI - Only show "Inactive" if cart is empty AND boost is expired
+  if (!display.isActive && user.fxckedUpBagsQty === 0 && user.humanRelationsQty === 0) {
     return (
       <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-3xl opacity-60">
         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Boost Status</p>
-        <p className="text-sm font-black italic text-zinc-400">INACTIVE — BUY BOOKS TO UPGRADE</p>
+        <p className="text-sm font-black italic text-zinc-400">INACTIVE — SELECT BOOKS ABOVE</p>
       </div>
     );
   }

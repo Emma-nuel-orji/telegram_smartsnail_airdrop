@@ -1,95 +1,126 @@
-/* 1. The Main Background - Deep Dark */
-.task-container {
-  background-color: #0a0b1e; /* Deep dark blue/black */
-  color: white;
-  min-height: 100vh;
-  padding: 15px;
+:root {
+  --primary: #8a2be2;
+  --primary-glow: rgba(138, 43, 226, 0.4);
+  --bg-dark: #0f0a1a;
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --text-main: #ffffff;
+  --text-muted: #a0a0a0;
+  --accent-gold: #ffcf4d;
 }
 
-/* 2. Fix the Header and Arrow */
-.task-header {
+/* Base Container Upgrades */
+.task-container {
+  padding: 16px;
+  background: var(--bg-dark);
+  min-h: 100vh;
+  color: var(--text-main);
+}
+
+/* Modern Header with a Glow */
+.task-container h2 {
+  text-align: center;
+  font-size: 1.25rem;
+  background: linear-gradient(to right, #fff, var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 1.5rem 0;
+}
+
+/* Segmented Control (Better than standard buttons) */
+.task-buttons {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 20px;
 }
 
-.task-header img {
-  width: 24px !important; /* Forces the back arrow to be a sane size */
-  height: 24px !important;
-  filter: brightness(0) invert(1); /* Makes the black arrow white */
-}
-
-.task-header h2 {
-  color: white;
-  font-size: 1.1rem;
-  text-align: left;
-  margin: 0;
-}
-
-/* 3. Modernized Tab Buttons */
-.task-buttons {
-  background-color: rgba(255, 255, 255, 0.05); /* Transparent dark */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 5px;
-  border-radius: 12px;
-}
-
 .task-buttons button {
+  flex: 1;
   background: transparent;
   border: none;
-  color: #aaa;
+  color: var(--text-muted);
   font-weight: 600;
+  padding: 10px;
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .task-buttons button.active {
-  background: #8a2be2;
+  background: var(--primary);
   color: white;
-  box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+  box-shadow: 0 4px 15px var(--primary-glow);
 }
 
-/* 4. Task Cards */
+/* High-End Task Cards */
+.tasks-grid {
+  display: flex;
+  flex-direction: column; /* Vertical list feels more native on Telegram */
+  gap: 12px;
+}
+
 .task-card {
-  background: #16182d; /* Slightly lighter than background */
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: white;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  gap: 15px;
+}
+
+.task-image {
+  width: 50px !important; /* Smaller thumbnails for lists */
+  height: 50px !important;
+  border-radius: 12px;
+  background: #2d1b4e;
+  object-fit: cover;
 }
 
 .task-info {
-  background: transparent;
-  padding: 12px;
+  background: transparent !important; /* Remove that gray background */
+  flex: 1;
 }
 
 .task-description {
   color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
 }
 
 .task-reward {
-  color: #9932cc; /* Neon purple for the reward */
+  color: var(--accent-gold);
+  font-size: 0.85rem;
   font-weight: bold;
 }
 
-/* 5. Popup Overlay Blur */
+/* Status: Completed */
+.task-card.completed {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+  border-color: transparent;
+}
+
+/* Glassmorphism Popup */
 .popup-overlay {
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(8px);
 }
 
 .task-popup {
-  background: #1c1e36;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.popup-description {
+  background: #1a1425;
+  border: 1px solid var(--primary);
+  border-radius: 24px;
+  padding: 30px;
   color: white;
 }
 
-.popup-text-box {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px dashed #8a2be2;
-  font-size: 0.9rem;
-  margin-bottom: 15px;
+.popup-button {
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 800;
 }
