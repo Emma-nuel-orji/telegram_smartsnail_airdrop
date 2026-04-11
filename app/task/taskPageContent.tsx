@@ -516,12 +516,22 @@ const handleShareToStory = async () => {
 
     // Success callback after delay (for demo/testing, set to 5 seconds; in production use longer time)
     const reward = selectedTask.reward || 0;
-    setTimeout(() => {
-      WebApp.showAlert(`🎉 You earned ${reward} Shells for sharing!`);
-      if (typeof onShareSuccess === "function") {
-        onShareSuccess(reward);
-      }
-    }, 900000); // 5 seconds for testing - use 900000 (15 minutes) or longer in production
+    // ✅ REPLACE WITH THIS
+setTimeout(() => {
+  // 1. Update the UI state for points
+  setTotalPoints((prev) => {
+    const newPoints = prev + reward;
+    localStorage.setItem("totalPoints", newPoints.toString());
+    return newPoints;
+  });
+
+  // 2. Show the success message
+  WebApp.showAlert(`🎉 You earned ${reward} Shells! Your balance has been updated.`);
+  
+  // 3. Close the popup and trigger effects
+  setSelectedTask(null);
+  triggerConfetti();
+}, 5000); 
     
   } catch (error) {
     console.error("❌ Share failed:", error);
