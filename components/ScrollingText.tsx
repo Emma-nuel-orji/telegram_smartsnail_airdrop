@@ -51,16 +51,16 @@ const ScrollingText = () => {
   Now you're a Smart Snail!
 </p>
 <p className="text-white/80 leading-relaxed">
-  Some are farmers here, while some are Snailonauts. Over here we earn something more valuable than coins: <span className="text-yellow-500"> Shells!</span>
+  SmartSnail App is revolutionary telegram mini app hosting two web3 project MVPs- SmartSnail Marketplace and  <span className="text-yellow-500"> Polycombat</span>
 </p>
 <p>
-  Before you earn your first <span className="text-yellow-500">5000 Shells</span>, read the following:
+  Before you earn your first <span className="text-yellow-500">5000 Points/Shells</span>, read the following:
 </p>
 
 <p className="text-white/70 leading-relaxed mt-4">
-  Welcome to **SmartSnail**, a revolutionary project at the forefront of integrating blockchain technology with real-world applications. Designed to redefine how you interact with assets, fitness, leisure, and more, SmartSnail is a dynamic ecosystem bridging the gap between the digital and physical worlds.
+  Please do not skip the tour guides, read everyone of them to get an understanding of the SmartSnail App.
 </p>
-<p className="text-white/70 leading-relaxed mt-2">
+{/* <p className="text-white/70 leading-relaxed mt-2">
   **SmartSnail** is a proud initiative of **Web3Chinonsolutions**, a company that innovates, educates, and integrates in Web3. Web3Chinonsolutions helps clients build Web3-based projects, offering services like 3D animation, graphic design, smart contracts, and full-stack development. And this is just the beginning—there’s more to come!
 </p>
 <p className="text-white/70 leading-relaxed mt-2">
@@ -72,7 +72,7 @@ const ScrollingText = () => {
 
         <p className="text-lg font-semibold text-white py-4">
           Earn your first 5,000 Shells
-        </p>
+        </p> */}
       </div>
     </div>
   );
