@@ -784,118 +784,102 @@ setTimeout(() => {
   })}
 </div>
 
-      {selectedTask && (
+     {selectedTask && (
   <div className="popup-overlay">
-    <div className="task-popup">
-      <button 
-        className="popup-close" 
-        onClick={() => setSelectedTask(null)}
-      >
-        ×
+    <div className="web3-modal">
+      {/* Close Button */}
+      <button className="modal-close" onClick={() => setSelectedTask(null)}>
+        <span style={{ fontSize: '24px', lineHeight: '1' }}>×</span>
       </button>
 
-      <p className="popup-description">{selectedTask.description}
+      {/* Header with Icon and Title */}
+      <div className="modal-header">
+        <div className="modal-icon-glow">
+          <img src={selectedTask.image} alt="task logo" />
+        </div>
+        <h3 className="modal-title">{selectedTask.description}</h3>
+      </div>
+
+      <div className="modal-body">
+        {/* Task 28: Book Reading Instructions */}
         {selectedTask.id === "28" && (
-          <div className="popup-message">
-            Make a content of you reading the book Fxckedupbags. <br></br>
-            Make sure you use the hashtags: <strong>#Fxckedupbags, #SmartSnailNFT</strong>. <br></br>
-            If you haven't gotten a hardcopy, go to <strong>Main Task 11</strong> and order a copy. Good luck!
+          <div className="instruction-card">
+            <p>📖 Make content of you reading <strong>Fxckedupbags</strong>.</p>
+            <p className="hashtag-row">#Fxckedupbags #SmartSnailNFT</p>
+            <p style={{ fontSize: '12px', marginTop: '8px', color: 'rgba(255,255,255,0.6)' }}>
+              Need a copy? Go to <strong>Main Task 11</strong>.
+            </p>
           </div>
         )}
-      </p>
 
-      {selectedTask.id === "22" ? (
-        <>
-          <input
-            className="popup-input"
-            type="text"
-            value={inputCode}
-            onChange={(e) => setInputCode(e.target.value)}
-            placeholder="Insert unique code"
-            disabled={loading}
-          />
-          <button 
-            className="popup-button"
-            onClick={handleRedeemCode} 
-            disabled={loading || (selectedTask.completed && selectedTask.id !== "22")}
-          >
-            {loading ? "Redeeming..." : "Redeem Code"}
-          </button>
-          {message && (
-            <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
-              {message}
-            </p>
-          )}
-          {reward > 0 && (
-            <p className="popup-message reward">
-              🎉 You earned: {reward} shells!
-            </p>
-          )}
-        </>
-      ) : selectedTask.id === "18" ? (
-        <>
-          <button 
-            className="popup-button"
-            onClick={handleWalletAction}
-            disabled={loading || (selectedTask.completed && selectedTask.id !== "18")}
-          >
+        {/* Task 22: Secret Code Input */}
+        {selectedTask.id === "22" ? (
+          <>
+            <input
+              className="web3-input"
+              type="text"
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value)}
+              placeholder="Insert unique code"
+              disabled={loading}
+            />
+            <button className="web3-primary-btn" onClick={handleRedeemCode} disabled={loading}>
+              {loading ? "Redeeming..." : "Redeem Code"}
+            </button>
+          </>
+        ) : selectedTask.id === "18" ? (
+          /* Task 18: Wallet Connection */
+          <button className="web3-primary-btn" onClick={handleWalletAction} disabled={loading}>
             {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
           </button>
-          {message && (
-            <p className={`popup-message ${reward > 0 ? 'success' : ''}`}>
-              {message}
+        ) : selectedTask.isStoryTask ? (
+          /* Story Sharing Task */
+          <>
+            <p className="web3-helper-text">
+              Copy and paste the text below into your caption to verify your share.
             </p>
-          )}
-        </>
-      ) : selectedTask.isStoryTask ? (
-        <>
-          <p className="popup-message">
-            📢 <strong>Copy and paste the following text into your caption.</strong><br />
-            This helps us **track and verify your share**.<br />
-            ⏳ **Verification may take up to 24 hours.**
-          </p>
-
-          <div className="popup-text-box">
-            <p>
-              <strong>Join the SmartSnail farm, pick $Shells, and earn SmartSnailNFT!
-                #smartsnail #smartsnailnft #shells</strong> <br />
-              {userReferralLink} {/* Referral link dynamically inserted */}
-            </p>
-            <button 
-              className="copy-button"
-              onClick={() => {
-                navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
-                alert("✅ Caption copied to clipboard!");
-              }}
-            >
-              📋 Copy Text
+            <div className="web3-text-box">
+              <p>Join the farm, pick $Shells, and Stake in Polycombat! #smartsnail #polycombat #manchies  {userReferralLink}</p>
+              <button 
+                className="web3-copy-btn"
+                onClick={() => {
+                  navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
+                  // You can replace alert with a cleaner toast notification later
+                  alert("✅ Copied!");
+                }}
+              >
+                📋 Copy
+              </button>
+            </div>
+            <button className="web3-primary-btn" onClick={handleShareToStory} disabled={sharing}>
+              {sharing ? "📤 Sharing..." : "📤 Share to Story"}
             </button>
-          </div>
+          </>
+        ) : selectedTask.id !== "28" && (
+          /* Standard Tasks */
+          <>
+            <button className="web3-secondary-btn" onClick={() => window.open(selectedTask.link, "_blank")}>
+              🎯 Perform Task
+            </button>
+            <button className="web3-primary-btn" onClick={handleValidateClick} style={{ marginTop: '10px' }}>
+              ✅ Validate and Reward
+            </button>
+          </>
+        )}
 
-          <button 
-            className="popup-button"
-            onClick={handleShareToStory}
-            disabled={sharing}
-          >
-            {sharing ? "📤 Sharing..." : "📤 Share to Story"}
-          </button>
-        </>
-      ) : selectedTask.id !== "28" && (
-        <>
-          <button 
-            className="popup-button"
-            onClick={() => window.open(selectedTask.link, "_blank")}
-          >
-            🎯 Perform Task
-          </button>
-          <button 
-            className="popup-button"
-            onClick={handleValidateClick}
-          >
-            ✅ Validate and Reward
-          </button>
-        </>
-      )}
+        {/* Feedback Messages */}
+        {message && (
+          <div className={`status-msg ${reward > 0 ? 'success' : ''}`}>
+            {message}
+          </div>
+        )}
+        
+        {reward > 0 && (
+          <div className="web3-reward-banner">
+            🎉 +{reward} SHELLS EARNED
+          </div>
+        )}
+      </div>
     </div>
   </div>
 )}
