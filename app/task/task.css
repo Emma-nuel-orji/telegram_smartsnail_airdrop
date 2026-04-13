@@ -1,33 +1,50 @@
-/* --- KEEP YOUR ORIGINAL HEADER & CONTAINER --- */
+/* --- GLOBAL WEB3 THEME --- */
+body {
+  background: #0f051d; /* Deep Space Purple */
+  color: #ffffff;
+  font-family: 'Inter', -apple-system, sans-serif;
+  margin: 0;
+}
+
 .task-container {
-  padding: 5px;
-  background-color: #fdfbff; /* Optional: light background */
+  padding: 15px;
+  background: radial-gradient(circle at top right, #1a0b2e, #0f051d);
   min-height: 100vh;
 }
 
+/* --- MODERN HEADER & BACK ARROW --- */
 .task-header {
   display: flex;
   align-items: center;
-  padding: 10px;
+  margin-bottom: 25px;
+  padding: 10px 0;
+}
+
+/* Custom Back Arrow styling */
+.task-header img[alt="back"] {
+  filter: invert(1) brightness(2); /* Makes black icons white/neon */
+  transition: transform 0.2s ease;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
 }
 
 .task-header h2 {
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #1c0f2c;
-  margin-left: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0 15px;
+  letter-spacing: -0.5px;
 }
 
-/* --- KEEP YOUR ORIGINAL BUTTON FILTERS (MAIN/DAILY/PARTNERS) --- */
+/* --- NEON SEGMENTED BUTTONS --- */
 .task-buttons {
   display: flex;
-  background-color: #f4f0ff;
-  padding: 6px;
-  border-radius: 12px;
-  margin: 10px;
-  gap: 6px;
-  border: 1px solid #ddd;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 5px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .task-buttons button {
@@ -35,243 +52,118 @@
   padding: 10px;
   border: none;
   border-radius: 10px;
-  background-color: transparent;
-  font-size: 13px;
+  background: transparent;
+  color: #a0a0a0;
   font-weight: 600;
-  color: #5c3a91;
-  transition: all 0.2s ease;
+  font-size: 13px;
 }
 
 .task-buttons button.active {
-  background-color: white;
-  color: #8a2be2;
-  box-shadow: 0 2px 6px rgba(138, 43, 226, 0.2);
+  background: #8a2be2;
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
 }
 
-/* --- NEW MODERN LIST STYLES (REPLACES GRID/CARDS) --- */
+/* --- WEB3 TASK ROW (GLASSMORPHISM) --- */
 .tasks-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 10px;
 }
 
-.task-row {
+.task-row-web3 {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
-  border: 1px solid #eaddff;
-  border-radius: 16px;
-  padding: 12px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
 
-.task-row:active {
-  transform: scale(0.97);
+.task-row-web3:hover {
+  border-color: #8a2be2;
+  background: rgba(138, 43, 226, 0.05);
 }
 
-.task-row.completed {
-  opacity: 0.6;
-  background-color: #f9f9f9;
-  border-color: #d1d1d1;
+.task-row-web3:active {
+  transform: scale(0.98);
 }
 
-.task-row-left {
+.task-row-content {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 
-.task-icon-small {
-  width: 50px;
-  height: 50px;
+/* PLATFORM ICONS */
+.brand-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: #1c0f2c;
   border-radius: 12px;
-  object-fit: cover;
-  background-color: #f0e6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.task-text {
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.task-details {
   display: flex;
   flex-direction: column;
 }
 
-.task-title {
-  font-weight: 700;
+.task-title-web3 {
   font-size: 14px;
-  color: #1c0f2c;
-}
-
-.task-reward-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: bold;
-  color: #8a2be2;
-  margin-top: 2px;
-}
-
-.mini-shell {
-  width: 14px;
-  height: 14px;
-}
-
-.status-badge.success {
-  background: #4CAF50;
-  color: white;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-}
-
-/* --- KEEP YOUR ORIGINAL POPUP & ANIMATION STYLES --- */
-.popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(45, 24, 70, 0.7);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.task-popup {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  width: 90%;
-  max-width: 400px;
-  position: relative;
-}
-
-
-
-/* Close button */
-.popup-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: #f0e6ff;
-  border: none;
-  color: #8a2be2;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: all 0.2s ease;
-}
-
-.popup-close:hover {
-  background: #8a2be2;
-  color: white;
-  transform: rotate(90deg);
-}
-
-/* Task description */
-.popup-description {
-  font-size: 1.2rem;
-  color: #2d1846;
-  margin: 16px 0 24px 0;
-  text-align: center;
-  font-weight: 500;
-}
-
-/* Input field */
-.popup-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e0d0ff;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  margin-bottom: 16px;
-}
-
-.popup-input:focus {
-  border-color: #8a2be2;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
-}
-
-.popup-input:disabled {
-  background: #f5f5f5;
-  cursor: not-allowed;
-}
-
-/* Action buttons */
-.popup-button {
-  width: 100%;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: linear-gradient(45deg, #8a2be2, #9932cc);
-  color: white;
-  margin: 8px 0;
+  color: #efefef;
+  margin-bottom: 4px;
 }
 
-.popup-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(138, 43, 226, 0.2);
+.reward-container-web3 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.popup-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
+.reward-amount {
+  color: #00ffa3; /* Neon Green/Cyan for money */
+  font-weight: 800;
+  font-size: 13px;
 }
 
-/* Success message */
-.popup-message {
-  margin: 16px 0;
-  padding: 12px;
+.reward-unit {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* SUCCESS / ACTION STYLES */
+.web3-status-success {
+  background: rgba(0, 255, 163, 0.1);
+  color: #00ffa3;
+  padding: 4px 10px;
   border-radius: 8px;
-  font-weight: 500;
-  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid rgba(0, 255, 163, 0.2);
 }
 
-.popup-message.success {
-  background: #e6ffe6;
-  color: #00802b;
+.web3-action-arrow {
+  filter: hue-rotate(240deg) brightness(1.5); /* Colors standard arrows to purple neon */
+  opacity: 0.7;
 }
 
-.popup-message.reward {
-  background: #fff0e6;
-  color: #cc5500;
-  font-size: 1.1rem;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { 
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to { 
-    opacity: 1;
-    transform: translateY(0);
-  }
+.task-row-web3.completed {
+  opacity: 0.4;
+  filter: grayscale(0.8);
 }

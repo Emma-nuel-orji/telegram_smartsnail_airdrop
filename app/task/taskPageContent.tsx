@@ -743,38 +743,45 @@ setTimeout(() => {
       </div>
 
      <div className="tasks-list">
-  {filteredTasks.map((task) => (
-    <div
-      key={task.id}
-      className={`task-row ${task.completed ? 'completed' : ''} ${task.active === false ? 'locked' : ''}`}
-      onClick={() => task.active !== false && handleTaskClick(task)}
-    >
-      <div className="task-row-left">
-        <div className="icon-container">
-          <img src={task.image} alt="" className="task-icon-small" />
-        </div>
-        <div className="task-text">
-          <span className="task-title">{task.description}</span>
-          <div className="task-reward-badge">
-            <img src="/images/info/shell-icon.png" className="mini-shell" />
-           <span>+{(task.reward || 0).toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
+  {filteredTasks.map((task) => {
+    const isCompleted = task.completed && task.type !== 'flexible';
+    const isLocked = task.active === false;
 
-      <div className="task-row-right">
-        {task.completed ? (
-          <div className="status-badge success">
-            <img src="/images/info/check-green.png" width="20" />
+    return (
+      <div
+        key={task.id}
+        className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
+        onClick={() => !isLocked && (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
+      >
+        <div className="task-row-content">
+          <div className="brand-icon-wrapper">
+             {/* This uses the image from your task data as the logo */}
+            <img src={task.image} alt="" className="brand-logo" />
           </div>
-        ) : task.active === false ? (
-          <img src="/images/info/lock.png" width="18" className="opacity-50" />
-        ) : (
-          <img src="/images/info/chevron-right.png" width="12" />
-        )}
+          
+          <div className="task-details">
+            <span className="task-title-web3">{task.description}</span>
+            <div className="reward-container-web3">
+              <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
+              <span className="reward-unit">SHELLS</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="task-action-area">
+          {isCompleted ? (
+            <div className="web3-status-success">DONE</div>
+          ) : isLocked ? (
+            <span className="web3-icon-locked">🔒</span>
+          ) : (
+            <div className="web3-action-arrow">
+              <img src="/images/info/right-arrow-neon.png" alt="go" width="16" />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  ))}
+    );
+  })}
 </div>
 
       {selectedTask && (
