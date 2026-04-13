@@ -255,7 +255,7 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
     // Reward the user
     if (reward) {
       setTotalPoints((prevPoints) => {
-        const newPoints = prevPoints + reward;
+        const newPoints = prevPoints + (reward ?? 0);
         localStorage.setItem("totalPoints", newPoints.toString());
         return newPoints;
       });
@@ -742,33 +742,40 @@ setTimeout(() => {
         </button>
       </div>
 
-      <div className="tasks-grid">
-        {filteredTasks.map((task) => (
-         <div
-         key={task.id}
-         className={`task-card ${task.completed && task.type !== 'flexible' ? 'completed' : ''} ${task.active === false ? 'inactive' : ''}`}
-         onClick={() => {
-           if (task.active !== false && (task.type === 'flexible' || !task.completed)) {
-             handleTaskClick(task);
-           }
-         }}
-       >
-       
-            <div>
-              <img src={task.image} alt={task.description} className="task-image" />
-              {task.completed && (
-                <div className="checkmark-overlay">
-                  <span className="checkmark">✓</span>
-                </div>
-              )}
-            </div>
-            <div className="task-info">
-              <p className="task-description">{task.description}</p>
-              <p className="task-reward">Reward: {task.reward} shells</p>
-            </div>
+     <div className="tasks-list">
+  {filteredTasks.map((task) => (
+    <div
+      key={task.id}
+      className={`task-row ${task.completed ? 'completed' : ''} ${task.active === false ? 'locked' : ''}`}
+      onClick={() => task.active !== false && handleTaskClick(task)}
+    >
+      <div className="task-row-left">
+        <div className="icon-container">
+          <img src={task.image} alt="" className="task-icon-small" />
+        </div>
+        <div className="task-text">
+          <span className="task-title">{task.description}</span>
+          <div className="task-reward-badge">
+            <img src="/images/info/shell-icon.png" className="mini-shell" />
+           <span>+{(task.reward || 0).toLocaleString()}</span>
           </div>
-        ))}
+        </div>
       </div>
+
+      <div className="task-row-right">
+        {task.completed ? (
+          <div className="status-badge success">
+            <img src="/images/info/check-green.png" width="20" />
+          </div>
+        ) : task.active === false ? (
+          <img src="/images/info/lock.png" width="18" className="opacity-50" />
+        ) : (
+          <img src="/images/info/chevron-right.png" width="12" />
+        )}
+      </div>
+    </div>
+  ))}
+</div>
 
       {selectedTask && (
   <div className="popup-overlay">
