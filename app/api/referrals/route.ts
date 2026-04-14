@@ -3,179 +3,129 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 
 export async function POST(req: NextRequest) {
-  console.log("Referral API endpoint called");
-  
+  console.log("🚀 Referral API HIT");
+
   try {
     const data = await req.json();
-    console.log("Referral request data:", data);
-    
-    // Validate input data
-    if (!data.userTelegramId || !data.referrerTelegramId) {
-      console.error("Missing required fields");
-      return NextResponse.json(
-        { error: "Missing required fields: userTelegramId or referrerTelegramId" },
-        { status: 400 }
-      );
-    }
-    
-    // Convert to BigInt
+    console.log("📦 Incoming data:", data);
+
     const userTelegramId = BigInt(data.userTelegramId);
     const referrerTelegramId = BigInt(data.referrerTelegramId);
-    
-    // Validate that the IDs are valid
-    if (userTelegramId === BigInt(0) || referrerTelegramId === BigInt(0)) {
-      console.error("Invalid Telegram IDs");
-      return NextResponse.json(
-        { error: "Invalid Telegram IDs" },
-        { status: 400 }
-      );
-    }
-    
-    // Prevent self-referrals
+
+    console.log("🔍 Parsed IDs:", {
+      user: userTelegramId.toString(),
+      referrer: referrerTelegramId.toString()
+    });
+
     if (userTelegramId === referrerTelegramId) {
-      console.error("Self-referral attempted");
-      return NextResponse.json(
-        { error: "Self-referrals are not allowed" },
-        { status: 400 }
-      );
+      console.log("❌ Self referral blocked");
+      return NextResponse.json({ error: "Self-referral" }, { status: 400 });
     }
-    
-    // Check if the referrer exists
-    const referrer = await prisma.user.findUnique({
-      where: { telegramId: referrerTelegramId }
-    });
-    
-    if (!referrer) {
-      console.error(`Referrer with telegramId ${referrerTelegramId.toString()} not found`);
-      return NextResponse.json(
-        { error: "Referrer not found" },
-        { status: 400 }
-      );
-    }
-    
-    // Check if the user exists
-    const user = await prisma.user.findUnique({
-      where: { telegramId: userTelegramId }
-    });
-    
-    if (!user) {
-      console.error(`User with telegramId ${userTelegramId.toString()} not found`);
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 400 }
-      );
-    }
-    
-    // Check if a referral already exists for this user
-    const existingReferral = await prisma.referral.findFirst({
-      where: { referredId: userTelegramId }
-    });
-    
-    if (existingReferral) {
-      console.error(`Referral already exists for user ${userTelegramId.toString()}`);
-      return NextResponse.json(
-        { error: "Referral already exists for this user" },
-        { status: 400 }
-      );
-    }
-    
-    // Create the referral
-    const referral = await prisma.referral.create({
-      data: {
-        referrerId: referrerTelegramId,
+
+    // Check existing referral
+    const existing = await prisma.referral.findUnique({
+      where: {
         referredId: userTelegramId
       }
     });
-    
-    console.log(`Referral created successfully: ${referral.id}`);
-    
-    // Update the referrer's points/rewards (customize as needed)
+
+    if (existing) {
+      console.log("⚠️ Referral already exists");
+      return NextResponse.json({ existing: true });
+    }
+
+    // Ensure users exist
+    const [user, referrer] = await Promise.all([
+      prisma.user.findUnique({ where: { telegramId: userTelegramId } }),
+      prisma.user.findUnique({ where: { telegramId: referrerTelegramId } }),
+    ]);
+
+    if (!user || !referrer) {
+      console.log("❌ User or referrer missing");
+      return NextResponse.json({ error: "User or referrer not found" }, { status: 400 });
+    }
+
+    // Create referral
+    const referral = await prisma.referral.create({
+      data: {
+        referrerId: referrerTelegramId,
+        referredId: userTelegramId,
+      }
+    });
+
+    console.log("✅ Referral CREATED:", referral.id);
+
+    // 🎯 REWARD
     await prisma.user.update({
       where: { telegramId: referrerTelegramId },
       data: {
-        points: { increment: 10 } // Award 10 points for successful referral
+        points: { increment: 20000 } // 🔥 FIXED VALUE
       }
     });
-    
-    return NextResponse.json({ 
-      success: true, 
-      referral: {
-        ...referral,
-        referrerId: referral.referrerId.toString(),
-        referredId: referral.referredId.toString()
-      }
-    });
-    
+
+    console.log("💰 Reward sent to:", referrerTelegramId.toString());
+
+    return NextResponse.json({ success: true });
+
   } catch (error) {
-    console.error("Error processing referral:", error);
-    return NextResponse.json(
-      { error: "Internal server error processing referral" },
-      { status: 500 }
-    );
+    console.error("🔥 Referral ERROR:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const telegramId = request.nextUrl.searchParams.get('telegramId');
+    const telegramId = req.nextUrl.searchParams.get("telegramId");
 
     if (!telegramId) {
-      return NextResponse.json({ error: 'Missing telegramId' }, { status: 400 });
+      return NextResponse.json({ error: "Missing telegramId" }, { status: 400 });
     }
 
     const userId = BigInt(telegramId);
 
-    // Fetch the user’s referrer (if any)
-    const referrerReferral = await prisma.referral.findFirst({
-      where: { referredId: userId },
-      include: { referrer: true },
-    });
+    console.log("🔍 Fetching referrals for:", telegramId);
 
-    let referrerUser = null;
-    if (referrerReferral) {
-      referrerUser = await prisma.user.findUnique({
-        where: { telegramId: referrerReferral.referrerId },
-      });
-    }
-
-    // Fetch all users with their referral counts for leaderboard calculation
-    const allUsers = await prisma.user.findMany({
-      include: { referralsMade: true }, // referralsMade is the array of users this user referred
-    });
-
-    // Sort descending by number of referrals
-    allUsers.sort((a, b) => b.referralsMade.length - a.referralsMade.length);
-
-    // Determine leaderboard position
-    const leaderboardPosition =
-      allUsers.findIndex(u => u.telegramId.toString() === telegramId) + 1 || undefined;
-
-    // Fetch this user's referrals
+    // ✅ Get referrals
     const referrals = await prisma.referral.findMany({
       where: { referrerId: userId },
-      include: { referred: true },
+      include: {
+        referred: true
+      }
     });
+
+    console.log("👥 Found referrals:", referrals.length);
+
+    // ✅ Get referrer
+    const referrerRecord = await prisma.referral.findUnique({
+      where: { referredId: userId },
+      include: {
+        referrer: true
+      }
+    });
+
+    const referrerUser = referrerRecord?.referrer || null;
 
     return NextResponse.json({
       referrals: referrals.map(r => ({
         telegramId: r.referred.telegramId.toString(),
-        username: r.referred.username || null,
-        createdAt: r.referred.createdAt || null,
+        username: r.referred.username,
+        createdAt: r.referred.createdAt
       })),
+
       referrer: referrerUser
         ? {
             telegramId: referrerUser.telegramId.toString(),
-            username: referrerUser.username || null,
-            createdAt: referrerUser.createdAt || null,
+            username: referrerUser.username,
           }
         : null,
-      totalEarned: (referrals?.length || 0) * 20000, // or whatever your rate is
-      pendingRewards: 0, // calculate if you have pending rewards
-      referralRate: 20000, // your reward per referral
-      leaderboardPosition,
+
+      totalEarned: referrals.length * 20000,
+      pendingRewards: 0,
+      referralRate: 20000,
     });
+
   } catch (error) {
-    console.error('Error fetching referral data:', error);
-    return NextResponse.json({ error: 'Error fetching referral data' }, { status: 500 });
+    console.error("🔥 GET ERROR:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

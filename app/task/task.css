@@ -99,7 +99,7 @@ body {
 }
 
 /* PLATFORM ICONS */
-.brand-icon-wrapper {
+/* .brand-icon-wrapper {
   width: 48px;
   height: 48px;
   background: #1c0f2c;
@@ -109,7 +109,7 @@ body {
   justify-content: center;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-}
+} */
 
 .brand-logo {
   width: 100%;
@@ -158,10 +158,10 @@ body {
   border: 1px solid rgba(0, 255, 163, 0.2);
 }
 
-.web3-action-arrow {
+/* .web3-action-arrow {
   filter: hue-rotate(240deg) brightness(1.5); /* Colors standard arrows to purple neon */
   opacity: 0.7;
-}
+} */
 
 .task-row-web3.completed {
   opacity: 0.4;
@@ -269,4 +269,51 @@ body {
   height: 100%;
   object-fit: contain;
   border-radius: 12px;
+}
+
+/* Ensure the overlay covers the ENTIRE screen */
+.popup-overlay {
+  position: fixed;
+  inset: 0; /* Top, Right, Bottom, Left = 0 */
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center; /* Vertical center */
+  justify-content: center; /* Horizontal center */
+  z-index: 10000;
+  padding: 20px;
+}
+
+/* Modal sizing and Web3 look */
+.web3-modal {
+  background: linear-gradient(145deg, #1a0b2e, #0f051d);
+  border: 1px solid rgba(0, 255, 163, 0.2);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 350px;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 0 40px rgba(0, 255, 163, 0.1);
+  /* Ensure it doesn't "fall" to the bottom */
+  margin-bottom: auto; 
+  margin-top: auto;
+}
+
+/* Fix for broken arrow containers */
+.web3-action-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Brand icon wrapper needs to handle Lucide SVGs */
+.brand-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
 }

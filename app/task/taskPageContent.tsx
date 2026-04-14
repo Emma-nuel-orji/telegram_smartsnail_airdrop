@@ -8,7 +8,18 @@ import type { Task } from '@/types';
 import confetti from 'canvas-confetti';
 import { useWallet } from '../context/walletContext';
 // import { useSignal, useInitData } from "@telegram-apps/sdk-react";
-
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Twitter, 
+  Instagram, 
+  Send, 
+  Youtube, 
+  Globe, 
+  Wallet,
+  Lock,
+  CheckCircle2 
+} from 'lucide-react';
 
 interface ShowStoryOptions {
   media: string;
@@ -146,7 +157,15 @@ const TaskPageContent: React.FC = () => {
   const initDataState = window.Telegram?.WebApp?.initData || {};
   const userReferralLink = `https://t.me/smartsnailbot?start=${telegramId}`;
 
-
+  const getSocialIcon = (desc: string) => {
+    const d = desc.toLowerCase();
+    if (d.includes("twitter") || d.includes(" x ")) return <Twitter size={20} className="text-blue-400" />;
+    if (d.includes("telegram")) return <Send size={20} className="text-sky-400" />;
+    if (d.includes("instagram")) return <Instagram size={20} className="text-pink-500" />;
+    if (d.includes("youtube")) return <Youtube size={20} className="text-red-500" />;
+    if (d.includes("wallet")) return <Wallet size={20} className="text-purple-400" />;
+    return <Globe size={20} className="text-emerald-400" />;
+  };
   const telegramVersion = typeof window !== "undefined" ? window.Telegram?.WebApp?.version || "unknown" : "unknown";
 
   const triggerConfetti = () => {
@@ -289,7 +308,10 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
   
       await connect();
       setWalletStatus(true); 
-      localStorage.setItem("wallet_connected", "true"); // Persist connection status
+      useEffect(() => {
+  const stored = localStorage.getItem("wallet_connected") === "true";
+  if (stored) setWalletStatus(true);
+}, []);
   
       if (selectedTask.id === "18") {
         setTaskCompleted(true);
@@ -710,13 +732,8 @@ setTimeout(() => {
 
   
       <div className="task-header">
-        <Link href="/">
-          <img
-            src="/images/info/left-arrow.png" 
-            width={40}
-            height={40}
-            alt="back"
-          />
+        <Link href="/" className="back-button-web3">
+          <ChevronLeft size={32} color="#00ffa3" />
         </Link>
         <h2>Perform tasks to earn more Shells!</h2>
       </div>
@@ -743,63 +760,62 @@ setTimeout(() => {
       </div>
 
      <div className="tasks-list">
-  {filteredTasks.map((task) => {
-    const isCompleted = task.completed && task.type !== 'flexible';
-    const isLocked = task.active === false;
+        {filteredTasks.map((task) => {
+          const isCompleted = task.completed && task.type !== 'flexible';
+          const isLocked = task.active === false;
 
-    return (
-      <div
-        key={task.id}
-        className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
-        onClick={() => !isLocked && (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
-      >
-        <div className="task-row-content">
-          <div className="brand-icon-wrapper">
-             {/* This uses the image from your task data as the logo */}
-            <img src={task.image} alt="" className="brand-logo" />
-          </div>
-          
-          <div className="task-details">
-            <span className="task-title-web3">{task.description}</span>
-            <div className="reward-container-web3">
-              <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
-              <span className="reward-unit">SHELLS</span>
+          return (
+            <div
+              key={task.id}
+              className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
+              onClick={() => !isLocked && (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
+            >
+              <div className="task-row-content">
+                <div className="brand-icon-wrapper">
+                  {/* Performance Fix: Use Lucide icons instead of 143KB images where possible */}
+                  {getSocialIcon(task.description)}
+                </div>
+                
+                <div className="task-details">
+                  <span className="task-title-web3">{task.description}</span>
+                  <div className="reward-container-web3">
+                    <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
+                    <span className="reward-unit">SHELLS</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="task-action-area">
+                {isCompleted ? (
+                  <CheckCircle2 size={20} color="#00ffa3" />
+                ) : isLocked ? (
+                  <Lock size={18} color="rgba(255,255,255,0.3)" />
+                ) : (
+                  <div className="web3-action-arrow">
+                    {/* Fix: Replaced broken PNG arrow with Lucide Chevron */}
+                    <ChevronRight size={20} color="#00ffa3" />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="task-action-area">
-          {isCompleted ? (
-            <div className="web3-status-success">DONE</div>
-          ) : isLocked ? (
-            <span className="web3-icon-locked">🔒</span>
-          ) : (
-            <div className="web3-action-arrow">
-              <img src="/images/info/right-arrow-neon.png" alt="go" width="16" />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  })}
-</div>
-
-     {selectedTask && (
-  <div className="popup-overlay">
-    <div className="web3-modal">
-      {/* Close Button */}
-      <button className="modal-close" onClick={() => setSelectedTask(null)}>
-        <span style={{ fontSize: '24px', lineHeight: '1' }}>×</span>
-      </button>
-
-      {/* Header with Icon and Title */}
-      <div className="modal-header">
-        <div className="modal-icon-glow">
-          <img src={selectedTask.image} alt="task logo" />
-        </div>
-        <h3 className="modal-title">{selectedTask.description}</h3>
+          );
+        })}
       </div>
 
+      {/* POPUP: CSS fix below ensures this is centered, not at the bottom */}
+      {selectedTask && (
+        <div className="popup-overlay">
+          <div className="web3-modal animate__animated animate__zoomIn">
+            <button className="modal-close" onClick={() => setSelectedTask(null)}>
+              ×
+            </button>
+
+            <div className="modal-header">
+               <div className="modal-icon-glow">
+                  {getSocialIcon(selectedTask.description)}
+               </div>
+               <h3 className="modal-title">{selectedTask.description}</h3>
+            </div>
       <div className="modal-body">
         {/* Task 28: Book Reading Instructions */}
         {selectedTask.id === "28" && (

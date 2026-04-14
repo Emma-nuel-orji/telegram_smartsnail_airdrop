@@ -1,18 +1,25 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const TelegramInitializer = () => { 
+  const hasSynced = useRef(false);
+
   useEffect(() => {
-    const webApp = typeof window !== "undefined" ? (window as any).Telegram?.WebApp : null;
+    // 1. Get the WebApp object
+    const tg = (window as any).Telegram?.WebApp;
 
-    if (webApp) {
-      webApp.ready();
-      webApp.expand(); // Make the app full screen for a better feel
+    if (tg) {
+      // 2. These should be called as early as possible (already in your layout.tsx too)
+      tg.ready();
+      tg.expand();
 
-      const user = webApp.initDataUnsafe?.user;
-      const startParam = webApp.initDataUnsafe?.start_param; // This is the Referrer's ID
+      const user = tg.initDataUnsafe?.user;
+      const startParam = tg.initDataUnsafe?.start_param;
 
-      if (user && startParam) {
+      // 3. Only sync referral once per session to save network bandwidth
+      if (user && startParam && !hasSynced.current) {
+        hasSynced.current = true; // Prevents double-syncing in StrictMode
+        
         const syncReferral = async () => {
           try {
             await fetch('/api/referrals', {
@@ -23,9 +30,9 @@ const TelegramInitializer = () => {
                 referrerTelegramId: startParam.toString()
               })
             });
-            console.log("🔗 Referral sync attempted");
           } catch (err) {
             console.error("Referral sync error:", err);
+            hasSynced.current = false; // Retry on next render if it failed
           }
         };
         syncReferral();

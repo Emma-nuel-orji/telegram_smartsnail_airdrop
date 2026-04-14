@@ -12,11 +12,8 @@
     "db:seed": "prisma db seed"
   },
   "dependencies": {
-    "@metaplex-foundation/js": "^0.20.1",
     "@prisma/client": "^6.4.1",
     "@radix-ui/react-slot": "^1.2.4",
-    "@solana/spl-token": "^0.3.11",
-    "@solana/web3.js": "^1.98.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.47.0",
     "@telegram-apps/sdk": "^2.9.1",
@@ -25,8 +22,6 @@
     "@tonconnect/sdk": "^3.0.6",
     "@tonconnect/ui": "^2.0.11",
     "@tonconnect/ui-react": "^2.0.11",
-    "@twa-dev/sdk": "^8.0.1",
-    "@twa-dev/types": "^7.10.0",
     "@types/socket.io": "^3.0.1",
     "axios": "^1.8.1",
     "canvas-confetti": "^1.9.3",
@@ -37,7 +32,6 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
-    "express": "^4.18.2",
     "flutterwave-node-v3": "^1.1.12",
     "framer-motion": "^12.23.27",
     "grammy": "^1.35.0",

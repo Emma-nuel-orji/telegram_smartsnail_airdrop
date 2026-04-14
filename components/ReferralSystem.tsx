@@ -13,7 +13,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
     referrer: null,
     totalEarned: 0,
     pendingRewards: 0,
-    referralRate: 20000,
+    referralRate: 10000,
   });
   const [isLoading, setIsLoading] = useState(true);
   const INVITE_URL = "https://t.me/SmartSnails_Bot";
@@ -26,9 +26,9 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
         setReferralData({
           referrals: data.referrals || [],
           referrer: data.referrer,
-          totalEarned: (data.referrals?.length || 0) * 20000,
+          totalEarned: (data.referrals?.length || 0) * 10000,
           pendingRewards: data.pendingRewards || 0,
-          referralRate: data.referralRate || 20000,
+          referralRate: data.referralRate || 10000,
           leaderboardPosition: data.leaderboardPosition
         });
       } catch (e) { console.error(e); } finally { setIsLoading(false); }

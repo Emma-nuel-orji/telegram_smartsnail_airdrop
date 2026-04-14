@@ -14,11 +14,11 @@ export function Providers({ children }: ProvidersProps) {
   
   return (
     // 1. Wrap EVERYTHING in the official TON Provider
-    <TonConnectUIProvider manifestUrl={manifestUrl}>
+    // <TonConnectUIProvider manifestUrl={manifestUrl}>
       {/* 2. Then keep your custom WalletProvider inside it */}
       <WalletProvider manifestUrl={manifestUrl}>
         {children}
       </WalletProvider>
-    </TonConnectUIProvider>
+    // {/* </TonConnectUIProvider> */}
   );
 }
