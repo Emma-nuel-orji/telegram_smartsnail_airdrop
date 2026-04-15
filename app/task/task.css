@@ -1,6 +1,6 @@
 /* --- GLOBAL WEB3 THEME --- */
 body {
-  background: #0f051d; /* Deep Space Purple */
+  background: #0f051d;
   color: #ffffff;
   font-family: 'Inter', -apple-system, sans-serif;
   margin: 0;
@@ -12,7 +12,7 @@ body {
   min-height: 100vh;
 }
 
-/* --- MODERN HEADER & BACK ARROW --- */
+/* --- MODERN HEADER --- */
 .task-header {
   display: flex;
   align-items: center;
@@ -20,16 +20,7 @@ body {
   padding: 10px 0;
 }
 
-/* Custom Back Arrow styling */
-.task-header img[alt="back"] {
-  filter: invert(1) brightness(2); /* Makes black icons white/neon */
-  transition: transform 0.2s ease;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-}
-
-.task-header h2 {
+.header-title-web3 {
   font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
@@ -37,8 +28,8 @@ body {
   letter-spacing: -0.5px;
 }
 
-/* --- NEON SEGMENTED BUTTONS --- */
-.task-buttons {
+/* --- NEON SEGMENTED TABS --- */
+.task-buttons-glass {
   display: flex;
   background: rgba(255, 255, 255, 0.05);
   padding: 5px;
@@ -47,7 +38,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.task-buttons button {
+.task-buttons-glass button {
   flex: 1;
   padding: 10px;
   border: none;
@@ -56,21 +47,16 @@ body {
   color: #a0a0a0;
   font-weight: 600;
   font-size: 13px;
+  transition: all 0.3s ease;
 }
 
-.task-buttons button.active {
+.task-buttons-glass button.active {
   background: #8a2be2;
   color: #fff;
   box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
 }
 
-/* --- WEB3 TASK ROW (GLASSMORPHISM) --- */
-.tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+/* --- TASK ROWS --- */
 .task-row-web3 {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -80,274 +66,78 @@ body {
   align-items: center;
   justify-content: space-between;
   backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
 }
 
-.task-row-web3:hover {
-  border-color: #8a2be2;
-  background: rgba(138, 43, 226, 0.05);
-}
+.task-row-web3:active { transform: scale(0.98); }
+.task-row-web3.completed { opacity: 0.4; filter: grayscale(1); }
 
-.task-row-web3:active {
-  transform: scale(0.98);
-}
-
-.task-row-content {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-/* PLATFORM ICONS */
-/* .brand-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  background: #1c0f2c;
-  border-radius: 12px;
+/* --- THE GLASS POPUP SYSTEM --- */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-} */
-
-.brand-logo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.task-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.task-title-web3 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #efefef;
-  margin-bottom: 4px;
-}
-
-.reward-container-web3 {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.reward-amount {
-  color: #00ffa3; /* Neon Green/Cyan for money */
-  font-weight: 800;
-  font-size: 13px;
-}
-
-.reward-unit {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 10px;
-  font-weight: bold;
-}
-
-/* SUCCESS / ACTION STYLES */
-.web3-status-success {
-  background: rgba(0, 255, 163, 0.1);
-  color: #00ffa3;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 800;
-  border: 1px solid rgba(0, 255, 163, 0.2);
-}
-
-.task-row-web3.completed {
-  opacity: 0.4;
-  filter: grayscale(0.8);
-}
-
-/* Status/Reward Feedback */
-.status-msg {
-  margin-top: 15px;
-  text-align: center;
-  font-size: 13px;
-  color: #ff4d4d;
-  font-weight: 600;
-}
-
-.status-msg.success {
-  color: #00ffa3;
-}
-
-.web3-reward-banner {
-  margin-top: 15px;
-  background: rgba(0, 255, 163, 0.15);
-  border: 1px solid #00ffa3;
-  color: #00ffa3;
-  padding: 10px;
-  border-radius: 12px;
-  text-align: center;
-  font-weight: 800;
-  font-size: 14px;
-  animation: glowPulse 2s infinite;
-}
-
-@keyframes glowPulse {
-  0% { box-shadow: 0 0 5px rgba(0, 255, 163, 0.2); }
-  50% { box-shadow: 0 0 15px rgba(0, 255, 163, 0.5); }
-  100% { box-shadow: 0 0 5px rgba(0, 255, 163, 0.2); }
-}
-
-/* Secondary Buttons (For "Perform Task") */
-.web3-secondary-btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* Text Box for Referral/Caption */
-.web3-text-box {
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 15px;
-  border: 1px solid rgba(138, 43, 226, 0.2);
-  position: relative;
-}
-
-.web3-text-box p {
-  font-size: 12px;
-  color: #ccc;
-  margin: 0;
-  padding-right: 60px; /* space for copy button */
-  line-height: 1.4;
-}
-
-.web3-copy-btn {
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  transform: translateY(-50%);
-  background: #8a2be2;
-  border: none;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.web3-helper-text {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-  margin-bottom: 12px;
-}
-
-/* Header Icon */
-.modal-icon-glow {
-  width: 70px;
-  height: 70px;
-  margin: 0 auto;
-  background: #1c0f2c;
-  border-radius: 18px;
-  padding: 5px;
-  border: 2px solid #8a2be2;
-  box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
-}
-
-.modal-icon-glow img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 12px;
-}
-
-/* Ensure the overlay covers the ENTIRE screen */
-.popup-overlay {
-  position: fixed;
-  inset: 0; /* Top, Right, Bottom, Left = 0 */
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center; /* Vertical center */
-  justify-content: center; /* Horizontal center */
   z-index: 10000;
   padding: 20px;
 }
 
-/* Modal sizing and Web3 look */
 .web3-modal {
-  background: linear-gradient(145deg, #1a0b2e, #0f051d);
-  border: 1px solid rgba(0, 255, 163, 0.2);
-  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(30, 11, 54, 0.95), rgba(10, 2, 26, 0.98));
+  border: 1px solid rgba(0, 255, 163, 0.3);
+  border-radius: 30px;
   width: 100%;
-  max-width: 350px;
-  padding: 24px;
-  position: relative;
-  box-shadow: 0 0 40px rgba(0, 255, 163, 0.1);
-  /* Ensure it doesn't "fall" to the bottom */
-  margin-bottom: auto; 
-  margin-top: auto;
-}
-
-/* Fix for broken arrow containers */
-.web3-action-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Brand icon wrapper needs to handle Lucide SVGs */
-.brand-icon-wrapper {
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-}
-
-/* Dark Blurred Overlay */
-.popup-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-/* Glassmorphism Modal */
-.web3-modal {
-  background: linear-gradient(145deg, rgba(30, 11, 54, 0.9), rgba(10, 2, 26, 0.95));
-  border: 1px solid rgba(0, 255, 163, 0.2);
-  border-radius: 28px;
-  width: 90%;
-  max-width: 380px;
+  max-width: 360px;
   padding: 30px;
   position: relative;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 163, 0.1);
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 255, 163, 0.1);
+}
+
+/* --- CLASSY MODAL ELEMENTS --- */
+.modal-close-btn {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  background: #2a1b3d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 .modal-title-glass {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 800;
   background: linear-gradient(to bottom, #fff, #9ca3af);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin-bottom: 8px;
+  margin-top: 15px;
 }
 
-/* The Primary Button (Classy Web3) */
-.web3-btn-primary {
+.modal-reward-badge {
+  display: inline-block;
+  background: rgba(0, 255, 163, 0.1);
+  color: #00ffa3;
+  padding: 6px 16px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 800;
+  margin: 10px 0 20px 0;
+  border: 1px solid rgba(0, 255, 163, 0.3);
+}
+
+/* --- BUTTONS & ACTIONS --- */
+.btn-web3-primary-shiny {
   width: 100%;
   padding: 16px;
   background: linear-gradient(90deg, #00ffa3, #00d1ff);
@@ -358,16 +148,13 @@ body {
   text-transform: uppercase;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 255, 163, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 255, 163, 0.4);
+  transition: transform 0.2s;
 }
 
-.web3-btn-primary:active {
-  transform: scale(0.96);
-}
+.btn-web3-primary-shiny:active { transform: scale(0.96); }
 
-/* The Secondary Button (Outline) */
-.web3-btn-secondary {
+.btn-glass-secondary {
   width: 100%;
   padding: 14px;
   background: rgba(255, 255, 255, 0.05);
@@ -376,15 +163,40 @@ body {
   border-radius: 16px;
   font-weight: 600;
   margin-bottom: 12px;
+  cursor: pointer;
 }
 
-.modal-reward-badge {
+/* --- INSTRUCTION CARDS --- */
+.instruction-card-glass {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 15px;
+  border-radius: 18px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hashtag-pill {
   display: inline-block;
-  background: rgba(0, 255, 163, 0.1);
-  color: #00ffa3;
-  padding: 4px 12px;
-  border-radius: 100px;
-  font-size: 12px;
-  font-weight: 800;
-  border: 1px solid rgba(0, 255, 163, 0.3);
+  background: #8a2be2;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+/* --- INPUTS --- */
+.web3-glass-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  padding: 14px;
+  border-radius: 12px;
+  color: white;
+  margin-bottom: 15px;
+  outline: none;
+}
+
+.web3-glass-input:focus {
+  border-color: #00ffa3;
 }
