@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import  WebApp  from "@twa-dev/sdk";
+// import  WebApp  from "@twa-dev/sdk";
 interface TelegramInitProps {
   onSetTelegramId: (id: string | null) => void;
   onSetMessage: (message: string) => void;
@@ -8,8 +8,10 @@ interface TelegramInitProps {
 
 const TelegramInit: React.FC<TelegramInitProps> = ({ onSetTelegramId, onSetMessage }) => {
   useEffect(() => {
-    WebApp.ready();
-    const initData = WebApp.initDataUnsafe;
+    const WebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+    
+    WebApp?.ready();
+    const initData = WebApp?.initDataUnsafe;
 
     console.log("Telegram Init Data:", initData);
 
