@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import WebApp from '@twa-dev/sdk';
+// import WebApp from '@twa-dev/sdk';
 import Link from "next/link";
 import { Users, Star, Clock, Send, Copy, Trophy, ChevronLeft, Info, UserCheck } from "lucide-react";
 
 interface ReferralSystemProps { userId: string; }
 
 const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
+  const WebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
   const [referralData, setReferralData] = useState<any>({
     referrals: [],
     referrer: null,
@@ -40,14 +41,18 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ userId }) => {
     const inviteLink = `${INVITE_URL}?start=${userId}`;
     const shareText = `Join me on SmartSnails and we both earn rewards!`;
     const fullUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
-    WebApp.openTelegramLink(fullUrl);
+    WebApp?.openTelegramLink(fullUrl);
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${INVITE_URL}?start=${userId}`);
-    WebApp.HapticFeedback.notificationOccurred('success');
-    WebApp.showPopup({ title: 'Copied!', message: 'Your link is ready to share.', buttons: [{ type: 'ok' }] });
-  };
+const handleCopyLink = () => {
+  navigator.clipboard.writeText(`${INVITE_URL}?start=${userId}`);
+  WebApp?.HapticFeedback?.notificationOccurred('success');
+  WebApp?.showPopup({ 
+    title: 'Copied!', 
+    message: 'Your link is ready to share.', 
+    buttons: [{ type: 'ok', text: 'OK' }] 
+  });
+};
 
   if (isLoading) return null;
 
