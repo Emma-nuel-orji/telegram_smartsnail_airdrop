@@ -1,6 +1,6 @@
 "use client";
 
-import WebApp from "@twa-dev/sdk";
+// import WebApp from "@twa-dev/sdk";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { Clock, Dumbbell, ChevronLeft, UserPlus, Loader2, Sparkles, Zap } from "lucide-react";
@@ -33,6 +33,7 @@ export default function GymSubscriptions() {
   // This ensures TypeScript knows about HapticFeedback and showConfirm
 const webApp = typeof window !== 'undefined' ? (window.Telegram?.WebApp as TelegramWebApp) : null;
   const BOT_USERNAME = "SmartSnails_Bot";
+  const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
   console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
 
   useEffect(() => {
@@ -71,6 +72,16 @@ const webApp = typeof window !== 'undefined' ? (window.Telegram?.WebApp as Teleg
         if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
         const userData = await userRes.json();
+        if (telegramId === ADMIN_ID) {
+              setIsAdmin(true);
+            }
+
+            // BYPASS the registration screen if you are the Admin
+            if (!userData.nickname && telegramId !== ADMIN_ID) {
+              setNotRegistered(true);
+              setLoading(false);
+              return; 
+            }
         const subsData = await subsRes.json();
         
         // --- THE "SMARTSNAIL PASS" TRIGGER ---

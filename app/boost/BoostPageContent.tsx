@@ -6,7 +6,7 @@ import { Check, Ticket, Star, Coins, Users, Crown, Sparkles } from 'lucide-react
 import { io } from "socket.io-client";
 import Link from "next/link";
 import axios from "axios";
-import WebApp from "@twa-dev/sdk";
+// import WebApp from "@twa-dev/sdk";
 import Loader from "@/loader";
 import confetti from 'canvas-confetti';
 import TelegramInit from "@/components/TelegramInit";
@@ -96,6 +96,7 @@ const INITIAL_STOCK_LIMIT = {
 // const SOCKET_SERVER_URL = "http://localhost:3000"; 
 
 export default function BoostPageContent() {
+  const WebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
   const router = useRouter();
   const {
     user,

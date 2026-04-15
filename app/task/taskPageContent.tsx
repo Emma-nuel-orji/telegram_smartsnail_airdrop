@@ -1,5 +1,5 @@
 "use client";
-import WebApp from "@twa-dev/sdk";
+// import WebApp from "@twa-dev/sdk";
 import React, { useState, useEffect } from "react";
 import "./task.css";
 import Link from "next/link";
@@ -79,11 +79,11 @@ interface TelegramWebAppBasic {
 }
 
 // Update the WebApp type definition
-declare global {
-  interface TelegramWebApp extends Omit<typeof WebApp, 'showStory'> {
-    showStory(options: ShowStoryOptions): Promise<void>;
-  }
-}
+// declare global {
+//   interface TelegramWebApp extends Omit<typeof WebApp, 'showStory'> {
+//     showStory(options: ShowStoryOptions): Promise<void>;
+//   }
+// }
 
 const getTelegramWebApp = (): TelegramWebApp => {
   if (typeof window !== "undefined" && window.Telegram?.WebApp) {
@@ -94,6 +94,8 @@ const getTelegramWebApp = (): TelegramWebApp => {
 
 // Main TaskPageContent Component
 const TaskPageContent: React.FC = () => {
+ const getWebApp = () => window?.Telegram?.WebApp ?? null;
+const WebApp = getWebApp();
   const [tasks, setTasks] = useState<Task[]>([
     { id: "1", description: "Main Task 1", completed: false, reward: 5000, section: "main", type: "permanent", image: "/images/tasks/smartsnail telegram.png", link: "https://t.me/smartsnails", completedTime: null },
     { id: "2", description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/daily/join discord.png', link: 'https://discord.gg/AswRvzwv', completedTime: null },
@@ -154,7 +156,7 @@ const TaskPageContent: React.FC = () => {
   const [telegramId, setTelegramId] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
   const [hasBeenRewarded, setHasBeenRewarded] = useState(false);
-  const initDataState = window.Telegram?.WebApp?.initData || {};
+ const initDataState = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initData ?? {} : {};
   const userReferralLink = `https://t.me/smartsnailbot?start=${telegramId}`;
 
   const getSocialIcon = (desc: string) => {
@@ -201,6 +203,12 @@ const TaskPageContent: React.FC = () => {
     }, 250); // Fire confetti every 250ms for the duration
   };
   
+  // DELETE these lines inside handleWalletAction:
+useEffect(() => {
+  const stored = localStorage.getItem("wallet_connected") === "true";
+  if (stored) setWalletStatus(true);
+}, []);
+
   useEffect(() => {
     if (typeof window !== "undefined" && window.Telegram?.WebApp) {
       const version = window.Telegram.WebApp.version || "unknown";
@@ -216,8 +224,8 @@ const TaskPageContent: React.FC = () => {
 
 
   useEffect(() => {
-    WebApp.ready();
-    const userId = WebApp.initDataUnsafe?.user?.id;
+    WebApp?.ready();
+    const userId = WebApp?.initDataUnsafe?.user?.id;
     setTelegramId(userId || null);
   }, []);
 
@@ -308,10 +316,10 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
   
       await connect();
       setWalletStatus(true); 
-      useEffect(() => {
-  const stored = localStorage.getItem("wallet_connected") === "true";
-  if (stored) setWalletStatus(true);
-}, []);
+//       useEffect(() => {
+//   const stored = localStorage.getItem("wallet_connected") === "true";
+//   if (stored) setWalletStatus(true);
+// }, []);
   
       if (selectedTask.id === "18") {
         setTaskCompleted(true);
@@ -339,7 +347,7 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
               body: JSON.stringify({
                 taskId: selectedTask.id,
                 reward: selectedTask.reward ?? 0,
-                telegramId: WebApp.initDataUnsafe?.user?.id,
+                telegramId: WebApp?.initDataUnsafe?.user?.id,
               }),
             });
   
@@ -434,12 +442,12 @@ useEffect(() => {
 
 const handleShareToStory = async () => {
   if (typeof window === "undefined" || !window.Telegram?.WebApp) {
-    WebApp.showAlert("Telegram WebApp is not supported on this device.");
+    WebApp?.showAlert("Telegram WebApp is not supported on this device.");
     return;
   }
 
   if (!selectedTask || !telegramId) {
-    WebApp.showAlert("⚠️ Something went wrong. Please try again.");
+    WebApp?.showAlert("⚠️ Something went wrong. Please try again.");
     return;
   }
 
@@ -449,7 +457,7 @@ const handleShareToStory = async () => {
     console.log("🟢 Share attempt:", { telegramId });
 
     if (!window.Telegram.WebApp.shareToStory) {
-      WebApp.showAlert("Telegram Story sharing is not supported.");
+      WebApp?.showAlert("Telegram Story sharing is not supported.");
       return;
     }
 
@@ -462,7 +470,7 @@ const handleShareToStory = async () => {
 
     if (!mediaUrl || typeof mediaUrl !== "string") {
       console.error("🚨 Invalid media URL:", mediaUrl);
-      WebApp.showAlert("Invalid media URL. Please try again.");
+      WebApp?.showAlert("Invalid media URL. Please try again.");
       return;
     }
 
@@ -548,7 +556,7 @@ setTimeout(() => {
   });
 
   // 2. Show the success message
-  WebApp.showAlert(`🎉 You earned ${reward} Shells! Your balance has been updated.`);
+  WebApp?.showAlert(`🎉 You earned ${reward} Shells! Your balance has been updated.`);
   
   // 3. Close the popup and trigger effects
   setSelectedTask(null);
@@ -557,7 +565,7 @@ setTimeout(() => {
     
   } catch (error) {
     console.error("❌ Share failed:", error);
-    WebApp.showAlert("Failed to share story. Please try again.");
+    WebApp?.showAlert("Failed to share story. Please try again.");
   }
 };
 
@@ -590,7 +598,7 @@ setTimeout(() => {
     }
   
     // Get Telegram user ID from WebApp
-    const telegramId = WebApp.initDataUnsafe?.user?.id;
+    const telegramId = WebApp?.initDataUnsafe?.user?.id;
     if (!telegramId) {
       alert("Could not verify Telegram user. Please try again.");
       return;
