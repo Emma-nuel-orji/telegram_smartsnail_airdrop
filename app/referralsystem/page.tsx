@@ -20,39 +20,41 @@ export default function ReferralSystemPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const initWebApp = async () => {
-      if (typeof window !== 'undefined') {
-        try {
-          const WebApp = (await import('@twa-dev/sdk')).default;
-          WebApp.ready();
-          const userIdFromTelegram = WebApp.initDataUnsafe?.user?.id?.toString() || null;
+  const initWebApp = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const WebApp = window.Telegram?.WebApp;
+        if (!WebApp) throw new Error('Telegram WebApp not found');
 
-          if (!userIdFromTelegram) throw new Error('User ID not found');
+        WebApp.ready();
+        const userIdFromTelegram = WebApp.initDataUnsafe?.user?.id?.toString() || null;
 
-          setUserId(userIdFromTelegram);
+        if (!userIdFromTelegram) throw new Error('User ID not found');
 
-          const urlParams = new URLSearchParams(window.location.search);
-          const referrerTelegramId = urlParams.get("start");
+        setUserId(userIdFromTelegram);
 
-          if (referrerTelegramId && userIdFromTelegram !== referrerTelegramId) {
-            await fetch("/api/referrals", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userTelegramId: userIdFromTelegram,
-                referrerTelegramId,
-              }),
-            });
-          }
-        } catch (err) {
-          setError('Telegram initialization failed');
-        } finally {
-          setIsLoading(false);
+        const urlParams = new URLSearchParams(window.location.search);
+        const referrerTelegramId = urlParams.get("start");
+
+        if (referrerTelegramId && userIdFromTelegram !== referrerTelegramId) {
+          fetch("/api/referrals", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userTelegramId: userIdFromTelegram,
+              referrerTelegramId,
+            }),
+          });
         }
+      } catch (err) {
+        setError('Telegram initialization failed');
+      } finally {
+        setIsLoading(false);
       }
-    };
-    initWebApp();
-  }, []);
+    }
+  };
+  initWebApp();
+}, []);
 
   if (isLoading) return null; // Handled by dynamic loading
 
