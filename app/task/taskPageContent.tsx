@@ -6,7 +6,6 @@ import Link from "next/link";
 import dynamic from 'next/dynamic';
 import type { Task } from '@/types';
 import confetti from 'canvas-confetti';
-// import { ChevronLeft, ChevronRight, CheckCircle2, Lock, X } from 'lucide-react';
 import { useWallet } from '../context/walletContext';
 // import { useSignal, useInitData } from "@telegram-apps/sdk-react";
 import { 
@@ -19,7 +18,7 @@ import {
   Globe, 
   Wallet,
   Lock,
-  CheckCircle2, X
+  CheckCircle2 
 } from 'lucide-react';
 
 interface ShowStoryOptions {
@@ -429,16 +428,19 @@ useEffect(() => {
 
 
   const handleTaskClick = (task: Task) => {
-    if (task.active === false) {
-      return; // Do nothing for inactive tasks
-    }
-  
-    if (!task.completed) {
-      setSelectedTask(task);
-      setValidationAttempt(0);
-      setMessage("");
-    }
-  };
+  if (task.active === false) return;
+
+  if (task.id === "18") {
+    handleWalletAction(); // Open wallet directly, no popup
+    return;
+  }
+
+  if (!task.completed) {
+    setSelectedTask(task);
+    setValidationAttempt(0);
+    setMessage("");
+  }
+};
  
 
 const handleShareToStory = async () => {
@@ -737,172 +739,180 @@ setTimeout(() => {
 
 
   return (
-  <div className="task-container">
-    {/* --- Header --- */}
-    <div className="task-header">
-      <Link href="/" className="back-button-web3">
-        <ChevronLeft size={32} color="#00ffa3" />
-      </Link>
-      <h2 className="header-title-web3">Perform tasks to earn more Shells!</h2>
-    </div>
+    <div className="task-container">
 
-    {/* --- Section Tabs --- */}
-    <div className="task-buttons-glass">
-      {["main", "daily", "partners"].map((sec) => (
-        <button
-          key={sec}
-          className={selectedSection === sec ? "active" : ""}
-          onClick={() => setSelectedSection(sec as any)}
+  
+      <div className="task-header">
+        <Link href="/" className="back-button-web3">
+          <ChevronLeft size={32} color="#00ffa3" />
+        </Link>
+        <h2>Perform tasks to earn more Shells!</h2>
+      </div>
+
+      <div className="task-buttons">
+        <button 
+          className={selectedSection === "main" ? "active" : ""}
+          onClick={() => setSelectedSection("main")}
         >
-          {sec === "main" ? "🎯 Main" : sec === "daily" ? "🌟 Daily" : "🤝 Partners"}
+          🎯 Main Tasks
         </button>
-      ))}
-    </div>
-
-    {/* --- Task List --- */}
-    <div className="tasks-list">
-      {filteredTasks.map((task) => {
-        const isCompleted = task.completed && task.type !== 'flexible';
-        const isLocked = task.active === false;
-
-        return (
-          <div
-            key={task.id}
-            className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
-            onClick={() => {
-              if (isLocked) return;
-              // Fix: Task 18 triggers wallet directly, others open popup
-              if (task.id === "18") {
-                handleWalletAction();
-              } else if (task.type === 'flexible' || !task.completed) {
-                setSelectedTask(task);
-              }
-            }}
-          >
-            <div className="task-row-content">
-              <div className="brand-icon-wrapper">
-                {getSocialIcon(task.description)}
-              </div>
-              
-              <div className="task-details">
-                <span className="task-title-web3">{task.description}</span>
-                <div className="reward-container-web3">
-                  <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
-                  <span className="reward-unit">SHELLS</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="task-action-area">
-              {isCompleted ? (
-                <CheckCircle2 size={20} color="#00ffa3" />
-              ) : isLocked ? (
-                <Lock size={18} color="rgba(255,255,255,0.3)" />
-              ) : (
-                <div className="web3-action-arrow">
-                  <ChevronRight size={20} color="#00ffa3" />
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-
-    {/* --- Classy Web3 Popup --- */}
-    {selectedTask && (
-      <div className="popup-overlay" onClick={() => setSelectedTask(null)}>
-        <div 
-          className="web3-modal animate__animated animate__zoomIn" 
-          onClick={(e) => e.stopPropagation()}
+        <button 
+          className={selectedSection === "daily" ? "active" : ""}
+          onClick={() => setSelectedSection("daily")}
         >
-          <div className="modal-glow-bg"></div>
-          
-          <button className="modal-close-btn" onClick={() => setSelectedTask(null)}>
-            <X size={24} color="#fff" />
-          </button>
+          🌟 Daily
+        </button>
+        <button 
+          className={selectedSection === "partners" ? "active" : ""}
+          onClick={() => setSelectedSection("partners")}
+        >
+          🤝 Partners
+        </button>
+      </div>
 
-          <div className="modal-header">
-             <div className="modal-icon-glow">
-                {getSocialIcon(selectedTask.description)}
-             </div>
-             <h3 className="modal-title-glass">{selectedTask.description}</h3>
-             <div className="modal-reward-badge">+{selectedTask.reward?.toLocaleString()} SHELLS</div>
-          </div>
+     <div className="tasks-list">
+        {filteredTasks.map((task) => {
+          const isCompleted = task.completed && task.type !== 'flexible';
+          const isLocked = task.active === false;
 
-          <div className="modal-body">
-            {/* Task 28: Book Reading */}
-            {selectedTask.id === "28" && (
-              <div className="instruction-card-glass">
-                <p>📖 Record content of you reading <strong>Fxckedupbags</strong>.</p>
-                <div className="hashtag-pill">#Fxckedupbags</div>
-                <p className="helper-text-dim">Need a copy? See Main Task 11.</p>
-              </div>
-            )}
-
-            {/* Task 22: Secret Code */}
-            {selectedTask.id === "22" && (
-              <div className="input-group-web3">
-                <input
-                  className="web3-glass-input"
-                  type="text"
-                  value={inputCode}
-                  onChange={(e) => setInputCode(e.target.value)}
-                  placeholder="Insert unique code"
-                  disabled={loading}
-                />
-              </div>
-            )}
-
-            {/* Story Task */}
-            {selectedTask.isStoryTask && (
-              <div className="copy-area-glass">
-                <p className="copy-instruction">Copy caption to verify:</p>
-                <div className="copy-row">
-                  <p className="truncate-text">{userReferralLink}</p>
-                  <button className="copy-btn" onClick={() => {
-                    navigator.clipboard.writeText(`Join SmartSnail farm! ${userReferralLink}`);
-                    alert("Copied!");
-                  }}>Copy</button>
+          return (
+            <div
+              key={task.id}
+              className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
+              onClick={() => !isLocked && (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
+            >
+              <div className="task-row-content">
+                <div className="brand-icon-wrapper">
+                  {/* Performance Fix: Use Lucide icons instead of 143KB images where possible */}
+                  {getSocialIcon(task.description)}
+                </div>
+                
+                <div className="task-details">
+                  <span className="task-title-web3">{task.description}</span>
+                  <div className="reward-container-web3">
+                    <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
+                    <span className="reward-unit">SHELLS</span>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Main Action Stack */}
-            <div className="modal-actions-vertical">
-              {selectedTask.link && selectedTask.id !== "22" && (
-                <button className="btn-glass-secondary" onClick={() => window.open(selectedTask.link, "_blank")}>
-                  Perform Task
-                </button>
-              )}
+              <div className="task-action-area">
+                {isCompleted ? (
+                  <CheckCircle2 size={20} color="#00ffa3" />
+                ) : isLocked ? (
+                  <Lock size={18} color="rgba(255,255,255,0.3)" />
+                ) : (
+                  <div className="web3-action-arrow">
+                    {/* Fix: Replaced broken PNG arrow with Lucide Chevron */}
+                    <ChevronRight size={20} color="#00ffa3" />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
+      {/* POPUP: CSS fix below ensures this is centered, not at the bottom */}
+      {selectedTask && (
+  <div className="popup-overlay" onClick={() => setSelectedTask(null)}>
+    <div className="web3-modal animate__animated animate__zoomIn" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelectedTask(null)}>
+              ×
+            </button>
+
+            <div className="modal-header">
+               <div className="modal-icon-glow">
+                  {getSocialIcon(selectedTask.description)}
+               </div>
+               <h3 className="modal-title">{selectedTask.description}</h3>
+            </div>
+      <div className="modal-body">
+        {/* Task 28: Book Reading Instructions */}
+        {selectedTask.id === "28" && (
+          <div className="instruction-card">
+            <p>📖 Make content of you reading <strong>Fxckedupbags</strong>.</p>
+            <p className="hashtag-row">#Fxckedupbags #SmartSnailNFT</p>
+            <p style={{ fontSize: '12px', marginTop: '8px', color: 'rgba(255,255,255,0.6)' }}>
+              Need a copy? Go to <strong>Main Task 11</strong>.
+            </p>
+          </div>
+        )}
+
+        {/* Task 22: Secret Code Input */}
+        {selectedTask.id === "22" ? (
+          <>
+            <input
+              className="web3-input"
+              type="text"
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value)}
+              placeholder="Insert unique code"
+              disabled={loading}
+            />
+            <button className="web3-primary-btn" onClick={handleRedeemCode} disabled={loading}>
+              {loading ? "Redeeming..." : "Redeem Code"}
+            </button>
+          </>
+        ) : selectedTask.id === "18" ? (
+          /* Task 18: Wallet Connection */
+          <button className="web3-primary-btn" onClick={handleWalletAction} disabled={loading}>
+            {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
+          </button>
+        ) : selectedTask.isStoryTask ? (
+          /* Story Sharing Task */
+          <>
+            <p className="web3-helper-text">
+              Copy and paste the text below into your caption to verify your share.
+            </p>
+            <div className="web3-text-box">
+              <p>Join the farm, pick $Shells, and Stake in Polycombat! #smartsnail #polycombat #manchies  {userReferralLink}</p>
               <button 
-                className="btn-web3-primary-shiny" 
-                onClick={selectedTask.id === "22" ? handleRedeemCode : handleValidateClick} 
-                disabled={loading || (selectedTask.id === "22" && !inputCode)}
+                className="web3-copy-btn"
+                onClick={() => {
+                  navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
+                  // You can replace alert with a cleaner toast notification later
+                  alert("✅ Copied!");
+                }}
               >
-                {loading ? "Processing..." : selectedTask.id === "22" ? "Redeem Code" : "Verify & Claim Reward"}
+                📋 Copy
               </button>
             </div>
+            <button className="web3-primary-btn" onClick={handleShareToStory} disabled={sharing}>
+              {sharing ? "📤 Sharing..." : "📤 Share to Story"}
+            </button>
+          </>
+        ) : selectedTask.id !== "28" && (
+          /* Standard Tasks */
+          <>
+            <button className="web3-secondary-btn" onClick={() => window.open(selectedTask.link, "_blank")}>
+              🎯 Perform Task
+            </button>
+            <button className="web3-primary-btn" onClick={handleValidateClick} style={{ marginTop: '10px' }}>
+              ✅ Validate and Reward
+            </button>
+          </>
+        )}
 
-            {/* Feedback & Rewards */}
-            {message && (
-              <div className={`status-msg-web3 ${reward > 0 ? 'success' : ''}`}>
-                {message}
-              </div>
-            )}
-            
-            {reward > 0 && (
-              <div className="reward-celebration-banner">
-                ✨ MISSION COMPLETE +{reward} SHELLS
-              </div>
-            )}
+        {/* Feedback Messages */}
+        {message && (
+          <div className={`status-msg ${reward > 0 ? 'success' : ''}`}>
+            {message}
           </div>
-        </div>
+        )}
+        
+        {reward > 0 && (
+          <div className="web3-reward-banner">
+            🎉 +{reward} SHELLS EARNED
+          </div>
+        )}
       </div>
-    )}
+    </div>
   </div>
-);
+)}
+
+    </div>
+  );
 };
 
 export default TaskPageContent;

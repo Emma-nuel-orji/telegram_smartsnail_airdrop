@@ -1,84 +1,8 @@
-/* --- GLOBAL WEB3 THEME --- */
-body {
-  background: #0f051d;
-  color: #ffffff;
-  font-family: 'Inter', -apple-system, sans-serif;
-  margin: 0;
-}
-
-.task-container {
-  padding: 15px;
-  background: radial-gradient(circle at top right, #1a0b2e, #0f051d);
-  min-height: 100vh;
-}
-
-/* --- MODERN HEADER --- */
-.task-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 25px;
-  padding: 10px 0;
-}
-
-.header-title-web3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #fff;
-  margin: 0 0 0 15px;
-  letter-spacing: -0.5px;
-}
-
-/* --- NEON SEGMENTED TABS --- */
-.task-buttons-glass {
-  display: flex;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 5px;
-  border-radius: 14px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.task-buttons-glass button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: #a0a0a0;
-  font-weight: 600;
-  font-size: 13px;
-  transition: all 0.3s ease;
-}
-
-.task-buttons-glass button.active {
-  background: #8a2be2;
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
-}
-
-/* --- TASK ROWS --- */
-.task-row-web3 {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  backdrop-filter: blur(10px);
-  margin-bottom: 12px;
-  transition: all 0.2s ease;
-}
-
-.task-row-web3:active { transform: scale(0.98); }
-.task-row-web3.completed { opacity: 0.4; filter: grayscale(1); }
-
-/* --- THE GLASS POPUP SYSTEM --- */
 .popup-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -87,116 +11,230 @@ body {
 }
 
 .web3-modal {
-  background: linear-gradient(145deg, rgba(30, 11, 54, 0.95), rgba(10, 2, 26, 0.98));
-  border: 1px solid rgba(0, 255, 163, 0.3);
-  border-radius: 30px;
+  background: linear-gradient(145deg, #1a0b2e, #0f051d);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  border-radius: 28px;
   width: 100%;
   max-width: 360px;
-  padding: 30px;
+  padding: 28px 24px;
   position: relative;
-  text-align: center;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 255, 163, 0.1);
+  box-shadow: 0 0 60px rgba(138, 43, 226, 0.15);
 }
 
-/* --- CLASSY MODAL ELEMENTS --- */
-.modal-close-btn {
+.modal-close {
   position: absolute;
-  top: -15px;
-  right: -15px;
-  background: #2a1b3d;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  width: 40px;
-  height: 40px;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  line-height: 1;
+  transition: all 0.2s ease;
 }
 
-.modal-title-glass {
-  font-size: 1.3rem;
-  font-weight: 800;
-  background: linear-gradient(to bottom, #fff, #9ca3af);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-top: 15px;
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
 }
 
-.modal-reward-badge {
-  display: inline-block;
-  background: rgba(0, 255, 163, 0.1);
-  color: #00ffa3;
-  padding: 6px 16px;
-  border-radius: 100px;
-  font-size: 12px;
-  font-weight: 800;
-  margin: 10px 0 20px 0;
-  border: 1px solid rgba(0, 255, 163, 0.3);
+.modal-header {
+  text-align: center;
+  margin-bottom: 24px;
 }
 
-/* --- BUTTONS & ACTIONS --- */
-.btn-web3-primary-shiny {
+.modal-icon-glow {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  background: rgba(138, 43, 226, 0.15);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(138, 43, 226, 0.3);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Primary CTA — glowing purple */
+.web3-primary-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(90deg, #00ffa3, #00d1ff);
-  color: #000;
+  border-radius: 16px;
   border: none;
-  border-radius: 16px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  background: linear-gradient(135deg, #8a2be2, #6a1cb0);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0, 255, 163, 0.4);
-  transition: transform 0.2s;
+  box-shadow: 0 4px 20px rgba(138, 43, 226, 0.4);
+  transition: all 0.2s ease;
 }
 
-.btn-web3-primary-shiny:active { transform: scale(0.96); }
+.web3-primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(138, 43, 226, 0.55);
+}
 
-.btn-glass-secondary {
+.web3-primary-btn:active {
+  transform: scale(0.98);
+}
+
+.web3-primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Secondary — outline ghost */
+.web3-secondary-btn {
   width: 100%;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border-radius: 16px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  cursor: pointer;
-}
-
-/* --- INSTRUCTION CARDS --- */
-.instruction-card-glass {
-  background: rgba(255, 255, 255, 0.03);
   padding: 15px;
-  border-radius: 18px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.hashtag-pill {
-  display: inline-block;
-  background: #8a2be2;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: bold;
+.web3-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Input */
+.web3-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+  color: white;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.web3-input:focus {
+  border-color: #8a2be2;
+  background: rgba(138, 43, 226, 0.08);
+}
+
+.web3-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Instruction card */
+.instruction-card {
+  background: rgba(138, 43, 226, 0.08);
+  border: 1px solid rgba(138, 43, 226, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+}
+
+.instruction-card strong {
+  color: #fff;
+}
+
+.hashtag-row {
+  color: #8a2be2;
+  font-weight: 700;
+  font-size: 12px;
   margin-top: 8px;
 }
 
-/* --- INPUTS --- */
-.web3-glass-input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(138, 43, 226, 0.3);
-  padding: 14px;
-  border-radius: 12px;
-  color: white;
-  margin-bottom: 15px;
-  outline: none;
+/* Status messages */
+.status-msg {
+  text-align: center;
+  font-size: 13px;
+  color: #ff6b6b;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 107, 107, 0.08);
 }
 
-.web3-glass-input:focus {
-  border-color: #00ffa3;
+.status-msg.success {
+  color: #00ffa3;
+  background: rgba(0, 255, 163, 0.08);
+}
+
+.web3-reward-banner {
+  background: rgba(0, 255, 163, 0.12);
+  border: 1px solid rgba(0, 255, 163, 0.3);
+  color: #00ffa3;
+  padding: 14px;
+  border-radius: 14px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+/* Helper text */
+.web3-helper-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Text box for captions */
+.web3-text-box {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid rgba(138, 43, 226, 0.2);
+  position: relative;
+}
+
+.web3-text-box p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  padding-right: 70px;
+  line-height: 1.5;
+}
+
+.web3-copy-btn {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: #8a2be2;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
 }
