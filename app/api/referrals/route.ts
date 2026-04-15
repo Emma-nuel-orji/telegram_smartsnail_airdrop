@@ -3,71 +3,65 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
 
 export async function POST(req: NextRequest) {
-  console.log("🚀 Referral API HIT");
-
   try {
     const data = await req.json();
-    console.log("📦 Incoming data:", data);
-
     const userTelegramId = BigInt(data.userTelegramId);
     const referrerTelegramId = BigInt(data.referrerTelegramId);
 
-    console.log("🔍 Parsed IDs:", {
-      user: userTelegramId.toString(),
-      referrer: referrerTelegramId.toString()
-    });
-
     if (userTelegramId === referrerTelegramId) {
-      console.log("❌ Self referral blocked");
       return NextResponse.json({ error: "Self-referral" }, { status: 400 });
     }
 
-    // Check existing referral
+    // 1. Handle existing referral immediately to save resources
     const existing = await prisma.referral.findUnique({
-      where: {
-        referredId: userTelegramId
-      }
+      where: { referredId: userTelegramId }
     });
 
     if (existing) {
-      console.log("⚠️ Referral already exists");
       return NextResponse.json({ existing: true });
     }
 
-    // Ensure users exist
-    const [user, referrer] = await Promise.all([
-      prisma.user.findUnique({ where: { telegramId: userTelegramId } }),
-      prisma.user.findUnique({ where: { telegramId: referrerTelegramId } }),
-    ]);
+    /* 🎯 THE FIX: Instead of failing, we verify the referrer exists.
+       We don't strictly check the NEW user here because they might be 
+       mid-creation. We focus on the REFERRER.
+    */
+    const referrer = await prisma.user.findUnique({ 
+      where: { telegramId: referrerTelegramId } 
+    });
 
-    if (!user || !referrer) {
-      console.log("❌ User or referrer missing");
-      return NextResponse.json({ error: "User or referrer not found" }, { status: 400 });
+    if (!referrer) {
+      console.log("❌ Referrer not found in DB");
+      return NextResponse.json({ error: "Referrer not found" }, { status: 400 });
     }
 
-    // Create referral
-    const referral = await prisma.referral.create({
-      data: {
-        referrerId: referrerTelegramId,
-        referredId: userTelegramId,
-      }
-    });
+    // 2. Create the referral and reward the referrer in a TRANSACTION
+    // This ensures both happen or neither happens.
+    await prisma.$transaction([
+      prisma.referral.create({
+        data: {
+          referrerId: referrerTelegramId,
+          referredId: userTelegramId,
+        }
+      }),
+      prisma.user.update({
+        where: { telegramId: referrerTelegramId },
+        data: {
+          points: { increment: 20000 }
+        }
+      })
+    ]);
 
-    console.log("✅ Referral CREATED:", referral.id);
-
-    // 🎯 REWARD
-    await prisma.user.update({
-      where: { telegramId: referrerTelegramId },
-      data: {
-        points: { increment: 20000 } // 🔥 FIXED VALUE
-      }
-    });
-
-    console.log("💰 Reward sent to:", referrerTelegramId.toString());
-
+    console.log(`✅ Referral success: ${userTelegramId} referred by ${referrerTelegramId}`);
     return NextResponse.json({ success: true });
 
-  } catch (error) {
+  } catch (error: any) {
+    // Catch the specific Prisma error if the "referredId" (the new user) 
+    // actually doesn't exist in the User table yet.
+    if (error.code === 'P2003') { 
+      console.log("⏳ Race condition: User record not ready yet.");
+      return NextResponse.json({ error: "User record still initializing" }, { status: 429 });
+    }
+    
     console.error("🔥 Referral ERROR:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
