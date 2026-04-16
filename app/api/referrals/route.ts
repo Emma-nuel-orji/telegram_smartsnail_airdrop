@@ -67,55 +67,40 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Replace the GET logic in your route.ts with this
 export async function GET(req: NextRequest) {
   try {
     const telegramId = req.nextUrl.searchParams.get("telegramId");
-
-    if (!telegramId) {
-      return NextResponse.json({ error: "Missing telegramId" }, { status: 400 });
-    }
+    if (!telegramId) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
     const userId = BigInt(telegramId);
 
-    console.log("🔍 Fetching referrals for:", telegramId);
-
-    // ✅ Get referrals
     const referrals = await prisma.referral.findMany({
       where: { referrerId: userId },
-      include: {
-        referred: true
+      select: {
+        referred: { // Using select here is safer than 'include'
+          select: {
+            telegramId: true,
+            username: true,
+            createdAt: true,
+          }
+        }
       }
     });
 
-    console.log("👥 Found referrals:", referrals.length);
-
-    // ✅ Get referrer
-    const referrerRecord = await prisma.referral.findUnique({
-      where: { referredId: userId },
-      include: {
-        referrer: true
-      }
-    });
-
-    const referrerUser = referrerRecord?.referrer || null;
+    // Manually filter out any null results to avoid the crash
+    const validReferrals = referrals
+      .filter(r => r.referred !== null)
+      .map(r => ({
+        telegramId: r.referred!.telegramId.toString(),
+        username: r.referred!.username,
+        createdAt: r.referred!.createdAt
+      }));
 
     return NextResponse.json({
-      referrals: referrals.map(r => ({
-        telegramId: r.referred.telegramId.toString(),
-        username: r.referred.username,
-        createdAt: r.referred.createdAt
-      })),
-
-      referrer: referrerUser
-        ? {
-            telegramId: referrerUser.telegramId.toString(),
-            username: referrerUser.username,
-          }
-        : null,
-
-      totalEarned: referrals.length * 20000,
-      pendingRewards: 0,
-      referralRate: 20000,
+      referrals: validReferrals,
+      totalEarned: validReferrals.length * 10000,
+      referralRate: 10000,
     });
 
   } catch (error) {

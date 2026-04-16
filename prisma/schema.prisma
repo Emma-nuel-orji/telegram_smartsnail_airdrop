@@ -91,8 +91,9 @@ model Referral {
   referredId BigInt
   createdAt  DateTime @default(now())
   
-  referrer User @relation("Referrer", fields: [referrerId], references: [telegramId])
-  referred User @relation("ReferredBy", fields: [referredId], references: [telegramId])
+  
+  referrer User @relation("Referrer", fields: [referrerId], references: [telegramId], onDelete: Cascade)
+  referred User @relation("ReferredBy", fields: [referredId], references: [telegramId], onDelete: Cascade)
 
   @@unique([referredId], name: "unique_referred_user")
   @@index([referrerId], name: "referrer_index")
