@@ -34,18 +34,20 @@ export default function ReferralSystemPage() {
         setUserId(userIdFromTelegram);
 
         const urlParams = new URLSearchParams(window.location.search);
-        const referrerTelegramId = urlParams.get("start");
+// Telegram uses 'tgWebAppStartParam' or 'startapp' depending on how it's opened
+            const referrerTelegramId = urlParams.get("startapp") || urlParams.get("tgWebAppStartParam");
 
-        if (referrerTelegramId && userIdFromTelegram !== referrerTelegramId) {
-          fetch("/api/referrals", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userTelegramId: userIdFromTelegram,
-              referrerTelegramId,
-            }),
-          });
-        }
+            if (referrerTelegramId && userIdFromTelegram !== referrerTelegramId) {
+              console.log("Found referrer in URL:", referrerTelegramId);
+              fetch("/api/referrals", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  userTelegramId: userIdFromTelegram,
+                  referrerTelegramId,
+                }),
+              });
+            }
       } catch (err) {
         setError('Telegram initialization failed');
       } finally {

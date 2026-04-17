@@ -1,28 +1,45 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-const TelegramInitializer = () => { 
+interface TelegramInitializerProps {
+  onSetTelegramId?: (id: string | null) => void;
+  onSetMessage?: (message: string) => void;
+}
+
+const TelegramInitializer: React.FC<TelegramInitializerProps> = ({ onSetTelegramId, onSetMessage }) => { 
   const hasSynced = useRef(false);
 
   useEffect(() => {
-    // 1. Get the WebApp object
     const tg = (window as any).Telegram?.WebApp;
 
     if (tg) {
-      // 2. These should be called as early as possible (already in your layout.tsx too)
       tg.ready();
       tg.expand();
 
       const user = tg.initDataUnsafe?.user;
-      const startParam = tg.initDataUnsafe?.start_param;
+      const startParam = tg.initDataUnsafe?.start_param; // The key to referral success
 
-      // 3. Only sync referral once per session to save network bandwidth
-      if (user && startParam && !hasSynced.current) {
-        hasSynced.current = true; // Prevents double-syncing in StrictMode
+      // 1. Set the User ID for the global app state
+      if (user?.id) {
+        onSetTelegramId?.(user.id.toString());
+      } else {
+        onSetMessage?.("Please open this app inside Telegram.");
+      }
+
+      // 2. Sync Referral (Only if we have a startParam and haven't synced yet)
+      if (user?.id && startParam && !hasSynced.current) {
+        // Prevent self-referral check on frontend to save a request
+        if (startParam === user.id.toString()) {
+          console.log("Self-referral ignored.");
+          return;
+        }
+
+        hasSynced.current = true; 
         
         const syncReferral = async () => {
           try {
-            await fetch('/api/referrals', {
+            console.log(`📡 Syncing referral: ${startParam} -> ${user.id}`);
+            const response = await fetch('/api/referrals', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -30,15 +47,21 @@ const TelegramInitializer = () => {
                 referrerTelegramId: startParam.toString()
               })
             });
+            
+            const result = await response.json();
+            console.log("✅ Referral Sync Result:", result);
           } catch (err) {
-            console.error("Referral sync error:", err);
-            hasSynced.current = false; // Retry on next render if it failed
+            console.error("❌ Referral sync error:", err);
+            hasSynced.current = false; // Allow retry if network failed
           }
         };
+
         syncReferral();
       }
+    } else {
+      onSetMessage?.("Telegram WebApp not detected.");
     }
-  }, []);
+  }, [onSetTelegramId, onSetMessage]);
 
   return null;
 }

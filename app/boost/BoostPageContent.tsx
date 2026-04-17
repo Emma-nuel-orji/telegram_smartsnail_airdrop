@@ -2,6 +2,7 @@
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useCallback, useContext, useRef, Suspense   } from "react";
 import { Check, Ticket, Star, Coins, Users, Crown, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Lock, X } from 'lucide-react';
 // import React, { Suspense } from 'react';
 import { io } from "socket.io-client";
 import Link from "next/link";
@@ -9,7 +10,7 @@ import axios from "axios";
 // import WebApp from "@twa-dev/sdk";
 import Loader from "@/loader";
 import confetti from 'canvas-confetti';
-import TelegramInit from "@/components/TelegramInit";
+import TelegramInitializer from "@/src/components/TelegramInitializer";
 import "./BoostPage.css";
 import BoostIndicator from './BoostIndicator';
 import { useRouter } from "next/navigation";
@@ -388,33 +389,6 @@ const syncStockFromAPI = async () => {
   }
 };
 
-// const calculateBoostDisplay = (user: BoostUser) => {
-//   const now = new Date();
-  
-//   // Handle null/undefined dates safely
-//   if (!user.boostExpiresAt) {
-//     return { isActive: false, timeString: "0d 0h", totalPower: 1 };
-//   }
-
-//   const expiry = new Date(user.boostExpiresAt);
-//   const isActive = expiry > now;
-
-//   // FIX: Use .getTime() to avoid the "arithmetic operation" error
-//   const diff = expiry.getTime() - now.getTime();
-  
-//   const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-//   const hours = Math.max(0, Math.floor((diff / (1000 * 60 * 60)) % 24));
-
-//   // Calculate the power: bags = +1, relations = +3
-//   // Using || 0 to prevent NaN if the value is missing
-//   const currentRate = (user.fxckedUpBagsQty * 1) + (user.humanRelationsQty * 3);
-
-//   return {
-//     isActive,
-//     timeString: `${days}d ${hours}h`,
-//     totalPower: currentRate > 0 ? currentRate : 1, 
-//   };
-// };
 
 
   // Modify your handlePurchase function to ensure stock updates:
