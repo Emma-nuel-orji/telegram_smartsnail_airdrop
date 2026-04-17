@@ -5,6 +5,10 @@ import { prisma } from '@/prisma/client';
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
+     console.log("📥 Referral POST received:", {
+      userTelegramId: data.userTelegramId,
+      referrerTelegramId: data.referrerTelegramId,
+    });
     const userTelegramId = BigInt(data.userTelegramId);
     const referrerTelegramId = BigInt(data.referrerTelegramId);
 
