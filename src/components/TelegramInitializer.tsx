@@ -17,28 +17,31 @@ const TelegramInitializer: React.FC<TelegramInitializerProps> = ({ onSetTelegram
       tg.expand();
 
       const user = tg.initDataUnsafe?.user;
-      const startParam = tg.initDataUnsafe?.start_param; // The key to referral success
+      const startParam = tg.initDataUnsafe?.start_param;
 
-      // 1. Set the User ID for the global app state
+      // 🔍 DEBUG LOG 1: What is Telegram sending us?
+      console.log("🛠️ Initializer Check:", {
+        userId: user?.id,
+        foundStartParam: !!startParam,
+        startParamValue: startParam,
+        fullInitData: tg.initDataUnsafe // See everything Telegram sent
+      });
+
       if (user?.id) {
         onSetTelegramId?.(user.id.toString());
-      } else {
-        onSetMessage?.("Please open this app inside Telegram.");
       }
 
-      // 2. Sync Referral (Only if we have a startParam and haven't synced yet)
       if (user?.id && startParam && !hasSynced.current) {
-        // Prevent self-referral check on frontend to save a request
         if (startParam === user.id.toString()) {
-          console.log("Self-referral ignored.");
+          console.log("⚠️ Self-referral detected and blocked locally.");
           return;
         }
 
         hasSynced.current = true; 
         
         const syncReferral = async () => {
+          console.log(`📡 Sending POST to /api/referrals: Referrer=${startParam}, User=${user.id}`);
           try {
-            console.log(`📡 Syncing referral: ${startParam} -> ${user.id}`);
             const response = await fetch('/api/referrals', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -49,17 +52,16 @@ const TelegramInitializer: React.FC<TelegramInitializerProps> = ({ onSetTelegram
             });
             
             const result = await response.json();
-            console.log("✅ Referral Sync Result:", result);
+            // 🔍 DEBUG LOG 2: What did the API say?
+            console.log("📥 API Sync Result:", result);
           } catch (err) {
-            console.error("❌ Referral sync error:", err);
-            hasSynced.current = false; // Allow retry if network failed
+            console.error("❌ Network error during sync:", err);
+            hasSynced.current = false; 
           }
         };
 
         syncReferral();
       }
-    } else {
-      onSetMessage?.("Telegram WebApp not detected.");
     }
   }, [onSetTelegramId, onSetMessage]);
 
