@@ -5,28 +5,37 @@ import { prisma } from '@/prisma/client';
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    console.log("🚀 API HIT: Received referral data:", data);
-
     const { userTelegramId, referrerTelegramId } = data;
 
     const uId = BigInt(userTelegramId);
     const rId = BigInt(referrerTelegramId);
 
-    // 🔍 DEBUG LOG 3: Check Referrer Existence
+    // Referrer must exist
     const referrer = await prisma.user.findUnique({ where: { telegramId: rId } });
     if (!referrer) {
-      console.log(`❌ FAIL: Referrer ${rId} does not exist in the database yet.`);
       return NextResponse.json({ error: "Referrer not found" }, { status: 400 });
     }
 
-    // 🔍 DEBUG LOG 4: Check if referral already exists
+    // Already referred?
     const existing = await prisma.referral.findUnique({ where: { referredId: uId } });
     if (existing) {
-      console.log(`ℹ️ INFO: User ${uId} is already someone's referral.`);
       return NextResponse.json({ existing: true });
     }
 
-    // Transaction
+    // Does the referred user exist yet?
+    const referredUser = await prisma.user.findUnique({ where: { telegramId: uId } });
+
+    if (!referredUser) {
+      // ✅ User not in DB yet — save as pending, resolved on user creation
+      await prisma.user.update({
+        where: { telegramId: rId },
+        data: { pendingReferrerId: uId }
+      });
+      console.log(`⏳ Referral pending: ${uId} will resolve when user is created`);
+      return NextResponse.json({ pending: true });
+    }
+
+    // User exists — create referral immediately
     await prisma.$transaction([
       prisma.referral.create({ data: { referrerId: rId, referredId: uId } }),
       prisma.user.update({
@@ -35,11 +44,11 @@ export async function POST(req: NextRequest) {
       })
     ]);
 
-    console.log(`✅ SUCCESS: ${uId} linked to ${rId}. 20k points awarded.`);
+    console.log(`✅ Referral created immediately: ${uId} → ${rId}`);
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error("🔥 DATABASE CRASH:", error.message);
+    console.error("🔥 REFERRAL ERROR:", error.message);
     return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

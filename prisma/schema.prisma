@@ -38,7 +38,7 @@ model User {
   storyShares     StoryShare[] // ✅ Define the opposite relation
   pointTransactions PointTransaction[]
   boostExpiresAt DateTime?
-  
+  pendingReferrerId BigInt? 
   // Indexes
   @@index([points], name: "points_asc_index")
   subscriptions Subscription[]

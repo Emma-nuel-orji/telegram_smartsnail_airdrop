@@ -51,18 +51,51 @@ export async function POST(req: NextRequest): Promise<Response> {
       return NextResponse.json({ error: "Invalid Telegram ID" }, { status: 400 });
     }
 
+    const tId = BigInt(telegramId);
+
     console.log("POST /api/user - Attempting Upsert for:", telegramId);
-    let user = await prisma.user.upsert({
-      where: { telegramId: BigInt(telegramId) },
+    const user = await prisma.user.upsert({
+      where: { telegramId: tId },
       update: { firstName, lastName, username },
-      create: { telegramId: BigInt(telegramId), firstName, lastName, username },
+      create: { telegramId: tId, firstName, lastName, username },
     });
+
+    // ✅ Resolve any pending referral that was waiting for this user
+    const pendingReferrer = await prisma.user.findFirst({
+      where: { pendingReferrerId: tId }
+    });
+
+    if (pendingReferrer) {
+      const alreadyReferred = await prisma.referral.findUnique({
+        where: { referredId: tId }
+      });
+
+      if (!alreadyReferred) {
+        await prisma.$transaction([
+          prisma.referral.create({
+            data: { referrerId: pendingReferrer.telegramId, referredId: tId }
+          }),
+          prisma.user.update({
+            where: { telegramId: pendingReferrer.telegramId },
+            data: {
+              points: { increment: 20000 },
+              pendingReferrerId: null
+            }
+          })
+        ]);
+        console.log(`✅ Pending referral resolved: ${tId} → ${pendingReferrer.telegramId}`);
+      }
+    }
 
     console.log("POST /api/user - Success, serializing...");
     return NextResponse.json(serializeUser(user));
+
   } catch (error) {
     console.error("POST /api/user - CRITICAL ERROR:", error);
-    return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error", details: (error as Error).message },
+      { status: 500 }
+    );
   }
 }
 
