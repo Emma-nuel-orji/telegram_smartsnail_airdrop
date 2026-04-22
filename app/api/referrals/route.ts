@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Already referred?
-    const existing = await prisma.referral.findUnique({ where: { referredId: uId } });
+   const existing = await prisma.referral.findFirst({ where: { referredId: uId } });
     if (existing) {
       return NextResponse.json({ existing: true });
     }
