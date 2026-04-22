@@ -78,7 +78,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           prisma.user.update({
             where: { telegramId: pendingReferrer.telegramId },
             data: {
-              points: { increment: 20000 },
+              points: { increment: 10000 },
               pendingReferrerId: null
             }
           })

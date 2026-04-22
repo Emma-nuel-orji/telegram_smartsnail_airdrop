@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       prisma.referral.create({ data: { referrerId: rId, referredId: uId } }),
       prisma.user.update({
         where: { telegramId: rId },
-        data: { points: { increment: 20000 } }
+        data: { points: { increment: 10000 } }
       })
     ]);
 
