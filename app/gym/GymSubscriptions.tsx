@@ -318,20 +318,20 @@ if (notRegistered) {
                   >
                     {purchasing === plan.id ? <Loader2 className="animate-spin" size={16} /> : (
                       <>
-                        <span className="text-[10px] font-black uppercase tracking-widest">Buy with Shells</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Pay with Shells</span>
                         <span className="text-xs font-black italic border-l border-current pl-2">{Number(plan.priceShells).toLocaleString()}</span>
                       </>
                     )}
                   </button>
                   
-                  <button 
+                  {/* <button 
                     onClick={() => handlePurchase(plan, 'STARS')}
                     disabled={!!purchasing}
                     className="w-full py-4 bg-zinc-800 text-purple-400 rounded-2xl flex items-center justify-center gap-2 border border-zinc-700"
                   >
                     <span className="text-[10px] font-black uppercase tracking-widest">Pay with Stars</span>
                     <span className="text-xs font-black italic border-l border-purple-500/30 pl-2">{plan.priceStars} ⭐</span>
-                  </button>
+                  </button> */}
                 </div>
               </div>
             )) : (

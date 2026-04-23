@@ -14,7 +14,7 @@ export default function PartnerProgress({ sub }: { sub: GymSub }) {
   // Helper to turn "1 Month" into 30, etc.
 const parseDuration = (duration: string): number => {
   // 1. Convert everything to lowercase to ignore "M" vs "m"
-  const d = duration.toLowerCase();
+  const d = duration?.toLowerCase() || "";
   
   // 2. Use .includes() to ignore the "s" at the end
   if (d.includes("year")) return 365;
