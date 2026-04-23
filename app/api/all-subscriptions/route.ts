@@ -29,9 +29,14 @@ export async function GET(req: Request) {
 
     // 3. Fetch Data
     const subscriptions = await prisma.subscription.findMany({
-      where: filter,
+      where: {
+        ...filter,
+        user: { isNot: null } // 👈 Add this line!
+      },
       include: {
-        user: { select: { firstName: true, username: true, nickname: true } }
+        user: { 
+          select: { firstName: true, username: true, nickname: true } 
+        }
       },
       orderBy: { startDate: 'desc' }
     });
