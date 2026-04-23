@@ -31,15 +31,15 @@ export default function GymSubscriptions() {
   const [purchasing, setPurchasing] = useState<string | null>(null);
   
   // This ensures TypeScript knows about HapticFeedback and showConfirm
-const webApp = typeof window !== 'undefined' ? (window.Telegram?.WebApp as TelegramWebApp) : null;
+const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as TelegramWebApp : null;
   const BOT_USERNAME = "SmartSnails_Bot";
   const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
   console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
 
   useEffect(() => {
-    const userId = webApp?.initDataUnsafe?.user?.id?.toString();
+    const userId = getWebApp?.initDataUnsafe?.user?.id?.toString();
     if (userId) setTelegramId(userId);
-  }, [webApp]);
+  }, [getWebApp]);
 
   useEffect(() => {
     // Safety Firewall: If loading hangs for > 7s, stop the spinner
@@ -58,64 +58,61 @@ const webApp = typeof window !== 'undefined' ? (window.Telegram?.WebApp as Teleg
       return;
     }
 
-   async function fetchData() {
-      console.log("📡 API CALL STARTING for Partner:", gymId);
-      setLoading(true); 
-      
-      try {
-        const [userRes, subsRes, activeRes] = await Promise.all([
-          fetch(`/api/user/${telegramId}`),
-          fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`),
-          fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
-        ]);
+  async function fetchData() {
+  console.log("📡 API CALL STARTING for Partner:", gymId);
+  setLoading(true); 
+  
+  try {
+    const [userRes, subsRes, activeRes] = await Promise.all([
+      fetch(`/api/user/${telegramId}`),
+      fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`),
+      fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
+    ]);
 
-        if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
+    if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
-        const userData = await userRes.json();
-        if (telegramId === ADMIN_ID) {
-              setIsAdmin(true);
-            }
+    const userData = await userRes.json();
 
-            // BYPASS the registration screen if you are the Admin
-            if (!userData.nickname && telegramId !== ADMIN_ID) {
-              setNotRegistered(true);
-              setLoading(false);
-              return; 
-            }
-        const subsData = await subsRes.json();
-        
-        // --- THE "SMARTSNAIL PASS" TRIGGER ---
-        // If they don't have a nickname, we show the custom registration UI
-        if (!userData.nickname) {
-          setNotRegistered(true);
-          setLoading(false); // Stop loading so the screen shows
-          return; 
-        }
+   const SUPER_ADMIN_IDS = (process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS || '').split(',').map(id => id.trim());
+    const isSuperAdmin = telegramId !== null && SUPER_ADMIN_IDS.includes(telegramId);
 
-        // --- SUCCESS: LOAD DATA ---
-        setUserPoints(Number(userData.points || 0));
-        setSubscriptions(Array.isArray(subsData) ? subsData : []);
-
-        if (activeRes.ok) {
-          const subData = await activeRes.json();
-          const activeSubscription = Array.isArray(subData) 
-            ? subData.find((s: any) => s.status === 'ACTIVE') 
-            : subData;
-            
-          setActiveSub(activeSubscription?.status === 'ACTIVE' ? activeSubscription : null);
-        }
-      } catch (err) {
-        console.error("❌ Fetch Error:", err);
-        toast.error("Failed to sync with gym database.");
-      } finally {
-        setLoading(false);
-        clearTimeout(timeout);
-      }
+    if (telegramId === ADMIN_ID) {
+      setIsAdmin(true);
     }
 
-    fetchData();
-    return () => clearTimeout(timeout);
-  }, [telegramId, gymId, router]); // <-- Close useEffect
+    // Only block if no nickname AND not an admin
+    if (!userData.nickname && !isSuperAdmin && telegramId !== ADMIN_ID) {
+      setNotRegistered(true);
+      setLoading(false);
+      return;
+    }
+
+    const subsData = await subsRes.json();
+
+    // --- SUCCESS: LOAD DATA ---
+    setUserPoints(Number(userData.points || 0));
+    setSubscriptions(Array.isArray(subsData) ? subsData : []);
+
+    if (activeRes.ok) {
+      const subData = await activeRes.json();
+      const activeSubscription = Array.isArray(subData) 
+        ? subData.find((s: any) => s.status === 'ACTIVE') 
+        : subData;
+        
+      setActiveSub(activeSubscription?.status === 'ACTIVE' ? activeSubscription : null);
+    }
+  } catch (err) {
+    console.error("❌ Fetch Error:", err);
+    toast.error("Failed to sync with gym database.");
+  } finally {
+    setLoading(false);
+    clearTimeout(timeout);
+  }
+}
+
+fetchData();
+return () => clearTimeout(timeout);
+}, [telegramId, gymId, router]);
 
   // --- 3. THE "INSTANT-UPDATE" PURCHASE LOGIC ---
   const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
@@ -127,7 +124,7 @@ const webApp = typeof window !== 'undefined' ? (window.Telegram?.WebApp as Teleg
 
     if (currency === 'SHELLS') {
       const confirmed = await new Promise((resolve) => {
-  webApp?.showConfirm(`Spend ${amount.toLocaleString()} Shells for ${plan.name}?`, (ok: boolean) => resolve(ok));
+  getWebApp?.showConfirm(`Spend ${amount.toLocaleString()} Shells for ${plan.name}?`, (ok: boolean) => resolve(ok));
 });
       if (!confirmed) return;
     }
@@ -151,7 +148,7 @@ const webApp = typeof window !== 'undefined' ? (window.Telegram?.WebApp as Teleg
       const result = await response.json();
       
       if (currency === 'STARS' && result.invoiceLink) {
-        webApp?.openInvoice(result.invoiceLink, (status: string) => {
+        getWebApp?.openInvoice(result.invoiceLink, (status: string) => {
   if (status === 'paid') {
     toast.success("Transaction Complete!");
     window.location.reload(); 
@@ -162,7 +159,7 @@ const webApp = typeof window !== 'undefined' ? (window.Telegram?.WebApp as Teleg
         if (currency === 'SHELLS') setUserPoints(prev => prev - amount);
         setActiveSub({ ...plan, status: 'ACTIVE', planTitle: plan.name });
         
-        webApp?.HapticFeedback.notificationOccurred('success');
+        getWebApp?.HapticFeedback.notificationOccurred('success');
         toast.success("🏋️ Access granted.");
       }
     } catch (error) {

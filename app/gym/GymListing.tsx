@@ -48,32 +48,7 @@ const PARTNER_GYMS: Gym[] = [
     description: "Urban warrior meets mental discipline. Professional boxing and combat sports training.",
     type: 'COMBAT_SPORTS'
   },
-  // {
-  //   id: 3,
-  //   name: "Elite Fitness Studio",
-  //   location: "Buckhead, GA",
-  //   rating: 4.9,
-  //   members: 850,
-  //   openTime: "6:00 AM",
-  //   closeTime: "10:00 PM",
-  //   amenities: ["Yoga Studio", "Pilates", "Spin Classes", "Nutrition Counseling"],
-  //   image: "/images/gyms/elite-fitness.jpg",
-  //   description: "Boutique fitness studio focusing on holistic wellness and personalized training.",
-  //   type: 'GYM'
-  // },
-  // {
-  //   id: 4,
-  //   name: "Iron Temple Gym",
-  //   location: "Marietta, GA",
-  //   rating: 4.7,
-  //   members: 1600,
-  //   openTime: "5:30 AM",
-  //   closeTime: "11:30 PM",
-  //   amenities: ["Olympic Lifting", "Powerlifting", "MMA Training", "Recovery Center"],
-  //   image: "/images/gyms/iron-temple.jpg",
-  //   description: "Hardcore training facility for serious athletes and fitness enthusiasts.",
-  //   type: 'GYM'
-  // }
+ 
 ];
 
 export default function GymListing() {
@@ -208,7 +183,7 @@ export default function GymListing() {
           <div className="bg-white/5 rounded-2xl p-4 flex items-start gap-3 border border-dashed border-white/10 opacity-60">
             <Info className="w-5 h-5 text-yellow-500 shrink-0" />
             <p className="text-[10px] font-bold leading-normal text-zinc-400 uppercase tracking-wide">
-              We are expanding! New partner gyms in the Atlanta area are being added monthly.
+              We are expanding! New partner gyms are being added soon!
             </p>
           </div>
         </div>

@@ -292,82 +292,73 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
   
   
   // Modified handleWalletAction function
-  const handleWalletAction = async () => {
-    if (!selectedTask) return;
-  
-    try {
-      setLoading(true);
-  
-      if (isConnected) {
-        await disconnect();
-        setWalletStatus(false); 
-        localStorage.removeItem("wallet_connected"); // Remove stored status
-  
-        setTaskCompleted(false);
-        if (selectedTask.id === "18") {
-          setTasks(prevTasks => 
-            prevTasks.map(task => 
-              task.id === "18" ? { ...task, completed: false, completedTime: null } : task
-            )
-          );
-        }
-        return;
-      }
-  
-      await connect();
-      setWalletStatus(true); 
-//       useEffect(() => {
-//   const stored = localStorage.getItem("wallet_connected") === "true";
-//   if (stored) setWalletStatus(true);
-// }, []);
-  
-      if (selectedTask.id === "18") {
-        setTaskCompleted(true);
-        setTasks(prevTasks =>
-          prevTasks.map(task =>
-            task.id === "18"
-              ? { ...task, completed: true, completedTime: new Date().toISOString() }
-              : task
-          )
-        );
-  
-        
+ const handleWalletAction = async () => {
+  // Get the task from state or find it directly
+  const walletTask = tasks.find(t => t.id === "18");
+  if (!walletTask) return;  // <-- was: if (!selectedTask) return
 
-        const walletRewardKey = 'wallet_connect_rewarded';
-        const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
-  
-        if (!hasBeenRewardedBefore) {
-          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-          localStorage.setItem(walletRewardKey, 'true');
-  
-          try {
-            const response = await fetch("/api/tasks/complete", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                taskId: selectedTask.id,
-                reward: selectedTask.reward ?? 0,
-                telegramId: WebApp?.initDataUnsafe?.user?.id,
-              }),
-            });
-  
-            if (!response.ok) throw new Error('Failed to record reward on server');
-  
-            handleTaskCompleted("18", selectedTask.reward ?? 0);
-          } catch (error) {
-            console.error("Failed to record wallet connection reward:", error);
-            localStorage.removeItem(walletRewardKey);
-            setMessage("Failed to record reward. Please try again.");
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Wallet interaction error:", error);
-      setMessage("Failed to connect wallet. Please try again.");
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+
+    if (isConnected) {
+      await disconnect();
+      setWalletStatus(false);
+      localStorage.removeItem("wallet_connected");
+      setTaskCompleted(false);
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === "18" ? { ...task, completed: false, completedTime: null } : task
+        )
+      );
+      return;
     }
-  };
+
+    await connect();
+    setWalletStatus(true);
+
+    setTaskCompleted(true);
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === "18"
+          ? { ...task, completed: true, completedTime: new Date().toISOString() }
+          : task
+      )
+    );
+
+    const walletRewardKey = 'wallet_connect_rewarded';
+    const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
+
+    if (!hasBeenRewardedBefore) {
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      localStorage.setItem(walletRewardKey, 'true');
+
+      try {
+        const response = await fetch("/api/tasks/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            taskId: "18",
+            reward: walletTask.reward ?? 0,  // <-- use walletTask, not selectedTask
+            telegramId: WebApp?.initDataUnsafe?.user?.id,
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to record reward on server');
+
+        handleTaskCompleted("18", walletTask.reward ?? 0);
+      } catch (error) {
+        console.error("Failed to record wallet connection reward:", error);
+        localStorage.removeItem(walletRewardKey);
+        setMessage("Failed to record reward. Please try again.");
+      }
+    }
+  } catch (error) {
+    console.error("Wallet interaction error:", error);
+    setMessage("Failed to connect wallet. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
 // Modified useEffect for checking initial reward status
 useEffect(() => {
@@ -430,15 +421,18 @@ useEffect(() => {
   const handleTaskClick = (task: Task) => {
   if (task.active === false) return;
 
+  // Set the selected task FIRST for ALL task types
+  setSelectedTask(task);
+  setValidationAttempt(0);
+  setMessage("");
+
   if (task.id === "18") {
-    handleWalletAction(); // Open wallet directly, no popup
+    // Don't call handleWalletAction here — let the modal button do it
     return;
   }
 
-  if (!task.completed) {
-    setSelectedTask(task);
-    setValidationAttempt(0);
-    setMessage("");
+  if (task.completed) {
+    setSelectedTask(null); // Don't open modal for completed non-flexible tasks
   }
 };
  
@@ -574,122 +568,119 @@ setTimeout(() => {
 
   
   const handleValidateClick = async () => {
-    // Increment validation attempt
-    setValidationAttempt((prevAttempt) => prevAttempt + 1);
-  
-    if (!selectedTask) {
-      alert("No task selected.");
-      return;
-    }
-  
-    // Check if the task has already been completed
-    if (selectedTask.completed) {
-      alert("Task has already been completed.");
-      return;
-    }
-  
-    // Warn on first three attempts
-    if (validationAttempt < 3) {
-      if (validationAttempt === 1) {
-        alert("Please perform the task before validating.");
-      } else if (validationAttempt === 2) {
-        alert("Bruhh, you haven't performed the task yet!");
-      } else if (validationAttempt === 3) {
-        alert("Go back and check again!");
+  if (!selectedTask) {
+    alert("No task selected.");
+    return;
+  }
+
+  if (selectedTask.completed) {
+    alert("Task has already been completed.");
+    return;
+  }
+
+  // Use functional update and check the NEW value synchronously
+  const currentAttempt = validationAttempt + 1;
+  setValidationAttempt(currentAttempt);
+
+  // Warn on first 3 attempts (using currentAttempt, not stale state)
+  if (currentAttempt === 1) {
+    alert("Please perform the task before validating.");
+    return;
+  } else if (currentAttempt === 2) {
+    alert("Bruhh, you haven't performed the task yet!");
+    return;
+  } else if (currentAttempt === 3) {
+    alert("Go back and check again!");
+    return;
+  }
+
+  // 4th click onwards — actually validate
+  const telegramId = WebApp?.initDataUnsafe?.user?.id;
+  if (!telegramId) {
+    alert("Could not verify Telegram user. Please try again.");
+    return;
+  }
+
+  // Show loading state immediately
+  setLoading(true);
+  setMessage("⏳ Validating your task, please wait...");
+
+  try {
+    const taskId = String(selectedTask.id);
+
+    const response = await fetch("/api/tasks/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        taskId,
+        reward: selectedTask.reward ?? 0,
+        telegramId,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `Server error: ${response.status}`;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
       }
-      return;
+      throw new Error(errorMessage);
     }
-  
-    // Get Telegram user ID from WebApp
-    const telegramId = WebApp?.initDataUnsafe?.user?.id;
-    if (!telegramId) {
-      alert("Could not verify Telegram user. Please try again.");
-      return;
-    }
-  
-    try {
-      const taskId = String(selectedTask.id);
-  
-      console.log('Attempting to complete task:', selectedTask);
-  
-      const response = await fetch("/api/tasks/complete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          taskId,
-          reward: selectedTask.reward ?? 0,
-          telegramId,
-        }),
+
+    const data = await response.json();
+
+    // Update tasks
+    const updatedTasks = tasks.map((task) =>
+      task.id === selectedTask.id
+        ? { ...task, completed: true, completedTime: new Date().toISOString() }
+        : task
+    );
+    setTasks(updatedTasks);
+
+    // Update points
+    if (data.userPoints !== undefined) {
+      setTotalPoints(data.userPoints);
+      localStorage.setItem("totalPoints", data.userPoints.toString());
+    } else {
+      setTotalPoints((prev) => {
+        const reward = selectedTask.reward ?? 0;
+        const newPoints = prev + reward;
+        localStorage.setItem("totalPoints", newPoints.toString());
+        return newPoints;
       });
-  
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Server error: ${response.status}`;
-  
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = errorText || errorMessage;
-        }
-  
-        throw new Error(errorMessage);
-      }
-  
-      const data = await response.json();
-  
-      // Update local state and points
-      const updatedTasks = tasks.map((task) =>
-        task.id === selectedTask.id
-          ? {
-              ...task,
-              completed: true,
-              completedTime: new Date().toISOString(),
-            }
-          : task
-      );
-      setTasks(updatedTasks);
-  
-      if (data.userPoints !== undefined) {
-        setTotalPoints(data.userPoints);
-        localStorage.setItem("totalPoints", data.userPoints.toString());
-      } else {
-        setTotalPoints((prev) => {
-          const reward = selectedTask.reward ?? 0;
-          const newPoints = prev + reward;
-          localStorage.setItem("totalPoints", newPoints.toString());
-          return newPoints;
-        });
-      }
-  
-      const completedTaskIds = updatedTasks
-        .filter((task) => task.completed)
-        .map((task) => task.id);
-      localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
-  
-      // Trigger confetti
-      triggerConfetti();
-  
-      // Reset UI state
+    }
+
+    const completedTaskIds = updatedTasks
+      .filter((task) => task.completed)
+      .map((task) => task.id);
+    localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
+
+    // Success feedback before closing
+    setMessage(`🎉 Task complete! +${(selectedTask.reward ?? 0).toLocaleString()} SHELLS earned!`);
+    triggerConfetti();
+
+    setTimeout(() => {
       setTaskCompleted(true);
       setSelectedTask(null);
       setValidationAttempt(0);
-  
-    } catch (error) {
-      console.error("Error completing task:", error);
-  
-      const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred";
-  
-      alert(
-        errorMessage.includes("Invalid task ID")
-          ? "There was a problem with the task data. Please try again or refresh the page."
-          : `Failed to complete task: ${errorMessage}`
-      );
-    }
-  };
+      setMessage("");
+    }, 1500); // Let user see the success message briefly
+
+  } catch (error) {
+    console.error("Error completing task:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    setMessage(
+      `❌ ${errorMessage.includes("Invalid task ID")
+        ? "Problem with task data. Please refresh and try again."
+        : `Failed: ${errorMessage}`}`
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   
 
   // Existing code redemption handler
@@ -888,9 +879,14 @@ setTimeout(() => {
             <button className="web3-secondary-btn" onClick={() => window.open(selectedTask.link, "_blank")}>
               🎯 Perform Task
             </button>
-            <button className="web3-primary-btn" onClick={handleValidateClick} style={{ marginTop: '10px' }}>
-              ✅ Validate and Reward
-            </button>
+                          <button
+                className="web3-primary-btn"
+                onClick={handleValidateClick}
+                disabled={loading}
+                style={{ marginTop: '10px', opacity: loading ? 0.7 : 1 }}
+              >
+                {loading ? "⏳ Validating..." : "✅ Validate and Reward"}
+              </button>
           </>
         )}
 
