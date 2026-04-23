@@ -456,7 +456,7 @@ model Subscription {
   startDate    DateTime @default(now())
   endDate      DateTime
   totalClasses Int      @default(1)
-  status       String   @default("ACTIVE")
+  status  String  @default("PENDING")
   trainingDays Int[]    // Store as numbers: 0=Sun, 1=Mon, 2=Tue...
   planType     String
   createdAt    DateTime @default(now())

@@ -39,14 +39,16 @@ export async function POST(req: Request) {
   try {
     const { telegramId, serviceId, planTitle, intensity, duration, currencyType, amount } = await req.json();
 
-    // --- STEP A: Fetch Context (Your original logic) ---
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
       include: { partner: { include: { admins: true } } }
     });
     if (!service) return NextResponse.json({ error: "Service not found" }, { status: 404 });
 
-    // --- STEP B: Handle Stars Flow ---
+    // Define these UP HERE so Step C and Step D can both see them
+    const d = duration.toLowerCase();
+    const isShortTerm = d.includes("day") || d.includes("session") || d.includes("walk");
+
     if (currencyType === 'STARS') {
       const payload = JSON.stringify({
         type: "COMBAT_SUBSCRIPTION",
@@ -61,9 +63,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, invoiceLink });
     }
 
-    // --- STEP C: Handle Shells Flow (With Point Deduction) ---
     const subscription = await prisma.$transaction(async (tx) => {
-      // 1. Deduct Points
       const user = await tx.user.findUnique({ where: { telegramId: BigInt(telegramId) } });
       if (!user || Number(user.points) < amount) throw new Error("INSUFFICIENT_FUNDS");
 
@@ -72,36 +72,32 @@ export async function POST(req: Request) {
         data: { points: { decrement: amount } }
       });
 
-      // 2. Calculate Dates
-      const startDate = new Date();
-            const endDate = new Date();
-            const d = duration.toLowerCase(); // Defensive: ignore case
+      const startDate = new Date(); 
+      const endDate = new Date();
 
-            if (d.includes("year")) {
-              endDate.setFullYear(startDate.getFullYear() + 1);
-            } else if (d.includes("6 month")) {
-              endDate.setMonth(startDate.getMonth() + 6);
-            } else if (d.includes("3 month")) {
-              endDate.setMonth(startDate.getMonth() + 3);
-            } else if (d.includes("1 month")) {
-              endDate.setMonth(startDate.getMonth() + 1);
-            } else if (d.includes("week")) {
-              endDate.setDate(startDate.getDate() + 7);
-            } else {
-              // Default for Walk-in (1 Day)
-              endDate.setDate(startDate.getDate() + 1);
-            }
+      if (d.includes("year")) {
+        endDate.setFullYear(startDate.getFullYear() + 1);
+      } else if (d.includes("6 month")) {
+        endDate.setMonth(startDate.getMonth() + 6);
+      } else if (d.includes("3 month")) {
+        endDate.setMonth(startDate.getMonth() + 3);
+      } else if (d.includes("1 month")) {
+        endDate.setMonth(startDate.getMonth() + 1);
+      } else if (d.includes("week")) {
+        endDate.setDate(startDate.getDate() + 7);
+      } else {
+        endDate.setDate(startDate.getDate() + 1);
+      }
 
-      // 3. Create Sub (Your original Prisma structure)
       return await tx.subscription.create({
         data: {
-          user: { connect: { telegramId: BigInt(telegramId) } },
+          user: { connect: { id: user.id } },
           service: { connect: { id: serviceId } },
           partner: { connect: { id: service.partnerId } },
           planTitle: planTitle || service.name,
-          status: "ACTIVE",
-          startDate,
-          endDate,
+          status: isShortTerm ? "ACTIVE" : "PENDING", 
+          startDate: startDate, 
+          endDate: endDate,     
           planType: !!intensity ? "COMBAT" : "GYM",
           gymName: service.partner.name
         },
@@ -109,7 +105,7 @@ export async function POST(req: Request) {
       });
     });
 
-    // --- STEP D: Notification Logic (Your original logic) ---
+    // --- STEP D: Notification Logic ---
     const partnerAdmin = service.partner.admins[0];
     const adminTag = partnerAdmin 
       ? `[Admin](tg://user?id=${partnerAdmin.telegramId.toString()})` 
@@ -124,14 +120,19 @@ export async function POST(req: Request) {
       `📍 **Location:** ${service.partner.name}\n` +
       `👤 **Trainee:** ${subscription.user.firstName}\n` +
       `📋 **Plan:** ${planTitle}\n` +
-      `${isCombat ? "⚠️ *Action Required: Set training days.*" : "✅ *Auto-activated.*"}`;
+      `${isShortTerm 
+          ? "✅ **Auto-activated** (Walk-in/1 Day)" 
+          : "⚠️ **Action Required**: Plan is PENDING. Activate on arrival."}`;
 
     await sendTelegram(process.env.ADMIN_GROUP_ID, notificationMsg, {
       reply_markup: {
         inline_keyboard: isCombat ? [[{ 
           text: "📅 Set Training Days", 
           callback_data: `set_sched_${subscription.id}` 
-        }]] : []
+        }]] : (isShortTerm ? [] : [[{
+          text: "✅ Activate Membership",
+          callback_data: `activate_sub_${subscription.id}`
+        }]])
       }
     });
 
