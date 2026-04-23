@@ -68,7 +68,7 @@ export default function GymListing() {
 
   const handleGymClick = (gym: Gym) => {
     const route = gym.type === 'COMBAT_SPORTS' ? 'sagecombat' : 'subscriptions';
-    window.location.href = `/gym/${route}?gymId=${gym.id}&gymName=${encodeURIComponent(gym.name)}`;
+   window.location.href = `/gym/${route}?gymId=${gym.mongoId}&gymName=${encodeURIComponent(gym.name)}`;
   };
 
   if (loading) {

@@ -292,10 +292,9 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
   
   
   // Modified handleWalletAction function
- const handleWalletAction = async () => {
-  // Get the task from state or find it directly
-  const walletTask = tasks.find(t => t.id === "18");
-  if (!walletTask) return;  // <-- was: if (!selectedTask) return
+const handleWalletAction = async (taskOverride?: Task) => {
+  const walletTask = taskOverride ?? tasks.find(t => t.id === "18");
+  if (!walletTask) return;
 
   try {
     setLoading(true);
@@ -313,9 +312,11 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
       return;
     }
 
+    // Open wallet — no modal shown at this point
     await connect();
-    setWalletStatus(true);
 
+    // Only reach here if connect() succeeded
+    setWalletStatus(true);
     setTaskCompleted(true);
     setTasks(prevTasks =>
       prevTasks.map(task =>
@@ -329,6 +330,7 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
     const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
 
     if (!hasBeenRewardedBefore) {
+      // Only confetti here, after confirmed connection
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       localStorage.setItem(walletRewardKey, 'true');
 
@@ -338,7 +340,7 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             taskId: "18",
-            reward: walletTask.reward ?? 0,  // <-- use walletTask, not selectedTask
+            reward: walletTask.reward ?? 0,
             telegramId: WebApp?.initDataUnsafe?.user?.id,
           }),
         });
@@ -349,12 +351,15 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
       } catch (error) {
         console.error("Failed to record wallet connection reward:", error);
         localStorage.removeItem(walletRewardKey);
-        setMessage("Failed to record reward. Please try again.");
+        // Show error without a modal — use Telegram's native alert
+        WebApp?.showAlert("Failed to record reward. Please try again.");
       }
     }
+
   } catch (error) {
+    // connect() was cancelled or failed — no confetti, no reward
     console.error("Wallet interaction error:", error);
-    setMessage("Failed to connect wallet. Please try again.");
+    WebApp?.showAlert("Failed to connect wallet. Please try again.");
   } finally {
     setLoading(false);
   }
@@ -421,18 +426,15 @@ useEffect(() => {
   const handleTaskClick = (task: Task) => {
   if (task.active === false) return;
 
-  // Set the selected task FIRST for ALL task types
-  setSelectedTask(task);
-  setValidationAttempt(0);
-  setMessage("");
-
   if (task.id === "18") {
-    // Don't call handleWalletAction here — let the modal button do it
+    handleWalletAction(task); // Pass task directly, no modal
     return;
   }
 
-  if (task.completed) {
-    setSelectedTask(null); // Don't open modal for completed non-flexible tasks
+  if (!task.completed) {
+    setSelectedTask(task);
+    setValidationAttempt(0);
+    setMessage("");
   }
 };
  
@@ -846,10 +848,14 @@ setTimeout(() => {
             </button>
           </>
         ) : selectedTask.id === "18" ? (
-          /* Task 18: Wallet Connection */
-          <button className="web3-primary-btn" onClick={handleWalletAction} disabled={loading}>
-            {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
-          </button>
+              /* Task 18: Wallet Connection */
+              <button 
+                className="web3-primary-btn" 
+                onClick={() => handleWalletAction(selectedTask)} 
+                disabled={loading}
+              >
+                {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
+              </button>
         ) : selectedTask.isStoryTask ? (
           /* Story Sharing Task */
           <>
