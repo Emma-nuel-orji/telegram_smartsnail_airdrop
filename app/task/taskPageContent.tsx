@@ -276,108 +276,78 @@ useEffect(() => {
   }
 }, [selectedTask]);
 
+
+
 const handleTaskCompleted = (taskId: string, reward: number) => {
   setTasks((prevTasks) =>
     prevTasks.map((task) =>
       task.id === taskId
         ? { 
             ...task, 
-            completed: !["18", "22"].includes(taskId), // Compare strings with strings
+            completed: !["18", "22"].includes(taskId), 
             completedTime: new Date().toISOString()
           }
         : task
     )
   );
   
-    // Only store non-flexible tasks in localStorage
-    const taskToComplete = tasks.find(task => task.id === taskId);
-    if (taskToComplete && taskToComplete.type !== "flexible") {
-      const completedTasks = new Set(JSON.parse(localStorage.getItem("completedTasks") || "[]"));
-      completedTasks.add(taskId);
-      localStorage.setItem("completedTasks", JSON.stringify([...completedTasks]));
-    }
-  
-    // Reward the user
-    if (reward) {
-      setTotalPoints((prevPoints) => {
-        const newPoints = prevPoints + (reward ?? 0);
-        localStorage.setItem("totalPoints", newPoints.toString());
-        return newPoints;
-      });
-    }
-  };
+  // Only store non-flexible tasks in localStorage
+  const taskToComplete = tasks.find(task => task.id === taskId);
+  if (taskToComplete && taskToComplete.type !== "flexible") {
+    const completedTasks = new Set(JSON.parse(localStorage.getItem("completedTasks") || "[]"));
+    completedTasks.add(taskId);
+    localStorage.setItem("completedTasks", JSON.stringify([...completedTasks]));
+  }
+
+  // Reward the user and fire Confetti
+  if (reward) {
+    // 🔥 TRIGGER CONFETTI HERE
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#00ffa3', '#8a2be2', '#00d1ff', '#ffffff'],
+      zIndex: 20000 // Ensure it appears above the modal
+    });
+
+    setTotalPoints((prevPoints) => {
+      const newPoints = prevPoints + (reward ?? 0);
+      localStorage.setItem("totalPoints", newPoints.toString());
+      return newPoints;
+    });
+  }
+};
   
   
   
   // Modified handleWalletAction function
-const handleWalletAction = async (taskOverride?: Task) => {
-  const walletTask = taskOverride ?? tasks.find(t => t.id === "18");
-  if (!walletTask) return;
 
+
+const handleWalletAction = async (task: Task) => {
+  setLoading(true);
   try {
-    setLoading(true);
+    if (!walletStatus) {
+      // Logic to open TonConnect would go here
+      // await tonConnectUI.openModal(); 
+      
+      // MOCK SUCCESS:
+      setWalletStatus(true);
+      
+      // --- TRIGGER CONFETTI ---
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#00ffa3', '#8a2be2', '#00d1ff']
+      });
 
-    if (isConnected) {
-      await disconnect();
+      setMessage("✅ Wallet Linked!");
+    } else {
       setWalletStatus(false);
-      localStorage.removeItem("wallet_connected");
-      setTaskCompleted(false);
-      setTasks(prevTasks =>
-        prevTasks.map(task =>
-          task.id === "18" ? { ...task, completed: false, completedTime: null } : task
-        )
-      );
-      return;
+      setMessage("Disconnected");
     }
-
-    // Open wallet — no modal shown at this point
-    await connect();
-
-    // Only reach here if connect() succeeded
-    setWalletStatus(true);
-    setTaskCompleted(true);
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === "18"
-          ? { ...task, completed: true, completedTime: new Date().toISOString() }
-          : task
-      )
-    );
-
-    const walletRewardKey = 'wallet_connect_rewarded';
-    const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
-
-    if (!hasBeenRewardedBefore) {
-      // Only confetti here, after confirmed connection
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      localStorage.setItem(walletRewardKey, 'true');
-
-      try {
-        const response = await fetch("/api/tasks/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            taskId: "18",
-            reward: walletTask.reward ?? 0,
-            telegramId: WebApp?.initDataUnsafe?.user?.id,
-          }),
-        });
-
-        if (!response.ok) throw new Error('Failed to record reward on server');
-
-        handleTaskCompleted("18", walletTask.reward ?? 0);
-      } catch (error) {
-        console.error("Failed to record wallet connection reward:", error);
-        localStorage.removeItem(walletRewardKey);
-        // Show error without a modal — use Telegram's native alert
-        WebApp?.showAlert("Failed to record reward. Please try again.");
-      }
-    }
-
   } catch (error) {
-    // connect() was cancelled or failed — no confetti, no reward
-    console.error("Wallet interaction error:", error);
-    WebApp?.showAlert("Failed to connect wallet. Please try again.");
+    setMessage("Connection failed");
   } finally {
     setLoading(false);
   }
@@ -748,7 +718,12 @@ setTimeout(() => {
     }
   };
 
-  const getDynamicDescription = (task: Task) => {
+ const getDynamicDescription = (task: Task) => {
+  // SPECIAL CASE: Wallet Task
+  if (task.id === "18") {
+    return walletStatus ? "Disconnect Wallet" : "Connect TON Wallet";
+  }
+
   const url = task.link?.toLowerCase() || "";
   const isPermanent = task.type === "permanent";
   const isDaily = task.type === "daily";
@@ -764,7 +739,6 @@ setTimeout(() => {
   else if (url.includes("medium.com")) platform = "Medium";
   else if (url.includes("discord")) platform = "Discord";
 
-  // Logic for Permanent (Join/Follow) vs Daily (React/Engage)
   if (isPermanent) {
     const action = platform === "Telegram" || platform === "Discord" ? "Join" : "Follow";
     return `${action} ${platform}`;
@@ -775,7 +749,6 @@ setTimeout(() => {
     return `React on ${platform} Content`;
   }
 
-  // Fallback to original description if logic doesn't match
   return task.description;
 };
 
@@ -811,53 +784,55 @@ setTimeout(() => {
         </button>
       </div>
 
-     <div className="tasks-list">
-        {filteredTasks.map((task) => {
-          const isCompleted = task.completed && task.type !== 'flexible';
-          const isLocked = task.active === false;
+   <div className="tasks-list">
+  {filteredTasks.map((task) => {
+    // 1. Generate the standardized title first
+    const dynamicTitle = getDynamicDescription(task);
+    
+    // 2. Determine states
+    // Note: Wallet (flexible) stays clickable even if "completed" in state
+    const isCompleted = task.completed && task.type !== 'flexible';
+    const isLocked = task.active === false;
 
-          return (
-            <div
-              key={task.id}
-              className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
-              onClick={() => !isLocked && (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
-            >
-              <div className="task-row-content">
-                <div className="brand-icon-wrapper">
-                  {/* Performance Fix: Use Lucide icons instead of 143KB images where possible */}
-                  {getSocialIcon(task.description)}
-                </div>
-                
-                <div className="task-details">
-                      {/* 🔥 Change this line */}
-                      <span className="task-title-web3">
-                        {getDynamicDescription(task)}
-                      </span>
-                      
-                      <div className="reward-container-web3">
-                        <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
-                        <span className="reward-unit">SHELLS</span>
-                      </div>
-                    </div>
-              </div>
-
-              <div className="task-action-area">
-                {isCompleted ? (
-                  <CheckCircle2 size={20} color="#00ffa3" />
-                ) : isLocked ? (
-                  <Lock size={18} color="rgba(255,255,255,0.3)" />
-                ) : (
-                  <div className="web3-action-arrow">
-                    {/* Fix: Replaced broken PNG arrow with Lucide Chevron */}
-                    <ChevronRight size={20} color="#00ffa3" />
-                  </div>
-                )}
-              </div>
+    return (
+      <div
+        key={task.id}
+        className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
+        onClick={() => !isLocked && (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
+      >
+        <div className="task-row-content">
+          <div className="brand-icon-wrapper">
+            {/* 🔥 FIX: Pass dynamicTitle so getSocialIcon finds keywords like "Threads" or "TikTok" */}
+            {getSocialIcon(dynamicTitle)}
+          </div>
+          
+          <div className="task-details">
+            <span className="task-title-web3">
+              {dynamicTitle}
+            </span>
+            
+            <div className="reward-container-web3">
+              <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
+              {/* <span className="reward-unit">SHELLS</span> */}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        </div>
 
+        <div className="task-action-area">
+          {isCompleted ? (
+            <CheckCircle2 size={20} color="#00ffa3" />
+          ) : isLocked ? (
+            <Lock size={18} color="rgba(255,255,255,0.3)" />
+          ) : (
+            <div className="web3-action-arrow">
+              <ChevronRight size={20} color="#00ffa3" />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  })}
+</div>
       {/* POPUP: CSS fix below ensures this is centered, not at the bottom */}
       {selectedTask && (
   <div className="popup-overlay" onClick={() => setSelectedTask(null)}>

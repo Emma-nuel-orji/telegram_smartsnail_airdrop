@@ -1,114 +1,94 @@
 'use client';
 import React from 'react';
 import Link from "next/link";
+import { 
+  ChevronLeft, 
+  TrendingUp, 
+  Users, 
+  Target, 
+  Layers, 
+  Calculator,
+  Trophy
+} from 'lucide-react';
 
 const InfoPage = () => {
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      {/* Welcome Section */}
-      <section className="text-center mb-12">
-      <Link href="/">
-          <img
-            src="/images/info/left-arrow.png" 
-            
-            width={40}
-            height={40}
-            alt="back"
-          /> 
+    <div className="task-container pb-20">
+      <header className="task-header">
+        <Link href="/">
+          <div className="p-2 bg-white/5 rounded-xl border border-white/10">
+            <ChevronLeft size={24} color="#00ffa3" />
+          </div>
         </Link>
-        <h1 className="text-4xl font-bold mb-4">Welcome to SmartSnail</h1>
-        <p className="text-lg text-gray-700">
-          A revolutionary project at the forefront of integrating blockchain technology with real-world applications. 
-          Designed to redefine how you interact with assets, fitness, leisure, and more, SmartSnail is a dynamic 
-          ecosystem that bridges the gap between the digital and physical worlds.
-        </p>
+        <h2>MVP Protocol & Airdrop</h2>
+      </header>
+
+      {/* THE MVP MISSION */}
+      <section className="mb-8 px-4">
+        <div className="p-5 rounded-3xl bg-gradient-to-b from-emerald-500/10 to-transparent border border-emerald-500/20">
+          <h1 className="text-2xl font-black text-white mb-2">EARN YOUR ALLOCATION</h1>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            We are currently in the **Testing & Accumulation Phase**. The "Shells" you earn today are points that track your ecosystem contribution. Upon TGE (Token Generation Event), these points convert into real **$SHELLS**, **$MEN**, and **$COMBAT** tokens.
+          </p>
+        </div>
       </section>
 
-      {/* About Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-4">About SmartSnail</h2>
-        <p className="text-gray-700">
-          SmartSnail is a proud initiative of <span className="font-bold">Web3Chinonsolution</span>, 
-          a pioneering company that innovates, educates, and integrates in the Web3 space. At Web3Chinonsolution, 
-          we help clients bring their visions to life, whether in 3D animation, graphic design, smart contract 
-          development, or full-stack Web3 solutions.
-        </p>
-      </div>
-
-      {/* Features Section */}
-      <div className="space-y-6">
-        <h2 className="text-3xl font-bold mb-6">What SmartSnail Offers</h2>
-        
-        {/* Marketplace Card */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-2xl font-bold mb-4">1. SmartSnail Marketplace for Real-World Assets</h3>
-          <p className="mb-4">
-            The <span className="font-bold">SmartSnail Marketplace</span> transforms how real-world assets are 
-            bought, sold, and managed. By tokenizing these assets into NFTs, SmartSnail creates a new asset 
-            class that benefits both creators and users.
+      {/* THE POLYCOMBAT REVOLUTION */}
+      <div className="px-2 mb-8">
+        <h3 className="text-[10px] uppercase tracking-widest text-emerald-400 font-black mb-3 ml-2">PolyCombat Economy</h3>
+        <div className="task-row-web3 block border border-white/5">
+          <div className="flex items-center gap-3 mb-3">
+            <Trophy size={20} className="text-yellow-500" />
+            <h4 className="text-white font-bold">The Fight-to-Earn Model</h4>
+          </div>
+          <p className="text-[11px] text-gray-400 leading-normal mb-4">
+            NFT Teams (SmartSnail & Manchies) act as "Managers" for fighters. Teams stake tokens on their athletes. 
+            <span className="block mt-2 text-emerald-400 font-bold">The Winner's Edge:</span> 
+            A portion of the losing team's stake is used to buy back the winning team's tokens from the market, increasing value for all holders.
           </p>
-          <div className="pl-4 border-l-4 border-purple-500 space-y-2">
-            <p>• Books become tokenized assets that authors and readers can earn from</p>
-            <p>• Readers can resell or rent their books, creating a dynamic market for knowledge sharing</p>
-            <p>• Authors earn royalties, ensuring they benefit from every transaction involving their work</p>
-            <p>• With AI and VR, SmartSnail enhances the reading experience, making it more interactive and engaging</p>
+          <div className="bg-black/20 p-3 rounded-xl border border-white/5 flex items-center justify-between">
+            <span className="text-[10px] text-gray-500 font-mono">Current MVP Teams:</span>
+            <div className="flex gap-2">
+              <span className="text-[9px] text-white bg-purple-600 px-2 py-0.5 rounded">SmartSnail</span>
+              <span className="text-[9px] text-white bg-pink-600 px-2 py-0.5 rounded">Manchies</span>
+            </div>
           </div>
         </div>
-
-        {/* NFTs Card */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-2xl font-bold mb-4">2. SmartSnail NFTs</h3>
-          <p className="text-gray-700">
-            Our <span className="font-bold">SmartSnail NFTs</span> aren't just digital collectibles; they're 
-            gateways to unparalleled opportunities in fitness, leisure, hospitality, travel, real-world assets, 
-            and sports. Holders of these NFTs enjoy exclusive access to partnered services and earn a percentage 
-            of revenue generated from real-world assets listed on the SmartSnail Marketplace.
-          </p>
-        </div>
-
-        {/* Shells Token Card */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-2xl font-bold mb-4">3. Shells - The ERC-20 Coin of SmartSnail</h3>
-          <p className="text-gray-700">
-            The <span className="font-bold">Shells token</span> powers the entire SmartSnail ecosystem, 
-            facilitating transactions across the marketplace and providing holders with access to premium 
-            features and rewards. Shells are fast, secure, and versatile, allowing seamless participation 
-            in the SmartSnail universe.
-          </p>
-        </div>
       </div>
 
-      {/* Shell Tokenomics Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-4">Shell Tokenomics</h2>
-        <div className="flex items-center justify-center h-40 bg-gray-100 rounded-lg">
-          <p className="text-xl font-semibold text-gray-500">Coming Soon</p>
-        </div>
-      </div>
-
-      {/* Roadmap Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-4">Project Roadmap</h2>
-        <div className="flex items-center justify-center h-40 bg-gray-100 rounded-lg">
-          <p className="text-xl font-semibold text-gray-500">Coming Soon</p>
+      {/* AIRDROP CALCULATOR LOGIC */}
+      <div className="px-2 mb-8">
+        <h3 className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-3 ml-2">Distribution Logic</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+            <div className="flex items-center gap-2 mb-4">
+              <Calculator size={18} className="text-blue-400" />
+              <h4 className="text-white font-bold text-sm">Portfolio-Based Conversion</h4>
+            </div>
+            <p className="text-[11px] text-gray-400 mb-4">
+              Your "Shells" points will be converted into tokens based on the NFT assets you hold at the time of the snapshot:
+            </p>
+            <ul className="space-y-3">
+              <li className="flex justify-between items-center text-[11px]">
+                <span className="text-gray-300 italic">Holding 100% SmartSnail</span>
+                <span className="text-emerald-400 font-bold">→ 100% $SHELLS</span>
+              </li>
+              <li className="flex justify-between items-center text-[11px]">
+                <span className="text-gray-300 italic">Holding Mixed Assets</span>
+                <span className="text-blue-400 font-bold">→ Split $SHELLS / $MEN</span>
+              </li>
+              <li className="flex justify-between items-center text-[11px]">
+                <span className="text-gray-300 italic">Active Fight Participation</span>
+                <span className="text-yellow-500 font-bold">→ Bonus $COMBAT</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
-      {/* What's Next Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-4">What's Next for SmartSnail</h2>
-        <p className="text-gray-700">
-          In line with the <span className="font-bold">sports segment</span> of our project, we are excited 
-          to announce an upcoming product that will tokenize athletes—particularly boxers and martial artists. 
-          Fans will have the opportunity to invest in and earn alongside their favorite fighters, creating a 
-          deeper connection between athletes and their supporters.
-        </p>
-        <p className="mt-4 font-medium text-center">
-          SmartSnail is here to redefine how we interact with the world—whether through digital innovation, 
-          real-world applications, or groundbreaking opportunities. Join us on this transformative journey 
-          and be part of the future.
-        </p>
-      </div>
+      <footer className="text-center px-6 opacity-40">
+        <p className="text-[10px] text-gray-400 italic">Experimental MVP Economy — Subject to Protocol Adjustments</p>
+      </footer>
     </div>
   );
 };
