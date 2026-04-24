@@ -97,39 +97,45 @@ const TaskPageContent: React.FC = () => {
  const getWebApp = () => window?.Telegram?.WebApp ?? null;
 const WebApp = getWebApp();
   const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", description: "Main Task 1", completed: false, reward: 5000, section: "main", type: "permanent", image: "/images/tasks/smartsnail telegram.png", link: "https://t.me/smartsnails", completedTime: null },
-    { id: "2", description: 'Main Task 2', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/daily/join discord.png', link: 'https://discord.gg/AswRvzwv', completedTime: null },
-    { id: "3", description: 'Main Task 3', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail instagram.png', link: 'https://www.instagram.com/smartsnail_nft?igsh=MWp2bGI5MXI3Zm5ibA==', completedTime: null },
-    { id: "4", description: 'Main Task 4', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
-    { id: "5", description: 'Main Task 5', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail tiktok.png', link: '', completedTime: null },
-    { id: "6", description: 'Main Task 6', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail twitter.png', link: 'https://x.com/SmartSnail_NFT?t=YXkXoCWpGUBKQ9u_zqfC4g&s=09', completedTime: null },
-    { id: "7", description: 'Main Task 7', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail youtube.png', link: 'https://youtube.com/@smartsnailnft?si=UN2ntabALnAdpUpX', completedTime: null },
-    { id: "8", description: 'Main Task 8', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail medium.png', link: 'https://medium.com/@web3chinonsolutions/smart-snail-nft-stands-out-from-most-other-nft-projects-due-to-its-unique-approach-to-value-3292b7557db2', completedTime: null },
-    { id: "9", description: 'Main Task 9', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: 'https://socialmedia.com/profile1', completedTime: null, active: false },
-    { id: "10", description: 'Main Task 10', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_humanRelations', completedTime: null },
-    { id: "11", description: 'Main Task 11', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fuckedupbags.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_fxckedupbags', completedTime: null },
-    { id: "12", description: 'Main Task 12', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino facebook.png', link: 'https://www.facebook.com/Web3chinonsolutions', completedTime: null },
-    { id: "13", description: 'Main Task 13', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino instagram.png', link: 'https://www.instagram.com/web3chinonsolutions?igsh=MWoxOGhoaXozdnBuYQ==', completedTime: null },
-    { id: "14", description: 'Main Task 14', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
-    { id: "15", description: 'Main Task 15', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: '', completedTime: null, active: false },
-    { id: "16", description: 'Main Task 16', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3?t=sS-KKVwkz3C_stZqs8syzA&s=09', completedTime: null },
-    { id: "17", description: 'Main Task 17', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://youtube.com/@web3chinonsolutions?si=ccYS7AtNh_FWQOG1', completedTime: null },
-    { id: "18", description: 'Main Task 18', completed: false, reward: 10000, section: 'main', type: 'flexible', image: '/images/tasks/connect wallet.png', link: '', completedTime: null },
-    { id: "19", description: 'Main Task 19', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 't.me/Alexanderthesage', completedTime: null },
-    { id: "20", description: 'Main Task 20', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex twitter.png', link: 'https://x.com/CaptainSage_?t=EZ0s5eeh1igkYDym_M_U-Q&s=09', completedTime: null },
-    { id: "21", description: 'Main Task 21', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://youtube.com/@alexanderthesage?si=vIrNUBE3D_P0Pxey', completedTime: null },
-    { id: "22", description: 'Daily Task 1', completed: false, section: 'daily', type: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://x.com/SmartSnail_NFT?s=09', batchId: 'Batch 10', completedTime: null },
-    { id: "23", description: 'Daily Task 2', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCR thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
-    { id: "24", description: 'Daily Task 3', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://www.facebook.com/profile.php?id=100072420460086&mibextid=ZbWKwL', completedTime: null },
-    { id: "25", description: 'Daily Task 4', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://www.instagram.com/smartsnail_nft?igsh=MWp2bGI5MXI3Zm5ibA==', completedTime: null },
-    { id: "26", description: 'Daily Task 5', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/LCS Tiktok.png', link: 'https://www.tiktok.com/@alexanderthesage?_t=ZM-8utNeDw4yFK&_r=1', completedTime: null },
-    { id: "27", description: 'Daily Task 6', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://x.com/SmartSnail_NFT?t=CTPYUerxGFvBnP8jwkrQtw&s=09', completedTime: null },
-    { id: "28", description: 'Daily Task 7', completed: false, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: '', completedTime: null },
-    { id: "29", description: 'Daily Task 8', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://medium.com/@web3chinonsolutions/smart-snail-nft-stands-out-from-most-other-nft-projects-due-to-its-unique-approach-to-value-3292b7557db2', completedTime: null },
-    { id: "30", description: 'Daily Task 9', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: '', mediaUrl: '/videos/speedsnail.mp4', mediaType: 'video', isStoryTask: true, completedTime: null },
-    { id: "31", description: 'Daily Task 10', completed: false, reward: 5000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://youtu.be/PQyosdfnCYg?si=ynqL07ns7e-WmT7-', completedTime: null },
-    { id: "32", description: 'Partner Task 1', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: '', completedTime: null }
-  ]);
+  // --- MAIN TASKS SECTION ---
+  { id: "1", description: "Join Telegram Group", completed: false, reward: 5000, section: "main", type: "permanent", image: "/images/tasks/smartsnail telegram.png", link: "https://t.me/smartsnails", completedTime: null },
+  { id: "2", description: 'Join SmartSnail Discord', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/daily/join discord.png', link: 'https://discord.gg/AswRvzwv', completedTime: null },
+  { id: "3", description: 'Follow SmartSnail Instagram', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail instagram.png', link: 'https://www.instagram.com/smartsnail_nft', completedTime: null },
+  { id: "4", description: 'Follow SmartSnail Threads', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
+  { id: "5", description: 'Follow SmartSnail TikTok', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail tiktok.png', link: 'https://www.tiktok.com/@smartsnail', completedTime: null },
+  { id: "6", description: 'Follow SmartSnail X', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail twitter.png', link: 'https://x.com/SmartSnail_NFT', completedTime: null },
+  { id: "7", description: 'Subscribe to YouTube', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail youtube.png', link: 'https://youtube.com/@smartsnailnft', completedTime: null },
+  { id: "8", description: 'Follow on Medium', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail medium.png', link: 'https://medium.com/@web3chinonsolutions', completedTime: null },
+  { id: "9", description: 'Invite 3 Friends', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: '', completedTime: null, active: true },
+  { id: "10", description: 'Purchase Human Relations', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_humanRelations', completedTime: null },
+  { id: "11", description: 'Purchase FxckedUpBags', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fuckedupbags.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_fxckedupbags', completedTime: null },
+  { id: "12", description: 'Follow Web3Chinonsolutions Facebook', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino facebook.png', link: 'https://www.facebook.com/Web3chinonsolutions', completedTime: null },
+  { id: "13", description: 'Follow Web3Chinonsolutions Instagram', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino instagram.png', link: 'https://www.instagram.com/web3chinonsolutions', completedTime: null },
+  { id: "14", description: 'Follow Web3Chinonsolutions Threads', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
+  { id: "15", description: 'Follow Web3Chinonsolutions TikTok', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://tiktok.com/@web3chino', completedTime: null, active: true },
+  { id: "16", description: 'Follow Web3Chinonsolutions X', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3', completedTime: null },
+  { id: "17", description: 'Subscribe Web3Chinonsolutions YouTube', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://youtube.com/@web3chinonsolutions', completedTime: null },
+  { id: "18", description: 'Connect TON Wallet', completed: false, reward: 10000, section: 'main', type: 'flexible', image: '/images/tasks/connect wallet.png', link: '', completedTime: null },
+  { id: "19", description: 'Join Telegram Group', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/Alex Telegam.png', link: 'https://t.me/Alexanderthesage', completedTime: null },
+  { id: "20", description: 'Follow on X', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex twitter.png', link: 'https://x.com/CaptainSage_', completedTime: null },
+  { id: "21", description: 'Subscribe to YouTube Page', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/alex youtube.png', link: 'https://youtube.com/@alexanderthesage', completedTime: null },
+
+  // --- DAILY TASKS SECTION ---
+  { id: "22", description: 'Check-in on our X space', completed: false, section: 'daily', type: 'daily', image: '/images/daily/join twitter everyday.png', link: 'https://x.com/SmartSnail_NFT', batchId: 'Batch 10', completedTime: null },
+  { id: "23", description: 'React on Threads', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/LCR thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
+  { id: "24", description: 'React on Facebook', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/LCS facebook.png', link: 'https://www.facebook.com/Web3chinonsolutions', completedTime: null },
+  { id: "25", description: 'React on Instagram', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/LCS instagram.png', link: 'https://www.instagram.com/smartsnail_nft', completedTime: null },
+  { id: "26", description: 'React on TikTok', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/LCS Tiktok.png', link: 'https://www.tiktok.com/@alexanderthesage', completedTime: null },
+  { id: "27", description: 'Engage on X', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/RCT Twitter.png', link: 'https://x.com/SmartSnail_NFT', completedTime: null },
+  { id: "28", description: 'Read FxckedUpBags', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/read Fxckedupbags.png', link: 'https://medium.com/@web3chinonsolutions', completedTime: null },
+  { id: "29", description: 'Read Latest Medium', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/RR Medium.png', link: 'https://medium.com/@web3chinonsolutions', completedTime: null },
+  { id: "30", description: 'Share Snail Story', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/share on telegram story.png', link: '', mediaUrl: '/videos/speedsnail.mp4', mediaType: 'video', isStoryTask: true, completedTime: null },
+  { id: "31", description: 'Watch Snail YouTube', completed: false, reward: 2000, section: 'daily', type: 'daily', image: '/images/daily/watch youtube.png', link: 'https://youtu.be/PQyosdfnCYg', completedTime: null },
+  
+  // --- PARTNERS SECTION ---
+  { id: "32", description: 'Follow PolyCombat', completed: false, reward: 3000, section: 'partners', type: 'permanent', image: '/images/tasks/partners1.png', link: 'https://www.instagram.com/polycombat', completedTime: null },
+  
+]);
 
  
   const [showConfetti, setShowConfetti] = useState(false);
@@ -730,6 +736,36 @@ setTimeout(() => {
     }
   };
 
+  const getDynamicDescription = (task: Task) => {
+  const url = task.link?.toLowerCase() || "";
+  const isPermanent = task.type === "permanent";
+  const isDaily = task.type === "daily";
+  
+  let platform = "Social Media";
+  if (url.includes("t.me") || url.includes("telegram")) platform = "Telegram";
+  else if (url.includes("x.com") || url.includes("twitter")) platform = "X (Twitter)";
+  else if (url.includes("instagram")) platform = "Instagram";
+  else if (url.includes("youtube")) platform = "YouTube";
+  else if (url.includes("facebook")) platform = "Facebook";
+  else if (url.includes("threads.net")) platform = "Threads";
+  else if (url.includes("tiktok")) platform = "TikTok";
+  else if (url.includes("medium.com")) platform = "Medium";
+  else if (url.includes("discord")) platform = "Discord";
+
+  // Logic for Permanent (Join/Follow) vs Daily (React/Engage)
+  if (isPermanent) {
+    const action = platform === "Telegram" || platform === "Discord" ? "Join" : "Follow";
+    return `${action} ${platform}`;
+  }
+  
+  if (isDaily) {
+    if (task.isStoryTask) return "Share to Telegram Story";
+    return `React on ${platform} Content`;
+  }
+
+  // Fallback to original description if logic doesn't match
+  return task.description;
+};
 
   return (
     <div className="task-container">
@@ -781,12 +817,16 @@ setTimeout(() => {
                 </div>
                 
                 <div className="task-details">
-                  <span className="task-title-web3">{task.description}</span>
-                  <div className="reward-container-web3">
-                    <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
-                    <span className="reward-unit">SHELLS</span>
-                  </div>
-                </div>
+                      {/* 🔥 Change this line */}
+                      <span className="task-title-web3">
+                        {getDynamicDescription(task)}
+                      </span>
+                      
+                      <div className="reward-container-web3">
+                        <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
+                        <span className="reward-unit">SHELLS</span>
+                      </div>
+                    </div>
               </div>
 
               <div className="task-action-area">
