@@ -1,6 +1,6 @@
 /* --- GLOBAL WEB3 THEME --- */
 body {
-  background: #0f051d; /* Deep Space Purple */
+  background: #0f051d;
   color: #ffffff;
   font-family: 'Inter', -apple-system, sans-serif;
   margin: 0;
@@ -12,21 +12,12 @@ body {
   min-height: 100vh;
 }
 
-/* --- MODERN HEADER & BACK ARROW --- */
+/* --- HEADER & NAVIGATION --- */
 .task-header {
   display: flex;
   align-items: center;
   margin-bottom: 25px;
   padding: 10px 0;
-}
-
-/* Custom Back Arrow styling */
-.task-header img[alt="back"] {
-  filter: invert(1) brightness(2); /* Makes black icons white/neon */
-  transition: transform 0.2s ease;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
 }
 
 .task-header h2 {
@@ -37,7 +28,7 @@ body {
   letter-spacing: -0.5px;
 }
 
-/* --- NEON SEGMENTED BUTTONS --- */
+/* --- SEGMENTED TABS --- */
 .task-buttons {
   display: flex;
   background: rgba(255, 255, 255, 0.05);
@@ -49,13 +40,14 @@ body {
 
 .task-buttons button {
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   border: none;
   border-radius: 10px;
   background: transparent;
   color: #a0a0a0;
   font-weight: 600;
   font-size: 13px;
+  transition: 0.3s;
 }
 
 .task-buttons button.active {
@@ -64,7 +56,7 @@ body {
   box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
 }
 
-/* --- WEB3 TASK ROW (GLASSMORPHISM) --- */
+/* --- TASK LIST & ROWS --- */
 .tasks-list {
   display: flex;
   flex-direction: column;
@@ -81,81 +73,15 @@ body {
   justify-content: space-between;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
+  position: relative;
 }
 
-.task-row-web3:hover {
-  border-color: #8a2be2;
-  background: rgba(138, 43, 226, 0.05);
-}
-
-.task-row-web3:active {
-  transform: scale(0.98);
-}
-
-.task-row-content {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-/* PLATFORM ICONS */
-/* .brand-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  background: #1c0f2c;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-} */
-
-.brand-logo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.task-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.task-title-web3 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #efefef;
-  margin-bottom: 4px;
-}
-
-.reward-container-web3 {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.reward-amount {
-  color: #00ffa3; /* Neon Green/Cyan for money */
-  font-weight: 800;
-  font-size: 13px;
-}
-
-.reward-unit {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 10px;
-  font-weight: bold;
-}
-
-/* SUCCESS / ACTION STYLES */
-.web3-status-success {
-  background: rgba(0, 255, 163, 0.1);
-  color: #00ffa3;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 800;
-  border: 1px solid rgba(0, 255, 163, 0.2);
+.task-row-web3.locked {
+  opacity: 0.5;
+  filter: grayscale(1);
+  cursor: not-allowed;
+  pointer-events: none; /* Silently prevents clicks */
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .task-row-web3.completed {
@@ -163,39 +89,113 @@ body {
   filter: grayscale(0.8);
 }
 
-/* Status/Reward Feedback */
-.status-msg {
-  margin-top: 15px;
-  text-align: center;
-  font-size: 13px;
-  color: #ff4d4d;
-  font-weight: 600;
+.task-row-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.status-msg.success {
-  color: #00ffa3;
-}
-
-.web3-reward-banner {
-  margin-top: 15px;
-  background: rgba(0, 255, 163, 0.15);
-  border: 1px solid #00ffa3;
-  color: #00ffa3;
-  padding: 10px;
+.brand-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-title-web3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #efefef;
+  margin-bottom: 2px;
+}
+
+.reward-amount {
+  color: #00ffa3;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* --- MODAL POPUP --- */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.web3-modal {
+  background: linear-gradient(145deg, #1a0b2e, #0f051d);
+  border: 1px solid rgba(0, 255, 163, 0.2);
+  border-radius: 28px;
+  width: 100%;
+  max-width: 350px;
+  padding: 30px 24px;
+  position: relative;
+  box-shadow: 0 0 40px rgba(0, 255, 163, 0.15);
+}
+
+.modal-icon-glow {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  background: rgba(138, 43, 226, 0.1);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #8a2be2;
+  box-shadow: 0 0 30px rgba(138, 43, 226, 0.3);
+}
+
+.modal-icon-glow svg {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.modal-title {
   text-align: center;
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* --- BUTTONS & ACTIONS --- */
+.web3-primary-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #00ffa3, #00d1ff);
+  color: #000;
   font-weight: 800;
   font-size: 14px;
-  animation: glowPulse 2s infinite;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 255, 163, 0.3);
+  margin-top: 10px;
+  transition: 0.2s;
 }
 
-@keyframes glowPulse {
-  0% { box-shadow: 0 0 5px rgba(0, 255, 163, 0.2); }
-  50% { box-shadow: 0 0 15px rgba(0, 255, 163, 0.5); }
-  100% { box-shadow: 0 0 5px rgba(0, 255, 163, 0.2); }
+.web3-primary-btn.disconnect-mode {
+  background: transparent !important;
+  border: 1px solid #ff4d4d !important;
+  color: #ff4d4d !important;
+  box-shadow: none !important;
 }
 
-/* Secondary Buttons (For "Perform Task") */
+.web3-primary-btn:active {
+  transform: scale(0.97);
+}
+
 .web3-secondary-btn {
   width: 100%;
   padding: 14px;
@@ -204,10 +204,10 @@ body {
   background: rgba(255, 255, 255, 0.05);
   color: white;
   font-weight: 600;
-  cursor: pointer;
+  margin-bottom: 8px;
 }
 
-/* Text Box for Referral/Caption */
+/* Text Box & Copy */
 .web3-text-box {
   background: rgba(0, 0, 0, 0.4);
   border-radius: 14px;
@@ -215,122 +215,4 @@ body {
   margin-bottom: 15px;
   border: 1px solid rgba(138, 43, 226, 0.2);
   position: relative;
-}
-
-.web3-text-box p {
-  font-size: 12px;
-  color: #ccc;
-  margin: 0;
-  padding-right: 60px; /* space for copy button */
-  line-height: 1.4;
-}
-
-.web3-copy-btn {
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  transform: translateY(-50%);
-  background: #8a2be2;
-  border: none;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.web3-helper-text {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-  margin-bottom: 12px;
-}
-
-/* Header Icon */
-.modal-icon-glow {
-  width: 70px;
-  height: 70px;
-  margin: 0 auto;
-  background: #1c0f2c;
-  border-radius: 18px;
-  padding: 5px;
-  border: 2px solid #8a2be2;
-  box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
-}
-
-.modal-icon-glow img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 12px;
-}
-
-/* Ensure the overlay covers the ENTIRE screen */
-.popup-overlay {
-  position: fixed;
-  inset: 0; /* Top, Right, Bottom, Left = 0 */
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center; /* Vertical center */
-  justify-content: center; /* Horizontal center */
-  z-index: 10000;
-  padding: 20px;
-}
-
-/* Modal sizing and Web3 look */
-.web3-modal {
-  background: linear-gradient(145deg, #1a0b2e, #0f051d);
-  border: 1px solid rgba(0, 255, 163, 0.2);
-  border-radius: 24px;
-  width: 100%;
-  max-width: 350px;
-  padding: 24px;
-  position: relative;
-  box-shadow: 0 0 40px rgba(0, 255, 163, 0.1);
-  /* Ensure it doesn't "fall" to the bottom */
-  margin-bottom: auto; 
-  margin-top: auto;
-}
-
-/* Fix for broken arrow containers */
-.web3-action-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Brand icon wrapper needs to handle Lucide SVGs */
-.brand-icon-wrapper {
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-}
-
-.task-title-web3 {
-  font-weight: 600;
-  font-size: 14px;
-  color: #ffffff;
-  letter-spacing: 0.3px;
-}
-
-/* Optional: Add a small badge if you want it to look even more high-end */
-.task-row-web3::after {
-  content: attr(data-type);
-  position: absolute;
-  top: 8px;
-  right: 40px;
-  font-size: 8px;
-  text-transform: uppercase;
-  background: rgba(0, 255, 163, 0.1);
-  color: #00ffa3;
-  padding: 2px 6px;
-  border-radius: 4px;
-  opacity: 0.6;
 }

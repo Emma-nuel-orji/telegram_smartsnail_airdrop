@@ -18,7 +18,8 @@ import {
   Globe, 
   Wallet,
   Lock,
-  CheckCircle2 
+  CheckCircle2, 
+  MessageSquare
 } from 'lucide-react';
 
 interface ShowStoryOptions {
@@ -106,13 +107,13 @@ const WebApp = getWebApp();
   { id: "6", description: 'Follow SmartSnail X', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail twitter.png', link: 'https://x.com/SmartSnail_NFT', completedTime: null },
   { id: "7", description: 'Subscribe to YouTube', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail youtube.png', link: 'https://youtube.com/@smartsnailnft', completedTime: null },
   { id: "8", description: 'Follow on Medium', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/smartsnail medium.png', link: 'https://medium.com/@web3chinonsolutions', completedTime: null },
-  { id: "9", description: 'Invite 3 Friends', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: '', completedTime: null, active: true },
-  { id: "10", description: 'Purchase Human Relations', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_humanRelations', completedTime: null },
-  { id: "11", description: 'Purchase FxckedUpBags', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fuckedupbags.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_fxckedupbags', completedTime: null },
+  { id: "9", description: 'Invite 3 Friends', completed: false, reward: 5000, section: 'main', type: 'permanent', image: '/images/tasks/invite friend.png', link: '', completedTime: null, active: false },
+  { id: "10", description: 'Purchase Human Relations', completed: false, reward: 70000, section: 'main', type: 'permanent', image: '/images/daily/human relations.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_humanRelations', completedTime: null, active: false  },
+  { id: "11", description: 'Purchase FxckedUpBags', completed: false, reward: 100000, section: 'main', type: 'permanent', image: '/images/tasks/fuckedupbags.png', link: 'https://t.me/SmartSnails_Bot?start=purchase_fxckedupbags', completedTime: null, active: false  },
   { id: "12", description: 'Follow Web3Chinonsolutions Facebook', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino facebook.png', link: 'https://www.facebook.com/Web3chinonsolutions', completedTime: null },
   { id: "13", description: 'Follow Web3Chinonsolutions Instagram', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino instagram.png', link: 'https://www.instagram.com/web3chinonsolutions', completedTime: null },
   { id: "14", description: 'Follow Web3Chinonsolutions Threads', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino thread.png', link: 'https://www.threads.net/@smartsnail_nft', completedTime: null },
-  { id: "15", description: 'Follow Web3Chinonsolutions TikTok', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://tiktok.com/@web3chino', completedTime: null, active: true },
+  { id: "15", description: 'Follow Web3Chinonsolutions TikTok', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino tiktok.png', link: 'https://tiktok.com/@web3chino', completedTime: null, active: false },
   { id: "16", description: 'Follow Web3Chinonsolutions X', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino twitter.png', link: 'https://x.com/Nonsoweb3', completedTime: null },
   { id: "17", description: 'Subscribe Web3Chinonsolutions YouTube', completed: false, reward: 10000, section: 'main', type: 'permanent', image: '/images/tasks/web3chino youtube.png', link: 'https://youtube.com/@web3chinonsolutions', completedTime: null },
   { id: "18", description: 'Connect TON Wallet', completed: false, reward: 10000, section: 'main', type: 'flexible', image: '/images/tasks/connect wallet.png', link: '', completedTime: null },
@@ -166,14 +167,25 @@ const WebApp = getWebApp();
   const userReferralLink = `https://t.me/smartsnailbot?start=${telegramId}`;
 
   const getSocialIcon = (desc: string) => {
-    const d = desc.toLowerCase();
-    if (d.includes("twitter") || d.includes(" x ")) return <Twitter size={20} className="text-blue-400" />;
-    if (d.includes("telegram")) return <Send size={20} className="text-sky-400" />;
-    if (d.includes("instagram")) return <Instagram size={20} className="text-pink-500" />;
-    if (d.includes("youtube")) return <Youtube size={20} className="text-red-500" />;
-    if (d.includes("wallet")) return <Wallet size={20} className="text-purple-400" />;
-    return <Globe size={20} className="text-emerald-400" />;
-  };
+  const d = desc.toLowerCase();
+  const iconSize = 28; 
+  
+  if (d.includes("twitter") || d.includes(" x ")) return <Twitter size={iconSize} color="#1DA1F2" />;
+  if (d.includes("telegram")) return <Send size={iconSize} color="#229ED9" />;
+  if (d.includes("instagram")) return <Instagram size={iconSize} color="#E1306C" />;
+  if (d.includes("youtube")) return <Youtube size={iconSize} color="#FF0000" />;
+  
+  // Now MessageSquare will work!
+  if (d.includes("discord")) return <MessageSquare size={iconSize} color="#5865F2" />;
+  
+  if (d.includes("threads")) return <Globe size={iconSize} color="#ffffff" />;
+  if (d.includes("tiktok")) return <Globe size={iconSize} color="#ff0050" />;
+  if (d.includes("facebook")) return <Globe size={iconSize} color="#1877F2" />;
+  if (d.includes("medium")) return <Globe size={iconSize} color="#f5f5f5" />;
+  
+  if (d.includes("wallet")) return <Wallet size={iconSize} color="#00ffa3" />;
+  return <Globe size={iconSize} color="#00ffa3" />;
+};
   const telegramVersion = typeof window !== "undefined" ? window.Telegram?.WebApp?.version || "unknown" : "unknown";
 
   const triggerConfetti = () => {
@@ -856,9 +868,10 @@ setTimeout(() => {
 
             <div className="modal-header">
                <div className="modal-icon-glow">
-                  {getSocialIcon(selectedTask.description)}
-               </div>
-               <h3 className="modal-title">{selectedTask.description}</h3>
+                {/* This ensures the icon matches the standardized title */}
+                {getSocialIcon(getDynamicDescription(selectedTask))}
+              </div>
+              <h3 className="modal-title">{getDynamicDescription(selectedTask)}</h3>
             </div>
       <div className="modal-body">
         {/* Task 28: Book Reading Instructions */}
@@ -889,13 +902,17 @@ setTimeout(() => {
           </>
         ) : selectedTask.id === "18" ? (
               /* Task 18: Wallet Connection */
-              <button 
-                className="web3-primary-btn" 
-                onClick={() => handleWalletAction(selectedTask)} 
-                disabled={loading}
-              >
-                {loading ? "Processing..." : walletStatus ? "Disconnect Wallet" : "Connect Wallet"}
-              </button>
+              <div style={{ width: '100%' }}>
+               
+                <button 
+                  className={`web3-primary-btn ${walletStatus ? "disconnect-mode" : ""}`} 
+                  onClick={() => handleWalletAction(selectedTask)} 
+                  disabled={loading}
+                  style={walletStatus ? { background: 'transparent', border: '1px solid #ff4d4d', color: '#ff4d4d', boxShadow: 'none' } : {}}
+                >
+                  {loading ? "Processing..." : walletStatus ? "🔌 Disconnect Wallet" : "👛 Connect Wallet"}
+                </button>
+              </div>
         ) : selectedTask.isStoryTask ? (
           /* Story Sharing Task */
           <>
