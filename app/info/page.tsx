@@ -3,152 +3,191 @@ import React from 'react';
 import Link from "next/link";
 import { 
   ChevronLeft, 
-  Trophy, 
-  Flame, 
-  Target, 
-  Coins, 
+  LayoutGrid, 
+  ShoppingBag, 
+  Sword, 
   Zap, 
-  BookOpen,
-  LineChart,
-  ShieldAlert
+  ArrowUpRight, 
+  ShieldCheck,
+  Info,
+  Timer,
+  Layers,
+  CircleDollarSign
 } from 'lucide-react';
 
 const InfoPage = () => {
   return (
-    <div className="task-container pb-20 bg-slate-950 text-white">
-      {/* 1. NAVIGATION & BRANDING */}
-      <header className="flex items-center gap-4 p-6 border-b border-white/5 bg-black/20 sticky top-0 z-10 backdrop-blur-md">
+    <div className="min-h-screen pb-20 bg-[#050505] text-white font-sans">
+      {/* 1. STICKY NAVIGATION */}
+      <header className="flex items-center gap-4 p-6 border-b border-white/5 bg-black/40 sticky top-0 z-50 backdrop-blur-xl">
         <Link href="/">
-          <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 active:scale-90 transition-all">
+          <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 active:scale-95 transition-all cursor-pointer">
             <ChevronLeft size={24} className="text-emerald-400" />
           </div>
         </Link>
-        <h2 className="text-lg font-black tracking-widest uppercase">Protocol Intel</h2>
+        <h2 className="text-sm font-black tracking-[0.3em] uppercase text-emerald-400">System Intelligence</h2>
       </header>
 
-      {/* 2. THE BIG VISION */}
-      <section className="p-6 text-center">
-        <div className="w-20 h-20 mx-auto mb-6 relative">
-          <div className="absolute inset-0 bg-emerald-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
-          <img src="/images/info/logo-snail.png" alt="SmartSnail" className="relative z-10 w-full h-full object-contain" />
+      {/* 2. THE ECOSYSTEM ARCHITECTURE */}
+      <section className="p-8 text-center border-b border-white/5 bg-gradient-to-b from-emerald-500/5 to-transparent">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6">
+          <LayoutGrid size={14} className="text-emerald-400" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Central Ecosystem Hub</span>
         </div>
-        <h1 className="text-4xl font-black italic tracking-tighter mb-4 leading-tight">
-          SMARTSNAIL <br /><span className="text-emerald-400 font-normal not-italic uppercase text-2xl">Syndicate</span>
+        <h1 className="text-5xl font-black italic tracking-tighter mb-4">
+          SMARTSNAIL <span className="text-emerald-400 not-italic">APP</span>
         </h1>
-        <p className="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto">
-          We are bridging the gap between digital ownership and real-world dominance. From RWA marketplaces to high-stakes combat, SmartSnail is the mother-app for the next generation of Web3 fans.
+        <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
+          The SmartSnail App is the master hosting platform for a new era of Web3 utility. It currently serves as the bridge for two revolutionary MVPs.
         </p>
       </section>
 
-      {/* 3. MVP STATUS: THE GRIND BEFORE THE GLORY */}
-      <div className="px-4 mb-10">
-        <div className="p-6 rounded-[2rem] bg-gradient-to-br from-emerald-500/20 to-blue-600/10 border border-white/10 shadow-2xl">
-          <div className="flex items-center gap-3 mb-4">
-            <Zap size={24} className="text-yellow-400 animate-bounce" />
-            <h3 className="text-xl font-bold uppercase tracking-tight">Phase 1: The Accumulation</h3>
-          </div>
-          <p className="text-sm text-gray-300 leading-relaxed mb-4">
-            The tokens don't exist yet—and that is your advantage. You are earning **Shells (Points)**. Upon TGE (Token Generation Event), these points transform into real liquidity based on your NFT holdings.
-          </p>
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <div className="p-3 bg-black/40 rounded-2xl border border-white/5 text-center">
-              <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Status</p>
-              <p className="text-xs text-emerald-400 font-mono">Live Testing</p>
+      {/* 3. THE TWO MVPs: INDEBT BREAKDOWN */}
+      <div className="px-4 py-8 space-y-8">
+        
+        {/* MVP 1: MARKETPLACE */}
+        <div className="relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
+          <div className="relative p-8 rounded-[2.5rem] bg-black border border-white/10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                <ShoppingBag size={28} className="text-emerald-400" />
+              </div>
+              <span className="text-[10px] font-mono text-emerald-500 font-bold bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10 uppercase tracking-tighter">MVP: RWA Marketplace</span>
             </div>
-            <div className="p-3 bg-black/40 rounded-2xl border border-white/5 text-center">
-              <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Goal</p>
-              <p className="text-xs text-blue-400 font-mono">Token Airdrop</p>
+            <h3 className="text-2xl font-black mb-3 text-white uppercase tracking-tight italic">SmartSnail Marketplace</h3>
+            <p className="text-sm text-gray-400 leading-relaxed mb-6">
+              Redefining **Real World Assets (RWA)**. We tokenize physical items into high-utility NFTs. Our first mission: The Book Industry.
+            </p>
+            <ul className="space-y-3 mb-6">
+              {[
+                "Authors earn perpetual royalties on all secondary sales.",
+                "Readers own tradeable digital assets, not just access.",
+                "Interactive AI/VR integration for next-gen reading."
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3 text-[11px] text-gray-500">
+                  <ArrowUpRight size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* MVP 2: POLYCOMBAT */}
+        <div className="relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
+          <div className="relative p-8 rounded-[2.5rem] bg-black border border-white/10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                <Sword size={28} className="text-blue-400" />
+              </div>
+              <span className="text-[10px] font-mono text-blue-400 font-bold bg-blue-500/5 px-3 py-1 rounded-full border border-blue-500/10 uppercase tracking-tighter">MVP: Athlete Syndicate</span>
+            </div>
+            <h3 className="text-2xl font-black mb-3 text-white uppercase tracking-tight italic">PolyCombat Sports</h3>
+            <p className="text-sm text-gray-400 leading-relaxed mb-6">
+              A sports ecosystem where NFT teams fund and manage athletes like professional football clubs. 
+            </p>
+            
+            {/* MVP vs FULL LAUNCH CALLOUT */}
+            <div className="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/20 space-y-4">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 text-blue-400">
+                  <Timer size={16} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Active MVP Feature</span>
+                </div>
+                <p className="text-[11px] text-gray-300 leading-normal">
+                  Users currently stake **accumulated Shells/Points** on real-world fights to multiply their holdings before the real token launch.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 text-white/40">
+                  <ShieldCheck size={14} />
+                  <span className="text-[9px] uppercase font-bold tracking-tight">Full Launch Economy</span>
+                </div>
+                <p className="text-[10px] text-gray-600 mt-1">
+                  At full launch, our **Buy-Back Mechanism** goes live: losing team stakes are used to buy back the winning team's tokens, driving instant market value.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4. THE MVP CORE: POLYCOMBAT & RWA */}
-      <div className="px-4 space-y-6 mb-12">
-        <h3 className="text-xs uppercase tracking-[0.3em] text-gray-600 font-black ml-2">Core Ecosystem MVPs</h3>
-
-        {/* POLYCOMBAT CARD */}
-        <div className="relative p-6 rounded-3xl bg-white/5 border border-white/10 group overflow-hidden">
-          <div className="absolute -top-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity">
-            <Trophy size={150} />
-          </div>
-          <div className="flex items-center gap-3 mb-4">
-            <Flame size={24} className="text-orange-500" />
-            <h4 className="text-lg font-bold">PolyCombat: Fight-to-Earn</h4>
-          </div>
-          <p className="text-sm text-gray-400 leading-relaxed mb-6">
-            Think of **NFT Teams** (SmartSnail vs. Manchies) as Football Clubs. You back your fighters, fund their training, and stake your reputation on their victory.
+      {/* 4. THE ASSET-TO-TOKEN PIPELINE (CLEAR CLARITY) */}
+      <div className="px-6 mb-12">
+        <div className="flex items-center gap-2 mb-4">
+          <Layers size={18} className="text-yellow-500" />
+          <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">Asset & Tokenization Logic</h3>
+        </div>
+        
+        <div className="p-6 rounded-[2.5rem] bg-white/5 border border-white/5 space-y-6">
+          <p className="text-xs text-gray-400 leading-relaxed">
+            In this ecosystem, <span className="text-white font-bold underline underline-offset-4 decoration-emerald-500">Assets = NFTs</span>. Your Points/Shells convert into Tokens based on the specific NFT assets you hold in your portfolio.
           </p>
-          
-          <div className="space-y-4 p-4 bg-black/40 rounded-2xl border border-white/5">
-            <h5 className="text-[10px] text-emerald-400 uppercase font-black tracking-widest">The "Buyback" Mechanic</h5>
-            <p className="text-[11px] text-gray-500 leading-normal">
-              When a fight ends, the losing team's staked pool is used to buy back and burn the winning team's tokens. **Win the fight = Pump your token.**
+
+          <div className="space-y-3">
+            {/* SNAIL TO SHELLS */}
+            <div className="flex items-center justify-between p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
+              <div className="flex flex-col">
+                <span className="text-[9px] text-gray-500 uppercase font-black tracking-tighter">The Asset (NFT)</span>
+                <span className="text-xs text-white font-bold">SmartSnail NFT</span>
+              </div>
+              <ArrowUpRight size={16} className="text-emerald-500 mx-2" />
+              <div className="flex flex-col text-right">
+                <span className="text-[9px] text-gray-500 uppercase font-black tracking-tighter">The Token (Coin)</span>
+                <span className="text-xs text-emerald-400 font-black">$SHELLS</span>
+              </div>
+            </div>
+
+            {/* MANCHIES TO MEN */}
+            <div className="flex items-center justify-between p-4 bg-pink-500/5 rounded-2xl border border-pink-500/10">
+              <div className="flex flex-col">
+                <span className="text-[9px] text-gray-500 uppercase font-black tracking-tighter">The Asset (NFT)</span>
+                <span className="text-xs text-white font-bold">Manchies NFT</span>
+              </div>
+              <ArrowUpRight size={16} className="text-pink-500 mx-2" />
+              <div className="flex flex-col text-right">
+                <span className="text-[9px] text-gray-500 uppercase font-black tracking-tighter">The Token (Coin)</span>
+                <span className="text-xs text-pink-400 font-black">$MEN</span>
+              </div>
+            </div>
+
+            {/* COMBAT TOKEN */}
+            <div className="flex items-center justify-between p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10">
+              <div className="flex flex-col">
+                <span className="text-[9px] text-gray-500 uppercase font-black tracking-tighter">The Activity</span>
+                <span className="text-xs text-white font-bold">Fight Staking</span>
+              </div>
+              <ArrowUpRight size={16} className="text-blue-500 mx-2" />
+              <div className="flex flex-col text-right">
+                <span className="text-[9px] text-gray-500 uppercase font-black tracking-tighter">The Token (Coin)</span>
+                <span className="text-xs text-blue-400 font-black">$COMBAT</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-yellow-500/5 rounded-2xl border border-yellow-500/20">
+            <div className="flex items-center gap-2 mb-2">
+                <CircleDollarSign size={14} className="text-yellow-500" />
+                <h4 className="text-[10px] font-black text-yellow-500 uppercase">Conversion Rule:</h4>
+            </div>
+            <p className="text-[11px] text-gray-400 leading-relaxed italic">
+              "Your NFT portfolio acts as the distribution key. If you hold only SmartSnail NFTs, your points convert to $SHELLS. If you hold a 50/50 mix of Snails and Manchies, your conversion is split 50/50. No NFT = No Token Conversion."
             </p>
           </div>
         </div>
-
-        {/* MARKETPLACE CARD */}
-        <div className="relative p-6 rounded-3xl bg-white/5 border border-white/10 group overflow-hidden">
-          <div className="absolute -top-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity">
-            <BookOpen size={150} />
-          </div>
-          <div className="flex items-center gap-3 mb-4">
-            <LineChart size={24} className="text-blue-400" />
-            <h4 className="text-lg font-bold">RWA Marketplace</h4>
-          </div>
-          <p className="text-sm text-gray-400 leading-relaxed mb-6">
-            Real-world assets (like books and collectibles) tokenized as NFTs. Authors earn perpetual royalties, and readers become part-owners of the knowledge they trade.
-          </p>
-          <div className="flex gap-2">
-            <span className="text-[10px] py-1 px-3 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20 italic">#IP-Rights</span>
-            <span className="text-[10px] py-1 px-3 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 italic">#Royalties</span>
-          </div>
-        </div>
       </div>
 
-      {/* 5. TOKEN CONVERSION LOGIC */}
-      <div className="px-4 mb-12">
-        <div className="p-6 rounded-[2rem] bg-black/60 border border-white/5">
-          <h3 className="text-sm font-bold text-white mb-6 flex items-center gap-2">
-             <Target size={18} className="text-emerald-500" /> Airdrop Multipliers
-          </h3>
-          <div className="space-y-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs font-bold text-white uppercase">$SHELLS</p>
-                <p className="text-[10px] text-gray-500">SmartSnail NFT Holders</p>
-              </div>
-              <p className="text-xs font-mono text-emerald-400 font-bold">Priority Distro</p>
-            </div>
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs font-bold text-white uppercase">$MEN</p>
-                <p className="text-[10px] text-gray-500">Manchies NFT Holders</p>
-              </div>
-              <p className="text-xs font-mono text-pink-400 font-bold">Secondary Distro</p>
-            </div>
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs font-bold text-white uppercase">$COMBAT</p>
-                <p className="text-[10px] text-gray-500">Active Fight Stakers</p>
-              </div>
-              <p className="text-xs font-mono text-blue-400 font-bold">Performance Bonus</p>
-            </div>
-          </div>
-          
-          <div className="mt-8 p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/20 flex gap-3">
-            <ShieldAlert size={16} className="text-emerald-500 shrink-0" />
-            <p className="text-[10px] text-gray-400">
-              Your final distribution ratio depends on your asset portfolio. Hold SmartSnails to maximize $SHELLS; hold Manchies to maximize $MEN. Participation in fights earns $COMBAT.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <footer className="text-center p-8 opacity-20">
-        <p className="text-[9px] uppercase tracking-widest font-black">SmartSnail Ecosystem v1.0.4 - Web3ChinonSolutions</p>
+      {/* 5. FOOTER */}
+      <footer className="p-12 text-center border-t border-white/5">
+        <p className="text-[9px] text-gray-600 uppercase tracking-[0.5em] font-black mb-2">
+          Web3ChinonSolutions
+        </p>
+        <p className="text-[8px] text-gray-700 uppercase">
+          Ecosystem Protocol v1.0.4 - All Rights Reserved
+        </p>
       </footer>
     </div>
   );
