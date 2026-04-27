@@ -341,9 +341,9 @@ useEffect(() => {
       </div>
       
       {/* Debug Info */}
-      <div className="fixed top-20 left-4 bg-black/80 p-2 rounded text-xs z-50">
+      {/* <div className="fixed top-20 left-4 bg-black/80 p-2 rounded text-xs z-50">
         Fight {currentIndex + 1} of {fights.length}
-      </div>
+      </div> */}
 
 
       <AnimatePresence>
@@ -380,11 +380,19 @@ function FighterModal({ fighter,  onClose, userStakes = [],fight }: { fighter: a
   const handleSign = async (fighterId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/recruit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fighterId, telegramId: userTelegramId })
-      });
+      const initData = window.Telegram?.WebApp?.initData;
+
+const response = await fetch(`/api/recruit`, {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    ...(initData ? { 'Authorization': `tma ${initData}` } : {})
+  },
+  body: JSON.stringify({ 
+    fighterId
+    // telegramId REMOVED
+  })
+});
 
       if (response.ok) {
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
@@ -398,9 +406,9 @@ function FighterModal({ fighter,  onClose, userStakes = [],fight }: { fighter: a
   const displayPrice = fighter.salePriceTon ? `${fighter.salePriceTon} TON` : "NOT LISTED";
   const winRate = (fighter.wins + fighter.losses + fighter.draws) > 0 
     ? Math.round((fighter.wins / (fighter.wins + fighter.losses + fighter.draws)) * 100) : 0;
-console.log("🔍 Debug Stakes for:", fighter.name);
-console.log("Raw userStakes array:", userStakes);
-console.log("Raw fight.stakes array:", fight?.stakes);
+// console.log("🔍 Debug Stakes for:", fighter.name);
+// console.log("Raw userStakes array:", userStakes);
+// console.log("Raw fight.stakes array:", fight?.stakes);
   return (
     <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
@@ -601,15 +609,20 @@ const triggerAirdropAnimation = (message: string) => {
 
 const handleClaim = async () => {
   try {
-    const res = await fetch('/api/stakes/claim', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }, // Good practice to add this
-      body: JSON.stringify({ 
-        fightId: fight.id, 
-        telegramId,
-        fightTitle: fight.title 
-      })
-    });
+   const initData = window.Telegram?.WebApp?.initData;
+
+const res = await fetch('/api/stakes/claim', {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    ...(initData ? { 'Authorization': `tma ${initData}` } : {})
+  },
+  body: JSON.stringify({ 
+    fightId: fight.id,
+    fightTitle: fight.title
+    // telegramId REMOVED
+  })
+});
     
     if (res.ok) {
       const data = await res.json();
@@ -1141,15 +1154,19 @@ const submitStake = async () => {
   try {
     const endpoint = stakeType === 'STARS' ? '/api/stakes/stars' : '/api/stakes/place';
 
+   const initData = window.Telegram?.WebApp?.initData;
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(initData ? { 'Authorization': `tma ${initData}` } : {})
+      },
       body: JSON.stringify({
         fightId: fight.id,
         fighterId: fighter?.id,
         stakeAmount: stakeAmount.toString(),
-        telegramId,
         stakeType,
+        // REMOVE telegramId from here — server extracts it from the token
       }),
     });
 

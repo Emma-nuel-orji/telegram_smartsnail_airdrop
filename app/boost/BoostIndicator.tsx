@@ -77,19 +77,27 @@ const BoostIndicator = ({ user, variant = 'block' }: BoostIndicatorProps) => {
  if (variant === 'teleprompter') {
   return (
     <AnimatePresence>
-      {/* The component only renders if display.isActive is true */}
       {display.isActive && (
-        <motion.div 
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -50, opacity: 0 }} // Smooth slide-up exit
-          className="fixed top-20 w-full px-6 z-50"
-        >
-          <div className="bg-black/60 backdrop-blur-md border border-purple-500/30 rounded-xl p-2 flex justify-between items-center text-[10px]">
-             <span className="text-purple-300 font-black">RATE: +{display.totalPower}</span>
-             <span className="text-white font-mono">{display.timeString}</span>
-          </div>
-        </motion.div>
+        <div className="fixed top-20 left-0 w-full z-50 overflow-hidden bg-black/80 border-y border-purple-500/50 py-2">
+          <motion.div 
+            className="whitespace-nowrap flex gap-10"
+            animate={{ x: ["100%", "-100%"] }}
+            transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+          >
+            {/* Repeat the text to make it look like a continuous ticker */}
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex gap-10 items-center">
+                <span className="text-purple-400 font-black uppercase tracking-widest text-[10px]">
+                  ⚡ ACTIVE BOOST: +{display.totalPower} / TAP
+                </span>
+                <span className="text-white font-mono text-[10px]">
+                  TIME LEFT: {display.timeString}
+                </span>
+                <span className="text-zinc-600">|</span>
+              </div>
+            ))}
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

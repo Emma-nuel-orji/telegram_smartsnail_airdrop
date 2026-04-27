@@ -92,16 +92,16 @@ export default function Home() {
 
   
   const triggerHaptic = (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'medium') => {
-  console.log("HAPTIC TRIGGERED", style);
+  // console.log("HAPTIC TRIGGERED", style);
 
   if (typeof window !== 'undefined') {
-    console.log("Telegram object:", (window as any).Telegram);
+    // console.log("Telegram object:", (window as any).Telegram);
   }
 
   if ((window as any).Telegram?.WebApp?.HapticFeedback) {
     (window as any).Telegram.WebApp.HapticFeedback.impactOccurred(style);
   } else {
-    console.log("❌ Haptic not available");
+    // console.log("❌ Haptic not available");
   }
 };
 
@@ -162,28 +162,29 @@ export default function Home() {
   },
 ];
 
-const createNewUser = async (telegramId: string, tg: any) => {
+const createNewUser = async (tg: any) => {
   try {
-    const newUser = {
-      telegramId,
-      username: tg.initDataUnsafe.user.username || "",
-      first_name: tg.initDataUnsafe.user.first_name || "",
-      last_name: tg.initDataUnsafe.user.last_name || "",
-      points: 0,
-      tappingRate: 1,
-      hasClaimedWelcome: false,
-    };
+    const initData = tg.initData;
 
-    const createRes = await axios.post('/api/user', newUser);
+    const createRes = await axios.post('/api/user', 
+      {}, // empty body — server reads everything from token
+      {
+        headers: {
+          "Content-Type": "application/json",
+          ...(initData ? { "Authorization": `tma ${initData}` } : {})
+        }
+      }
+    );
+
     const createdUser = createRes.data;
-
-    localStorage.setItem(STORAGE_KEY(telegramId), JSON.stringify(createdUser));
+    localStorage.setItem(STORAGE_KEY(createdUser.telegramId), JSON.stringify(createdUser));
     setUser(createdUser);
     setShowWelcomePopup(true);
   } catch (err) {
     console.error("Failed to create new user", err);
   }
 };
+    
 
 const initUserData = async (telegramId: string, tg: any, retries = 2) => {
   try {
@@ -198,7 +199,7 @@ const initUserData = async (telegramId: string, tg: any, retries = 2) => {
 
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      await createNewUser(telegramId, tg);
+      await createNewUser(tg);
     } else if (retries > 0) {
       setTimeout(() => initUserData(telegramId, tg, retries - 1), 1000);
     } else {
@@ -326,21 +327,24 @@ useEffect(() => {
 
   // --- CLAIM ---
   const handleClaim = async () => {
-    try {
-      if (!user?.telegramId || user.hasClaimedWelcome) return;
+  try {
+    if (!user?.telegramId || user.hasClaimedWelcome) return;
+    setLoading(true);
 
-      setLoading(true);
+    const initData = window.Telegram?.WebApp?.initData;
 
-      const res = await fetch("/api/claim-welcome", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          telegramId: user.telegramId,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      const data = await res.json();
+    const res = await fetch("/api/claim-welcome", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        ...(initData ? { "Authorization": `tma ${initData}` } : {})
+      },
+      body: JSON.stringify({
+        // REMOVE telegramId — server gets it from token
+        timestamp: new Date().toISOString(),
+      }),
+    });
+         const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message);
 
       const updatedUser = {
@@ -358,9 +362,8 @@ useEffect(() => {
       setError(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
+  }
+};
   // --- ENERGY REFILL (SAFE) ---
   useEffect(() => {
     if (isClicking || energy >= maxEnergy) return;
@@ -392,14 +395,7 @@ useEffect(() => {
       </div>
 
       <div className="relative z-20 w-full px-6 pt-6 flex justify-between items-center">
-       <BoostIndicator 
-              variant="teleprompter" 
-              user={{
-                boostExpiresAt: user?.boostExpiresAt ?? null,
-                fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
-                humanRelationsQty: (user as any)?.humanRelationsQty || 0
-              }} 
-            />
+      
 
         <div>
           <h1 className="text-xl font-black tracking-tight text-purple-400">SMARTSNAIL</h1>
@@ -422,7 +418,14 @@ useEffect(() => {
           Connected: {formatWalletAddress(walletAddress)}
         </div>
       )}
-
+ <BoostIndicator 
+              variant="teleprompter" 
+              user={{
+                boostExpiresAt: user?.boostExpiresAt ?? null,
+                fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
+                humanRelationsQty: (user as any)?.humanRelationsQty || 0
+              }} 
+            />
       <div className="relative z-10 flex flex-col items-center mt-10">
         <div className="flex items-center gap-3">
           <img src="/images/shell.png" className="w-12 h-12" alt="shell" />

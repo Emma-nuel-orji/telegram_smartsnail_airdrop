@@ -775,7 +775,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
               id: 'fub',
               title: 'FxckedUpBags',
               img: '/images/fuckedup.jpg',
-              rate: '+4',
+              rate: '+2',
               shells: '100,000',
               qty: fxckedUpBagsQty,
               setQty: setFxckedUpBagsQty,
@@ -787,7 +787,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
               id: 'hr',
               title: 'Human Relations',
               img: '/images/human.jpg',
-              rate: '+2',
+              rate: '+4',
               shells: '30,000',
               qty: humanRelationsQty,
               setQty: setHumanRelationsQty,
@@ -855,7 +855,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
       <div className="bg-white/5 border border-white/10 p-3 rounded-2xl text-center">
         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Added Power</p>
         <p className="text-2xl font-black italic text-purple-500">
-          +{(fxckedUpBagsQty * 5) + (humanRelationsQty * 7)}
+          +{(fxckedUpBagsQty * 2) + (humanRelationsQty * 4)}
         </p>
       </div>
       <div className="bg-white/5 border border-white/10 p-3 rounded-2xl text-center">
