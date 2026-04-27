@@ -515,7 +515,7 @@ async function validateStockAndCalculateTotals(
 }
 
 
- export async function processPayment(
+async function processPayment(
   tx: Prisma.TransactionClient, 
   paymentMethod: string,
   paymentReference: string | null,
