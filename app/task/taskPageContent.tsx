@@ -19,7 +19,8 @@ import {
   Wallet,
   Lock,
   CheckCircle2, 
-  MessageSquare
+  MessageSquare,
+  Copy
 } from 'lucide-react';
 
 interface ShowStoryOptions {
@@ -153,7 +154,7 @@ const WebApp = getWebApp();
   const { connect, disconnect } = useWallet();
   const { isConnected } = useWallet();
   // const [isConnected, setIsConnected] = useState(false); 
-  const [walletStatus, setWalletStatus] = useState(isConnected);
+  // const [walletStatus, setWalletStatus] = useState(isConnected);
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [inputCode, setInputCode] = useState("");
   const [message, setMessage] = useState<string>("");
@@ -221,11 +222,7 @@ const WebApp = getWebApp();
     }, 250); // Fire confetti every 250ms for the duration
   };
   
-  // DELETE these lines inside handleWalletAction:
-useEffect(() => {
-  const stored = localStorage.getItem("wallet_connected") === "true";
-  if (stored) setWalletStatus(true);
-}, []);
+
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.Telegram?.WebApp) {
@@ -326,41 +323,40 @@ const handleTaskCompleted = (taskId: string, reward: number) => {
 const handleWalletAction = async (task: Task) => {
   setLoading(true);
   try {
-    if (!walletStatus) {
-      // Logic to open TonConnect would go here
-      // await tonConnectUI.openModal(); 
-      
-      // MOCK SUCCESS:
-      setWalletStatus(true);
-      
-      // --- TRIGGER CONFETTI ---
+    if (!isConnected) {
+      await connect(); // Just opens modal — useEffect above handles the reward
+    } else {
+      await disconnect();
+      setMessage("Wallet disconnected.");
+    }
+  } catch (error) {
+    setMessage("Connection failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  if (isConnected) {
+    const alreadyRewarded = localStorage.getItem("wallet_connect_rewarded") === "true";
+    if (!alreadyRewarded) {
+      const rewardAmount = 10000; // task 18 reward
+      setTotalPoints((prev) => {
+        const newPoints = prev + rewardAmount;
+        localStorage.setItem("totalPoints", newPoints.toString());
+        return newPoints;
+      });
+      localStorage.setItem("wallet_connect_rewarded", "true"); // ← locks it forever
+      setMessage(`✅ Wallet connected! +${rewardAmount.toLocaleString()} SHELLS earned!`);
       confetti({
         particleCount: 150,
         spread: 70,
         origin: { y: 0.6 },
         colors: ['#00ffa3', '#8a2be2', '#00d1ff']
       });
-
-      setMessage("✅ Wallet Linked!");
-    } else {
-      setWalletStatus(false);
-      setMessage("Disconnected");
     }
-  } catch (error) {
-    setMessage("Connection failed");
-  } finally {
-    setLoading(false);
   }
-};
-
-// Modified useEffect for checking initial reward status
-useEffect(() => {
-  if (selectedTask?.id === "18") {  // Compare with string "18" instead of number 18
-    const walletRewardKey = 'wallet_connect_rewarded';
-    const hasBeenRewardedBefore = localStorage.getItem(walletRewardKey) === 'true';
-    setHasBeenRewarded(hasBeenRewardedBefore);
-  }
-}, [selectedTask]);
+}, [isConnected]);
   
 
 
@@ -719,9 +715,15 @@ setTimeout(() => {
   };
 
  const getDynamicDescription = (task: Task) => {
-  // SPECIAL CASE: Wallet Task
+  // SPECIAL CASE: Wallet Task (ID 18)
   if (task.id === "18") {
-    return walletStatus ? "Disconnect Wallet" : "Connect TON Wallet";
+    return isConnected ? "Disconnect Wallet" : "Connect TON Wallet";
+
+  }
+
+  // SPECIAL CASE: X Space Task (ID 22) - Ensure it shows the correct description
+  if (task.id === "22") {
+    return "Check-in on our X space";
   }
 
   const url = task.link?.toLowerCase() || "";
@@ -746,207 +748,200 @@ setTimeout(() => {
   
   if (isDaily) {
     if (task.isStoryTask) return "Share to Telegram Story";
+    // Default daily behavior
     return `React on ${platform} Content`;
   }
 
   return task.description;
 };
 
-  return (
-    <div className="task-container">
+ return (
+  <div className="task-container pb-20">
+    {/* 1. HEADER */}
+    <div className="task-header">
+      <Link href="/" className="p-2 bg-white/5 rounded-xl border border-white/10 active:scale-95 transition-transform">
+        <ChevronLeft size={24} color="#00ffa3" />
+      </Link>
+      <h2 className="text-sm font-black uppercase tracking-widest text-white">Ecosystem Missions</h2>
+    </div>
 
-  
-      <div className="task-header">
-        <Link href="/" className="back-button-web3">
-          <ChevronLeft size={32} color="#00ffa3" />
-        </Link>
-        <h2>Perform tasks to earn more Shells!</h2>
-      </div>
-
+          {/* 2. TAB NAVIGATION */}
       <div className="task-buttons">
-        <button 
-          className={selectedSection === "main" ? "active" : ""}
-          onClick={() => setSelectedSection("main")}
-        >
-          🎯 Main Tasks
-        </button>
-        <button 
-          className={selectedSection === "daily" ? "active" : ""}
-          onClick={() => setSelectedSection("daily")}
-        >
-          🌟 Daily
-        </button>
-        <button 
-          className={selectedSection === "partners" ? "active" : ""}
-          onClick={() => setSelectedSection("partners")}
-        >
-          🤝 Partners
-        </button>
+        {["main", "daily", "partners"].map((section) => (
+          <button
+            key={section}
+            className={selectedSection === section ? "active" : ""}
+            // FIX: Use 'as' to cast the string to your specific type
+            onClick={() => setSelectedSection(section as "main" | "daily" | "partners")}
+          >
+            {section === "main" && "🎯 Main"}
+            {section === "daily" && "🌟 Daily"}
+            {section === "partners" && "🤝 Partners"}
+          </button>
+        ))}
       </div>
 
-   <div className="tasks-list">
-  {filteredTasks.map((task) => {
-    // 1. Generate the standardized title first
-    const dynamicTitle = getDynamicDescription(task);
-    
-    // 2. Determine states
-    // Note: Wallet (flexible) stays clickable even if "completed" in state
-    const isCompleted = task.completed && task.type !== 'flexible';
-    const isLocked = task.active === false;
+    {/* 3. DYNAMIC TASK LIST */}
+    <div className="tasks-list">
+      {filteredTasks.map((task) => {
+        const dynamicTitle = getDynamicDescription(task);
+        const isCompleted = task.completed && task.type !== 'flexible';
+        const isLocked = task.active === false;
 
-    return (
-      <div
-        key={task.id}
-        className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
-        onClick={() => !isLocked && (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
-      >
-        <div className="task-row-content">
-          <div className="brand-icon-wrapper">
-            {/* 🔥 FIX: Pass dynamicTitle so getSocialIcon finds keywords like "Threads" or "TikTok" */}
-            {getSocialIcon(dynamicTitle)}
-          </div>
-          
-          <div className="task-details">
-            <span className="task-title-web3">
-              {dynamicTitle}
-            </span>
-            
-            <div className="reward-container-web3">
-              <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
-              {/* <span className="reward-unit">SHELLS</span> */}
-            </div>
-          </div>
-        </div>
-
-        <div className="task-action-area">
-          {isCompleted ? (
-            <CheckCircle2 size={20} color="#00ffa3" />
-          ) : isLocked ? (
-            <Lock size={18} color="rgba(255,255,255,0.3)" />
-          ) : (
-            <div className="web3-action-arrow">
-              <ChevronRight size={20} color="#00ffa3" />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  })}
-</div>
-      {/* POPUP: CSS fix below ensures this is centered, not at the bottom */}
-      {selectedTask && (
-  <div className="popup-overlay" onClick={() => setSelectedTask(null)}>
-    <div className="web3-modal animate__animated animate__zoomIn" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedTask(null)}>
-              ×
-            </button>
-
-            <div className="modal-header">
-               <div className="modal-icon-glow">
-                {/* This ensures the icon matches the standardized title */}
-                {getSocialIcon(getDynamicDescription(selectedTask))}
+        return (
+          <div
+            key={task.id}
+            className={`task-row-web3 ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`}
+            onClick={() => !isLocked && (task.type === 'flexible' || !task.completed) && handleTaskClick(task)}
+          >
+            <div className="task-row-content">
+              <div className="brand-icon-wrapper">
+                {getSocialIcon(dynamicTitle)}
               </div>
-              <h3 className="modal-title">{getDynamicDescription(selectedTask)}</h3>
+              <div className="task-details">
+                <span className="task-title-web3">{dynamicTitle}</span>
+                <div className="reward-container-web3">
+                  <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
+                  <span className="reward-unit">SHELLS</span>
+                </div>
+              </div>
             </div>
-      <div className="modal-body">
-        {/* Task 28: Book Reading Instructions */}
-        {selectedTask.id === "28" && (
-          <div className="instruction-card">
-            <p>📖 Make content of you reading <strong>Fxckedupbags</strong>.</p>
-            <p className="hashtag-row">#Fxckedupbags #SmartSnailNFT</p>
-            <p style={{ fontSize: '12px', marginTop: '8px', color: 'rgba(255,255,255,0.6)' }}>
-              Need a copy? Go to <strong>Main Task 11</strong>.
-            </p>
+            <div className="task-action-area">
+              {isCompleted ? (
+                <CheckCircle2 size={20} color="#00ffa3" />
+              ) : isLocked ? (
+                <Lock size={18} color="rgba(255,255,255,0.3)" />
+              ) : (
+                <div className="web3-action-arrow">
+                  <ChevronRight size={20} color="#00ffa3" />
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        );
+      })}
+    </div>
 
-        {/* Task 22: Secret Code Input */}
-        {selectedTask.id === "22" ? (
-          <>
-            <input
-              className="web3-input"
-              type="text"
-              value={inputCode}
-              onChange={(e) => setInputCode(e.target.value)}
-              placeholder="Insert unique code"
-              disabled={loading}
-            />
-            <button className="web3-primary-btn" onClick={handleRedeemCode} disabled={loading}>
-              {loading ? "Redeeming..." : "Redeem Code"}
-            </button>
-          </>
-        ) : selectedTask.id === "18" ? (
-              /* Task 18: Wallet Connection */
-              <div style={{ width: '100%' }}>
-               
-                <button 
-                  className={`web3-primary-btn ${walletStatus ? "disconnect-mode" : ""}`} 
-                  onClick={() => handleWalletAction(selectedTask)} 
+    {/* 4. REFINED MODAL SYSTEM */}
+    {selectedTask && (
+      <div className="popup-overlay backdrop-blur-md" onClick={() => setSelectedTask(null)}>
+        <div 
+          className="web3-modal animate__animated animate__zoomIn border-white/10" 
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button className="modal-close" onClick={() => setSelectedTask(null)}>×</button>
+
+          <div className="modal-header">
+            <div className="modal-icon-glow">
+              {getSocialIcon(getDynamicDescription(selectedTask))}
+            </div>
+            <h3 className="modal-title italic font-black uppercase">
+              {getDynamicDescription(selectedTask)}
+            </h3>
+          </div>
+
+          <div className="modal-body">
+            
+            {/* Task 28: Book Reading Instructions */}
+            {selectedTask.id === "28" && (
+              <div className="instruction-card bg-emerald-500/5 border-emerald-500/20 text-left">
+                <p className="text-sm mb-2 font-bold text-emerald-400">📖 MISSION BRIEF:</p>
+                <p className="text-xs text-gray-300">Film or photograph yourself reading <span className="text-white font-bold italic">"Fxckedupbags"</span>.</p>
+                <div className="bg-black/40 p-2 rounded-lg mt-3 border border-white/5">
+                  <p className="text-[10px] text-emerald-500 font-mono tracking-tighter">#Fxckedupbags #SmartSnailNFT</p>
+                </div>
+                <p className="text-[10px] mt-3 text-gray-500 italic text-center w-full">
+                  No book? Check <span className="text-emerald-400">Main Task 11</span>.
+                </p>
+              </div>
+            )}
+
+            {/* Task 22: Secret Code Input (REFINED) */}
+            {selectedTask.id === "22" ? (
+              <div className="space-y-4">
+                <p className="text-[11px] text-gray-400 mb-2 uppercase tracking-widest">Enter the X-Space Cipher</p>
+                <input
+                  className="web3-input text-center font-mono tracking-[0.3em] uppercase text-blue-400 border-2 border-blue-500/20 focus:border-blue-500/50"
+                  type="text"
+                  value={inputCode}
+                  onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+                  placeholder="CODE_HERE"
                   disabled={loading}
-                  style={walletStatus ? { background: 'transparent', border: '1px solid #ff4d4d', color: '#ff4d4d', boxShadow: 'none' } : {}}
-                >
-                  {loading ? "Processing..." : walletStatus ? "🔌 Disconnect Wallet" : "👛 Connect Wallet"}
+                />
+                <button className="web3-primary-btn bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.3)]" onClick={handleRedeemCode} disabled={loading}>
+                  {loading ? "Redeeming..." : "Verify Cipher"}
                 </button>
               </div>
-        ) : selectedTask.isStoryTask ? (
-          /* Story Sharing Task */
-          <>
-            <p className="web3-helper-text">
-              Copy and paste the text below into your caption to verify your share.
-            </p>
-            <div className="web3-text-box">
-              <p>Join the farm, pick $Shells, and Stake in Polycombat! #smartsnail #polycombat #manchies  {userReferralLink}</p>
-              <button 
-                className="web3-copy-btn"
-                onClick={() => {
-                  navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
-                  // You can replace alert with a cleaner toast notification later
-                  alert("✅ Copied!");
-                }}
-              >
-                📋 Copy
-              </button>
-            </div>
-            <button className="web3-primary-btn" onClick={handleShareToStory} disabled={sharing}>
-              {sharing ? "📤 Sharing..." : "📤 Share to Story"}
-            </button>
-          </>
-        ) : selectedTask.id !== "28" && (
-          /* Standard Tasks */
-          <>
-            <button className="web3-secondary-btn" onClick={() => window.open(selectedTask.link, "_blank")}>
-              🎯 Perform Task
-            </button>
-                          <button
-                className="web3-primary-btn"
-                onClick={handleValidateClick}
-                disabled={loading}
-                style={{ marginTop: '10px', opacity: loading ? 0.7 : 1 }}
-              >
-                {loading ? "⏳ Validating..." : "✅ Validate and Reward"}
-              </button>
-          </>
-        )}
+            ) : selectedTask.id === "18" ? (
+              /* Wallet Connection */
+              <div className="space-y-4">
+                <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-2">TON Blockchain Link</p>
+                <button 
+                  className={`web3-primary-btn ${isConnected ? "bg-transparent border-red-500/50 text-red-500" : ""}`} 
+                  onClick={() => handleWalletAction(selectedTask)} 
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : isConnected ? "🔌 Disconnect Wallet" : "👛 Connect Wallet"}
+                </button>
+              </div>
+            ) : selectedTask.isStoryTask ? (
+              /* Story Sharing Task (REFINED) */
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 text-left">
+                  <p className="text-[10px] text-emerald-500 font-black uppercase mb-2">Step 1: Copy Caption</p>
+                  <div className="bg-black/40 p-3 rounded-xl border border-white/5 relative group">
+                    <p className="text-[11px] text-gray-400 leading-normal pr-10">
+                      Join the farm, pick $Shells, and Stake in Polycombat! #smartsnail #polycombat {userReferralLink}
+                    </p>
+                    <button 
+                      className="absolute top-2 right-2 p-1.5 bg-emerald-500/20 rounded-md text-emerald-400 active:scale-90"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
+                        alert("✅ Copied!");
+                      }}
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                </div>
+                <button className="web3-primary-btn bg-gradient-to-r from-emerald-600 to-emerald-400" onClick={handleShareToStory} disabled={sharing}>
+                  {sharing ? "📤 Sharing..." : "📤 Step 2: Share to Story"}
+                </button>
+              </div>
+            ) : selectedTask.id !== "28" && (
+              /* Standard Tasks */
+              <div className="space-y-3">
+                <button className="web3-secondary-btn py-4 bg-white/5 border border-white/10 text-white font-bold" onClick={() => window.open(selectedTask.link, "_blank")}>
+                  🎯 Perform Mission
+                </button>
+                <button
+                  className="web3-primary-btn"
+                  onClick={handleValidateClick}
+                  disabled={loading}
+                >
+                  {loading ? "⏳ Validating..." : "✅ Claim Reward"}
+                </button>
+              </div>
+            )}
 
-        {/* Feedback Messages */}
-        {message && (
-          <div className={`status-msg ${reward > 0 ? 'success' : ''}`}>
-            {message}
+            {/* Feedback Messages */}
+            {message && (
+              <div className={`status-msg mt-4 p-3 rounded-xl text-[11px] font-bold ${reward > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                {message}
+              </div>
+            )}
+            
+            {reward > 0 && (
+              <div className="web3-reward-banner animate__animated animate__pulse animate__infinite">
+                🎉 +{reward.toLocaleString()} SHELLS EARNED
+              </div>
+            )}
           </div>
-        )}
-        
-        {reward > 0 && (
-          <div className="web3-reward-banner">
-            🎉 +{reward} SHELLS EARNED
-          </div>
-        )}
+        </div>
       </div>
-    </div>
+    )}
   </div>
-)}
-
-    </div>
-  );
+);
 };
 
 export default TaskPageContent;

@@ -1,85 +1,120 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/prisma/client';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { authenticateTelegramUser } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const { fightId, telegramId } = await req.json();
+    /* =========================
+       1. AUTH (STANDARDIZED)
+    ========================= */
+    const auth = await authenticateTelegramUser(req as any);
 
-    // The 'result' variable will hold everything returned by the transaction
+    if (!auth.isAuthenticated || !auth.telegramId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const telegramId = auth.telegramId;
+
+    /* =========================
+       2. INPUT
+    ========================= */
+    const { fightId } = await req.json();
+
+    if (!fightId) {
+      return NextResponse.json({ error: "Missing fightId" }, { status: 400 });
+    }
+
+    /* =========================
+       3. TRANSACTION
+    ========================= */
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Find User
+      // 1. Find user
       const user = await tx.user.findUnique({
-        where: { telegramId: BigInt(telegramId) }
+        where: { telegramId },
       });
+
       if (!user) throw new Error("User not found");
 
-      // 2. Find Winning Stake and include the Fight + Fighter info
+      // 2. Find winning stake
       const stake = await tx.stake.findFirst({
-        where: { 
-          userId: user.id, 
-          fightId, 
+        where: {
+          userId: user.id,
+          fightId,
           outcome: "WIN",
-          isClaimed: false 
+          isClaimed: false,
         },
         include: {
           fight: {
             include: {
               fighter1: true,
-              fighter2: true
-            }
-          }
-        }
+              fighter2: true,
+            },
+          },
+        },
       });
 
       if (!stake) throw new Error("No unclaimed winnings found");
 
-      // 3. CREDIT BALANCE
       const winnings = BigInt(stake.pointsEarned || 0);
+
+      // 3. Credit user
       await tx.user.update({
         where: { id: user.id },
-        data: { points: { increment: winnings } }
+        data: {
+          points: { increment: winnings },
+        },
       });
 
-      // 4. MARK AS CLAIMED
+      // 4. Mark claimed
       await tx.stake.update({
         where: { id: stake.id },
-        data: { isClaimed: true }
+        data: {
+          isClaimed: true,
+        },
       });
 
-      // 5. GET STREAK DATA FOR THE WINNING FIGHTER
-      const isF1Winner = stake.fight.winnerId === stake.fight.fighter1Id;
-      const winnerFighter = isF1Winner ? stake.fight.fighter1 : stake.fight.fighter2;
+      // 5. Determine winner fighter
+      const winnerFighter =
+        stake.fight.winnerId === stake.fight.fighter1Id
+          ? stake.fight.fighter1
+          : stake.fight.fighter2;
 
-      // 6. CHECK TEAM MILESTONE
+      // 6. FIXED: safe collection win count
       const collectionWins = await tx.fight.count({
         where: {
-          winnerId: { not: null },
+          winnerId: {
+            not: null,
+          },
           OR: [
-            { fighter1: { collectionId: winnerFighter.collectionId }, winnerId: { equals: prisma.fight.fields.fighter1Id } },
-            { fighter2: { collectionId: winnerFighter.collectionId }, winnerId: { equals: prisma.fight.fields.fighter2Id } }
-          ]
-        }
+            { fighter1Id: winnerFighter.id },
+            { fighter2Id: winnerFighter.id },
+          ],
+        },
       });
 
-      // Return ALL data needed for the frontend animations
-      return { 
+      return {
         winnings: winnings.toString(),
         fighterStreak: winnerFighter.currentStreak,
-        isAirdropActive: (collectionWins % 3 === 0), // Your Team Milestone
-        collectionWins: collectionWins
+        isAirdropActive: collectionWins % 3 === 0,
+        collectionWins,
       };
     });
 
-    // ✅ Now we use 'result.winnings' instead of just 'winnings'
-    return NextResponse.json({ 
-      message: "Rewards collected!", 
+    /* =========================
+       4. RESPONSE
+    ========================= */
+    return NextResponse.json({
+      message: "Rewards collected!",
       winnings: result.winnings,
       isAirdropActive: result.isAirdropActive,
-      fighterStreak: result.fighterStreak
+      fighterStreak: result.fighterStreak,
     });
 
   } catch (error: any) {
     console.error("Claim Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json(
+      { error: error.message || "Failed" },
+      { status: 400 }
+    );
   }
 }

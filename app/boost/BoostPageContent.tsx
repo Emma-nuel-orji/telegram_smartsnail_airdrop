@@ -481,34 +481,22 @@ const syncStockFromAPI = async () => {
       
       
   
-      const orderPayload = {
+     const orderPayload = {
         email: purchaseEmail,
         paymentMethod: paymentMethod.toUpperCase(),
-        bookCount: totalBooks,
-        tappingRate: tappingRate,
-        coinsReward: Number(points),
-        priceTon: priceTon,
-        priceStars: priceStars,
         fxckedUpBagsQty,
         humanRelationsQty,
-        telegramId: telegramId ? String(telegramId) : '',
         referrerId: referrerId ? String(referrerId) : '',
-        bookIds: [
-          ...(fxckedUpBagsQty > 0 ? [fxckedUpBagsId] : []),
-          ...(humanRelationsQty > 0 ? [humanRelationsId] : []),
-        ],
       };
       console.log("🛒 Attempting purchase with stock:", stockLimit);
       console.log("9. Creating order with payload:", orderPayload);
   
-      const headers = {
-        "Content-Type": "application/json",
-        ...(process.env.NODE_ENV === "production" &&
-        window.Telegram?.WebApp?.initData
-          ? { "x-telegram-init-data": window.Telegram.WebApp.initData }
-          : {}),
-      };
-  
+      const initData = window.Telegram?.WebApp?.initData;
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          ...(initData ? { "Authorization": `tma ${initData}` } : {}),
+        };
+          
       const orderResponse = await axios.post("/api/purchase", orderPayload, {
         headers,
       });
@@ -579,13 +567,13 @@ const syncStockFromAPI = async () => {
         label: "SMARTSNAIL Stars Payment",
         paymentMethod: "Stars",
         bookCount: totalBooks,
-        tappingRate,
-        points,
-        priceTon,
+        // tappingRate,
+        // points,
+        // priceTon,
         priceStars: Math.round(priceStars), 
         fxckedUpBagsQty: purchasedFxckedUp,
         humanRelationsQty: purchasedHuman,
-        telegramId,
+        // telegramId,
         referrerId,
       });
   
@@ -593,12 +581,10 @@ const syncStockFromAPI = async () => {
         "Content-Type": "application/json",  
       };
   
-      if (process.env.NODE_ENV === "production") {
-        const initData = window.Telegram?.WebApp?.initData;
+     const initData = window.Telegram?.WebApp?.initData;
         if (initData) {
-          headers["x-telegram-init-data"] = initData;
+          headers["Authorization"] = `tma ${initData}`;
         }
-      }
   
       const response = await axios.post("/api/paymentByStars", payload, { headers });
   
@@ -630,23 +616,36 @@ const syncStockFromAPI = async () => {
   
   
   useEffect(() => {
-    const verifyPayment = async () => {
-      try {
-        const response = await axios.post("/api/verify-payment", {
-          telegramId,
-          paymentMethod: "Stars",
-        });
+  // Only verify if redirected back from Stars payment
+  const params = new URLSearchParams(window.location.search);
+  const paymentStatus = params.get("payment");
   
-        if (response.data.success) {
-          handlePaymentSuccess(fxckedUpBagsQty, humanRelationsQty);
+  if (paymentStatus !== "success") return; // Don't fire on normal page loads
+
+  const verifyPayment = async () => {
+    try {
+      const initData = window.Telegram?.WebApp?.initData;
+      const response = await axios.post("/api/verify-payment", {
+        paymentMethod: "Stars",
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(initData ? { "Authorization": `tma ${initData}` } : {}),
         }
-      } catch (error) {
-        console.error("Payment verification failed:", error);
+      });
+
+      if (response.data.success) {
+        handlePaymentSuccess(fxckedUpBagsQty, humanRelationsQty);
+        // Clean up URL
+        window.history.replaceState({}, "", window.location.pathname);
       }
-    };
-  
-    verifyPayment();
-  }, []);
+    } catch (error) {
+      console.error("Payment verification failed:", error);
+    }
+  };
+
+  verifyPayment();
+}, []);
   
   
 

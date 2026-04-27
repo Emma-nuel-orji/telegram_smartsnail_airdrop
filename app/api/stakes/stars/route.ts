@@ -1,28 +1,66 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/client";
+import { authenticateTelegramUser } from "@/lib/auth";
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { fightId, fighterId, stakeAmount, telegramId } = await request.json();
+    /* =========================
+       1. AUTH (STANDARDIZED)
+    ========================= */
+    const auth = await authenticateTelegramUser(req);
 
-    // 1. Validation
-    if (!fightId || !fighterId || !stakeAmount || !telegramId) {
-      return NextResponse.json({ error: "Missing details" }, { status: 400 });
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+   if (!auth.telegramId) {
+  return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+}
+
+const telegramId = auth.telegramId;
+
+    /* =========================
+       2. INPUT
+    ========================= */
+    const { fightId, fighterId, stakeAmount } = await req.json();
+
+    if (!fightId || !fighterId || !stakeAmount) {
+      return NextResponse.json(
+        { error: "Missing details" },
+        { status: 400 }
+      );
     }
 
     const starsCount = Math.round(Number(stakeAmount));
 
-    // 2. THE MINI-PAYLOAD (Strictly < 128 bytes)
-    // We use single letters to save space
-    const payload = JSON.stringify({
-      f: fightId,   
-      ft: fighterId,
-      u: telegramId 
+    /* =========================
+       3. VERIFY USER EXISTS
+    ========================= */
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
     });
 
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    /* =========================
+       4. MINIFIED PAYLOAD (STILL OPTIMIZED)
+    ========================= */
+    const payload = JSON.stringify({
+      f: fightId,
+      ft: fighterId,
+      u: telegramId.toString(),
+    });
+
+    /* =========================
+       5. CREATE INVOICE
+    ========================= */
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
-    // 3. Create Invoice Link
     const telegramRes = await fetch(
       `https://api.telegram.org/bot${botToken}/createInvoiceLink`,
       {
@@ -31,8 +69,8 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           title: "Fight Stake",
           description: `Stake ${starsCount} Stars`,
-          payload: payload, 
-          provider_token: "", // Required empty for Stars
+          payload,
+          provider_token: "",
           currency: "XTR",
           prices: [{ label: "Stake", amount: starsCount }],
         }),
@@ -43,12 +81,23 @@ export async function POST(request: Request) {
 
     if (!telegramData.ok) {
       console.error("Telegram error:", telegramData.description);
-      return NextResponse.json({ error: telegramData.description }, { status: 400 });
+      return NextResponse.json(
+        { error: telegramData.description },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ invoiceLink: telegramData.result });
-
+    /* =========================
+       6. RESPONSE
+    ========================= */
+    return NextResponse.json({
+      invoiceLink: telegramData.result,
+    });
   } catch (error) {
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+    console.error("Server Error:", error);
+    return NextResponse.json(
+      { error: "Server Error" },
+      { status: 500 }
+    );
   }
 }

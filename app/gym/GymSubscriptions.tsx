@@ -21,7 +21,7 @@ export default function GymSubscriptions() {
   const gymId = searchParams?.get('gymId') || LILBURN_ID;
   
   const gymName = searchParams?.get('gymName') || (gymId === LILBURN_ID ? 'Lilburn Gym' : 'Partner Gym');
-  
+  const [initData, setInitData] = useState<string | null>(null);
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0); 
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -33,13 +33,22 @@ export default function GymSubscriptions() {
   // This ensures TypeScript knows about HapticFeedback and showConfirm
 const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as TelegramWebApp : null;
   const BOT_USERNAME = "SmartSnails_Bot";
-  const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
+  // const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
   console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
 
-  useEffect(() => {
-    const userId = getWebApp?.initDataUnsafe?.user?.id?.toString();
-    if (userId) setTelegramId(userId);
-  }, [getWebApp]);
+ useEffect(() => {
+  const tg = window.Telegram?.WebApp;
+
+  if (!tg) return;
+
+  const initData = tg.initData; // 🔐 secure payload
+  const userId = tg.initDataUnsafe?.user?.id?.toString(); // 👀 just for UI
+
+  if (userId) setTelegramId(userId);
+
+  // 👉 store initData for API calls
+  setInitData(initData);
+}, []);
 
   useEffect(() => {
     // Safety Firewall: If loading hangs for > 7s, stop the spinner
@@ -47,10 +56,10 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
       if (loading) setLoading(false);
     }, 7000);
 
-    if (!telegramId || !gymId) {
-      console.log("⏳ Waiting for Telegram ID and Gym ID...");
-      return; 
-    }
+    if (!telegramId || !gymId || !initData) {
+  console.log("⏳ Waiting for Telegram ID, Gym ID, and initData...");
+  return;
+}
 
     if (gymId.length !== 24) {
       console.warn("⛔ INVALID ID FORMAT:", gymId);
@@ -64,24 +73,39 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
   
   try {
     const [userRes, subsRes, activeRes] = await Promise.all([
-      fetch(`/api/user/${telegramId}`),
-      fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`),
-      fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`)
-    ]);
+  fetch(`/api/user/${telegramId}`, {
+    headers: {
+      Authorization: `tma ${initData}` // 🔐 ADD THIS
+    }
+  }),
+  fetch(`/api/services?type=SUBSCRIPTION&partnerId=${gymId}`, {
+    headers: {
+      Authorization: `tma ${initData}`
+    }
+  }),
+  fetch(`/api/subscription/${telegramId}?partnerId=${gymId}`, {
+    headers: {
+      Authorization: `tma ${initData}`
+    }
+  })
+]);
 
     if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
     const userData = await userRes.json();
 
-   const SUPER_ADMIN_IDS = (process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS || '').split(',').map(id => id.trim());
-    const isSuperAdmin = telegramId !== null && SUPER_ADMIN_IDS.includes(telegramId);
+    setIsAdmin(userData.isAdmin); // 👈 TRUST BACKEND
+    const isSuperAdmin = userData.isSuperAdmin;
 
-    if (telegramId === ADMIN_ID) {
-      setIsAdmin(true);
-    }
+  //  const SUPER_ADMIN_IDS = (process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS || '').split(',').map(id => id.trim());
+  //   const isSuperAdmin = telegramId !== null && SUPER_ADMIN_IDS.includes(telegramId);
+
+  //   if (telegramId === ADMIN_ID) {
+  //     setIsAdmin(true);
+  //   }
 
     // Only block if no nickname AND not an admin
-    if (!userData.nickname && !isSuperAdmin && telegramId !== ADMIN_ID) {
+   if (!userData.nickname && !userData.isAdmin && !userData.isSuperAdmin) {
       setNotRegistered(true);
       setLoading(false);
       return;
@@ -135,14 +159,13 @@ return () => clearTimeout(timeout);
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          telegramId,
-          serviceId: plan.id,
-          planTitle: plan.name,
-          duration: plan.duration,
-          currencyType: currency,
-          amount: amount,
-          intensity: false 
-        })
+            serviceId: plan.id,
+            planTitle: plan.name,
+            duration: plan.duration,
+            currencyType: currency,
+            amount: amount,
+            intensity: false 
+          })
       });
 
       const result = await response.json();

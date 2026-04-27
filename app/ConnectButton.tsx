@@ -14,7 +14,7 @@ export function ConnectButton() {
 
   const handleClicks = () => {
     if (isConnected) {
-      router.push('/wallet-assets');
+      router.push('/marketplace/inventory');
     } else {
       setShowMessage(true);
       setTimeout(() => setShowMessage(false), 3000); // Hide after 3 seconds
@@ -64,7 +64,7 @@ export function ConnectButton() {
           <p className="text-sm font-medium text-gray-600">
             Wallet not connected. Go to{' '}
             <a className="text-blue-500 hover:underline">
-              Task 18
+              Main Task 
             </a>{' '}
             to connect your wallet.
           </p>

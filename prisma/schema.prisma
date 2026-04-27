@@ -192,14 +192,15 @@ model PendingTransaction {
   humanRelationsQty Int
   telegramId        String
   referrerId        String?
-  tappingRate  Float
-  totalPoints       Float
-  payloadData       String
-  status            String    // e.g., "PENDING", "COMPLETED"
 
-  // Foreign key and relation
-  orderId           String   
-  order             Order    @relation(fields: [orderId], references: [id])
+  tappingRate       Float?
+  totalPoints       Float?
+
+  payloadData       String
+  status            String
+
+  orderId           String?
+  order             Order? @relation(fields: [orderId], references: [id])
 
   createdAt         DateTime @default(now())
 }
@@ -523,5 +524,7 @@ model Nft {
   stakes       Stake[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  @@unique([indexNumber, collectionId])
+
 }
 

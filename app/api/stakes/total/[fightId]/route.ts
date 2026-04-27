@@ -1,15 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/prisma/client';
-import { StakeStatus } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { StakeStatus } from "@prisma/client";
+import { authenticateTelegramUser } from "@/lib/auth";
 
 export async function GET(
-  req: NextRequest,
+  request: Request,
   { params }: { params: { fightId: string } }
 ) {
-  const { fightId } = params;
-
   try {
-    // 1️⃣ Find the fight
+    // 🔐 STANDARD AUTH (prevents abuse)
+    const auth = await authenticateTelegramUser(request as any);
+
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const fightId = params.fightId;
+
+    // 1️⃣ Find fight
     const fight = await prisma.fight.findUnique({
       where: { id: fightId },
       select: {
@@ -19,16 +27,22 @@ export async function GET(
     });
 
     if (!fight) {
-      return NextResponse.json({ error: 'Fight not found' }, { status: 404 });
+      return NextResponse.json({ error: "Fight not found" }, { status: 404 });
     }
 
-    // 2️⃣ Aggregate stakes for BOTH fighters
+    // 2️⃣ Aggregate stakes
     const stats = await prisma.stake.groupBy({
-      by: ['fighterId'],
+      by: ["fighterId"],
       where: {
-        fighterId: { in: [fight.fighter1Id, fight.fighter2Id] },
+        fighterId: {
+          in: [fight.fighter1Id, fight.fighter2Id],
+        },
         status: {
-          in: [StakeStatus.PENDING, StakeStatus.WON, StakeStatus.CLAIMED],
+          in: [
+            StakeStatus.PENDING,
+            StakeStatus.WON,
+            StakeStatus.CLAIMED,
+          ],
         },
       },
       _sum: {
@@ -36,20 +50,24 @@ export async function GET(
       },
     });
 
-    // 3️⃣ Helper to extract sums
+    // 3️⃣ Safe helper
     const getSum = (id: string) =>
       stats.find((s) => s.fighterId === id)?._sum.stakeAmount ?? 0n;
 
     const totalRedStakes = getSum(fight.fighter1Id);
     const totalBlueStakes = getSum(fight.fighter2Id);
 
-    // 4️⃣ Return safe BigInt values
+    // 4️⃣ Response
     return NextResponse.json({
       totalRedStakes: totalRedStakes.toString(),
       totalBlueStakes: totalBlueStakes.toString(),
     });
+
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch stake totals' }, { status: 500 });
+    console.error("API Error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch stake totals" },
+      { status: 500 }
+    );
   }
 }

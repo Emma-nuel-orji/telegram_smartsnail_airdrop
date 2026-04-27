@@ -1,51 +1,63 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { authenticateTelegramUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const telegramId = searchParams.get("telegramId");
+    /* =========================
+       1. AUTH (STANDARDIZED)
+    ========================= */
+    const auth = await authenticateTelegramUser(req as any);
 
-    console.log("--- ASSET FETCH START ---");
-    console.log("Incoming Telegram ID:", telegramId);
-
-    if (!telegramId || telegramId === "undefined" || telegramId === "null") {
-      console.error("Critical Error: Invalid or missing Telegram ID");
-      return NextResponse.json({ error: "Invalid ID", nfts: [] }, { status: 400 });
+    if (!auth.isAuthenticated || !auth.telegramId) {
+      return NextResponse.json(
+        { error: "Unauthorized", nfts: [] },
+        { status: 401 }
+      );
     }
 
+    const telegramId = auth.telegramId;
+
+    /* =========================
+       2. FETCH USER + NFTs
+    ========================= */
     const user = await prisma.user.findUnique({
-      where: { telegramId: BigInt(telegramId) },
+      where: { telegramId },
       include: {
         ownedNfts: {
-          include: { collection: true }
-        }
-      }
+          include: {
+            collection: true,
+          },
+        },
+      },
     });
 
-    console.log("User Found in DB:", user ? "YES" : "NO");
-    
     if (!user) {
-      console.log("Result: User not found, returning empty array.");
       return NextResponse.json({ nfts: [] });
     }
 
-    console.log(`NFTs found for user: ${user.ownedNfts?.length || 0}`);
-
-    // BigInt Serialization
+    /* =========================
+       3. SAFE SERIALIZATION
+    ========================= */
     const data = JSON.parse(
       JSON.stringify(user.ownedNfts, (key, value) =>
-        typeof value === 'bigint' ? value.toString() : value
+        typeof value === "bigint" ? value.toString() : value
       )
     );
 
-    console.log("--- ASSET FETCH SUCCESS ---");
-    return NextResponse.json({ nfts: data });
+    /* =========================
+       4. RESPONSE
+    ========================= */
+    return NextResponse.json({
+      nfts: data,
+    });
 
   } catch (error: any) {
-    console.error("!!! ASSETS API CRASH !!!");
-    console.error("Error Message:", error.message);
-    console.error("Error Stack:", error.stack);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    console.error("Assets API Error:", error);
+
+    return NextResponse.json(
+      { error: error.message || "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

@@ -13,6 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboardingTour } from '@/app/hooks/useOnboardingTour';
 import OnboardingTour, { TourStep } from '@/components/OnboardingTour';
+import BoostIndicator from './boost/BoostIndicator';
 // --- TYPES ---
 type Click = {
   opacity: number;
@@ -47,6 +48,7 @@ type User = {
   last_name?: string;
   hasClaimedWelcome?: boolean;
   fighter?: FighterData | null;
+  boostExpiresAt?: string | Date | null;
 };
 
 export default function Home() {
@@ -390,9 +392,18 @@ useEffect(() => {
       </div>
 
       <div className="relative z-20 w-full px-6 pt-6 flex justify-between items-center">
+       <BoostIndicator 
+              variant="teleprompter" 
+              user={{
+                boostExpiresAt: user?.boostExpiresAt ?? null,
+                fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
+                humanRelationsQty: (user as any)?.humanRelationsQty || 0
+              }} 
+            />
+
         <div>
           <h1 className="text-xl font-black tracking-tight text-purple-400">SMARTSNAIL</h1>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Marketplace</p>
+          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">App</p>
         </div>
         
         <div className="flex items-center gap-3 bg-white/5 backdrop-blur-lg p-1.5 rounded-2xl border border-white/10">

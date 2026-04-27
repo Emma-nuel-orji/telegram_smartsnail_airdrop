@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 import { prisma } from '@/lib/prisma';
-
+import { authenticateTelegramUser } from "@/lib/auth";
 import { PrismaClient, Book, Prisma } from '@prisma/client';
 import {
   verifyTonPayment,
@@ -98,21 +98,13 @@ requiredEnv.forEach((env) => {
 // Zod schema for request validation
 const requestSchema = z.object({
   email: z.string().email(),
-  paymentMethod: z.enum(["TON", "CARD"]),
-  bookCount: z.number().int().nonnegative(),
-  tappingRate: z.number().nonnegative(),           
-  coinsReward: z.number().int().nonnegative(),           
-  priceTon: z.number().nonnegative(),              
-  priceStars: z.number().int().nonnegative(),      
-  fxckedUpBagsQty: z.number().int().nonnegative().optional().default(0),
-  humanRelationsQty: z.number().int().nonnegative().optional().default(0),
-  telegramId: z.string().optional().default(""),
+  paymentMethod: z.enum(["TON", "CARD", "STARS"]),
+  fxckedUpBagsQty: z.number().int().nonnegative().default(0),
+  humanRelationsQty: z.number().int().nonnegative().default(0),
   referrerId: z.string().optional().default(""),
-  // paymentReference: z.string().nullable(),
   paymentReference: z.string().optional().default(""),
-  bookIds: z.array(z.string()).optional().default([]),
-   orderId: z.string().nullable().optional(),
-
+  orderId: z.string().nullable().optional(),
+ 
 });
 
 
@@ -253,149 +245,197 @@ async function preparePurchaseData(fxckedUpBagsQty: number, humanRelationsQty: n
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  console.log("1. Starting POST request handling");
+  console.log("1. Starting secure POST request");
 
   try {
-    const data = await req.json();
-    console.log("2. Request body:", data);
+    // ===============================
+    // 1. AUTHENTICATION (SECURITY LAYER)
+    // ===============================
+    const auth = await authenticateTelegramUser(req);
 
-    if (process.env.NODE_ENV !== 'development') 
-      {
-      console.log("3. Production environment - checking Telegram auth");
-
-      // Use 'req' instead of 'request'
-      const initData = req.headers.get('x-telegram-init-data');
-
-      if (!initData) {
-        return NextResponse.json({ error: "Missing Telegram authentication" }, { status: 401 });
-      }
-
-      const telegramData = validateTelegramWebAppData(initData);
-      if (!telegramData) {
-        return NextResponse.json({ error: "Invalid Telegram authentication" }, { status: 403 });
-      }
-    } else {
-      console.log("3. Development environment - checking basic auth");
-      const { telegramId, email } = data;  // Use 'data' here instead of 'body'
-      if (!telegramId && !email) {
-        return NextResponse.json({ error: "Telegram ID or email must be provided." }, { status: 400 });
-      }
+    if (!auth?.isAuthenticated || !auth.telegramId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    console.log("4. Validating schema");
-    let validatedData;
-    try {
-      if (!data.telegramId || !data.paymentMethod) {
-        return NextResponse.json({ error: "Missing required fields: telegramId or paymentMethod" }, { status: 400 });
-      }
+    const verifiedTelegramId = auth.telegramId.toString();
+    console.log("2. Verified Telegram ID:", verifiedTelegramId);
 
-      validatedData = requestSchema.parse(data);
+    // ===============================
+    // 2. SAFE BODY EXTRACTION
+    // ===============================
+    const body = await req.json();
+    console.log("3. Request body:", body);
 
-      console.log("5. Validated data:", validatedData);
-    } catch (error) {
-      console.error("Schema validation error:", error);
+    const {
+      email,
+      paymentMethod,
+      fxckedUpBagsQty = 0,
+      humanRelationsQty = 0,
+      referrerId,
+      paymentReference,
+      bookIds = [],
+    } = body;
+
+    // ===============================
+    // 3. VALIDATION (CLEAN & STRICT)
+    // ===============================
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
       return NextResponse.json(
-        {
-          error: "Invalid request data",
-          details: error instanceof z.ZodError ? error.errors : "Unknown validation error",
-        },
+        { error: "Valid email required" },
         { status: 400 }
       );
     }
 
+    if (!["TON", "CARD", "STARS"].includes(paymentMethod)) {
+      return NextResponse.json(
+        { error: "Invalid payment method" },
+        { status: 400 }
+      );
+    }
 
+    if (fxckedUpBagsQty <= 0 && humanRelationsQty <= 0) {
+      return NextResponse.json(
+        { error: "Select at least one book" },
+        { status: 400 }
+      );
+    }
+
+    // ===============================
+    // 4. FETCH BOOKS FROM DB (TRUST NO CLIENT DATA)
+    // ===============================
+    const books = await prisma.book.findMany({
+      where: {
+        title: {
+          in: [
+            ...(fxckedUpBagsQty > 0
+              ? ["FxckedUpBags (Undo Yourself)"]
+              : []),
+            ...(humanRelationsQty > 0
+              ? ["Human Relations"]
+              : []),
+          ],
+        },
+      },
+    });
+
+    if (!books.length) {
+      return NextResponse.json(
+        { error: "Books not found" },
+        { status: 404 }
+      );
+    }
+
+    console.log("4. Books fetched:", books.length);
+
+    // ===============================
+    // 5. SERVER-SIDE CALCULATION
+    // ===============================
+    let totalAmount = 0;
+    let tappingRate = 0;
+    let coinsReward = 0;
+    let totalBooks = 0;
+
+    for (const book of books) {
+      const qty =
+        book.title.includes("FxckedUpBags")
+          ? fxckedUpBagsQty
+          : humanRelationsQty;
+
+      totalAmount += qty * Number(book.priceTon || 0);
+      tappingRate += qty * Number(book.tappingRate || 0);
+      coinsReward += qty * Number(book.coinsReward || 0);
+      totalBooks += qty;
+    }
+
+    const priceStars = totalBooks * 400;
+
+    console.log("5. Calculated values:", {
+      totalAmount,
+      tappingRate,
+      coinsReward,
+      totalBooks,
+    });
+
+    // ===============================
+    // 6. TRANSACTION (SAFE ZONE)
+    // ===============================
     const result = await prisma.$transaction(async (tx) => {
-      // Prepare purchase data
-      const { booksToPurchase, bookMap } = await preparePurchaseData(
-        validatedData.fxckedUpBagsQty,
-        validatedData.humanRelationsQty
-      );
+      
+      // Create pending transaction (SAFE VERSION)
+      const order = await tx.order.create({
+        data: {
+          orderId: `ORD-${Date.now()}`,
+          paymentMethod,
+          totalAmount,
+          status: "PENDING",
+        },
+      });
 
-     // Validate stock and calculate totals
-      const stockResults = await validateStockAndCalculateTotals(
-        tx,
-        booksToPurchase,
-        bookMap,
-        validatedData.paymentMethod
-      );
+      const pending = await tx.pendingTransaction.create({
+        data: {
+          email,
+          amount: totalAmount,
+          bookCount: totalBooks,
 
-    // Process payment
+          fxckedUpBagsQty,
+          humanRelationsQty,
+
+          telegramId: verifiedTelegramId,
+          referrerId: referrerId || null,
+
+          tappingRate,
+          totalPoints: coinsReward,
+
+          payloadData: JSON.stringify({
+            orderId: order.id,
+            telegramId: verifiedTelegramId,
+          }),
+
+          status: "PENDING",
+          orderId: order.id,
+        },
+      });
+
+      // ===============================
+      // 7. CALL YOUR EXISTING LOGIC
+      // ===============================
       const paymentResult = await processPayment(
         tx,
-        validatedData.paymentMethod,
-        validatedData.paymentReference || "",
-        stockResults.totalAmount,
-        // process.env.NEXT_PUBLIC_REDIRECT_URL || '',
-        validatedData.telegramId,
-        validatedData.bookCount,
-        Array.isArray(validatedData.bookIds) && validatedData.bookIds.length > 0
-          ? validatedData.bookIds[0]
-          : "",
-        validatedData.fxckedUpBagsQty,
-        validatedData.humanRelationsQty
+        paymentMethod,
+        paymentReference || order.orderId,
+        totalAmount,
+        verifiedTelegramId,
+        totalBooks,
+        Array.isArray(bookIds) && bookIds.length > 0 ? bookIds[0] : "",
+        fxckedUpBagsQty,
+        humanRelationsQty
       );
-
-
-    const userResult = await updateDatabaseTransaction(
-        tx,
-        booksToPurchase,
-        stockResults.codes,
-        validatedData.telegramId,
-        validatedData.email,
-        validatedData.paymentMethod,
-        stockResults.totalAmount,
-        stockResults.tappingRate,
-        stockResults.points,
-        validatedData.orderId,
-        validatedData.referrerId
-      );
-
-      const freshStock = await getCurrentStock(tx, booksToPurchase);
-       const safeUser = {
-        ...userResult,
-        telegramId: userResult.telegramId.toString(),
-        id: userResult.id.toString(),
-        points: Number(userResult.points),
-        tappingRate: Number(userResult.tappingRate)
-      };
-
-      const allBooks = await tx.book.findMany({
-        select: { id: true, title: true, usedStock: true, stockLimit: true }
-      });
-      console.log("📊 Final book stock states:", allBooks);
 
       return {
         success: true,
-        message: "Purchase completed successfully",
         orderId: paymentResult.orderId,
-        stockStatus: freshStock,
-        userUpdate: safeUser
+        pendingId: pending.id,
+        totalAmount,
       };
-    }, {
-      timeout: 30000,
-      maxWait: 5000
     });
 
     return NextResponse.json(result);
-
   } catch (error) {
-    console.error("Error in purchase processing:", error);
-    
-    let statusCode = 500;
-    let errorMessage = "An unknown error occurred";
+    console.error("❌ Purchase error:", error);
 
-    if (error instanceof z.ZodError) {
-      statusCode = 400;
-      errorMessage = "Validation error";
-    } else if (error instanceof Error) {
-      errorMessage = error.message;
-      statusCode = error.name === 'ValidationError' ? 400 : 500;
-    }
-
-    return NextResponse.json({
-      success: false,
-      error: errorMessage,
-    }, { status: statusCode });
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }
 

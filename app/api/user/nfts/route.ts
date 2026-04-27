@@ -1,43 +1,65 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { authenticateTelegramUser } from "@/lib/auth";
 
-export async function GET(request: Request) {
+export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const telegramIdStr = searchParams.get('telegramId');
+    /* =========================
+       1. AUTH (STANDARDIZED)
+    ========================= */
+    const auth = await authenticateTelegramUser(req as any);
 
-    if (!telegramIdStr) {
-      return NextResponse.json({ error: 'Telegram ID required' }, { status: 400 });
+    if (!auth.isAuthenticated || !auth.telegramId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    // 1. Convert string ID to BigInt to match DB Schema
-    // We wrap it in a try-catch or ensure it's a valid string to prevent crashing
-    const tgId = BigInt(telegramIdStr);
+    const telegramId = auth.telegramId;
 
-    // 2. Find the user and include their NFTs
-    // We cast this as 'any' or a custom type to fix the "nfts does not exist" TS error
-   const user = await prisma.user.findUnique({
-  where: { telegramId: tgId },
-  include: {
-    ownedNfts: true, // This is what you named the relation in the User model
-  },
-            }) as any;
+    /* =========================
+       2. FETCH USER NFTs
+    ========================= */
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
+      include: {
+         ownedNfts: {
+      include: {
+        collection: true, 
+      },
+    },
+      },
+    });
 
-            if (!user) return NextResponse.json([]);
+    if (!user) {
+      return NextResponse.json([]);
+    }
 
-            // IMPORTANT: Match the name used in the 'include' above
-            const nfts = user.ownedNfts || []; 
+    const nfts = user.ownedNfts || [];
 
-            const formattedNfts = nfts.map((nft: any) => ({
-            id: nft.id,
-            collection: nft.collectionName || "Default", 
-            priceShells: nft.priceShells ? Number(nft.priceShells) : 0, 
-            imageUrl: nft.imageUrl,
-            rarity: nft.rarity
-            }));
+    /* =========================
+       3. FORMAT RESPONSE
+    ========================= */
+    const formattedNfts = nfts.map((nft) => ({
+      id: nft.id,
+      collection: nft.collection?.name || "Default",
+      priceShells: nft.priceShells ? Number(nft.priceShells) : 0,
+      imageUrl: nft.imageUrl,
+      rarity: nft.rarity,
+    }));
+
+    /* =========================
+       4. RESPONSE
+    ========================= */
     return NextResponse.json(formattedNfts);
+
   } catch (error) {
     console.error("NFT Fetch Error:", error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

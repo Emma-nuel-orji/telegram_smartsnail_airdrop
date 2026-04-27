@@ -39,7 +39,7 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
     const initWallet = async () => {
       try {
         // Clear any existing connection state from localStorage
-        localStorage.removeItem('ton-connect-ui_connected-wallet');
+        // localStorage.removeItem('ton-connect-ui_connected-wallet');
         
         if (!tonConnectUIRef.current) {
           tonConnectUIRef.current = new TonConnectUI({
@@ -85,25 +85,24 @@ export function WalletProvider({ children, manifestUrl }: WalletProviderProps) {
     initWallet();
 
     return () => {
-      if (tonConnectUIRef.current) {
-        // Clean up connection on unmount
-        tonConnectUIRef.current?.disconnect();
-        localStorage.removeItem('ton-connect-ui_connected-wallet');
-      }
+      // if (tonConnectUIRef.current) {
+      //   // Clean up connection on unmount
+      //   tonConnectUIRef.current?.disconnect();
+      //   localStorage.removeItem('ton-connect-ui_connected-wallet');
+      // }
     };
   }, [manifestUrl]);
 
-  const connect = async () => {
-    try {
-      if (tonConnectUI && !isConnected) {
-        console.log('Connecting wallet...');
-        await tonConnectUI.connectWallet(); 
-      }
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
+ const connect = async () => {
+  try {
+    if (tonConnectUI && !isConnected) {
+      console.log('Opening wallet modal...');
+      await tonConnectUI.openModal();
     }
-  };
-
+  } catch (error) {
+    console.error('Failed to connect wallet:', error);
+  }
+};
   const disconnect = async () => {
     try {
       if (tonConnectUI && isConnected) {

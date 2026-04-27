@@ -1,147 +1,129 @@
-// app/api/verify-payment/route.ts
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { processPayment } from '../purchase/route';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+const FUB_BOOK_ID = "fxcked-up-bags-id";
+const HR_BOOK_ID = "human-relations-id";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const {
-      orderId,
-      transactionHash,
-      paymentMethod,
-      totalAmount,
-      userId,
-      bookCount,
-      bookId,
-      fxckedUpBagsQty,
-      humanRelationsQty,
-      telegram_payment_charge_id, // For Stars payments
-      payment_id, // Alternative identifier for Stars
-    } = body;
 
-    console.log('🔍 Payment verification request received:', {
-      orderId,
-      transactionHash,
+    const {
       paymentMethod,
       telegram_payment_charge_id,
-    });
+      payload,
+    } = body;
 
-    // ✅ Validate required fields based on payment method
-    if (paymentMethod === 'TON' && !transactionHash) {
+    console.log("🔍 VERIFY REQUEST:", body);
+
+    // ✅ VALIDATE
+    if (paymentMethod !== "Stars") {
       return NextResponse.json(
-        { success: false, error: 'Missing transaction hash for TON payment' },
+        { error: "Invalid payment method" },
         { status: 400 }
       );
     }
-    if (paymentMethod === 'Stars' && !telegram_payment_charge_id && !payment_id) {
+
+    if (!telegram_payment_charge_id || !payload) {
       return NextResponse.json(
-        { success: false, error: 'Missing payment identifier for Stars payment' },
+        { error: "Missing payment data" },
         { status: 400 }
       );
     }
-    if (!['TON', 'Stars'].includes(paymentMethod) && (!orderId || !transactionHash)) {
+
+    // ✅ SAFE PARSE
+    let parsed: any;
+    try {
+      parsed = JSON.parse(payload);
+    } catch {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { error: "Invalid payload format" },
+        { status: 400 }
+      );
+    }
+
+    const transactionId = parsed?.t;
+
+    if (!transactionId) {
+      return NextResponse.json(
+        { error: "Missing transaction ID" },
         { status: 400 }
       );
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      let existingOrder = null;
+      const pending = await tx.pendingTransaction.findUnique({
+        where: { id: transactionId },
+      });
 
-      if (orderId) {
-        existingOrder = await tx.order.findUnique({ where: { orderId } });
-      } else if (transactionHash && paymentMethod === 'TON') {
-        existingOrder = await tx.order.findFirst({ where: { transactionReference: transactionHash } });
+      if (!pending) {
+        throw new Error("Transaction not found");
       }
 
-      // ✅ Handle Stars payment verification
-      if (paymentMethod === 'Stars') {
-        const pendingTransaction = await tx.pendingTransaction.findFirst({
+      if (pending.status === "COMPLETED") {
+        return { success: true, message: "Already processed" };
+      }
+
+      // 🔥 STOCK DEDUCTION (SAFE NOW)
+
+      // FxckedUpBags
+      if (pending.fxckedUpBagsQty > 0) {
+        const codes = await tx.generatedCode.findMany({
           where: {
-            OR: [
-              { payloadData: { contains: telegram_payment_charge_id || '' } },
-              { id: payment_id },
-            ],
-            status: 'PENDING',
+            bookId: FUB_BOOK_ID,
+            isUsed: false,
           },
-          include: { order: true },
+          take: pending.fxckedUpBagsQty,
         });
 
-        if (pendingTransaction?.status === 'COMPLETED') {
-          return {
-            success: true,
-            message: 'Payment already processed',
-            orderId: pendingTransaction.order?.orderId,
-          };
+        if (codes.length < pending.fxckedUpBagsQty) {
+          throw new Error("Not enough Fxcked Up Bags in stock");
         }
 
-        if (pendingTransaction?.order) {
-          await tx.pendingTransaction.update({
-            where: { id: pendingTransaction.id },
-            data: { status: 'COMPLETED' },
-          });
+        await tx.generatedCode.updateMany({
+          where: { id: { in: codes.map((c) => c.id) } },
+          data: { isUsed: true },
+        });
+      }
 
-          await tx.order.update({
-            where: { id: pendingTransaction.order.id },
-            data: {
-              status: 'SUCCESS',
-              transactionReference: telegram_payment_charge_id || payment_id,
-            },
-          });
+      // HumanRelations
+      if (pending.humanRelationsQty > 0) {
+        const codes = await tx.generatedCode.findMany({
+          where: {
+            bookId: HR_BOOK_ID,
+            isUsed: false,
+          },
+          take: pending.humanRelationsQty,
+        });
 
-          return {
-            success: true,
-            message: 'Stars payment verified successfully',
-            orderId: pendingTransaction.order.orderId,
-          };
+        if (codes.length < pending.humanRelationsQty) {
+          throw new Error("Not enough Human Relations in stock");
         }
 
-        return { success: false, error: 'Could not find a pending Stars payment transaction' };
+        await tx.generatedCode.updateMany({
+          where: { id: { in: codes.map((c) => c.id) } },
+          data: { isUsed: true },
+        });
       }
 
-      // ✅ Prevent duplicate processing
-      if (existingOrder?.status === 'SUCCESS') {
-        return {
-          success: true,
-          message: 'Payment already processed',
-          orderId: existingOrder.orderId,
-        };
-      }
+      // ✅ MARK COMPLETE
+      await tx.pendingTransaction.update({
+        where: { id: pending.id },
+        data: {
+          status: "COMPLETED",
+        },
+      });
 
-      // ✅ Process non-Stars payments using `processPayment`
-      if (paymentMethod !== 'Stars') {
-        const paymentResult = await processPayment(
-          tx,
-          paymentMethod,
-          transactionHash,
-          totalAmount,
-          userId,
-          bookCount,
-          bookId,
-          fxckedUpBagsQty,
-          humanRelationsQty
-        );
-
-        return {
-          success: true,
-          message: 'Payment verified successfully',
-          orderId: paymentResult.orderId,
-        };
-      }
+      return { success: true };
     });
 
-    if (!result || !result.success) {
-      return NextResponse.json(result ?? { error: "Undefined result" }, { status: 400 });
-    }
-    
-
     return NextResponse.json(result);
-  } catch (error) {
-    console.error('❌ Payment verification error:', error);
+
+  } catch (error: any) {
+    console.error("❌ VERIFY ERROR:", error);
+
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Payment verification failed' },
+      { error: error.message || "Verification failed" },
       { status: 400 }
     );
   }
