@@ -165,43 +165,48 @@ export default function Home() {
 const createNewUser = async (tg: any) => {
   try {
     const initData = tg.initData;
+    const user = tg.initDataUnsafe?.user;
 
-      const res = await axios.get(`/api/user/${telegramId}`, 
-      {}, // empty body — server reads everything from token
-      {
-        headers: {
-          "Content-Type": "application/json",
-          ...(initData ? { "Authorization": `tma ${initData}` } : {})
-        }
+    // Send the data required by your backend POST handler
+    const res = await axios.post('/api/user', {
+      telegramId: user?.id?.toString(),
+      firstName: user?.first_name,
+      lastName: user?.last_name,
+      username: user?.username
+    }, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(initData ? { "Authorization": `tma ${initData}` } : {})
       }
-    );
+    });
 
-    const createdUser = createRes.data;
+    const createdUser = res.data;
     localStorage.setItem(STORAGE_KEY(createdUser.telegramId), JSON.stringify(createdUser));
     setUser(createdUser);
     setShowWelcomePopup(true);
   } catch (err) {
     console.error("Failed to create new user", err);
   }
-};
-    
+}; 
 
-const initUserData = async (telegramId: string, tg: any, retries = 2) => {
+const initUserData = async (telegramId: string, tg: any) => {
+  const initData = tg.initData;
+
   try {
-    const res = await axios.get(`/api/user`);
-    const serverUser = res.data;
+    // 1. MUST use dynamic route to match [telegramId]/route.ts
+    // 2. MUST include Authorization header
+    const res = await axios.get(`/api/user/${telegramId}`, {
+      headers: {
+        "Authorization": `tma ${initData}`,
+        "Content-Type": "application/json"
+      }
+    });
 
-    syncManager.current?.resetPendingPoints();
-
-    setUser(serverUser);
-    localStorage.setItem(STORAGE_KEY(telegramId), JSON.stringify(serverUser));
-    setShowWelcomePopup(!serverUser.hasClaimedWelcome);
-
+    setUser(res.data);
+    localStorage.setItem(STORAGE_KEY(telegramId), JSON.stringify(res.data));
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      await createNewUser(tg);
-    } else if (retries > 0) {
-      setTimeout(() => initUserData(telegramId, tg, retries - 1), 1000);
+      await createNewUser(tg); // Trigger the now-fixed POST flow
     } else {
       console.error("User fetch failed", err);
     }

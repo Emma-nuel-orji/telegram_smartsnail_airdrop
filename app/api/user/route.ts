@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-
+import { authenticateTelegramUser } from "@/lib/auth";
 const userSchema = z.object({
     telegramId: z.string().min(1).regex(/^[0-9]+$/, "Telegram ID must be numeric").transform(val => BigInt(val)),
     username: z.string().nullable(),
@@ -42,10 +42,19 @@ function serializeUser(user: any) {
   // ✅ POST: Create or Update User
 export async function POST(req: NextRequest): Promise<Response> {
   try {
-    const body = await req.json();
-    console.log("POST /api/user - Body received:", body);
+    // 1. Add Auth Check
+    const auth = await authenticateTelegramUser(req);
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    const body = await req.json();
     const { telegramId, firstName, lastName, username } = body;
+
+    // 2. Validate against auth.telegramId to prevent spoofing
+    if (auth.telegramId.toString() !== telegramId.toString()) {
+      return NextResponse.json({ error: "Forbidden: ID mismatch" }, { status: 403 });
+    }
 
     if (!telegramId || !/^[0-9]+$/.test(telegramId)) {
       return NextResponse.json({ error: "Invalid Telegram ID" }, { status: 400 });
@@ -53,7 +62,6 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const tId = BigInt(telegramId);
 
-    console.log("POST /api/user - Attempting Upsert for:", telegramId);
     const user = await prisma.user.upsert({
       where: { telegramId: tId },
       update: { firstName, lastName, username },
