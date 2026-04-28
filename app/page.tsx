@@ -423,7 +423,9 @@ useEffect(() => {
           Connected: {formatWalletAddress(walletAddress)}
         </div>
       )}
-            <BoostIndicator 
+           
+      <div className="relative z-10 flex flex-col items-center mt-10">
+         <BoostIndicator 
   user={{ 
     tappingRate: user?.tappingRate || 1, 
     boostExpiresAt: user?.boostExpiresAt,
@@ -432,7 +434,6 @@ useEffect(() => {
     humanRelationsQty: (user as any)?.humanRelationsQty || 0
   }} 
 />
-      <div className="relative z-10 flex flex-col items-center mt-10">
         <div className="flex items-center gap-3">
           <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
           <span className="text-5xl font-black italic tracking-tighter shadow-purple-500/50">
@@ -605,7 +606,7 @@ useEffect(() => {
           {isVideoLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-[10px] font-black tracking-widest text-purple-500/50">INITIALIZING...</span>
+              <span className="text-[10px] font-black tracking-widest text-purple-500/50">lOADING ...</span>
             </div>
           )}
           <video 
