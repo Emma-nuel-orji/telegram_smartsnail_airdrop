@@ -153,7 +153,7 @@ useEffect(() => {
     if (!telegramId) return; // Prevent API call if telegramId is missing
 
     try {
-      const response = await axios.get(`/api/user/${telegramId}`);
+      const response = await axios.get(`/api/user`);
       console.log("✅ Fetched user data:", response.data);
 
       setUserId(response.data.id); // Ensure userId is correctly set
@@ -853,13 +853,13 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
   {(fxckedUpBagsQty > 0 || humanRelationsQty > 0) && (
     <div className="grid grid-cols-2 gap-3 animate-in zoom-in duration-300">
       <div className="bg-white/5 border border-white/10 p-3 rounded-2xl text-center">
-        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Added Power</p>
+        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Tapping Boost</p>
         <p className="text-2xl font-black italic text-purple-500">
           +{(fxckedUpBagsQty * 2) + (humanRelationsQty * 4)}
         </p>
       </div>
       <div className="bg-white/5 border border-white/10 p-3 rounded-2xl text-center">
-        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Added Duration</p>
+        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Boost Duration</p>
         <p className="text-2xl font-black italic text-green-400">
           {fxckedUpBagsQty + humanRelationsQty} Days
         </p>
@@ -871,17 +871,17 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
     <div className="relative">
       {/* Current Active Status */}
       <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1 ml-1">Current Active Boost</p>
-      <BoostIndicator 
+      {/* <BoostIndicator 
         user={{
           boostExpiresAt: (user as any)?.boostExpiresAt, 
           fxckedUpBagsQty: fxckedUpBagsQty, 
           humanRelationsQty: humanRelationsQty
         }} 
-      />
+      /> */}
     </div>
     
     <div className="bg-black/40 p-3 rounded-2xl border border-white/5 flex flex-col justify-center">
-      <p className="text-[10px] text-zinc-500 font-bold uppercase">Coin Reward</p>
+      <p className="text-[10px] text-zinc-500 font-bold uppercase">Points Reward</p>
       <p className="text-xl font-black italic text-yellow-500">{points.toLocaleString()}</p>
     </div>
   </div>

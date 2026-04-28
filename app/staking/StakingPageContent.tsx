@@ -197,7 +197,15 @@ export default function StakingPageContent() {
 
 const refreshUserPoints = async () => {
   if (!telegramId) return;
-  const userRes = await fetch(`/api/user/${telegramId}`);
+
+  const initData = window.Telegram?.WebApp?.initData;
+
+  const userRes = await fetch(`/api/user`, {
+    headers: {
+      ...(initData ? { Authorization: `tma ${initData}` } : {})
+    }
+  });
+
   if (userRes.ok) {
     const userData = await userRes.json();
     setUserPoints(userData.points);
@@ -212,11 +220,19 @@ const refreshUserPoints = async () => {
       setLoading(true);
       
       // Fetch user data
-      const userRes = await fetch(`/api/user/${telegramId}`);
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        setUserPoints(userData.points);
-      }
+      const initData = window.Telegram?.WebApp?.initData;
+
+      const userRes = await fetch(`/api/user`, {
+          headers: {
+            ...(initData ? { Authorization: `tma ${initData}` } : {})
+          }
+        });
+
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          console.log("USER DATA:", userData); // debug
+          setUserPoints(userData.points);
+        }
       
       // ✅ IMPROVED: Fetch both fight types with proper error handling
       const [upcomingRes, pastRes] = await Promise.all([

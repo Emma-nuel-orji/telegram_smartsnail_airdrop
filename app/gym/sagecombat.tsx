@@ -73,10 +73,16 @@ const SageCombat = () => {
         setTelegramId(userId);
         try {
           // Fetch user points and subscriptions in parallel for speed
-          const [userRes, subRes] = await Promise.all([
-            fetch(`/api/user/${userId}`),
-            fetch(`/api/subscription/${userId}`)
-          ]);
+          const initData = webApp?.initData;
+            const authHeaders = {
+              "Content-Type": "application/json",
+              ...(initData ? { "Authorization": `tma ${initData}` } : {})
+            };
+
+            const [userRes, subRes] = await Promise.all([
+              fetch(`/api/user/${userId}`, { headers: authHeaders }),
+              fetch(`/api/subscription/${userId}`, { headers: authHeaders })
+            ]);
 
           if (userRes.ok) {
             const userData = await userRes.json();
@@ -128,21 +134,26 @@ useEffect(() => {
     setPurchasing(plan.id);
 
     try {
-      const response = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          telegramId,
-          serviceId: plan.id, // Real DB ID
-          planTitle: plan.name,
-          duration: plan.duration,
-          intensity,
-          ageGroup,
-          planType: "COMBAT",
-          currencyType: currency,
-          amount: currency === 'SHELLS' ? Number(plan.priceShells) : plan.priceStars,
-        })
-      });
+      const initData = (window as any).Telegram?.WebApp?.initData;
+
+const response = await fetch("/api/subscribe", {
+  method: "POST",
+  headers: { 
+    "Content-Type": "application/json",
+    ...(initData ? { "Authorization": `tma ${initData}` } : {})
+  },
+  body: JSON.stringify({
+    // telegramId REMOVED — server gets it from token
+    serviceId: plan.id,
+    planTitle: plan.name,
+    duration: plan.duration,
+    intensity,
+    ageGroup,
+    planType: "COMBAT",
+    currencyType: currency,
+    amount: currency === 'SHELLS' ? Number(plan.priceShells) : plan.priceStars,
+  })
+});
 
       const result = await response.json();
 

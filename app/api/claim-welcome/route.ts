@@ -1,62 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/prisma/client';
+import { authenticateTelegramUser } from '@/lib/auth';
 
-
-const WELCOME_BONUS_AMOUNT = 5000n; // BigInt for welcome bonus
+const WELCOME_BONUS_AMOUNT = 5000n;
 
 export async function POST(req: NextRequest) {
   try {
-    const { telegramId } = await req.json();
-    console.log('Received telegramId:', telegramId);
+    /* =========================
+       1. AUTH
+    ========================= */
+    const auth = await authenticateTelegramUser(req);
 
-    if (!telegramId) {
-      console.error('❌ Missing telegramId in request body');
+    if (!auth.isAuthenticated || !auth.telegramId) {
       return NextResponse.json(
-        { success: false, error: 'telegramId is required' },
-        { status: 400 }
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    // ✅ Validate and safely convert to BigInt
-    let telegramIdBigInt: bigint;
-    try {
-      telegramIdBigInt = BigInt(telegramId);
-    } catch (error) {
-      console.error('❌ Invalid telegramId format:', telegramId);
-      return NextResponse.json(
-        { success: false, error: 'Invalid telegramId format' },
-        { status: 400 }
-      );
-    }
+    const telegramId = auth.telegramId; // ← from verified token
 
-    // ✅ Use transaction for safety
+    /* =========================
+       2. TRANSACTION
+    ========================= */
     const result = await prisma.$transaction(async (tx) => {
-      // Find user
       let user = await tx.user.findUnique({
-        where: { telegramId: telegramIdBigInt },
+        where: { telegramId },
       });
 
       if (!user) {
-        console.log(`🆕 Creating new user: ${telegramId}`);
         user = await tx.user.create({
           data: {
-            telegramId: telegramIdBigInt,
+            telegramId,
             points: Number(WELCOME_BONUS_AMOUNT),
             hasClaimedWelcome: true,
-            tappingRate: 1, 
+            tappingRate: 1,
           },
         });
         return { user, alreadyClaimed: false };
       }
 
-      // If already claimed, return instead of throwing
       if (user.hasClaimedWelcome) {
         return { user, alreadyClaimed: true };
       }
 
-      console.log(`🎉 Granting welcome bonus to: ${telegramId}`);
       const updatedUser = await tx.user.update({
-        where: { telegramId: telegramIdBigInt },
+        where: { telegramId },
         data: {
           points: { increment: Number(WELCOME_BONUS_AMOUNT) },
           hasClaimedWelcome: true,
@@ -66,6 +55,9 @@ export async function POST(req: NextRequest) {
       return { user: updatedUser, alreadyClaimed: false };
     });
 
+    /* =========================
+       3. RESPONSE
+    ========================= */
     if (result.alreadyClaimed) {
       return NextResponse.json(
         { success: false, error: 'Welcome bonus already claimed' },
@@ -75,13 +67,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      points: result.user.points.toString(), // Convert BigInt to string
+      points: result.user.points.toString(),
       hasClaimedWelcome: result.user.hasClaimedWelcome,
     });
 
   } catch (error) {
-    console.error('❌ Error in /api/claim-welcome:', error);
-
+    // No internal details exposed
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

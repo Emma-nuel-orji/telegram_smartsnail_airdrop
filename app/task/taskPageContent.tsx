@@ -435,9 +435,9 @@ const handleShareToStory = async () => {
   }
 
   try {
-    console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
-    console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
-    console.log("🟢 Share attempt:", { telegramId });
+    // console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
+    // console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
+    // console.log("🟢 Share attempt:", { telegramId });
 
     if (!window.Telegram.WebApp.shareToStory) {
       WebApp?.showAlert("Telegram Story sharing is not supported.");
@@ -448,8 +448,8 @@ const handleShareToStory = async () => {
     let mediaUrl = selectedTask.mediaUrl;
     
     // Validate mediaUrl
-    console.log("🟢 mediaUrl Type:", typeof mediaUrl);
-    console.log("🟢 mediaUrl Value:", mediaUrl);
+    // console.log("🟢 mediaUrl Type:", typeof mediaUrl);
+    // console.log("🟢 mediaUrl Value:", mediaUrl);
 
     if (!mediaUrl || typeof mediaUrl !== "string") {
       console.error("🚨 Invalid media URL:", mediaUrl);
@@ -464,7 +464,7 @@ const handleShareToStory = async () => {
     const cleanPath = mediaUrl.startsWith("/") ? mediaUrl.substring(1) : mediaUrl;
     const fullMediaUrl = `${baseUrl}/${cleanPath}`;
 
-    console.log("📢 Final Media URL:", fullMediaUrl);
+    // console.log("📢 Final Media URL:", fullMediaUrl);
     
     // Important: Force string type and ensure it's not an object
     const mediaUrlString = String(fullMediaUrl).toString();
@@ -476,7 +476,7 @@ const handleShareToStory = async () => {
     // Create sticker object
     const stickerUrl = `${baseUrl}/stickers/snail.png`;
     
-    console.log("📢 Calling Telegram shareToStory with parameters:");
+    // console.log("📢 Calling Telegram shareToStory with parameters:");
     
     // CRITICAL FIX: Direct parameter passing without creating an object variable first
     // This bypasses the issue where an object gets stringified incorrectly
@@ -515,11 +515,18 @@ const handleShareToStory = async () => {
     // Record share attempt in database/backend
     try {
       // Optional: Send share attempt to backend for tracking
-      await fetch(`${baseUrl}/api/record-share`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId, taskId: selectedTask.id })
-      });
+      const initData = window.Telegram?.WebApp?.initData;
+        await fetch(`${baseUrl}/api/record-share`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(initData ? { "Authorization": `tma ${initData}` } : {})
+          },
+          body: JSON.stringify({ 
+            taskId: selectedTask.id
+            // REMOVED: telegramId
+          })
+        });
     } catch (trackingError) {
       console.error("Failed to record share attempt:", trackingError);
       // Continue execution - we don't want to block the success message due to tracking failure
@@ -553,72 +560,43 @@ setTimeout(() => {
 };
 
   
-  const handleValidateClick = async () => {
-  if (!selectedTask) {
-    alert("No task selected.");
-    return;
-  }
+ const handleValidateClick = async () => {
+  if (!selectedTask) { alert("No task selected."); return; }
+  if (selectedTask.completed) { alert("Task already completed."); return; }
 
-  if (selectedTask.completed) {
-    alert("Task has already been completed.");
-    return;
-  }
-
-  // Use functional update and check the NEW value synchronously
   const currentAttempt = validationAttempt + 1;
   setValidationAttempt(currentAttempt);
 
-  // Warn on first 3 attempts (using currentAttempt, not stale state)
-  if (currentAttempt === 1) {
-    alert("Please perform the task before validating.");
-    return;
-  } else if (currentAttempt === 2) {
-    alert("Bruhh, you haven't performed the task yet!");
-    return;
-  } else if (currentAttempt === 3) {
-    alert("Go back and check again!");
-    return;
-  }
+  if (currentAttempt === 1) { alert("Please perform the task before validating."); return; }
+  else if (currentAttempt === 2) { alert("Bruhh, you haven't performed the task yet!"); return; }
+  else if (currentAttempt === 3) { alert("Go back and check again!"); return; }
 
-  // 4th click onwards — actually validate
-  const telegramId = WebApp?.initDataUnsafe?.user?.id;
-  if (!telegramId) {
-    alert("Could not verify Telegram user. Please try again.");
-    return;
-  }
-
-  // Show loading state immediately
   setLoading(true);
   setMessage("⏳ Validating your task, please wait...");
 
   try {
-    const taskId = String(selectedTask.id);
+    const initData = window.Telegram?.WebApp?.initData;
 
     const response = await fetch("/api/tasks/complete", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(initData ? { "Authorization": `tma ${initData}` } : {})
+      },
       body: JSON.stringify({
-        taskId,
-        reward: selectedTask.reward ?? 0,
-        telegramId,
+        taskId: String(selectedTask.id),
+        // REMOVED: reward — server looks up reward by taskId
+        // REMOVED: telegramId — server gets it from token
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `Server error: ${response.status}`;
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch {
-        errorMessage = errorText || errorMessage;
-      }
-      throw new Error(errorMessage);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Validation failed");
     }
 
     const data = await response.json();
 
-    // Update tasks
     const updatedTasks = tasks.map((task) =>
       task.id === selectedTask.id
         ? { ...task, completed: true, completedTime: new Date().toISOString() }
@@ -626,25 +604,14 @@ setTimeout(() => {
     );
     setTasks(updatedTasks);
 
-    // Update points
     if (data.userPoints !== undefined) {
       setTotalPoints(data.userPoints);
       localStorage.setItem("totalPoints", data.userPoints.toString());
-    } else {
-      setTotalPoints((prev) => {
-        const reward = selectedTask.reward ?? 0;
-        const newPoints = prev + reward;
-        localStorage.setItem("totalPoints", newPoints.toString());
-        return newPoints;
-      });
     }
 
-    const completedTaskIds = updatedTasks
-      .filter((task) => task.completed)
-      .map((task) => task.id);
+    const completedTaskIds = updatedTasks.filter(t => t.completed).map(t => t.id);
     localStorage.setItem("completedTasks", JSON.stringify(completedTaskIds));
 
-    // Success feedback before closing
     setMessage(`🎉 Task complete! +${(selectedTask.reward ?? 0).toLocaleString()} SHELLS earned!`);
     triggerConfetti();
 
@@ -653,16 +620,10 @@ setTimeout(() => {
       setSelectedTask(null);
       setValidationAttempt(0);
       setMessage("");
-    }, 1500); // Let user see the success message briefly
+    }, 1500);
 
   } catch (error) {
-    console.error("Error completing task:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    setMessage(
-      `❌ ${errorMessage.includes("Invalid task ID")
-        ? "Problem with task data. Please refresh and try again."
-        : `Failed: ${errorMessage}`}`
-    );
+    setMessage("❌ Validation failed. Please try again.");
   } finally {
     setLoading(false);
   }
@@ -671,48 +632,43 @@ setTimeout(() => {
 
   // Existing code redemption handler
   const handleRedeemCode = async () => {
-    if (!inputCode) {
-      setMessage("Please enter a valid code.");
-      return;
+  if (!inputCode) { setMessage("Please enter a valid code."); return; }
+  if (!selectedTask?.batchId) { setMessage("No task selected or batch ID missing."); return; }
+
+  setLoading(true);
+  try {
+    const initData = window.Telegram?.WebApp?.initData;
+
+    const response = await fetch("/api/redeemCodeTask", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        ...(initData ? { "Authorization": `tma ${initData}` } : {})
+      },
+      body: JSON.stringify({
+        code: inputCode,
+        batchId: selectedTask.batchId,
+        // REMOVED: telegramId — server gets it from token
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setReward(data.reward);
+      setUserPoints(prev => prev + data.reward);
+      setMessage(data.message || `You received ${data.reward} Shells!`);
+      triggerConfetti();
+    } else {
+      setMessage(data.error || "Redemption failed. Please try again.");
     }
-  
-    if (!selectedTask?.batchId) {
-      setMessage("No task selected or batch ID missing.");
-      return;
-    }
-  
-    setLoading(true);
-    try {
-      const response = await fetch("/api/redeemCodeTask", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code: inputCode,
-          telegramId,
-          batchId: selectedTask.batchId, // Ensure batchId is correctly passed
-        }),
-      });
-  
-      const data = await response.json();
-  
-      if (response.ok) {
-        setReward(data.reward);
-        setUserPoints((prevPoints) => prevPoints + data.reward);
-        setMessage(data.message || `You received ${data.reward} Shells!`);
-        triggerConfetti(); // Trigger confetti only on success
-      } else {
-        setMessage(data.error || "Redemption failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error redeeming code:", error);
-      setMessage("An unexpected error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-      setInputCode("");
-    }
-  };
+  } catch (error) {
+    setMessage("An unexpected error occurred. Please try again.");
+  } finally {
+    setLoading(false);
+    setInputCode("");
+  }
+};
 
  const getDynamicDescription = (task: Task) => {
   // SPECIAL CASE: Wallet Task (ID 18)

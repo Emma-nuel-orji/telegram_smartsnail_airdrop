@@ -188,7 +188,7 @@ const createNewUser = async (tg: any) => {
 
 const initUserData = async (telegramId: string, tg: any, retries = 2) => {
   try {
-    const res = await axios.get(`/api/user/${telegramId}`);
+    const res = await axios.get(`/api/user`);
     const serverUser = res.data;
 
     syncManager.current?.resetPendingPoints();
@@ -418,14 +418,12 @@ useEffect(() => {
           Connected: {formatWalletAddress(walletAddress)}
         </div>
       )}
- <BoostIndicator 
-              variant="teleprompter" 
-              user={{
-                boostExpiresAt: user?.boostExpiresAt ?? null,
-                fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
-                humanRelationsQty: (user as any)?.humanRelationsQty || 0
-              }} 
-            />
+            <BoostIndicator user={{ 
+              tappingRate: user?.tappingRate || 1, 
+              boostExpiresAt: user?.boostExpiresAt,
+              fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
+              humanRelationsQty: (user as any)?.humanRelationsQty || 0
+            }} />
       <div className="relative z-10 flex flex-col items-center mt-10">
         <div className="flex items-center gap-3">
           <img src="/images/shell.png" className="w-12 h-12" alt="shell" />

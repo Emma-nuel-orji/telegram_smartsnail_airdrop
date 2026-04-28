@@ -34,7 +34,7 @@ export default function GymSubscriptions() {
 const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as TelegramWebApp : null;
   const BOT_USERNAME = "SmartSnails_Bot";
   // const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_ID;
-  console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
+  // console.log("🔍 URL CHECK:", { gymId, gymName, rawParams: searchParams?.toString() });
 
  useEffect(() => {
   const tg = window.Telegram?.WebApp;
@@ -73,7 +73,7 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
   
   try {
     const [userRes, subsRes, activeRes] = await Promise.all([
-  fetch(`/api/user/${telegramId}`, {
+  fetch(`/api/user`, {
     headers: {
       Authorization: `tma ${initData}` // 🔐 ADD THIS
     }
@@ -136,7 +136,7 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
 
 fetchData();
 return () => clearTimeout(timeout);
-}, [telegramId, gymId, router]);
+}, [telegramId, gymId, initData, router]);
 
   // --- 3. THE "INSTANT-UPDATE" PURCHASE LOGIC ---
   const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
@@ -156,17 +156,21 @@ return () => clearTimeout(timeout);
     setPurchasing(plan.id);
     try {
       const response = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            serviceId: plan.id,
-            planTitle: plan.name,
-            duration: plan.duration,
-            currencyType: currency,
-            amount: amount,
-            intensity: false 
-          })
-      });
+  method: "POST",
+  headers: { 
+    "Content-Type": "application/json",
+    ...(initData ? { "Authorization": `tma ${initData}` } : {})
+  },
+  body: JSON.stringify({
+    serviceId: plan.id,
+    planTitle: plan.name,
+    duration: plan.duration,
+    currencyType: currency,
+    amount: amount,
+    intensity: false
+    // telegramId NOT included — server gets it from token
+  })
+});
 
       const result = await response.json();
       

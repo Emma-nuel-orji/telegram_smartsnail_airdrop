@@ -89,7 +89,7 @@ export default function TicketPurchaseSystem() {
 
       try {
         // Fetch user balance
-        const balanceResponse = await fetch(`/api/user/${telegramId}`);
+        const balanceResponse = await fetch(`/api/user`);
         const balanceData = await balanceResponse.json();
         setUserBalance(Number(balanceData.points) || 0);
 
