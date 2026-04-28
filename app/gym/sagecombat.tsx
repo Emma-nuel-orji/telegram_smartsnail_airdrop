@@ -64,45 +64,45 @@ const SageCombat = () => {
   };
 
   // 1. Setup Telegram User, Points, and Active Subscriptions
-  useEffect(() => {
-    const initApp = async () => {
-      const webApp = (window as any).Telegram?.WebApp;
-      const userId = webApp?.initDataUnsafe?.user?.id?.toString();
-      
-      if (userId) {
-        setTelegramId(userId);
-        try {
-          // Fetch user points and subscriptions in parallel for speed
-          const initData = webApp?.initData;
-            const authHeaders = {
-              "Content-Type": "application/json",
-              ...(initData ? { "Authorization": `tma ${initData}` } : {})
-            };
+ // Replace your existing useEffect hook inside SageCombat
+useEffect(() => {
+  const initApp = async () => {
+    const webApp = (window as any).Telegram?.WebApp;
+    const userId = webApp?.initDataUnsafe?.user?.id?.toString();
+    const initData = webApp?.initData;
 
-            const [userRes, subRes] = await Promise.all([
-              fetch(`/api/user/${userId}`, { headers: authHeaders }),
-              fetch(`/api/subscription/${userId}`, { headers: authHeaders })
-            ]);
+    if (userId && initData) {
+      setTelegramId(userId);
+      try {
+        const authHeaders = {
+          "Content-Type": "application/json",
+          "Authorization": `tma ${initData}`
+        };
 
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            setUserPoints(Number(userData.points || 0));
-          }
+        // Fetch user points AND subscriptions in parallel
+        const [userRes, subRes] = await Promise.all([
+          fetch(`/api/user/${userId}`, { headers: authHeaders }),
+          fetch(`/api/subscription/${userId}`, { headers: authHeaders })
+        ]);
 
-          if (subRes.ok) {
-            const data = await subRes.json();
-            // Convert to array if single object, then filter for ACTIVE
-            const subsArray = Array.isArray(data) ? data : [data];
-            setSubscriptions(subsArray.filter((s: any) => s.status === 'ACTIVE'));
-          }
-        } catch (err) {
-          console.error("Initialization error", err);
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUserPoints(Number(userData.points || 0));
         }
+
+        if (subRes.ok) {
+          const data = await subRes.json();
+          const subsArray = Array.isArray(data) ? data : [data];
+          setSubscriptions(subsArray.filter((s: any) => s.status === 'ACTIVE'));
+        }
+      } catch (err) {
+        console.error("Initialization error", err);
       }
-      setLoading(false);
-    };
-    initApp();
-  }, []);
+    }
+    setLoading(false);
+  };
+  initApp();
+}, []);
 
   // 2. Fetch Available Plans whenever Toggles change
 
@@ -136,24 +136,23 @@ useEffect(() => {
     try {
       const initData = (window as any).Telegram?.WebApp?.initData;
 
-const response = await fetch("/api/subscribe", {
-  method: "POST",
-  headers: { 
-    "Content-Type": "application/json",
-    ...(initData ? { "Authorization": `tma ${initData}` } : {})
-  },
-  body: JSON.stringify({
-    // telegramId REMOVED — server gets it from token
-    serviceId: plan.id,
-    planTitle: plan.name,
-    duration: plan.duration,
-    intensity,
-    ageGroup,
-    planType: "COMBAT",
-    currencyType: currency,
-    amount: currency === 'SHELLS' ? Number(plan.priceShells) : plan.priceStars,
-  })
-});
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          ...(initData ? { "Authorization": `tma ${initData}` } : {})
+        },
+        body: JSON.stringify({
+          serviceId: plan.id,
+          planTitle: plan.name,
+          duration: plan.duration,
+          intensity,
+          ageGroup,
+          planType: "COMBAT",
+          currencyType: currency,
+          amount: currency === 'SHELLS' ? Number(plan.priceShells) : plan.priceStars,
+        })
+      });
 
       const result = await response.json();
 

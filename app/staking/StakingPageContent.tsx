@@ -171,6 +171,35 @@ export default function StakingPageContent() {
   const [userPoints, setUserPoints] = useState<number>(0);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Replace your existing fetchUser/refreshUserPoints logic with this:
+const fetchUserData = async (id: string) => {
+  const initData = typeof window !== 'undefined' 
+    ? (window as any).Telegram?.WebApp?.initData 
+    : "";
+
+  if (!initData) {
+    console.error("No initData found");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/user/${id}`, {
+      headers: {
+        'Authorization': `tma ${initData}`, // This header is REQUIRED by your auth.ts
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch user");
+    
+    const userData = await res.json();
+    setUserPoints(userData.points); // Now it correctly gets points from the API
+    return userData;
+  } catch (err) {
+    console.error("Frontend Fetch Error:", err);
+  }
+};
+
   // Initialize Telegram WebApp
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -213,28 +242,16 @@ const refreshUserPoints = async () => {
 };
 
   // Fetch Data - MODIFIED TO GET ALL FIGHTS (not just upcoming)
- useEffect(() => {
+useEffect(() => {
   const fetchData = async () => {
     if (!telegramId) return;
     try {
       setLoading(true);
       
-      // Fetch user data
-      const initData = window.Telegram?.WebApp?.initData;
-
-      const userRes = await fetch(`/api/user`, {
-          headers: {
-            ...(initData ? { Authorization: `tma ${initData}` } : {})
-          }
-        });
-
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          console.log("USER DATA:", userData); // debug
-          setUserPoints(userData.points);
-        }
+      // Call the new secure fetcher
+      await fetchUserData(telegramId);
       
-      // ✅ IMPROVED: Fetch both fight types with proper error handling
+      // Fetch fights
       const [upcomingRes, pastRes] = await Promise.all([
         fetch('/api/fights/upcoming'),
         fetch('/api/fights/past')
@@ -243,11 +260,7 @@ const refreshUserPoints = async () => {
       const upcomingData = upcomingRes.ok ? await upcomingRes.json() : [];
       const pastData = pastRes.ok ? await pastRes.json() : [];
       
-      // Combine them: Upcoming first, then Past
-      const allFights = [...upcomingData, ...pastData];
-      setFights(allFights);
-      console.log('Loaded fights:', allFights.length);
-      
+      setFights([...upcomingData, ...pastData]);
     } catch (err) { 
       console.error('Fetch error:', err);
       setError("Failed to load arena"); 
@@ -339,7 +352,7 @@ useEffect(() => {
         >
           {fights.map((fight) => (
             <div key={fight.id} className="w-screen flex-shrink-0 px-4 flex flex-col">
-              <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} onStakeSuccess={refreshUserPoints} />
+              <FightCard fight={fight} userPoints={userPoints} telegramId={telegramId} onStakeSuccess={() => telegramId && fetchUserData(telegramId)} />
             </div>
           ))}
         </div>

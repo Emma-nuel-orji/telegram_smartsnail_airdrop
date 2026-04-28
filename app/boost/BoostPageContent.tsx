@@ -153,7 +153,7 @@ useEffect(() => {
     if (!telegramId) return; // Prevent API call if telegramId is missing
 
     try {
-      const response = await axios.get(`/api/user`);
+       const response = await axios.get(`/api/user/${telegramId}`);
       console.log("✅ Fetched user data:", response.data);
 
       setUserId(response.data.id); // Ensure userId is correctly set

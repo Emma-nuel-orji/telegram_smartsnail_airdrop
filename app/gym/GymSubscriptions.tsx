@@ -73,7 +73,7 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
   
   try {
     const [userRes, subsRes, activeRes] = await Promise.all([
-  fetch(`/api/user`, {
+  fetch(`/api/user/${telegramId}`, {
     headers: {
       Authorization: `tma ${initData}` // 🔐 ADD THIS
     }
