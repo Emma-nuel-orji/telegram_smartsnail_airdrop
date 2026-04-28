@@ -423,12 +423,15 @@ useEffect(() => {
           Connected: {formatWalletAddress(walletAddress)}
         </div>
       )}
-            <BoostIndicator user={{ 
-              tappingRate: user?.tappingRate || 1, 
-              boostExpiresAt: user?.boostExpiresAt,
-              fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
-              humanRelationsQty: (user as any)?.humanRelationsQty || 0
-            }} />
+            <BoostIndicator 
+  user={{ 
+    tappingRate: user?.tappingRate || 1, 
+    boostExpiresAt: user?.boostExpiresAt,
+    // Ensure these fields exist on the User type
+    fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
+    humanRelationsQty: (user as any)?.humanRelationsQty || 0
+  }} 
+/>
       <div className="relative z-10 flex flex-col items-center mt-10">
         <div className="flex items-center gap-3">
           <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
@@ -456,9 +459,9 @@ useEffect(() => {
     )}
       </div>
 
-       <button onClick={resetAppSession} className="mt-4 text-red-600">
+       {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
   Reset & Switch Account
-</button>
+</button> */}
 
       <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">
         <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50">

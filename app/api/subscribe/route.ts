@@ -7,7 +7,6 @@ import { authenticateTelegramUser } from "@/lib/auth";
 ========================= */
 async function sendTelegram(chatId: string | undefined, text: string) {
   if (!chatId || !process.env.TELEGRAM_BOT_TOKEN) return;
-
   try {
     await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -22,7 +21,7 @@ async function sendTelegram(chatId: string | undefined, text: string) {
       }
     );
   } catch (err) {
-    console.error("Telegram send error:", err);
+    // Silent fail — notification failure shouldn't break the purchase
   }
 }
 
@@ -45,7 +44,6 @@ async function createStarInvoice(title: string, amount: number, payload: string)
       }),
     }
   );
-
   const data = await res.json();
   return data.ok ? data.result : null;
 }
@@ -53,11 +51,11 @@ async function createStarInvoice(title: string, amount: number, payload: string)
 /* =========================
    MAIN ROUTE
 ========================= */
-
-
 export async function POST(req: NextRequest) {
   try {
-    /* 🔐 ONE AUTH SYSTEM */
+    /* =========================
+       1. AUTH
+    ========================= */
     const auth = await authenticateTelegramUser(req);
 
     if (!auth.isAuthenticated) {
@@ -65,11 +63,18 @@ export async function POST(req: NextRequest) {
     }
 
     const telegramId = auth.telegramId;
+    const isSuperAdmin = auth.isAdmin === true;
 
-    /* 📦 INPUT */
+    /* =========================
+       2. INPUT
+    ========================= */
     const { serviceId, planTitle, intensity, duration, currencyType } =
       await req.json();
 
+    /* =========================
+       3. FETCH SERVICE FROM DB
+          Never trust client price
+    ========================= */
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
       include: { partner: { include: { admins: true } } },
@@ -79,6 +84,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
+    // Price always comes from DB, never from client
     const price =
       currencyType === "SHELLS"
         ? Number(service.priceShells)
@@ -88,7 +94,9 @@ export async function POST(req: NextRequest) {
     const isShortTerm =
       d.includes("day") || d.includes("session") || d.includes("walk");
 
-    /* 💳 STARS FLOW */
+    /* =========================
+       4. STARS FLOW
+    ========================= */
     if (currencyType === "STARS") {
       const payload = JSON.stringify({
         type: "COMBAT_SUBSCRIPTION",
@@ -115,22 +123,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, invoiceLink });
     }
 
-    /* 🐚 SHELLS FLOW */
+    /* =========================
+       5. SHELLS FLOW
+    ========================= */
     const subscription = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { telegramId },
       });
 
-      if (!user || Number(user.points) < price) {
-        throw new Error("INSUFFICIENT_FUNDS");
-      }
+      if (!user) throw new Error("INSUFFICIENT_FUNDS");
 
-      await tx.user.update({
-        where: { telegramId },
-        data: {
-          points: { decrement: price },
-        },
-      });
+      // Superadmin gets free access — skip balance check and deduction
+      if (!isSuperAdmin) {
+        if (Number(user.points) < price) {
+          throw new Error("INSUFFICIENT_FUNDS");
+        }
+
+        await tx.user.update({
+          where: { telegramId },
+          data: {
+            points: { decrement: price },
+          },
+        });
+      }
 
       const startDate = new Date();
       const endDate = new Date();
@@ -158,9 +173,10 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    /* 📢 NOTIFICATION */
+    /* =========================
+       6. NOTIFICATION
+    ========================= */
     const partnerAdmin = service.partner.admins[0];
-
     const adminTag = partnerAdmin
       ? `[Admin](tg://user?id=${partnerAdmin.telegramId.toString()})`
       : "@SuperAdmin";
@@ -171,14 +187,14 @@ export async function POST(req: NextRequest) {
       `📍 Location: ${service.partner.name}\n` +
       `👤 Trainee: ${subscription.user.firstName}\n` +
       `📋 Plan: ${planTitle}\n` +
+      `${isSuperAdmin ? "🔑 SuperAdmin (no charge)" : ""}\n` +
       `${isShortTerm ? "✅ Auto-activated" : "⚠️ Pending activation"}`;
 
     await sendTelegram(process.env.ADMIN_GROUP_ID, msg);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error(error);
 
+  } catch (error: any) {
     if (error.message === "INSUFFICIENT_FUNDS") {
       return NextResponse.json(
         { success: false, error: "Insufficient Shells" },

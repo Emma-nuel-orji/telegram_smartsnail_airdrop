@@ -37,17 +37,17 @@ const BoostIndicator = ({ user }: BoostIndicatorProps) => {
   const totalBooks = (user.fxckedUpBagsQty || 0) + (user.humanRelationsQty || 0);
 
   return (
-    <div className="fixed top-[80px] left-0 w-full z-50 overflow-hidden bg-black/80 border-y border-purple-500/50 py-1.5 pointer-events-none">
+    // 'fixed' with high z-index and no border, semi-transparent background
+    <div className="fixed top-20 left-4 right-4 z-40 bg-white/5 backdrop-blur-sm rounded-lg overflow-hidden py-1 px-3 pointer-events-none">
       <motion.div 
-        className="whitespace-nowrap inline-block"
+        className="whitespace-nowrap"
         animate={{ x: ["100%", "-100%"] }}
-        transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+        transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
       >
-        <span className="text-white text-[10px] font-black uppercase tracking-widest px-4">
-          {hasBoost 
-            ? `⚡ BOOST ACTIVE: +${user.tappingRate}/TAP | TIME LEFT: ${timeLeft} | BOOKS HELD: ${totalBooks}`
-            : `🚀 BOOST STATUS: INACTIVE | BOOKS HELD: ${totalBooks} | CLICK TO BOOST YOUR TAPPING RATE`
-          }
+        <span className="text-zinc-300 text-[9px] font-bold uppercase tracking-tighter">
+          {user.tappingRate > 1 && timeLeft && timeLeft !== "Expired"
+            ? `⚡ BOOST x${user.tappingRate} | ${timeLeft} | BOOKS: ${user.fxckedUpBagsQty + user.humanRelationsQty}`
+            : `🚀 BOOST INACTIVE | BOOKS: ${user.fxckedUpBagsQty + user.humanRelationsQty} | TAP TO EARN`}
         </span>
       </motion.div>
     </div>

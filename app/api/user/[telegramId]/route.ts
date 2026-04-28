@@ -40,25 +40,39 @@ export async function GET(
   try {
     const auth = await authenticateTelegramUser(req);
     
-    // 1. Check Auth (Type-safe)
     if (!auth.isAuthenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Prevent ID spoofing
     if (auth.telegramId.toString() !== params.telegramId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 3. Fetch data
+    // 1. Fetch user AND their purchases
     const dbUser = await prisma.user.findUnique({
       where: { telegramId: BigInt(params.telegramId) },
-      include: { athleteProfile: { include: { nft: true } } },
+      include: { 
+        athleteProfile: { include: { nft: true } },
+        // Ensure your Prisma schema has this relation defined
+        purchases: true 
+      },
     });
 
     if (!dbUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    return NextResponse.json(serializeUser(dbUser));
+    // 2. Calculate totals from the purchase history
+    const totals = dbUser.purchases.reduce((acc, p) => ({
+      fxckedUpBagsQty: acc.fxckedUpBagsQty + (p.fxckedUpBagsQty || 0),
+      humanRelationsQty: acc.humanRelationsQty + (p.humanRelationsQty || 0)
+    }), { fxckedUpBagsQty: 0, humanRelationsQty: 0 });
+
+    // 3. Return serialized user merged with the new purchase totals
+    const serializedUser = serializeUser(dbUser);
+    
+    return NextResponse.json({
+      ...serializedUser,
+      ...totals
+    });
   } catch (error) {
     console.error("GET USER ERROR:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
