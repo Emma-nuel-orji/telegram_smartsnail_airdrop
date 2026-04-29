@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useCallback, useContext, useRef, Suspense   } from "react";
 import { Check, Ticket, Star, Coins, Users, Crown, Sparkles } from 'lucide-react';
-import { ChevronLeft, ArrowLeft, ChevronRight, CheckCircle2, Lock, X } from 'lucide-react';
+import { ChevronLeft, ArrowLeft, ChevronRight, CheckCircle2, Lock, Terminal, X } from 'lucide-react';
 // import React, { Suspense } from 'react';
 import { io } from "socket.io-client";
 import Link from "next/link";
@@ -20,14 +20,7 @@ import { useWindowSize } from 'react-use';
 import { useOnboardingTour } from '../hooks/useOnboardingTour';
 import OnboardingTour, { TourStep } from '../../components/OnboardingTour';
 import { AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, 
-  Check, 
-  Star, 
-  Sparkles, 
-  ChevronRight, 
-  Terminal 
-} from 'lucide-react';
+
 // import TicketPurchaseSystem from '@/app/tickets/page';
 
 
