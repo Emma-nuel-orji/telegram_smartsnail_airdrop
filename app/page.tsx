@@ -428,14 +428,15 @@ useEffect(() => {
         {user?.boostExpiresAt && (
           <div className={`fixed ${isConnected && walletAddress ? 'top-24' : 'top-16'} left-0 right-0 z-30 flex justify-center pointer-events-none`}>
             <div className="pointer-events-auto">
-              <BoostIndicator
-                variant="teleprompter"
-                user={{
-                  boostExpiresAt: user?.boostExpiresAt ?? null,
-                  fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
-                  humanRelationsQty: (user as any)?.humanRelationsQty || 0
-                }}
-              />
+                <BoostIndicator 
+          user={{ 
+            tappingRate: user?.tappingRate || 1, 
+            boostExpiresAt: user?.boostExpiresAt,
+            // Ensure these fields exist on the User type
+            fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
+            humanRelationsQty: (user as any)?.humanRelationsQty || 0
+          }} 
+        />
             </div>
           </div>
         )}
