@@ -447,6 +447,8 @@ const handleShareToStory = async () => {
     const isVideo = fullMediaUrl.toLowerCase().endsWith('.mp4');
 
     // 1. Open the Telegram Story Editor
+    // Using @ts-ignore if your types aren't updated for shareToStory
+    // @ts-ignore
     window.Telegram.WebApp.shareToStory(
       fullMediaUrl,
       isVideo ? "video" : "photo",
@@ -463,7 +465,7 @@ const handleShareToStory = async () => {
     setIsStoryVerifying(true);
     setMessage("🔍 Verifying your story... please wait.");
 
-    // 3. The 12-second "Honor System" Delay
+    // 3. The "Honor System" Delay (10-12 seconds is the sweet spot)
     setTimeout(async () => {
       try {
         const initData = window.Telegram?.WebApp?.initData;
@@ -482,8 +484,10 @@ const handleShareToStory = async () => {
         const data = await response.json();
 
         if (response.ok) {
-          // 5. Success UI sequence
-          setTotalPoints(data.userPoints || (totalPoints + reward));
+          // 5. Success UI sequence - syncing backend points with frontend
+          const finalPoints = data.userPoints || (totalPoints + reward);
+          setTotalPoints(finalPoints);
+          localStorage.setItem("totalPoints", finalPoints.toString());
           
           const updatedTasks = tasks.map(t => 
             t.id === selectedTask.id ? { ...t, completed: true, completedTime: new Date().toISOString() } : t
@@ -491,47 +495,23 @@ const handleShareToStory = async () => {
           setTasks(updatedTasks);
           
           triggerConfetti();
-          WebApp?.showAlert(`🎉 Story Verified! +${reward} SHELLS earned!`);
+          WebApp?.showAlert(`🎉 Story Verified! +${reward.toLocaleString()} SHELLS earned!`);
           setSelectedTask(null);
         } else {
-          throw new Error(data.error);
+          throw new Error(data.error || "Verification failed");
         }
-      } catch (err) {
-        WebApp?.showAlert("Verification failed. Did you finish the story?");
+      } catch (err: any) {
+        WebApp?.showAlert(err.message || "Verification failed. Did you finish the story?");
       } finally {
         setIsStoryVerifying(false);
         setMessage("");
       }
-    }, 12000); // 12 seconds feels long enough to be "real"
+    }, 12000); 
 
   } catch (error) {
     console.error("❌ Share failed:", error);
     WebApp?.showAlert("Failed to share story.");
-  }
-};
-
-    // Success callback after delay (for demo/testing, set to 5 seconds; in production use longer time)
-    const reward = selectedTask.reward || 0;
-    // ✅ REPLACE WITH THIS
-setTimeout(() => {
-  // 1. Update the UI state for points
-  setTotalPoints((prev) => {
-    const newPoints = prev + reward;
-    localStorage.setItem("totalPoints", newPoints.toString());
-    return newPoints;
-  });
-
-  // 2. Show the success message
-  WebApp?.showAlert(`🎉 You earned ${reward} Shells! Your balance has been updated.`);
-  
-  // 3. Close the popup and trigger effects
-  setSelectedTask(null);
-  triggerConfetti();
-}, 5000); 
-    
-  } catch (error) {
-    console.error("❌ Share failed:", error);
-    WebApp?.showAlert("Failed to share story. Please try again.");
+    setIsStoryVerifying(false);
   }
 };
 
