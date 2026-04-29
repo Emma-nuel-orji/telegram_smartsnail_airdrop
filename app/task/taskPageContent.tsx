@@ -19,7 +19,8 @@ import {
   Wallet,
   Lock,
   CheckCircle2, 
-  MessageSquare,
+  MessageSquare, 
+  Terminal,
   Copy
 } from 'lucide-react';
 
@@ -714,7 +715,7 @@ const handleShareToStory = async () => {
                 <span className="task-title-web3">{dynamicTitle}</span>
                 <div className="reward-container-web3">
                   <span className="reward-amount">+{(task.reward || 0).toLocaleString()}</span>
-                  <span className="reward-unit">SHELLS</span>
+                  {/* <span className="reward-unit">SHELLS</span> */}
                 </div>
               </div>
             </div>
