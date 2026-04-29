@@ -20,6 +20,14 @@ import { useWindowSize } from 'react-use';
 import { useOnboardingTour } from '../hooks/useOnboardingTour';
 import OnboardingTour, { TourStep } from '../../components/OnboardingTour';
 import { AnimatePresence } from 'framer-motion';
+import { 
+  ArrowLeft, 
+  Check, 
+  Star, 
+  Sparkles, 
+  ChevronRight, 
+  Terminal 
+} from 'lucide-react';
 // import TicketPurchaseSystem from '@/app/tickets/page';
 
 
