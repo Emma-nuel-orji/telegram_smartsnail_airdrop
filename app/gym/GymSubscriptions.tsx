@@ -57,7 +57,7 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
     }, 7000);
 
     if (!telegramId || !gymId || !initData) {
-  console.log("⏳ Waiting for Telegram ID, Gym ID, and initData...");
+  // console.log("⏳ Waiting for Telegram ID, Gym ID, and initData...");
   return;
 }
 
@@ -92,29 +92,16 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
 
     if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
-    const userData = await userRes.json();
+   const userData = await userRes.json();
 
-    setIsAdmin(userData.isAdmin); // 👈 TRUST BACKEND
-    const isSuperAdmin = userData.isSuperAdmin;
-
-  //  const SUPER_ADMIN_IDS = (process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS || '').split(',').map(id => id.trim());
-  //   const isSuperAdmin = telegramId !== null && SUPER_ADMIN_IDS.includes(telegramId);
-
-  //   if (telegramId === ADMIN_ID) {
-  //     setIsAdmin(true);
-  //   }
-
-    // Only block if no nickname AND not an admin
-   if (!userData.nickname && !userData.isAdmin && !userData.isSuperAdmin) {
-      setNotRegistered(true);
-      setLoading(false);
-      return;
-    }
+      // Single clean admin check — trust backend completely
+      setIsAdmin(userData.isAdmin || userData.isSuperAdmin || false);
+      setUserPoints(Number(userData.points || 0));
 
     const subsData = await subsRes.json();
 
     // --- SUCCESS: LOAD DATA ---
-    setUserPoints(Number(userData.points || 0));
+    // setUserPoints(Number(userData.points || 0));
     setSubscriptions(Array.isArray(subsData) ? subsData : []);
 
     if (activeRes.ok) {
@@ -139,62 +126,83 @@ return () => clearTimeout(timeout);
 }, [telegramId, gymId, initData, router]);
 
   // --- 3. THE "INSTANT-UPDATE" PURCHASE LOGIC ---
-  const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
-    const amount = currency === 'SHELLS' ? plan.priceShells : plan.priceStars;
-    
+ const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
+  const amount = currency === 'SHELLS' ? plan.priceShells : plan.priceStars;
+
+  // ✅ Check nickname only when paying — admins bypass this
+  if (!isAdmin) {
+    // Fetch fresh user data to check nickname at payment time
+    try {
+      const checkRes = await fetch(`/api/user/${telegramId}`, {
+        headers: { ...(initData ? { "Authorization": `tma ${initData}` } : {}) }
+      });
+      const userData = await checkRes.json();
+      
+      if (!userData.nickname && !userData.isAdmin && !userData.isSuperAdmin) {
+        setNotRegistered(true); // Show the register wall NOW
+        return;
+      }
+    } catch {
+      toast.error("Could not verify account. Try again.");
+      return;
+    }
+
+    // Balance check
     if (currency === 'SHELLS' && userPoints < amount) {
       return toast.error("Insufficient Shells! 🐚");
     }
 
-    if (currency === 'SHELLS') {
-      const confirmed = await new Promise((resolve) => {
-  getWebApp?.showConfirm(`Spend ${amount.toLocaleString()} Shells for ${plan.name}?`, (ok: boolean) => resolve(ok));
-});
-      if (!confirmed) return;
-    }
-
-    setPurchasing(plan.id);
-    try {
-      const response = await fetch("/api/subscribe", {
-  method: "POST",
-  headers: { 
-    "Content-Type": "application/json",
-    ...(initData ? { "Authorization": `tma ${initData}` } : {})
-  },
-  body: JSON.stringify({
-    serviceId: plan.id,
-    planTitle: plan.name,
-    duration: plan.duration,
-    currencyType: currency,
-    amount: amount,
-    intensity: false
-    // telegramId NOT included — server gets it from token
-  })
-});
-
-      const result = await response.json();
-      
-      if (currency === 'STARS' && result.invoiceLink) {
-        getWebApp?.openInvoice(result.invoiceLink, (status: string) => {
-  if (status === 'paid') {
-    toast.success("Transaction Complete!");
-    window.location.reload(); 
+    // Confirm dialog
+    const confirmed = await new Promise((resolve) => {
+      getWebApp?.showConfirm(
+        `Spend ${amount.toLocaleString()} Shells for ${plan.name}?`,
+        (ok: boolean) => resolve(ok)
+      );
+    });
+    if (!confirmed) return;
   }
-});
-      } else if (result.success) {
-        // Instant UI feedback
-        if (currency === 'SHELLS') setUserPoints(prev => prev - amount);
-        setActiveSub({ ...plan, status: 'ACTIVE', planTitle: plan.name });
-        
-        getWebApp?.HapticFeedback.notificationOccurred('success');
-        toast.success("🏋️ Access granted.");
-      }
-    } catch (error) {
-      toast.error("Connection failed.");
-    } finally {
-      setPurchasing(null);
+
+  setPurchasing(plan.id);
+  try {
+    const response = await fetch("/api/subscribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(initData ? { "Authorization": `tma ${initData}` } : {})
+      },
+      body: JSON.stringify({
+        serviceId: plan.id,
+        planTitle: plan.name,
+        duration: plan.duration,
+        currencyType: currency,
+        intensity: false
+        // amount NOT sent — server calculates from DB
+      })
+    });
+
+    const result = await response.json();
+
+    if (currency === 'STARS' && result.invoiceLink) {
+      getWebApp?.openInvoice(result.invoiceLink, (status: string) => {
+        if (status === 'paid') {
+          toast.success("Transaction Complete!");
+          window.location.reload();
+        }
+      });
+    } else if (result.success) {
+      if (currency === 'SHELLS' && !isAdmin) setUserPoints(prev => prev - amount);
+      setActiveSub({ ...plan, status: 'ACTIVE', planTitle: plan.name });
+      getWebApp?.HapticFeedback.notificationOccurred('success');
+      toast.success(isAdmin ? "✅ Admin access granted." : "🏋️ Access granted.");
+    } else {
+      toast.error(result.error || "Purchase failed.");
     }
-  };
+  } catch (error) {
+    toast.error("Connection failed.");
+  } finally {
+    setPurchasing(null);
+  }
+};
 
   // --- RENDERING ---
 
