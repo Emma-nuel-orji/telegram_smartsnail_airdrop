@@ -419,22 +419,31 @@ useEffect(() => {
       </div>
       
       {isConnected && walletAddress && (
-        <div className="z-20 mt-2 px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300">
-          Connected: {formatWalletAddress(walletAddress)}
-        </div>
-      )}
+          <div className="z-20 mt-2 px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300">
+            Connected: {formatWalletAddress(walletAddress)}
+          </div>
+        )}
+
+        {/* BoostIndicator floats below header — adjusts based on wallet visibility */}
+        {user?.boostExpiresAt && (
+          <div className={`fixed ${isConnected && walletAddress ? 'top-24' : 'top-16'} left-0 right-0 z-30 flex justify-center pointer-events-none`}>
+            <div className="pointer-events-auto">
+              <BoostIndicator
+                variant="teleprompter"
+                user={{
+                  boostExpiresAt: user?.boostExpiresAt ?? null,
+                  fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
+                  humanRelationsQty: (user as any)?.humanRelationsQty || 0
+                }}
+              />
+            </div>
+          </div>
+        )}
            
-      <div className="relative z-10 flex flex-col items-center mt-10">
-         <BoostIndicator 
-  user={{ 
-    tappingRate: user?.tappingRate || 1, 
-    boostExpiresAt: user?.boostExpiresAt,
-    // Ensure these fields exist on the User type
-    fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
-    humanRelationsQty: (user as any)?.humanRelationsQty || 0
-  }} 
-/>
+      <div className={`relative z-10 flex flex-col items-center ${user?.boostExpiresAt ? 'mt-16' : 'mt-10'}`}>
+        
         <div className="flex items-center gap-3">
+        
           <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
           <span className="text-5xl font-black italic tracking-tighter shadow-purple-500/50">
             {user?.points.toLocaleString()}
@@ -460,9 +469,9 @@ useEffect(() => {
     )}
       </div>
 
-       {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
-  Reset & Switch Account
-</button> */}
+                  {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
+              Reset & Switch Account
+            </button> */}
 
       <div className="relative flex-grow flex items-center justify-center w-full max-sm mt-8 px-6">
         <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50">
@@ -585,7 +594,7 @@ useEffect(() => {
       </div>
 
       <AnimatePresence>
-  {showWelcomePopup && (
+    {showWelcomePopup && (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
@@ -643,19 +652,19 @@ useEffect(() => {
       </motion.div>
     </motion.div>
   )}
-</AnimatePresence>
+        </AnimatePresence>
 
-      {error && <div className="fixed bottom-32 bg-red-600/80 px-4 py-2 rounded-lg text-xs z-50 backdrop-blur-md">{error}</div>}
-      
-      <style jsx global>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
-      <AnimatePresence>
-  {canShowTour && <OnboardingTour steps={HOME_TOUR} onDone={completeTour} />}
-</AnimatePresence>
-    </div>
-  );
+          {error && <div className="fixed bottom-32 bg-red-600/80 px-4 py-2 rounded-lg text-xs z-50 backdrop-blur-md">{error}</div>}
+          
+          <style jsx global>{`
+            @keyframes shimmer {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(100%); }
+            }
+                `}</style>
+                <AnimatePresence>
+            {canShowTour && <OnboardingTour steps={HOME_TOUR} onDone={completeTour} />}
+          </AnimatePresence>
+              </div>
+            );
 }

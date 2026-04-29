@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useCallback, useContext, useRef, Suspense   } from "react";
 import { Check, Ticket, Star, Coins, Users, Crown, Sparkles } from 'lucide-react';
-import { ChevronLeft, ChevronRight, CheckCircle2, Lock, X } from 'lucide-react';
+import { ChevronLeft, ArrowLeft, ChevronRight, CheckCircle2, Lock, X } from 'lucide-react';
 // import React, { Suspense } from 'react';
 import { io } from "socket.io-client";
 import Link from "next/link";
@@ -145,25 +145,28 @@ useEffect(() => {
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [optimisticFUBUsed, setOptimisticFUBUsed] = useState<number | null>(null);
   const [optimisticHRUsed, setOptimisticHRUsed] = useState<number | null>(null);
-
+  const [userPoints, setUserPoints] = useState<number>(0);
 
 // Fetch user ID when telegramId is available
 useEffect(() => {
   const fetchUserData = async () => {
-    if (!telegramId) return; // Prevent API call if telegramId is missing
-
+    if (!telegramId) return;
     try {
-       const response = await axios.get(`/api/user/${telegramId}`);
-      console.log("✅ Fetched user data:", response.data);
-
-      setUserId(response.data.id); // Ensure userId is correctly set
+      const initData = window.Telegram?.WebApp?.initData;
+      const response = await axios.get(`/api/user/${telegramId}`, {
+        headers: {
+          ...(initData ? { "Authorization": `tma ${initData}` } : {})
+        }
+      });
+      setUserId(response.data.id);
+      setUser(response.data);        // ← sets points in context
+      setUserPoints(response.data.points || 0); // ← sets local points
     } catch (error) {
-      console.error("🔥 Error fetching user ID:", error);
+      // silent fail
     }
   };
-
   fetchUserData();
-}, [telegramId]); // Runs when telegramId changes
+}, [telegramId]);
 
   
   const [uniqueCode, setUniqueCode] = useState("");
@@ -452,16 +455,18 @@ const syncStockFromAPI = async () => {
   
           console.log("6. Verifying TON transaction with backend...");
   
-          const userId = window.Telegram?.WebApp.initDataUnsafe?.user?.id || undefined;
-  
-          const verifyResponse = await axios.post("/api/verify-payment", {
-            transactionHash: tonResult.boc,
-            paymentMethod: "TON",
-            totalAmount: priceTon,
-            userId: userId,
-            fxckedUpBagsQty: fxckedUpBagsQty,
-            humanRelationsQty: humanRelationsQty
-          });
+          const verifyInitData = window.Telegram?.WebApp?.initData;
+              const verifyResponse = await axios.post("/api/verify-payment", {
+                transactionHash: tonResult.boc,
+                paymentMethod: "TON",
+                fxckedUpBagsQty,
+                humanRelationsQty
+              }, {
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(verifyInitData ? { "Authorization": `tma ${verifyInitData}` } : {})
+                }
+              });
   
           console.log("7. Verification response:", verifyResponse.data);
           if (!verifyResponse.data || !verifyResponse.data.success) {
@@ -697,13 +702,18 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         throw new Error("🚨 Telegram ID is missing!");
       }
   
+      const initData = window.Telegram?.WebApp?.initData;
       const response = await axios.post("/api/redeemCode", {
-        userId: telegramId,
-        email: redemptionEmail,
         uniqueCode,
         referrerId: referralLink,
+        // REMOVED: userId/telegramId and email — server gets telegramId from token
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(initData ? { "Authorization": `tma ${initData}` } : {})
+        }
       });
-  
+        
       console.log("📥 Redemption response:", response.data);
   
       if (response.status === 200) {
@@ -742,7 +752,7 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
     return ;
   }
 
-  return (
+return (
   <>
     {showConfetti && (
       <div className="fixed inset-0 pointer-events-none z-[9999]">
@@ -754,19 +764,35 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
       <div className="max-w-xl mx-auto space-y-8">
         
         {/* HEADER SECTION */}
-        <header className="flex flex-col gap-2 pt-4">
-          <Link href="/" className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-xl border border-zinc-800 active:scale-90 transition-transform">
-            <img src="/images/info/output-onlinepngtools (6).png" className="w-6 h-6 invert" alt="back" />
-          </Link>
-          <div className="mt-4">
-            <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
-              Boost <span className="text-purple-500">Center</span>
-            </h1>
-            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">
-              Purchase books to upgrade your tapping rate
-            </p>
-          </div>
-        </header>
+      
+<header className="sticky top-0 z-50 bg-[#070707]/80 backdrop-blur-lg -mx-4 px-4 py-4 flex items-center justify-between border-b border-zinc-800/50">
+  <div className="flex items-center gap-3">
+    <Link 
+      href="/" 
+      className="w-10 h-10 flex items-center justify-center bg-zinc-900 rounded-xl border border-zinc-800 active:scale-90 transition-transform shadow-lg"
+    >
+      <ArrowLeft size={20} className="text-zinc-100" />
+    </Link>
+    <div>
+      <h1 className="text-xl font-black italic uppercase tracking-tighter leading-none">
+        Boost <span className="text-purple-500">Center</span>
+      </h1>
+      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-none mt-1">
+        Upgrade Tapping rate
+      </p>
+    </div>
+  </div>
+
+  {/* USER POINTS DISPLAY */}
+  <div className="bg-zinc-900/80 border border-zinc-800 px-3 py-1.5 rounded-2xl flex items-center gap-2 shadow-inner">
+    <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+      <span className="text-[10px] text-black font-black">S</span>
+    </div>
+    <span className="text-sm font-black italic tracking-tight text-zinc-100">
+      {points.toLocaleString()}
+    </span>
+  </div>
+</header>
 
         {/* BOOKS GRID */}
         <div id="boost-books-list" className="grid gap-4">
@@ -916,14 +942,27 @@ const handlePaymentSuccess = async (bagsQty: number, humanQty: number) => {
         </div>
 
         {/* REDEMPTION SECTION */}
+       
         <div id="referral-section" className="border-t border-zinc-800 pt-8 space-y-4">
-          <h3 className="text-center font-black italic uppercase tracking-widest text-zinc-500 text-sm">Have a secret code?</h3>
-          <div className="bg-zinc-900/30 p-4 rounded-3xl border border-zinc-800 space-y-3">
-             <input type="text" value={uniqueCode} onChange={(e) => setUniqueCode(e.target.value)} placeholder="Enter Code" className="w-full bg-transparent border-b border-zinc-800 p-3 outline-none focus:border-purple-500 font-bold italic text-center text-xl"/>
-             <button onClick={handleCodeRedemption} className="w-full py-4 text-purple-500 font-black italic uppercase tracking-tighter">Activate Code</button>
+          <h3 className="text-center font-black italic uppercase tracking-widest text-zinc-500 text-[10px]">
+            Have a secret code?
+          </h3>
+          <div className="bg-zinc-900/50 p-2 rounded-[2rem] border border-zinc-800 flex items-center gap-2 pr-4 shadow-2xl">
+            <input 
+              type="text" 
+              value={uniqueCode} 
+              onChange={(e) => setUniqueCode(e.target.value)} 
+              placeholder="ENTER CODE" 
+              className="flex-1 bg-transparent p-4 outline-none focus:text-purple-500 font-black italic text-lg tracking-widest placeholder:text-zinc-700"
+            />
+            <button 
+              onClick={handleCodeRedemption} 
+              className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-2xl font-black italic uppercase tracking-tighter shadow-lg shadow-purple-500/20 active:scale-95 transition-all text-sm"
+            >
+              ACTIVATE
+            </button>
           </div>
         </div>
-
         {/* TICKET SECTION */}
         <div  className="pt-10">
           <div className="flex items-center gap-4 mb-6">

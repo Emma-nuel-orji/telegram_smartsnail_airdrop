@@ -10,6 +10,7 @@ function serializeUser(user: any) {
     username: user.username || "",
     firstName: user.firstName || "",
     lastName: user.lastName || "",
+    nickname: user.nickname || null,
     points: Number(user.points || 0),
     tappingRate: user.tappingRate || 1,
     consecutiveWins: Number(user.consecutiveWins || 0),
@@ -68,11 +69,13 @@ export async function GET(
 
     // 3. Return serialized user merged with the new purchase totals
     const serializedUser = serializeUser(dbUser);
-    
-    return NextResponse.json({
-      ...serializedUser,
-      ...totals
-    });
+
+return NextResponse.json({
+  ...serializedUser,
+  ...totals,
+  isAdmin: auth.isAdmin || false,     
+  isSuperAdmin: auth.isAdmin || false, 
+});
   } catch (error) {
     console.error("GET USER ERROR:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

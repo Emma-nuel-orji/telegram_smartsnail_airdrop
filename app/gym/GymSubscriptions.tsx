@@ -93,6 +93,7 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
     if (!userRes.ok || !subsRes.ok) throw new Error("API Route Failure");
 
    const userData = await userRes.json();
+   console.log("DEBUG userData:", JSON.stringify(userData));
 
       // Single clean admin check — trust backend completely
       setIsAdmin(userData.isAdmin || userData.isSuperAdmin || false);
@@ -137,6 +138,7 @@ return () => clearTimeout(timeout);
         headers: { ...(initData ? { "Authorization": `tma ${initData}` } : {}) }
       });
       const userData = await checkRes.json();
+      // console.log("DEBUG userData:", JSON.stringify(userData));
       
       if (!userData.nickname && !userData.isAdmin && !userData.isSuperAdmin) {
         setNotRegistered(true); // Show the register wall NOW
@@ -238,7 +240,7 @@ if (notRegistered) {
             route: window.location.pathname
           }));
           window.Telegram?.WebApp?.openTelegramLink(
-            `https://t.me/SmartSnailBot?start=signup_smartsnail_pass`
+            `https://t.me/SmartSnails_Bot?start=signup_smartsnail_pass`
           );
         }}
         className="mt-8 w-full max-w-[300px] py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
@@ -349,7 +351,7 @@ if (notRegistered) {
                   <button 
                     onClick={() => handlePurchase(plan, 'SHELLS')}
                     disabled={!!purchasing}
-                    className="w-full py-4 bg-white text-black rounded-2xl flex items-center justify-center gap-2 group-hover:bg-purple-600 group-hover:text-white transition-all"
+                    className="w-full py-4 bg-white text-black rounded-2xl flex items-center justify-center gap-2 hover:bg-purple-600 hover:text-white transition-all"
                   >
                     {purchasing === plan.id ? <Loader2 className="animate-spin" size={16} /> : (
                       <>

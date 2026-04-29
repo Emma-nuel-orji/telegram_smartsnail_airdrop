@@ -14,6 +14,7 @@ const BoostIndicator = ({ user }: BoostIndicatorProps) => {
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("BoostExpiresAt value:", user.boostExpiresAt);
     const update = () => {
       if (!user.boostExpiresAt) {
         setTimeLeft(null);
@@ -47,7 +48,7 @@ const BoostIndicator = ({ user }: BoostIndicatorProps) => {
         <span className="text-zinc-300 text-[9px] font-bold uppercase tracking-tighter">
           {user.tappingRate > 1 && timeLeft && timeLeft !== "Expired"
             ? `⚡ BOOST x${user.tappingRate} | ${timeLeft} | BOOKS: ${user.fxckedUpBagsQty + user.humanRelationsQty}`
-            : `🚀 BOOST INACTIVE | BOOKS: ${user.fxckedUpBagsQty + user.humanRelationsQty} | Your tapping rate boost and duration shows here | Go to Boost and boost yyour taps. `}
+            : `🚀 BOOST INACTIVE | BOOKS: ${user.fxckedUpBagsQty + user.humanRelationsQty} | Your tapping rate boost and duration shows here | Go to Boost and boost your taps. `}
         </span>
       </motion.div>
     </div>

@@ -32,69 +32,58 @@ export async function POST(req: NextRequest) {
     /* =========================
        3. TRANSACTION (SAFE)
     ========================= */
-    const result = await prisma.$transaction(async (tx) => {
-      // Find user
-      const user = await tx.user.findUnique({
-        where: { telegramId },
-      });
 
-      if (!user) throw new Error('User not found');
+const result = await prisma.$transaction(async (tx) => {
+  // Find user
+  const user = await tx.user.findUnique({
+    where: { telegramId },
+  });
 
-      // Find task
-      const task = await tx.task.findUnique({
-        where: { id: taskId.toString() },
-      });
+  if (!user) throw new Error('User not found');
 
-      if (!task) throw new Error('Task not found');
+  // Find task definition
+  const task = await tx.task.findUnique({
+    where: { id: taskId.toString() },
+  });
 
-      // 🚫 Prevent double claim
-      const alreadyCompleted = await tx.completedTask.findFirst({
-        where: {
-          userId: user.id,
-          taskId: taskId.toString(),
-        },
-      });
+  if (!task) throw new Error('Task not found');
 
-      if (alreadyCompleted) {
-        throw new Error('Task already completed');
-      }
+  // 🚫 Prevent double claim: Check the user-specific completion table
+  const alreadyCompleted = await tx.completedTask.findFirst({
+    where: {
+      userId: user.id,
+      taskId: taskId.toString(),
+    },
+  });
 
-      const pointsToAdd = Number(task.reward || 0);
+  if (alreadyCompleted) {
+    throw new Error('Task already completed');
+  }
 
-      console.log(`Awarding ${pointsToAdd} points`);
+  const pointsToAdd = Number(task.reward || 0);
 
-      // Update points safely
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: {
-          points: {
-            increment: BigInt(pointsToAdd),
-          },
-        },
-      });
+  // Update user points
+  const updatedUser = await tx.user.update({
+    where: { id: user.id },
+    data: {
+      points: {
+        increment: BigInt(pointsToAdd),
+      },
+    },
+  });
 
-      // Create completion record
-      await tx.completedTask.create({
-        data: {
-          taskId: taskId.toString(),
-          userId: user.id,
-          points: pointsToAdd,
-          completedAt: new Date(),
-        },
-      });
+  // ✅ Create the unique record for THIS user and THIS task
+  await tx.completedTask.create({
+    data: {
+      taskId: taskId.toString(),
+      userId: user.id,
+      points: pointsToAdd,
+      completedAt: new Date(),
+    },
+  });
 
-      // Update task (optional depending on your logic)
-      await tx.task.update({
-        where: { id: taskId.toString() },
-        data: {
-          userId: user.id,
-          completed: true,
-          completedTime: new Date(),
-        },
-      });
-
-      return updatedUser;
-    });
+  return updatedUser;
+});
 
     return NextResponse.json({
       success: true,

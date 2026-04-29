@@ -165,8 +165,8 @@ const WebApp = getWebApp();
   const [sharing, setSharing] = useState(false);
   const [hasBeenRewarded, setHasBeenRewarded] = useState(false);
  const initDataState = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initData ?? {} : {};
-  const userReferralLink = `https://t.me/smartsnailbot?start=${telegramId}`;
-
+  const userReferralLink = `https://t.me/SmartSnails_Bot?start=${telegramId}`;
+  const [isStoryVerifying, setIsStoryVerifying] = useState(false);
   const getSocialIcon = (desc: string) => {
   const d = desc.toLowerCase();
   const iconSize = 28; 
@@ -434,105 +434,81 @@ const handleShareToStory = async () => {
     return;
   }
 
+  if (!window.Telegram.WebApp.shareToStory) {
+    WebApp?.showAlert("Telegram Story sharing is not supported on this version.");
+    return;
+  }
+
   try {
-    // console.log("🟢 Telegram Version:", window.Telegram?.WebApp?.version);
-    // console.log("🟢 shareToStory Available:", !!window.Telegram?.WebApp?.shareToStory);
-    // console.log("🟢 Share attempt:", { telegramId });
-
-    if (!window.Telegram.WebApp.shareToStory) {
-      WebApp?.showAlert("Telegram Story sharing is not supported.");
-      return;
-    }
-
-    // Get media URL from the selected task
-    let mediaUrl = selectedTask.mediaUrl;
-    
-    // Validate mediaUrl
-    // console.log("🟢 mediaUrl Type:", typeof mediaUrl);
-    // console.log("🟢 mediaUrl Value:", mediaUrl);
-
-    if (!mediaUrl || typeof mediaUrl !== "string") {
-      console.error("🚨 Invalid media URL:", mediaUrl);
-      WebApp?.showAlert("Invalid media URL. Please try again.");
-      return;
-    }
-
-    // Construct full URL properly
     const baseUrl = "https://telegram-smartsnail-airdrop.vercel.app";
-    
-    // Handle relative or absolute URLs - clean the path
-    const cleanPath = mediaUrl.startsWith("/") ? mediaUrl.substring(1) : mediaUrl;
+    const cleanPath = selectedTask.mediaUrl?.startsWith("/") ? selectedTask.mediaUrl.substring(1) : selectedTask.mediaUrl;
     const fullMediaUrl = `${baseUrl}/${cleanPath}`;
-
-    // console.log("📢 Final Media URL:", fullMediaUrl);
-    
-    // Important: Force string type and ensure it's not an object
-    const mediaUrlString = String(fullMediaUrl).toString();
-    
-    // Determine media type
-    const isVideo = mediaUrlString.toLowerCase().endsWith('.mp4');
-    const mediaType = isVideo ? "video" : "photo";
-    
-    // Create sticker object
     const stickerUrl = `${baseUrl}/stickers/snail.png`;
-    
-    // console.log("📢 Calling Telegram shareToStory with parameters:");
-    
-    // CRITICAL FIX: Direct parameter passing without creating an object variable first
-    // This bypasses the issue where an object gets stringified incorrectly
-    console.log({
-      media: mediaUrlString,
-      media_type: mediaType,
-      text: "Join SmartSnail Airdrop!\nEarn Shells",
-      sticker: {
-        url: stickerUrl,
-        width: 150,
-        height: 150,
-        position: {
-          x: 0.5,
-          y: 0.5
-        }
-      }
-    });
-    
-    // CRITICAL FIX: Use the direct method call with arguments, not through a wrapper function
-    // @ts-ignore - Bypass TypeScript interface constraints
+    const isVideo = fullMediaUrl.toLowerCase().endsWith('.mp4');
+
+    // 1. Open the Telegram Story Editor
     window.Telegram.WebApp.shareToStory(
-      mediaUrlString,
-      mediaType,
-      "Join SmartSnail Airdrop!\nEarn Shells",
+      fullMediaUrl,
+      isVideo ? "video" : "photo",
+      "Join SmartSnail Airdrop! 🐚\nEarn Shells with me.",
       {
         url: stickerUrl,
         width: 150,
         height: 150,
-        position: {
-          x: 0.5,
-          y: 0.5
-        }
+        position: { x: 0.5, y: 0.5 }
       }
     );
 
-    // Record share attempt in database/backend
-    try {
-      // Optional: Send share attempt to backend for tracking
-      const initData = window.Telegram?.WebApp?.initData;
-        await fetch(`${baseUrl}/api/record-share`, {
-          method: 'POST',
+    // 2. Start the "Verification" phase
+    setIsStoryVerifying(true);
+    setMessage("🔍 Verifying your story... please wait.");
+
+    // 3. The 12-second "Honor System" Delay
+    setTimeout(async () => {
+      try {
+        const initData = window.Telegram?.WebApp?.initData;
+        const reward = selectedTask.reward || 0;
+
+        // 4. Hit the backend to claim reward
+        const response = await fetch("/api/tasks/complete", {
+          method: "POST",
           headers: { 
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             ...(initData ? { "Authorization": `tma ${initData}` } : {})
           },
-          body: JSON.stringify({ 
-            taskId: selectedTask.id
-            // REMOVED: telegramId
-          })
+          body: JSON.stringify({ taskId: String(selectedTask.id) }),
         });
-    } catch (trackingError) {
-      console.error("Failed to record share attempt:", trackingError);
-      // Continue execution - we don't want to block the success message due to tracking failure
-    }
 
-    // WebApp.showAlert("✅ Shared successfully! It may take up to 24 hours to verify your task.");
+        const data = await response.json();
+
+        if (response.ok) {
+          // 5. Success UI sequence
+          setTotalPoints(data.userPoints || (totalPoints + reward));
+          
+          const updatedTasks = tasks.map(t => 
+            t.id === selectedTask.id ? { ...t, completed: true, completedTime: new Date().toISOString() } : t
+          );
+          setTasks(updatedTasks);
+          
+          triggerConfetti();
+          WebApp?.showAlert(`🎉 Story Verified! +${reward} SHELLS earned!`);
+          setSelectedTask(null);
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (err) {
+        WebApp?.showAlert("Verification failed. Did you finish the story?");
+      } finally {
+        setIsStoryVerifying(false);
+        setMessage("");
+      }
+    }, 12000); // 12 seconds feels long enough to be "real"
+
+  } catch (error) {
+    console.error("❌ Share failed:", error);
+    WebApp?.showAlert("Failed to share story.");
+  }
+};
 
     // Success callback after delay (for demo/testing, set to 5 seconds; in production use longer time)
     const reward = selectedTask.reward || 0;
@@ -843,27 +819,52 @@ setTimeout(() => {
             ) : selectedTask.isStoryTask ? (
               /* Story Sharing Task (REFINED) */
               <div className="space-y-4">
-                <div className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 text-left">
-                  <p className="text-[10px] text-emerald-500 font-black uppercase mb-2">Step 1: Copy Caption</p>
-                  <div className="bg-black/40 p-3 rounded-xl border border-white/5 relative group">
-                    <p className="text-[11px] text-gray-400 leading-normal pr-10">
-                      Join the farm, pick $Shells, and Stake in Polycombat! #smartsnail #polycombat {userReferralLink}
-                    </p>
-                    <button 
-                      className="absolute top-2 right-2 p-1.5 bg-emerald-500/20 rounded-md text-emerald-400 active:scale-90"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
-                        alert("✅ Copied!");
-                      }}
-                    >
-                      <Copy size={14} />
-                    </button>
-                  </div>
-                </div>
-                <button className="web3-primary-btn bg-gradient-to-r from-emerald-600 to-emerald-400" onClick={handleShareToStory} disabled={sharing}>
-                  {sharing ? "📤 Sharing..." : "📤 Step 2: Share to Story"}
-                </button>
-              </div>
+    <div className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 text-left">
+      <p className="text-[10px] text-emerald-500 font-black uppercase mb-2">Step 1: Copy Caption</p>
+      <div className="bg-black/40 p-3 rounded-xl border border-white/5 relative group">
+        <p className="text-[11px] text-gray-400 leading-normal pr-10">
+          Join the farm, pick $Shells, and Stake in Polycombat! #smartsnail #polycombat {userReferralLink}
+        </p>
+        <button 
+          className="absolute top-2 right-2 p-1.5 bg-emerald-500/20 rounded-md text-emerald-400 active:scale-90"
+          onClick={() => {
+            navigator.clipboard.writeText(`Join the SmartSnail farm, pick shells, and earn SmartSnailNFT! ${userReferralLink}`);
+            alert("✅ Copied!");
+          }}
+        >
+          <Copy size={14} />
+        </button>
+      </div>
+    </div>
+
+    {/* The Verification Button */}
+    <button 
+      className={`web3-primary-btn bg-gradient-to-r transition-all duration-500 ${
+        isStoryVerifying 
+        ? "from-zinc-700 to-zinc-600 animate-pulse cursor-not-allowed" 
+        : "from-emerald-600 to-emerald-400"
+      }`} 
+      onClick={handleShareToStory} 
+      disabled={isStoryVerifying}
+    >
+      <div className="flex items-center justify-center gap-2">
+        {isStoryVerifying ? (
+          <>
+            <span className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
+            🔍 Verifying Post...
+          </>
+        ) : (
+          <>📤 Step 2: Share to Story</>
+        )}
+      </div>
+    </button>
+    
+    {isStoryVerifying && (
+      <p className="text-[10px] text-center text-gray-500 italic animate-fade-in">
+        Verifying... Stay in the app to receive reward.
+      </p>
+    )}
+  </div>
             ) : selectedTask.id !== "28" && (
               /* Standard Tasks */
               <div className="space-y-3">
