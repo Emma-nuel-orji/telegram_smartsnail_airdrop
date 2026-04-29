@@ -400,56 +400,52 @@ useEffect(() => {
       </div>
 
       <div className="relative z-20 w-full px-6 pt-6 flex justify-between items-center">
-      
+  <div>
+    <h1 className="text-xl font-black tracking-tight text-purple-400">SMARTSNAIL</h1>
+    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">App</p>
+  </div>
+  
+  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-lg p-1.5 rounded-2xl border border-white/10">
+    <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" className="w-6 h-6 p-1" alt="rank" /></Link>
+    <ConnectButton />
+    <Link href="/info"><img src="/images/info/output-onlinepngtools (1).png" className="w-6 h-6 p-1" alt="info" /></Link>
+  </div>
+</div>
 
-        <div>
-          <h1 className="text-xl font-black tracking-tight text-purple-400">SMARTSNAIL</h1>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">App</p>
-        </div>
-        
-        <div className="flex items-center gap-3 bg-white/5 backdrop-blur-lg p-1.5 rounded-2xl border border-white/10">
-          <Link href="/Leaderboard" id="header-rank">
-            <img src="/images/info/output-onlinepngtools (4).png" className="w-6 h-6 p-1" alt="rank" />
-          </Link>
-          <ConnectButton />
-          <Link href="/info">
-            <img src="/images/info/output-onlinepngtools (1).png" className="w-6 h-6 p-1" alt="info" />
-          </Link>
-        </div>
-      </div>
-      
-      {isConnected && walletAddress && (
-          <div className="z-20 mt-2 px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300">
-            Connected: {formatWalletAddress(walletAddress)}
-          </div>
-        )}
+{/* WALLET & BOOST LAYER (The "No-Displacement" Zone) */}
+<div className="relative w-full flex flex-col items-center">
+  {/* Wallet Address */}
+  {isConnected && walletAddress && (
+    <div className="mt-2 px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300">
+      Connected: {formatWalletAddress(walletAddress)}
+    </div>
+  )}
 
-        {/* BoostIndicator floats below header — adjusts based on wallet visibility */}
-        {user?.boostExpiresAt && (
-          <div className={`fixed ${isConnected && walletAddress ? 'top-24' : 'top-16'} left-0 right-0 z-30 flex justify-center pointer-events-none`}>
-            <div className="pointer-events-auto">
-                <BoostIndicator 
+  {/* BOOST INDICATOR - Now using an absolute container so it doesn't push content below */}
+  <div className="h-0 w-full relative flex justify-center">
+    {user?.boostExpiresAt && (
+      <div className="absolute top-4 z-30 animate-in fade-in zoom-in duration-300">
+        <BoostIndicator 
           user={{ 
             tappingRate: user?.tappingRate || 1, 
             boostExpiresAt: user?.boostExpiresAt,
-            // Ensure these fields exist on the User type
             fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
             humanRelationsQty: (user as any)?.humanRelationsQty || 0
           }} 
         />
-            </div>
-          </div>
-        )}
-           
-      <div className={`relative z-10 flex flex-col items-center ${user?.boostExpiresAt ? 'mt-16' : 'mt-10'}`}>
-        
-        <div className="flex items-center gap-3">
-        
-          <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
-          <span className="text-5xl font-black italic tracking-tighter shadow-purple-500/50">
-            {user?.points.toLocaleString()}
-          </span>
-        </div>
+      </div>
+    )}
+  </div>
+</div>
+
+{/* MAIN CONTENT - We keep a consistent margin-top here */}
+<div className="relative z-10 flex flex-col items-center mt-20">
+  <div className="flex items-center gap-3">
+    <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
+    <span className="text-5xl font-black italic tracking-tighter">
+      {user?.points.toLocaleString()}
+    </span>
+  </div>
         
         <Link href="/level" className="mt-4 flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-4 py-2 rounded-xl">
           <img src="/images/trophy.png" className="w-5 h-5" alt="trophy" />

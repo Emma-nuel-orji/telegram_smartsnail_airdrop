@@ -775,10 +775,10 @@ return (
     </Link>
     <div>
       <h1 className="text-xl font-black italic uppercase tracking-tighter leading-none">
-        Boost <span className="text-purple-500">Center</span>
+        SmartSnail <span className="text-purple-500">Marketplace</span>
       </h1>
       <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-none mt-1">
-        Upgrade Tapping rate
+        Boost your Tapping rate
       </p>
     </div>
   </div>
@@ -789,7 +789,7 @@ return (
       <span className="text-[10px] text-black font-black">S</span>
     </div>
     <span className="text-sm font-black italic tracking-tight text-zinc-100">
-      {points.toLocaleString()}
+      {userPoints.toLocaleString()}
     </span>
   </div>
 </header>
@@ -923,46 +923,85 @@ return (
           </div>
 
           <div className="flex flex-col gap-3">
-            <button 
-              onClick={() => handlePurchase("TON")} 
-              disabled={isProcessing}
-              className="w-full bg-[#0088cc] text-white font-black italic text-xl p-5 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-xl disabled:opacity-50"
-            >
-              PAY WITH TON <div className="bg-white/20 p-1 rounded-lg"><Check size={20}/></div>
-            </button>
+           <button 
+    onClick={() => handlePurchase("TON")} 
+    disabled={isProcessing}
+    className={`w-full font-black italic text-xl p-5 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-xl disabled:opacity-70 disabled:cursor-not-allowed ${
+      isProcessing ? "bg-zinc-800" : "bg-[#0088cc] text-white"
+    }`}
+  >
+    <div className="flex items-center gap-3">
+      {isProcessing ? (
+        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      ) : (
+        <div className="bg-white/20 p-1 rounded-lg"><Check size={20}/></div>
+      )}
+      <span>{isProcessing ? "INITIALIZING..." : "PAY WITH TON"}</span>
+    </div>
+    {!isProcessing && <span className="text-xs opacity-50 font-mono">TON</span>}
+  </button>
 
-            <button 
-              onClick={() => handlePaymentViaStars("Stars")} 
-              disabled={isProcessing}
-              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-black italic text-xl p-5 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-xl disabled:opacity-50"
-            >
-              PAY WITH STARS <Star className="fill-black" size={24}/>
-            </button>
-          </div>
+  {/* STARS PAYMENT BUTTON */}
+  <button 
+    onClick={() => handlePaymentViaStars("Stars")} 
+    disabled={isProcessing}
+    className={`w-full font-black italic text-xl p-5 rounded-2xl flex justify-between items-center active:scale-95 transition-all shadow-xl disabled:opacity-70 disabled:cursor-not-allowed ${
+      isProcessing ? "bg-zinc-800" : "bg-gradient-to-r from-yellow-400 to-orange-500 text-black"
+    }`}
+  >
+    <div className="flex items-center gap-3">
+      {isProcessing ? (
+        <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+      ) : (
+        <Star className="fill-black" size={24}/>
+      )}
+      <span>{isProcessing ? "PREPARING..." : "PAY WITH STARS"}</span>
+    </div>
+    {!isProcessing && <span className="text-xs opacity-50 font-mono">TG</span>}
+  </button>
+</div>
         </div>
 
         {/* REDEMPTION SECTION */}
        
-        <div id="referral-section" className="border-t border-zinc-800 pt-8 space-y-4">
-          <h3 className="text-center font-black italic uppercase tracking-widest text-zinc-500 text-[10px]">
-            Have a secret code?
-          </h3>
-          <div className="bg-zinc-900/50 p-2 rounded-[2rem] border border-zinc-800 flex items-center gap-2 pr-4 shadow-2xl">
-            <input 
-              type="text" 
-              value={uniqueCode} 
-              onChange={(e) => setUniqueCode(e.target.value)} 
-              placeholder="ENTER CODE" 
-              className="flex-1 bg-transparent p-4 outline-none focus:text-purple-500 font-black italic text-lg tracking-widest placeholder:text-zinc-700"
-            />
-            <button 
-              onClick={handleCodeRedemption} 
-              className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-2xl font-black italic uppercase tracking-tighter shadow-lg shadow-purple-500/20 active:scale-95 transition-all text-sm"
-            >
-              ACTIVATE
-            </button>
-          </div>
-        </div>
+        {/* REDEMPTION SECTION: CYBER-TERMINAL UPGRADE */}
+<div id="referral-section" className="border-t border-zinc-800 pt-10 pb-4 space-y-4">
+  <div className="flex flex-col items-center gap-1">
+    <h3 className="font-black italic uppercase tracking-[0.2em] text-purple-500 text-[11px] animate-pulse">
+      Have a secret code?
+    </h3>
+    <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">
+      Enter Secret Code
+    </p>
+  </div>
+
+  <div className="relative group">
+    {/* Outer Glow Effect */}
+    <div className="absolute -inset-1 bg-purple-600/20 rounded-[2rem] blur-xl group-focus-within:bg-purple-600/40 transition-all duration-500 opacity-0 group-focus-within:opacity-100" />
+    
+    <div className="relative bg-zinc-950 p-1.5 rounded-[2.2rem] border-2 border-zinc-800 focus-within:border-purple-500/50 flex items-center gap-2 shadow-2xl transition-all">
+      <div className="pl-5 text-purple-500/50">
+        <Terminal size={18} />
+      </div>
+      
+      <input 
+        type="text" 
+        value={uniqueCode} 
+        onChange={(e) => setUniqueCode(e.target.value.toUpperCase())} 
+        placeholder="_ _ _ _ _ _" 
+        className="flex-1 bg-transparent py-4 outline-none text-white font-mono font-black text-xl tracking-[0.3em] placeholder:text-zinc-800 uppercase"
+      />
+      
+      <button 
+        onClick={handleCodeRedemption} 
+        className="bg-purple-600 hover:bg-purple-400 text-white h-[52px] px-8 rounded-[1.8rem] font-black italic uppercase tracking-tighter shadow-[0_0_20px_rgba(147,51,234,0.3)] active:scale-95 transition-all text-sm flex items-center gap-2"
+      >
+        ACTIVATE
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  </div>
+</div>
         {/* TICKET SECTION */}
         <div  className="pt-10">
           <div className="flex items-center gap-4 mb-6">
