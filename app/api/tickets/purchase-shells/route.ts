@@ -29,38 +29,48 @@ export async function POST(req: NextRequest) {
     // Calculate price server-side
     const totalCost = Number(ticketConfig.priceShells) * quantity;
 
-    const user = await prisma.user.findUnique({
-      where: { telegramId }
-    });
+    // Replace the transaction block with this:
 
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+// Get user name from DB using verified telegramId
+const user = await prisma.user.findUnique({
+  where: { telegramId },
+  select: { firstName: true, lastName: true, username: true }
+});
+
+if (!user) {
+  return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+}
+
+if (Number(user.points) < totalCost) {
+  return NextResponse.json({ success: false, message: 'Insufficient shell balance' }, { status: 400 });
+}
+
+// Build display name from DB — never from client
+const userName = user.firstName 
+  ? `${user.firstName} ${user.lastName || ''}`.trim() 
+  : user.username || 'Player';
+
+const ticketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+const [ticket, updatedUser] = await prisma.$transaction([
+  prisma.ticket.create({
+    data: {
+      ticketId,
+      telegramId,
+      userName,        // ← from DB, not client
+      ticketType,
+      quantity,
+      paymentMethod: 'shells',
+      totalCost,
+      pricePerTicket: ticketConfig.priceShells,
+      status: 'purchased'
     }
-
-    if (Number(user.points) < totalCost) {
-      return NextResponse.json({ success: false, message: 'Insufficient shell balance' }, { status: 400 });
-    }
-
-    const ticketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    const [ticket, updatedUser] = await prisma.$transaction([
-      prisma.ticket.create({
-        data: {
-          ticketId,
-          telegramId,
-          ticketType,
-          quantity,
-          paymentMethod: 'shells',
-          totalCost,
-          pricePerTicket: Number(ticketConfig.priceShells),
-          status: 'purchased'
-        }
-      }),
-      prisma.user.update({
-        where: { telegramId },
-        data: { points: { decrement: BigInt(totalCost) } }
-      })
-    ]);
+  }),
+  prisma.user.update({
+    where: { telegramId },
+    data: { points: { decrement: BigInt(totalCost) } }
+  })
+]);
 
     return NextResponse.json({
       success: true,
