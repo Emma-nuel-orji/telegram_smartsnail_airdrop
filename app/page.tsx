@@ -438,7 +438,7 @@ useEffect(() => {
           </div>
 
           {/* MAIN CONTENT - mt-32 ensures it stays below header/wallet/teleprompter regardless of screen size */}
-          <div className="relative z-10 flex flex-col items-center mt-18">
+          <div className="relative z-10 flex flex-col items-center mt-24">
             <div className="flex items-center gap-3">
               <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
               <span className="text-5xl font-black italic tracking-tighter">
