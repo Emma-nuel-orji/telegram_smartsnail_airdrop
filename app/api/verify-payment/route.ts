@@ -1,130 +1,111 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-const FUB_BOOK_ID = "fxcked-up-bags-id";
-const HR_BOOK_ID = "human-relations-id";
-
+/**
+ * Clean Verify Route
+ * Handles TON payments from the frontend.
+ * Stars payments are ignored here because they are handled by the Bot Webhook.
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("🔍 VERIFY REQUEST RECEIVED:", body);
 
     const {
       paymentMethod,
-      telegram_payment_charge_id,
-      payload,
+      paymentReference,
+      userId,
+      totalAmount,
+      bookId,
+      bookCount,
+      fxckedUpBagsQty = 0,
+      humanRelationsQty = 0
     } = body;
 
-    console.log("🔍 VERIFY REQUEST:", body);
-
-    // ✅ VALIDATE
-    if (paymentMethod !== "Stars") {
-      return NextResponse.json(
-        { error: "Invalid payment method" },
-        { status: 400 }
-      );
-    }
-
-    if (!telegram_payment_charge_id || !payload) {
-      return NextResponse.json(
-        { error: "Missing payment data" },
-        { status: 400 }
-      );
-    }
-
-    // ✅ SAFE PARSE
-    let parsed: any;
-    try {
-      parsed = JSON.parse(payload);
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid payload format" },
-        { status: 400 }
-      );
-    }
-
-    const transactionId = parsed?.t;
-
-    if (!transactionId) {
-      return NextResponse.json(
-        { error: "Missing transaction ID" },
-        { status: 400 }
-      );
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      const pending = await tx.pendingTransaction.findUnique({
-        where: { id: transactionId },
+    // 1. SILENTLY IGNORE STARS
+    // If the frontend calls this for Stars, we return 200 so the UI doesn't crash,
+    // but we let the Telegram Webhook handle the database updates.
+    if (paymentMethod === "Stars") {
+      return NextResponse.json({ 
+        success: true, 
+        message: "Stars payment detected; processing via Bot Webhook." 
       });
+    }
 
-      if (!pending) {
-        throw new Error("Transaction not found");
+    // 2. VALIDATE TON DATA
+    if (paymentMethod === "TON") {
+      if (!paymentReference || !userId) {
+        return NextResponse.json(
+          { error: "Missing TON payment reference or User ID" },
+          { status: 400 }
+        );
       }
 
-      if (pending.status === "COMPLETED") {
-        return { success: true, message: "Already processed" };
-      }
+      // 3. PROCESS TON TRANSACTION
+      const result = await prisma.$transaction(async (tx) => {
+        // Convert userId (Telegram ID) to BigInt carefully
+        const userTelegramId = BigInt(userId);
 
-      // 🔥 STOCK DEDUCTION (SAFE NOW)
-
-      // FxckedUpBags
-      if (pending.fxckedUpBagsQty > 0) {
-        const codes = await tx.generatedCode.findMany({
-          where: {
-            bookId: FUB_BOOK_ID,
-            isUsed: false,
-          },
-          take: pending.fxckedUpBagsQty,
+        const user = await tx.user.findUnique({
+          where: { telegramId: userTelegramId },
         });
 
-        if (codes.length < pending.fxckedUpBagsQty) {
-          throw new Error("Not enough Fxcked Up Bags in stock");
+        if (!user) {
+          throw new Error(`User with Telegram ID ${userId} not found.`);
         }
 
-        await tx.generatedCode.updateMany({
-          where: { id: { in: codes.map((c) => c.id) } },
-          data: { isUsed: true },
-        });
-      }
-
-      // HumanRelations
-      if (pending.humanRelationsQty > 0) {
-        const codes = await tx.generatedCode.findMany({
-          where: {
-            bookId: HR_BOOK_ID,
-            isUsed: false,
+        // Create or Update the Order to SUCCESS
+        const order = await tx.order.upsert({
+          where: { transactionReference: paymentReference },
+          update: { status: "SUCCESS" },
+          create: {
+            orderId: `TON-${Date.now()}`,
+            paymentMethod: "TON",
+            totalAmount: Number(totalAmount),
+            status: "SUCCESS",
+            transactionReference: paymentReference,
           },
-          take: pending.humanRelationsQty,
         });
 
-        if (codes.length < pending.humanRelationsQty) {
-          throw new Error("Not enough Human Relations in stock");
-        }
-
-        await tx.generatedCode.updateMany({
-          where: { id: { in: codes.map((c) => c.id) } },
-          data: { isUsed: true },
+        // Create the Purchase Record
+        const purchase = await tx.purchase.create({
+          data: {
+            paymentType: "TON",
+            amountPaid: Number(totalAmount),
+            booksBought: Number(bookCount || 0),
+            fxckedUpBagsQty: Number(fxckedUpBagsQty),
+            humanRelationsQty: Number(humanRelationsQty),
+            userId: user.id, // Internal MongoDB ID
+            orderId: order.id,
+            bookId: bookId || undefined,
+            createdAt: new Date(),
+          },
         });
-      }
 
-      // ✅ MARK COMPLETE
-      await tx.pendingTransaction.update({
-        where: { id: pending.id },
-        data: {
-          status: "COMPLETED",
-        },
+        // Note: The actual "Boost" logic (updating tappingRate/boostExpiresAt) 
+        // should be triggered here if not handled by a global listener.
+        
+        return { 
+          success: true, 
+          orderId: order.orderId, 
+          purchaseId: purchase.id 
+        };
       });
 
-      return { success: true };
-    });
+      return NextResponse.json(result);
+    }
 
-    return NextResponse.json(result);
+    // 4. FALLBACK FOR UNKNOWN METHODS
+    return NextResponse.json(
+      { error: `Unsupported payment method: ${paymentMethod}` },
+      { status: 400 }
+    );
 
   } catch (error: any) {
-    console.error("❌ VERIFY ERROR:", error);
-
+    console.error("❌ VERIFY ERROR:", error.message);
     return NextResponse.json(
-      { error: error.message || "Verification failed" },
-      { status: 400 }
+      { error: error.message || "Internal Server Error" },
+      { status: 500 }
     );
   }
 }
