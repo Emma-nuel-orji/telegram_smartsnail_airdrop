@@ -416,13 +416,16 @@ useEffect(() => {
 
           {/* TELEPROMPTER AREA - Using fixed so it NEVER pushes content */}
           <BoostIndicator 
-            user={{ 
-              tappingRate: user?.tappingRate || 1, 
-              boostExpiresAt: user?.boostExpiresAt || new Date().toISOString(),
-              fxckedUpBagsQty: fxckedUpBagsQty || (user as any)?.fxckedUpBagsQty || 0,
-              humanRelationsQty: humanRelationsQty || (user as any)?.humanRelationsQty || 0
-            }} 
-          />
+              user={{ 
+                // Use the values from your component's state
+                tappingRate: user?.tappingRate || 1, 
+                boostExpiresAt: user?.boostExpiresAt || new Date().toISOString(),
+                
+                // Ensure these names match your useState variables exactly
+                fxckedUpBagsQty: fxckedUpBagsQty || (user as any)?.fxckedUpBagsQty || 0,
+                humanRelationsQty: humanRelationsQty || (user as any)?.humanRelationsQty || 0
+              }} 
+            />
 
           {/* WALLET ADDRESS - Positioned absolute so it doesn't displace main content */}
           <div className="absolute top-24 left-0 w-full flex justify-center z-10">
