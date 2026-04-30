@@ -416,20 +416,20 @@ useEffect(() => {
 
           {/* TELEPROMPTER AREA - Using fixed so it NEVER pushes content */}
           <BoostIndicator 
-  user={{ 
-    // Use optional chaining to prevent crashes if user is null
-    tappingRate: user?.tappingRate || 1, 
-    boostExpiresAt: user?.boostExpiresAt || new Date().toISOString(),
-    
-    // FIX: Instead of using 'fxckedUpBagsQty' (local state), 
-    // use the value directly from the user object in context.
-    fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
-    humanRelationsQty: (user as any)?.humanRelationsQty || 0
-  }} 
-/>
+        user={{ 
+          // Use optional chaining to prevent crashes if user is null
+          tappingRate: user?.tappingRate || 1, 
+          boostExpiresAt: user?.boostExpiresAt || new Date().toISOString(),
+          
+          // FIX: Instead of using 'fxckedUpBagsQty' (local state), 
+          // use the value directly from the user object in context.
+          fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
+          humanRelationsQty: (user as any)?.humanRelationsQty || 0
+        }} 
+      />
 
           {/* WALLET ADDRESS - Positioned absolute so it doesn't displace main content */}
-          <div className="absolute top-24 left-0 w-full flex justify-center z-10">
+          <div className="absolute top-20 left-0 w-full flex justify-center z-10">
             {isConnected && walletAddress && (
               <div className="px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300 backdrop-blur-sm">
                 Connected: {formatWalletAddress(walletAddress)}
@@ -438,7 +438,7 @@ useEffect(() => {
           </div>
 
           {/* MAIN CONTENT - mt-32 ensures it stays below header/wallet/teleprompter regardless of screen size */}
-          <div className="relative z-10 flex flex-col items-center mt-32">
+          <div className="relative z-10 flex flex-col items-center mt-20">
             <div className="flex items-center gap-3">
               <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
               <span className="text-5xl font-black italic tracking-tighter">

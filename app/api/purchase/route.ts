@@ -446,414 +446,437 @@ async function validateStockAndCalculateTotals(
   booksToPurchase: BookPurchaseInfo[],
   bookMap: { [k: string]: any },
   paymentMethod: string
-): Promise<StockCalculationResult> {
-  let totalAmount = 0;
-  let tappingRate = 0;
-  let points = 0;
-  const codes: string[] = [];
-  const updatedStocks: Array<{ title: string; used: number; available: number }> = [];
-  const totalQty = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
+          ): Promise<StockCalculationResult> {
+            let totalAmount = 0;
+            let tappingRate = 0;
+            let points = 0;
+            const codes: string[] = [];
+            const updatedStocks: Array<{ title: string; used: number; available: number }> = [];
+            const totalQty = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
 
-  // 1. Check TOTAL available codes (neutral pool)
-  const availableCodes = await tx.generatedCode.findMany({
-    where: { 
-      isUsed: false,
-      isReserved: false
-    },
-    take: totalQty,
-    orderBy: { createdAt: 'asc' } // FIFO
-  });
+            // 1. Check TOTAL available codes (neutral pool)
+            const availableCodes = await tx.generatedCode.findMany({
+              where: { 
+                isUsed: false,
+                isReserved: false
+              },
+              take: totalQty,
+              orderBy: { createdAt: 'asc' } // FIFO
+            });
 
-  console.log("🔍 Available codes fetched:", availableCodes.length);
-  console.log("📦 Total quantity requested:", totalQty);
+            console.log("🔍 Available codes fetched:", availableCodes.length);
+            console.log("📦 Total quantity requested:", totalQty);
 
-  if (availableCodes.length < totalQty) {
-    throw new Error("Insufficient stock for the requested quantity of books");
-  }
+            if (availableCodes.length < totalQty) {
+              throw new Error("Insufficient stock for the requested quantity of books");
+            }
 
-  // 2. Reserve codes (neutral reservation)
-  
-  const codesToReserve = availableCodes.map(c => c.id);
-  console.log("🔒 Reserving codes with IDs:", codesToReserve);
-  await tx.generatedCode.updateMany({
-    where: { id: { in: codesToReserve } },
-    data: { isReserved: true }
-  });
+            // 2. Reserve codes (neutral reservation)
+            
+            const codesToReserve = availableCodes.map(c => c.id);
+            console.log("🔒 Reserving codes with IDs:", codesToReserve);
+            await tx.generatedCode.updateMany({
+              where: { id: { in: codesToReserve } },
+              data: { isReserved: true }
+            });
 
 
-  // 3. Assign to books and calculate
-  let codeIndex = 0;
-  for (const { qty, book, title } of booksToPurchase) {
-    if (!book) throw new Error(`Book details not found for ${title}`);
-    
-    // Assign next batch of codes
-    const assignedCodes = availableCodes.slice(codeIndex, codeIndex + qty);
-    codes.push(...assignedCodes.map(c => c.code));
-    codeIndex += qty;
+            // 3. Assign to books and calculate
+            let codeIndex = 0;
+            for (const { qty, book, title } of booksToPurchase) {
+              if (!book) throw new Error(`Book details not found for ${title}`);
+              
+              // Assign next batch of codes
+              const assignedCodes = availableCodes.slice(codeIndex, codeIndex + qty);
+              codes.push(...assignedCodes.map(c => c.code));
+              codeIndex += qty;
 
-    // Calculate stock (using your existing book-based tracking)
-    const newUsedStock = book.usedStock + qty;
-    updatedStocks.push({
-      title,
-      used: newUsedStock,
-      available: book.stockLimit - newUsedStock
-    });
+              // Calculate stock (using your existing book-based tracking)
+              const newUsedStock = book.usedStock + qty;
+              updatedStocks.push({
+                title,
+                used: newUsedStock,
+                available: book.stockLimit - newUsedStock
+              });
 
-    // Financial calculations
-    totalAmount += qty * (paymentMethod === "TON" ? book.priceTon : book.priceCard);
-    tappingRate += qty * (book.tappingRate || 0);
-    points += qty * Number(book.coinsReward || 0);
-  }
+              // Financial calculations
+              totalAmount += qty * (paymentMethod === "TON" ? book.priceTon : book.priceCard);
+              tappingRate += qty * (book.tappingRate || 0);
+              points += qty * Number(book.coinsReward || 0);
+            }
 
-  return { 
-    totalAmount, 
-    tappingRate, 
-    points, 
-    codes, 
-    updatedStocks 
-  };
-}
+            return { 
+              totalAmount, 
+              tappingRate, 
+              points, 
+              codes, 
+              updatedStocks 
+            };
+          }
 
 
 async function processPayment(
-  tx: Prisma.TransactionClient, 
-  paymentMethod: string,
-  paymentReference: string | null,
-  totalAmount: number,
-  // redirectUrl: string,
-  userId:  string | null,
-  bookCount: number,
-  bookId:  string | null,
-  fxckedUpBagsQty: number,
-  humanRelationsQty: number
-): Promise<{ success: boolean; message?: string; orderId?: string; purchaseId?: string }> {
-  try {
-      console.log("🛠️ Received processPayment request with data:", {
-        paymentMethod,
-      paymentReference,
-      totalAmount,
-      // redirectUrl,
-      userId,
-      bookCount,
-      bookId,
-      fxckedUpBagsQty,
-      humanRelationsQty,
-    });
-      // Check if paymentReference is missing
-      if (!paymentReference) {
-        console.warn("⚠️ Missing paymentReference! Creating a new order in PENDING state.");
-        const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
-      
-          const order = await tx.order.create({
-            data: {
-              orderId,
-              paymentMethod,
+          tx: Prisma.TransactionClient, 
+          paymentMethod: string,
+          paymentReference: string | null,
+          totalAmount: number,
+          // redirectUrl: string,
+          userId:  string | null,
+          bookCount: number,
+          bookId:  string | null,
+          fxckedUpBagsQty: number,
+          humanRelationsQty: number
+        ): Promise<{ success: boolean; message?: string; orderId?: string; purchaseId?: string }> {
+          try {
+              console.log("🛠️ Received processPayment request with data:", {
+                paymentMethod,
+              paymentReference,
               totalAmount,
-              status: "PENDING",
-              transactionReference: null,
-            },
-          });
-          console.log("✅ New PENDING order created:", order);
-  
-          return { success: true, orderId: order.orderId };
-      }
-
-    function isPurchase(purchase: any): purchase is { id: string } {
-      return purchase && typeof purchase.id === "string";
-    }
-
-      if (paymentMethod === "TON") {
-        console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
-    
-        const walletAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS ?? ""; // Provide a default value
-        if (!walletAddress) {
-          throw new Error("Testnet wallet address is not defined");
-        }
-      const isTonPaymentValid = await verifyTonPayment(walletAddress, totalAmount, paymentReference);
-        if (!isTonPaymentValid) {
-          console.error("❌ TON payment verification failed: Invalid transaction.");
-          throw new Error("TON payment verification failed: Invalid transaction");
-        }
-    
-        // 🔹 Check for existing order
-        console.log("🔍 Searching for existing order with reference:", paymentReference);
-        const existingOrder = await tx.order.findFirst({
-          where: {
-            OR: [
-              { orderId: paymentReference },
-              { transactionReference: paymentReference }
-            ]
-          },
-        });
-
-         console.log("🔍 Existing order lookup result:", existingOrder);
-
-        if (!existingOrder) {
-          console.log("⚠️ No existing order found. Creating a new order.");
-        } else {
-          console.log("✅ Found existing order:", existingOrder);
-        }
-    
-        let finalOrder;
-        if (!existingOrder) {
-          console.log("⚠️ No existing order found. Creating a new order.");
-          const newOrderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
-
-          finalOrder = await tx.order.create({
-            data: {
-              orderId: newOrderId,
-              paymentMethod,
-              totalAmount,
-              status: "SUCCESS",
-              transactionReference: paymentReference,
-            },
-          });
-          console.log("✅ New SUCCESS order created:", finalOrder);
-        } else {
-          console.log("✅ Existing order found. Updating order status to SUCCESS.");
-
-
-          finalOrder = await tx.order.update({
-            where: { orderId: existingOrder.orderId },
-            data: {
-              status: "SUCCESS",
-              transactionReference: paymentReference,
-            },
-          });
-        }
-        console.log("🔍 Order retrieved for processing:", finalOrder);
-
-
-        // Add null check and error handling
-        if (!finalOrder) {
-          throw new Error("Failed to create or retrieve order");
-        }
-        // When fetching the order after creation, ensure you include the id field:
-
-        console.log("🔍 Final order before retrieval:", finalOrder);
-
-        const confirmedOrder = await tx.order.findUnique({
-          where: { id: finalOrder.id },
-          select: { id: true, orderId: true }
-        });
-        
-        if (!confirmedOrder) {
-          throw new Error("Order retrieval failed after creation.");
-        }
-        
-        finalOrder = confirmedOrder;
-        
-
-        console.log("Final order for purchase creation:", finalOrder);
-
-
-        // Only try to find the book if bookId is provided
-        let book = null;
-        let coinsReward = 0;
-        
-        if (bookId) {
-          book = await tx.book.findUnique({
-            where: { id: bookId },
-          });
-          
-          if (book) {
-            coinsReward = Math.floor(Number(book.coinsReward));
-          }
-        }
-
-        
-        // 🔹 Create Purchase Record
-      try {
-       
-        const userIdNumber = Number(userId);
-        if (!userId || isNaN(userIdNumber)) throw new Error("Invalid userId: userId must be a valid number");
-
-
-             // Check if the User exists
-             const user = await tx.user.findUnique({
-              where: { telegramId: userIdNumber }, // Use telegramId to find the user
+              // redirectUrl,
+              userId,
+              bookCount,
+              bookId,
+              fxckedUpBagsQty,
+              humanRelationsQty,
             });
-        
-            if (!user) {
-              console.error(`User with telegramId ${userIdNumber} does not exist. Marking payment as pending.`);
+              // Check if paymentReference is missing
+              if (!paymentReference) {
+                console.warn("⚠️ Missing paymentReference! Creating a new order in PENDING state.");
+                const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-            await tx.order.update({
-                where: { orderId: finalOrder.orderId },
-                data: { status: "PENDING" },
-              });
-              return { success: false, message: `User with telegramId ${userIdNumber} does not exist. Payment marked as pending.` };
-            }
-
-            // Validate bookCount
-            console.log("bookCount:", bookCount);
-            const booksBoughtValue = Math.floor(Number(bookCount || 0)); 
-            console.log("booksBought value:", booksBoughtValue);
-
-            console.log("Order details for connection:", {
-            id: finalOrder.id,
-            // _id: finalOrder._id, 
-            orderId: finalOrder.orderId
-          });
-            
-
-            const purchaseData: Prisma.PurchaseCreateInput = {
-              paymentType: "TON",
               
-              amountPaid: Math.floor(Number(totalAmount)),
-              booksBought: Math.floor(Math.max(bookCount || 0, 0)),
-              fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
-              humanRelationsQty: Math.floor(Number(humanRelationsQty)),
-              coinsReward: coinsReward,
-              createdAt: new Date(),
+                  const order = await tx.order.create({
+                    data: {
+                      orderId,
+                      paymentMethod,
+                      totalAmount,
+                      status: "PENDING",
+                      transactionReference: null,
+                    },
+                  });
+                  console.log("✅ New PENDING order created:", order);
+          
+                  return { success: true, orderId: order.orderId };
+              }
 
-             
-              user: {
-                connect: { id: user.id }, 
-              },
-              book: bookId ? { connect: { id: bookId } } : undefined, 
-              // order: {
-              //   connect: { orderId: finalOrder.orderId }
-              // }
-               order: { connect: { orderId: finalOrder.orderId } }, 
-        };
-            
-        
-            console.log("coinsReward type:", typeof purchaseData.coinsReward);
-        
-            if (typeof purchaseData.coinsReward !== "number") {
-              throw new Error(`Invalid coinsReward type: ${typeof purchaseData.coinsReward}`);
+            function isPurchase(purchase: any): purchase is { id: string } {
+              return purchase && typeof purchase.id === "string";
             }
-        
-            const createdPurchase = await tx.purchase.create({
-              data: purchaseData,
-            });
-        
-            if (!createdPurchase) 
-              throw new Error("Purchase creation failed");
+
+              if (paymentMethod === "TON") {
+                console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
             
+                const walletAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS ?? ""; // Provide a default value
+                if (!walletAddress) {
+                  throw new Error("Testnet wallet address is not defined");
+                }
+              const isTonPaymentValid = await verifyTonPayment(walletAddress, totalAmount, paymentReference);
+                if (!isTonPaymentValid) {
+                  console.error("❌ TON payment verification failed: Invalid transaction.");
+                  throw new Error("TON payment verification failed: Invalid transaction");
+                }
+            
+                // 🔹 Check for existing order
+                console.log("🔍 Searching for existing order with reference:", paymentReference);
+                const existingOrder = await tx.order.findFirst({
+                  where: {
+                    OR: [
+                      { orderId: paymentReference },
+                      { transactionReference: paymentReference }
+                    ]
+                  },
+                });
 
-        
-          console.log("✅ Purchase record created:", createdPurchase);
+                console.log("🔍 Existing order lookup result:", existingOrder);
 
-          // Use the type guard to ensure purchase has an id property
-          if (!isPurchase(createdPurchase)) {
-            throw new Error("Purchase creation failed: Invalid purchase record");
-          }
-          return {
-            success: true,
-            message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
-            orderId: finalOrder.orderId,
-            purchaseId: createdPurchase.id,
-          };
-        } catch (error) {
-          console.error("❌ Failed to create purchase record:", error);
-          // Roll back the order status if purchase creation fails
-          await tx.order.update({
-            where: { orderId: finalOrder.orderId },
-            data: { status: "FAILED" },
-          });
-          throw new Error("Failed to create purchase record");
-        }
-      }
+                if (!existingOrder) {
+                  console.log("⚠️ No existing order found. Creating a new order.");
+                } else {
+                  console.log("✅ Found existing order:", existingOrder);
+                }
+            
+                let finalOrder;
+                if (!existingOrder) {
+                  console.log("⚠️ No existing order found. Creating a new order.");
+                  const newOrderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
 
-      // CARD payment flow
-      if (paymentMethod === "CARD") {
-        console.log("🔵 Initiating Flutterwave payment...");
-        const paymentRef = `TX-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        const flutterwavePaymentResponse = await initiateFlutterwavePayment(
-          paymentRef,
-          totalAmount.toFixed(2),
-          redirectUrl
-        );
+                  finalOrder = await tx.order.create({
+                    data: {
+                      orderId: newOrderId,
+                      paymentMethod,
+                      totalAmount,
+                      status: "SUCCESS",
+                      transactionReference: paymentReference,
+                    },
+                  });
+                  console.log("✅ New SUCCESS order created:", finalOrder);
+                } else {
+                  console.log("✅ Existing order found. Updating order status to SUCCESS.");
 
-        if (!flutterwavePaymentResponse?.success) {
-          console.error("❌ Flutterwave payment initiation failed: Invalid response.");
-          throw new Error("Flutterwave payment initiation failed: Invalid response");
-        }
 
-        console.log("✅ Flutterwave payment successful. Updating order status.");
-        const updatedOrder = await prisma.order.update({
-          where: { orderId: flutterwavePaymentResponse.orderId },
-          data: {
-            status: "SUCCESS",
-            transactionReference: paymentRef,
-          },
-        });
-        
-        return {
-          success: true,
-          message: "Flutterwave payment verified successfully",
-          orderId: updatedOrder.orderId,
-        };
-      }
+                  finalOrder = await tx.order.update({
+                    where: { orderId: existingOrder.orderId },
+                    data: {
+                      status: "SUCCESS",
+                      transactionReference: paymentReference,
+                    },
+                  });
+                }
+                console.log("🔍 Order retrieved for processing:", finalOrder);
 
-      throw new Error(`Invalid payment method: ${paymentMethod}`);
-    } catch (error) {
-      // Enhanced error handling
-      const errorMessage = error instanceof Error ? error.message : "Unknown payment processing error";
-      console.error("❌ Payment processing error:", errorMessage);
-      throw new Error(errorMessage);
+
+                // Add null check and error handling
+                if (!finalOrder) {
+                  throw new Error("Failed to create or retrieve order");
+                }
+                // When fetching the order after creation, ensure you include the id field:
+
+                console.log("🔍 Final order before retrieval:", finalOrder);
+
+                const confirmedOrder = await tx.order.findUnique({
+                  where: { id: finalOrder.id },
+                  select: { id: true, orderId: true }
+                });
+                
+                if (!confirmedOrder) {
+                  throw new Error("Order retrieval failed after creation.");
+                }
+                
+                finalOrder = confirmedOrder;
+                
+
+                console.log("Final order for purchase creation:", finalOrder);
+
+
+                // Only try to find the book if bookId is provided
+                let book = null;
+                let coinsReward = 0;
+                
+                if (bookId) {
+                  book = await tx.book.findUnique({
+                    where: { id: bookId },
+                  });
+                  
+                  if (book) {
+                    coinsReward = Math.floor(Number(book.coinsReward));
+                  }
+                }
+
+                
+                // 🔹 Create Purchase Record
+              try {
+    // 1. LOG THE RAW INPUT
+    console.log("🔍 [DEBUG] Starting User Lookup for TON Payment. Raw userId:", userId);
+
+    // 2. AVOID THE NUMBER CONVERSION TRAP
+    // Telegram IDs can exceed the safe integer limit for JavaScript Numbers.
+    // We validate as a string and convert directly to BigInt.
+    if (!userId || typeof userId !== 'string' && typeof userId !== 'number') {
+        throw new Error(`Invalid userId type: ${typeof userId}`);
     }
-  }
+
+    // 3. ATTEMPT DATABASE LOOKUP
+    const userTelegramId = BigInt(userId);
+    console.log("🔢 [DEBUG] Converted BigInt ID:", userTelegramId.toString());
+
+    const user = await tx.user.findUnique({
+        where: { telegramId: userTelegramId },
+    });
+
+    // 4. CHECK THE RESULT
+    if (!user) {
+        console.error(`❌ [FAILURE] User NOT found in DB for ID: ${userTelegramId.toString()}`);
+        
+        // This update is what changes your UI status to "FAILED" or "PENDING"
+        await tx.order.update({
+            where: { orderId: finalOrder.orderId },
+            data: { status: "PENDING" },
+        });
+
+        return { 
+            success: false, 
+            message: `User ${userId} not found. Please ensure you have started the bot.` 
+        };
+    }
+
+    console.log("✅ [SUCCESS] User located:", user.id, "Current Tapping Rate:", user.tappingRate);
+    
+    // Proceed with purchase logic...
+
+} catch (error: any) {
+    console.error("🔥 [CRITICAL ERROR] inside TON user lookup:", error.message);
+    throw error; // Re-throw to trigger the transaction rollback
+}
+
+                    // Validate bookCount
+                    console.log("bookCount:", bookCount);
+                    const booksBoughtValue = Math.floor(Number(bookCount || 0)); 
+                    console.log("booksBought value:", booksBoughtValue);
+
+                    console.log("Order details for connection:", {
+                    id: finalOrder.id,
+                    // _id: finalOrder._id, 
+                    orderId: finalOrder.orderId
+                  });
+                    
+
+                    const purchaseData: Prisma.PurchaseCreateInput = {
+                      paymentType: "TON",
+                      
+                      amountPaid: Math.floor(Number(totalAmount)),
+                      booksBought: Math.floor(Math.max(bookCount || 0, 0)),
+                      fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
+                      humanRelationsQty: Math.floor(Number(humanRelationsQty)),
+                      coinsReward: coinsReward,
+                      createdAt: new Date(),
+
+                    
+                      user: {
+                        connect: { id: user.id }, 
+                      },
+                      book: bookId ? { connect: { id: bookId } } : undefined, 
+                      // order: {
+                      //   connect: { orderId: finalOrder.orderId }
+                      // }
+                      order: { connect: { orderId: finalOrder.orderId } }, 
+                };
+                    
+                
+                    console.log("coinsReward type:", typeof purchaseData.coinsReward);
+                
+                    if (typeof purchaseData.coinsReward !== "number") {
+                      throw new Error(`Invalid coinsReward type: ${typeof purchaseData.coinsReward}`);
+                    }
+                
+                    const createdPurchase = await tx.purchase.create({
+                      data: purchaseData,
+                    });
+                
+                    if (!createdPurchase) 
+                      throw new Error("Purchase creation failed");
+                    
+
+                
+                  console.log("✅ Purchase record created:", createdPurchase);
+
+                  // Use the type guard to ensure purchase has an id property
+                  if (!isPurchase(createdPurchase)) {
+                    throw new Error("Purchase creation failed: Invalid purchase record");
+                  }
+                  return {
+                    success: true,
+                    message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
+                    orderId: finalOrder.orderId,
+                    purchaseId: createdPurchase.id,
+                  };
+                } catch (error) {
+                  console.error("❌ Failed to create purchase record:", error);
+                  // Roll back the order status if purchase creation fails
+                  await tx.order.update({
+                    where: { orderId: finalOrder.orderId },
+                    data: { status: "FAILED" },
+                  });
+                  throw new Error("Failed to create purchase record");
+                }
+              }
+
+
+              // CARD payment flow
+              if (paymentMethod === "CARD") {
+                console.log("🔵 Initiating Flutterwave payment...");
+                const paymentRef = `TX-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+                const flutterwavePaymentResponse = await initiateFlutterwavePayment(
+                  paymentRef,
+                  totalAmount.toFixed(2),
+                  redirectUrl
+                );
+
+                if (!flutterwavePaymentResponse?.success) {
+                  console.error("❌ Flutterwave payment initiation failed: Invalid response.");
+                  throw new Error("Flutterwave payment initiation failed: Invalid response");
+                }
+
+                console.log("✅ Flutterwave payment successful. Updating order status.");
+                const updatedOrder = await prisma.order.update({
+                  where: { orderId: flutterwavePaymentResponse.orderId },
+                  data: {
+                    status: "SUCCESS",
+                    transactionReference: paymentRef,
+                  },
+                });
+                
+                return {
+                  success: true,
+                  message: "Flutterwave payment verified successfully",
+                  orderId: updatedOrder.orderId,
+                };
+              }
+
+              throw new Error(`Invalid payment method: ${paymentMethod}`);
+            } catch (error) {
+              // Enhanced error handling
+              const errorMessage = error instanceof Error ? error.message : "Unknown payment processing error";
+              console.error("❌ Payment processing error:", errorMessage);
+              throw new Error(errorMessage);
+            }
+          }
 
 
   async function updateDatabaseTransaction(
-    tx: Prisma.TransactionClient, 
-    booksToPurchase: BookPurchaseInfo[],
-    codes: string[],
-    telegramId: string,
-    email: string,
-    paymentMethod: string,
-    totalAmount: number,
-    tappingRate: number,
-    points: number,
-   orderId: string | null | undefined, 
-    referrerId?: string
-  ) {
-    const MAX_RETRIES = 3;
+              tx: Prisma.TransactionClient, 
+              booksToPurchase: BookPurchaseInfo[],
+              codes: string[],
+              telegramId: string,
+              email: string,
+              paymentMethod: string,
+              totalAmount: number,
+              tappingRate: number,
+              points: number,
+            orderId: string | null | undefined, 
+              referrerId?: string
+          ) {
+            const MAX_RETRIES = 3;
 
-    
+            
 
-    const purchasedBooks: { bookId: string; quantity: number }[] = [];
-  for (const { id, qty } of booksToPurchase) {
-    if (!id) continue;
-    const book = await tx.book.findFirst({ where: { id } });
-    console.log(`📘 Book ${id} before stock update: usedStock = ${book?.usedStock}, qty = ${qty}`);
-    if (!book) throw new Error(`Book with ID "${id}" not found.`);
-    purchasedBooks.push({ bookId: book.id, quantity: qty });
-  }
-  
-  for (const { id, qty } of booksToPurchase) {
-    // 1. First find the codes to mark as used
-    const codesToUpdate = await tx.generatedCode.findMany({
-      where: { 
-        bookId: id,
-        isUsed: false 
-      },
-      take: qty,
-      select: { id: true }
-    });
-  
-    // 2. Then update them
-    await tx.generatedCode.updateMany({
-      where: { 
-        id: { in: codesToUpdate.map(c => c.id) } 
-      },
-      data: { isUsed: true }
-    });
-  
-    // 3. Update book stock
-    await tx.book.update({
-      where: { id },
-      data: { 
-        usedStock: { increment: qty }
-      }
-    });
-    console.log(`✅ Book ${id} stock incremented by ${qty}`);
-  }
+            const purchasedBooks: { bookId: string; quantity: number }[] = [];
+          for (const { id, qty } of booksToPurchase) {
+            if (!id) continue;
+            const book = await tx.book.findFirst({ where: { id } });
+            console.log(`📘 Book ${id} before stock update: usedStock = ${book?.usedStock}, qty = ${qty}`);
+            if (!book) throw new Error(`Book with ID "${id}" not found.`);
+            purchasedBooks.push({ bookId: book.id, quantity: qty });
+          }
+          
+          for (const { id, qty } of booksToPurchase) {
+            // 1. First find the codes to mark as used
+            const codesToUpdate = await tx.generatedCode.findMany({
+              where: { 
+                bookId: id,
+                isUsed: false 
+              },
+              take: qty,
+              select: { id: true }
+            });
+          
+            // 2. Then update them
+            await tx.generatedCode.updateMany({
+              where: { 
+                id: { in: codesToUpdate.map(c => c.id) } 
+              },
+              data: { isUsed: true }
+            });
+          
+            // 3. Update book stock
+            await tx.book.update({
+              where: { id },
+              data: { 
+                usedStock: { increment: qty }
+              }
+            });
+            console.log(`✅ Book ${id} stock incremented by ${qty}`);
+          }
 
       // Fetch or create user
       let user = await tx.user.findUnique({
@@ -970,19 +993,19 @@ async function processPayment(
 
         const totalBooksPurchased = booksToPurchase.reduce((sum, book) => sum + book.qty, 0);
 
-// 1. Calculate the boost duration (24 hours per book in milliseconds)
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const boostDurationMs = totalBooksPurchased * MS_PER_DAY;
+            // 1. Calculate the boost duration (24 hours per book in milliseconds)
+          const MS_PER_DAY = 24 * 60 * 60 * 1000;
+          const boostDurationMs = totalBooksPurchased * MS_PER_DAY;
 
-const now = new Date();
+          const now = new Date();
 
-// 2. Determine the starting point for the boost
-// If user has an active boost, stack on top of it. Otherwise, start from now.
-const currentExpiry = user.boostExpiresAt && user.boostExpiresAt > now 
-  ? user.boostExpiresAt 
-  : now;
+          // 2. Determine the starting point for the boost
+          // If user has an active boost, stack on top of it. Otherwise, start from now.
+          const currentExpiry = user.boostExpiresAt && user.boostExpiresAt > now 
+            ? user.boostExpiresAt 
+            : now;
 
-const newBoostExpiry = new Date(currentExpiry.getTime() + boostDurationMs);
+          const newBoostExpiry = new Date(currentExpiry.getTime() + boostDurationMs);
 
 
         // Update user points & tapping rate
@@ -1015,16 +1038,16 @@ const newBoostExpiry = new Date(currentExpiry.getTime() + boostDurationMs);
         }
 
         // Mark codes as used
-        // Convert temporary reservations to permanent usage
-    await tx.generatedCode.updateMany({
-      where: { code: { in: codes } },
-      data: {
-        isUsed: true,
-        isReserved: false, // Clear reservation flag
-        purchaseId: purchase.id,
-        usedAt: new Date() // Optional: track when codes were used
-      }
-    });
+                // Convert temporary reservations to permanent usage
+            await tx.generatedCode.updateMany({
+              where: { code: { in: codes } },
+              data: {
+                isUsed: true,
+                isReserved: false, // Clear reservation flag
+                purchaseId: purchase.id,
+                usedAt: new Date() // Optional: track when codes were used
+              }
+            });
 
 
         // Send email with retry logic
