@@ -961,7 +961,7 @@ return (
         {/* REDEMPTION SECTION */}
        
         {/* REDEMPTION SECTION: CYBER-TERMINAL UPGRADE */}
-<div id="referral-section" className="border-t border-zinc-800 pt-10 pb-4 space-y-4">
+<div id="referral-section" className="border-t border-zinc-800 pt-10 pb-4 space-y-4 px-4">
   <div className="flex flex-col items-center gap-1">
     <h3 className="font-black italic uppercase tracking-[0.2em] text-purple-500 text-[11px] animate-pulse">
       Have a secret code?
@@ -971,26 +971,30 @@ return (
     </p>
   </div>
 
-  <div className="relative group">
+  <div className="relative group max-w-md mx-auto w-full">
     {/* Outer Glow Effect */}
     <div className="absolute -inset-1 bg-purple-600/20 rounded-[2rem] blur-xl group-focus-within:bg-purple-600/40 transition-all duration-500 opacity-0 group-focus-within:opacity-100" />
     
-    <div className="relative bg-zinc-950 p-1.5 rounded-[2.2rem] border-2 border-zinc-800 focus-within:border-purple-500/50 flex items-center gap-2 shadow-2xl transition-all">
-      <div className="pl-5 text-purple-500/50">
-        <Terminal size={18} />
+    {/* Layout: Vertical on mobile, Horizontal on sm+ */}
+    <div className="relative bg-zinc-950 p-1.5 rounded-[1.5rem] sm:rounded-[2.2rem] border-2 border-zinc-800 focus-within:border-purple-500/50 flex flex-col sm:flex-row items-center gap-2 shadow-2xl transition-all">
+      <div className="flex items-center w-full sm:w-auto">
+        <div className="pl-4 sm:pl-5 text-purple-500/50">
+          <Terminal size={18} />
+        </div>
+        
+        <input 
+          type="text" 
+          value={uniqueCode} 
+          onChange={(e) => setUniqueCode(e.target.value.toUpperCase())} 
+          placeholder="_ _ _ _ _ _" 
+          className="flex-1 bg-transparent py-4 px-3 outline-none text-white font-mono font-black text-lg sm:text-xl tracking-[0.2em] sm:tracking-[0.3em] placeholder:text-zinc-800 uppercase min-w-0"
+        />
       </div>
       
-      <input 
-        type="text" 
-        value={uniqueCode} 
-        onChange={(e) => setUniqueCode(e.target.value.toUpperCase())} 
-        placeholder="_ _ _ _ _ _" 
-        className="flex-1 bg-transparent py-4 outline-none text-white font-mono font-black text-xl tracking-[0.3em] placeholder:text-zinc-800 uppercase"
-      />
-      
+      {/* Button: Full width on mobile, Auto width on sm+ */}
       <button 
         onClick={handleCodeRedemption} 
-        className="bg-purple-600 hover:bg-purple-400 text-white h-[52px] px-8 rounded-[1.8rem] font-black italic uppercase tracking-tighter shadow-[0_0_20px_rgba(147,51,234,0.3)] active:scale-95 transition-all text-sm flex items-center gap-2"
+        className="w-full sm:w-auto bg-purple-600 hover:bg-purple-400 text-white h-[52px] px-8 rounded-[1.2rem] sm:rounded-[1.8rem] font-black italic uppercase tracking-tighter shadow-[0_0_20px_rgba(147,51,234,0.3)] active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
       >
         ACTIVATE
         <ChevronRight size={18} />

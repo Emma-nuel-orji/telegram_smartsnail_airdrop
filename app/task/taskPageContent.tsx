@@ -675,7 +675,7 @@ const handleShareToStory = async () => {
       <Link href="/" className="p-2 bg-white/5 rounded-xl border border-white/10 active:scale-95 transition-transform">
         <ChevronLeft size={24} color="#00ffa3" />
       </Link>
-      <h2 className="text-sm font-black uppercase tracking-widest text-white">Ecosystem Missions</h2>
+      <h2 className="text-sm font-black uppercase tracking-widest text-white">PERFORM TASKS</h2>
     </div>
 
           {/* 2. TAB NAVIGATION */}
