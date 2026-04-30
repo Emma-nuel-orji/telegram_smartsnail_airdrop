@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     } = body;
 
     // 1. SILENTLY IGNORE STARS
-    // The Telegram Webhook handles Stars updates. We return 200 to keep the UI stable.
+    // The Telegram Webhook handles Stars updates.
     if (paymentMethod === "Stars") {
       return NextResponse.json({ 
         success: true, 
@@ -46,19 +46,17 @@ export async function POST(request: Request) {
           throw new Error(`User with Telegram ID ${userId} not found.`);
         }
 
-        // 3. HANDLE ORDER (Manual Upsert to avoid Unique constraint type error)
+        // 3. HANDLE ORDER
         let order = await tx.order.findFirst({
           where: { transactionReference: paymentReference },
         });
 
         if (order) {
-          // Update existing order
           order = await tx.order.update({
             where: { id: order.id },
             data: { status: "SUCCESS" },
           });
         } else {
-          // Create new order
           order = await tx.order.create({
             data: {
               orderId: `TON-${Date.now()}`,
@@ -71,6 +69,7 @@ export async function POST(request: Request) {
         }
 
         // 4. CREATE PURCHASE RECORD
+        // Fix: Use 'connect' for relations instead of raw 'orderId'
         const purchase = await tx.purchase.create({
           data: {
             paymentType: "TON",
@@ -78,11 +77,14 @@ export async function POST(request: Request) {
             booksBought: Number(bookCount || 0),
             fxckedUpBagsQty: Number(fxckedUpBagsQty),
             humanRelationsQty: Number(humanRelationsQty),
-            // Link using relation shorthand
-            userId: user.id, 
-            orderId: order.id,
-            bookId: bookId || undefined,
             createdAt: new Date(),
+            // Use connect syntax to satisfy Prisma types
+            user: { connect: { id: user.id } },
+            order: { connect: { id: order.id } },
+            // Only connect book if bookId is a valid string
+            ...(bookId && typeof bookId === 'string' ? {
+              book: { connect: { id: bookId } }
+            } : {})
           },
         });
 
