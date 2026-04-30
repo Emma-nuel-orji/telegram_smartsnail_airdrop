@@ -76,8 +76,9 @@ export async function GET(
 return NextResponse.json({
   ...serializedUser,
   ...totals,
-  isAdmin: dbUser.isAdmin || (dbUser.permissions?.includes('ADMIN')) || false,
-  isSuperAdmin: dbUser.isSuperAdmin || false,
+  // We use "as any" here because the Prisma-generated type is missing these fields
+  isAdmin: (dbUser as any).isAdmin || ((dbUser as any).permissions?.includes('ADMIN')) || false,
+  isSuperAdmin: (dbUser as any).isSuperAdmin || false,
 });
   } catch (error) {
     console.error("GET USER ERROR:", error);
