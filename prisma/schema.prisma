@@ -528,3 +528,9 @@ model Nft {
 
 }
 
+model TicketType {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  name        String @unique // "Regular", "VIP", "VVIP"
+  priceShells Int
+  priceStars  Int
+}
