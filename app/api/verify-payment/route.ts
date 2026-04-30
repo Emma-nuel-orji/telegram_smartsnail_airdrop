@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Clean Verify Route
- * Handles TON payments from the frontend.
- * Stars payments are ignored here because they are handled by the Bot Webhook.
- */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -23,8 +18,7 @@ export async function POST(request: Request) {
     } = body;
 
     // 1. SILENTLY IGNORE STARS
-    // If the frontend calls this for Stars, we return 200 so the UI doesn't crash,
-    // but we let the Telegram Webhook handle the database updates.
+    // The Telegram Webhook handles Stars updates. We return 200 to keep the UI stable.
     if (paymentMethod === "Stars") {
       return NextResponse.json({ 
         success: true, 
@@ -41,11 +35,9 @@ export async function POST(request: Request) {
         );
       }
 
-      // 3. PROCESS TON TRANSACTION
       const result = await prisma.$transaction(async (tx) => {
-        // Convert userId (Telegram ID) to BigInt carefully
+        // Find the user by Telegram ID
         const userTelegramId = BigInt(userId);
-
         const user = await tx.user.findUnique({
           where: { telegramId: userTelegramId },
         });
@@ -54,37 +46,46 @@ export async function POST(request: Request) {
           throw new Error(`User with Telegram ID ${userId} not found.`);
         }
 
-        // Create or Update the Order to SUCCESS
-        const order = await tx.order.upsert({
+        // 3. HANDLE ORDER (Manual Upsert to avoid Unique constraint type error)
+        let order = await tx.order.findFirst({
           where: { transactionReference: paymentReference },
-          update: { status: "SUCCESS" },
-          create: {
-            orderId: `TON-${Date.now()}`,
-            paymentMethod: "TON",
-            totalAmount: Number(totalAmount),
-            status: "SUCCESS",
-            transactionReference: paymentReference,
-          },
         });
 
-        // Create the Purchase Record
+        if (order) {
+          // Update existing order
+          order = await tx.order.update({
+            where: { id: order.id },
+            data: { status: "SUCCESS" },
+          });
+        } else {
+          // Create new order
+          order = await tx.order.create({
+            data: {
+              orderId: `TON-${Date.now()}`,
+              paymentMethod: "TON",
+              totalAmount: Number(totalAmount || 0),
+              status: "SUCCESS",
+              transactionReference: paymentReference,
+            },
+          });
+        }
+
+        // 4. CREATE PURCHASE RECORD
         const purchase = await tx.purchase.create({
           data: {
             paymentType: "TON",
-            amountPaid: Number(totalAmount),
+            amountPaid: Number(totalAmount || 0),
             booksBought: Number(bookCount || 0),
             fxckedUpBagsQty: Number(fxckedUpBagsQty),
             humanRelationsQty: Number(humanRelationsQty),
-            userId: user.id, // Internal MongoDB ID
+            // Link using relation shorthand
+            userId: user.id, 
             orderId: order.id,
             bookId: bookId || undefined,
             createdAt: new Date(),
           },
         });
 
-        // Note: The actual "Boost" logic (updating tappingRate/boostExpiresAt) 
-        // should be triggered here if not handled by a global listener.
-        
         return { 
           success: true, 
           orderId: order.orderId, 
@@ -95,7 +96,6 @@ export async function POST(request: Request) {
       return NextResponse.json(result);
     }
 
-    // 4. FALLBACK FOR UNKNOWN METHODS
     return NextResponse.json(
       { error: `Unsupported payment method: ${paymentMethod}` },
       { status: 400 }
