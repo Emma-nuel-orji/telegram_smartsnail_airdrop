@@ -135,35 +135,47 @@ return () => clearTimeout(timeout);
 const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
   const amount = currency === 'SHELLS' ? plan.priceShells : plan.priceStars;
 
-  if (!isAdmin) {
-    try {
-      const checkRes = await fetch(`/api/user/${telegramId}`, {
-        headers: { ...(initData ? { "Authorization": `tma ${initData}` } : {}) }
-      });
-      const userData = await checkRes.json();
+  // 🔍 DEBUG — paste this, check console, then we remove it
+  console.log("🔍 telegramId state:", telegramId);
+  console.log("🔍 isAdmin state:", isAdmin);
+  console.log("🔍 initData present:", !!initData);
 
-      // ✅ Re-check admin from fresh data too
-      const freshIsAdmin = 
-        userData.isAdmin === true || 
-        userData.isSuperAdmin === true || 
+  try {
+    const checkRes = await fetch(`/api/user/${telegramId}`, {
+      headers: { ...(initData ? { "Authorization": `tma ${initData}` } : {}) }
+    });
+    
+    // 🔍 DEBUG
+    console.log("🔍 user fetch status:", checkRes.status);
+    const userData = await checkRes.json();
+    console.log("🔍 FULL USER DATA:", JSON.stringify(userData, null, 2));
+
+    // If fetch failed entirely, don't block admins
+    if (!checkRes.ok) {
+      console.warn("⚠️ User fetch failed with status:", checkRes.status);
+      // Don't return — fall through to the purchase attempt
+      // The backend will enforce the real admin check
+    } else {
+      // Re-derive admin from fresh data
+      const freshIsAdmin =
+        userData.isAdmin === true ||
+        userData.isSuperAdmin === true ||
         (Array.isArray(userData.permissions) && userData.permissions.includes('ADMIN'));
 
-      if (freshIsAdmin) {
-        // ✅ Update state and skip all checks
-        setIsAdmin(true);
-      } else {
-        // Only show register wall if not admin AND no nickname
+      console.log("🔍 freshIsAdmin:", freshIsAdmin);
+
+      if (!freshIsAdmin) {
+        // Not admin — enforce nickname and balance checks
         if (!userData.nickname) {
           setNotRegistered(true);
           return;
         }
 
-        // Balance check
         if (currency === 'SHELLS' && userPoints < amount) {
-          return toast.error("Insufficient Shells! 🐚");
+          toast.error("Insufficient Shells! 🐚");
+          return;
         }
 
-        // Confirm dialog
         const confirmed = await new Promise((resolve) => {
           getWebApp?.showConfirm(
             `Spend ${amount.toLocaleString()} Shells for ${plan.name}?`,
@@ -171,14 +183,17 @@ const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
           );
         });
         if (!confirmed) return;
+      } else {
+        // Fresh data confirmed admin — sync state
+        setIsAdmin(true);
       }
-    } catch {
-      toast.error("Could not verify account. Try again.");
-      return;
     }
+  } catch {
+    console.error("❌ User check fetch threw an error");
+    // Don't block — let backend enforce
   }
 
-  // rest of purchase logic stays the same...
+  // ── PURCHASE ──
   setPurchasing(plan.id);
   try {
     const response = await fetch("/api/subscribe", {
@@ -196,7 +211,10 @@ const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
       })
     });
 
+    // 🔍 DEBUG
+    console.log("🔍 subscribe status:", response.status);
     const result = await response.json();
+    console.log("🔍 subscribe result:", JSON.stringify(result, null, 2));
 
     if (currency === 'STARS' && result.invoiceLink) {
       getWebApp?.openInvoice(result.invoiceLink, (status: string) => {
@@ -214,6 +232,7 @@ const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
       toast.error(result.error || "Purchase failed.");
     }
   } catch (error) {
+    console.error("❌ Subscribe fetch error:", error);
     toast.error("Connection failed.");
   } finally {
     setPurchasing(null);

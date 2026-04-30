@@ -91,104 +91,110 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
   }
 
   const handlePurchase = async (method: 'stars' | 'ton' | 'shells') => {
-    if (!nft) return;
-    
-    setPurchasing(true);
-    const toastId = toast.loading(`Preparing your ${method.toUpperCase()} payment...`);
+  if (!nft) return;
 
-    try {
-      const telegram = typeof window !== 'undefined' ? (window as any).Telegram : null;
-      const tgUserId = telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || "123456";
+  setPurchasing(true);
+  const toastId = toast.loading(`Preparing your ${method.toUpperCase()} payment...`);
 
-      // Request initial purchase data (Invoice link or Admin Wallet Address)
-      const response = await fetch(`/api/nfts/${params.id}/purchase`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "x-telegram-user-id": tgUserId
-        },
-        body: JSON.stringify({ 
-          paymentMethod: method,
-          indexNumber: nft.indexNumber,
-          collection: nft.collection
-        }),
-      });
+  // ✅ Get auth from token — no fallback
+  const initData = typeof window !== 'undefined'
+    ? (window as any).Telegram?.WebApp?.initData
+    : null;
 
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error || "Initial request failed");
+  if (!initData) {
+    setPurchasing(false);
+    toast.error("Authentication required. Please open in Telegram.", { id: toastId });
+    return;
+  }
 
-      // --- METHOD 1: STARS ---
-      if (method === 'stars' && data.invoiceLink) {
-        toast.dismiss(toastId);
-        if (!telegram?.WebApp) {
+  const authHeaders = {
+    "Content-Type": "application/json",
+    "Authorization": `tma ${initData}` // ← correct header
+  };
+
+  try {
+    const response = await fetch(`/api/nfts/${params.id}/purchase`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ 
+        paymentMethod: method,
+        indexNumber: nft.indexNumber,
+        collection: nft.collection
+        // REMOVED: tgUserId — server gets from token
+      }),
+    });
+
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || "Request failed");
+
+    // --- STARS ---
+    if (method === 'stars' && data.invoiceLink) {
+      toast.dismiss(toastId);
+      const telegram = (window as any).Telegram;
+      if (!telegram?.WebApp) {
+        setPurchasing(false);
+        toast.error("Telegram WebApp not available.");
+        return;
+      }
+      telegram.WebApp.openInvoice(data.invoiceLink, (status: string) => {
+        if (status === 'paid') triggerSuccessEffect();
+        else {
           setPurchasing(false);
-          toast.error("Telegram WebApp not available.");
-          return;
+          toast.error("Payment cancelled.");
         }
-        telegram.WebApp.openInvoice(data.invoiceLink, (status: string) => {
-          if (status === 'paid') {
-            triggerSuccessEffect();
-          } else {
-            setPurchasing(false);
-            toast.error("Payment cancelled.");
-          }
-        });
-      } 
-      
-      // --- METHOD 2: TON ---
-      else if (method === 'ton' && data.address) {
-        toast.dismiss(toastId);
+      });
+    }
+
+    // --- TON ---
+    else if (method === 'ton' && data.address) {
+      toast.dismiss(toastId);
 
       if (!isConnected || !tonConnectUI) {
         setPurchasing(false);
         toast.error("Please connect your TON wallet first.");
-        // If your context exposes a connect function, call it here:
-        // tonConnectUI.openModal(); 
-        return; 
+        return;
       }
 
-        const transaction = {
-          validUntil: Math.floor(Date.now() / 1000) + 360,
-          messages: [{
-            address: data.address,
-            amount: data.amount.toString(),
-          }],
-        };
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 360,
+        messages: [{ address: data.address, amount: data.amount.toString() }],
+      };
 
-        try {
-         console.log("Starting TON transaction with:", transaction);
-const tonResult = await tonConnectUI.sendTransaction(transaction);
-console.log("TON Result received:", tonResult);
-          if (tonResult?.boc) {
-            toast.loading("Verifying transaction on-chain...", { id: toastId });
-            
-            const verifyRes = await fetch(`/api/nfts/${params.id}/verify-ton`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ boc: tonResult.boc, tgUserId }),
-            });
+      try {
+        const tonResult = await tonConnectUI.sendTransaction(transaction);
+        if (tonResult?.boc) {
+          toast.loading("Verifying transaction...", { id: toastId });
 
-            const verifyData = await verifyRes.json();
-            if (verifyData.success) triggerSuccessEffect();
-            else throw new Error(verifyData.error || "Verification failed");
-          }
-        } catch (err) {
-          setPurchasing(false);
-          toast.error("Wallet transaction failed.");
+          const verifyRes = await fetch(`/api/nfts/${params.id}/verify-ton`, {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({ 
+              boc: tonResult.boc
+              // REMOVED: tgUserId — server gets from token
+            }),
+          });
+
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) triggerSuccessEffect();
+          else throw new Error(verifyData.error || "Verification failed");
         }
-      } 
-
-      // --- METHOD 3: SHELLS ---
-      else if (method === 'shells') {
-        toast.success("Shells accepted!", { id: toastId });
-        triggerSuccessEffect();
+      } catch (err) {
+        setPurchasing(false);
+        toast.error("Wallet transaction failed.");
       }
-
-    } catch (error: any) {
-      setPurchasing(false);
-      toast.error(error.message || "Connection lost.", { id: toastId });
     }
-  };
+
+    // --- SHELLS ---
+    else if (method === 'shells') {
+      toast.success("Shells accepted!", { id: toastId });
+      triggerSuccessEffect();
+    }
+
+  } catch (error: any) {
+    setPurchasing(false);
+    toast.error("Something went wrong. Please try again.", { id: toastId });
+  }
+};
   const triggerSuccessEffect = () => {
     setPurchasing(false);
     setShowSuccess(true);

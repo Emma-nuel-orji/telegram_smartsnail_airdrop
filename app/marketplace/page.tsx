@@ -62,10 +62,8 @@ useEffect(() => {
 
 
 useEffect(() => {
-  if (items.length === 0 && hasMore) {
-    loadMore();
-  }
-}, [items, hasMore]);
+  loadMore();
+}, [selectedCollection, activeRarity]); 
 
  const filteredItems = items.filter(nft => {
   const matchesSearch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -85,12 +83,7 @@ useEffect(() => {
   // The useEffect [selectedCollection] will trigger the new load
 };
 
-// Also add a reset for Rarity
-useEffect(() => {
-  setItems([]);
-  setPage(1);
-  setHasMore(true);
-}, [activeRarity]);
+
 
   return (
     <div className="min-h-screen bg-[#0f021a] text-white">

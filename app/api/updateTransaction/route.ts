@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/prisma';
+import { authenticateTelegramUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
-  if (req.method !== "POST") {
-    return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
-  }
-
   try {
+    const auth = await authenticateTelegramUser(req);
+
+    // Only admins can manually update transactions
+    if (!auth.isAuthenticated || !auth.isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { orderId, transactionReference } = await req.json();
 
     if (!orderId || !transactionReference) {
@@ -18,9 +22,9 @@ export async function POST(req: NextRequest) {
       data: { transactionReference, status: "SUCCESS" },
     });
 
-    return NextResponse.json({ success: true, updatedOrder }, { status: 200 });
+    return NextResponse.json({ success: true, orderId: updatedOrder.orderId });
+
   } catch (error) {
-    console.error("Database update error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

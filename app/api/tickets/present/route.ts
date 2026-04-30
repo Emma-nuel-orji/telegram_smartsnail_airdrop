@@ -1,113 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import axios from 'axios';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { authenticateTelegramUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    console.log("🟢 Incoming request body:", body);
-
-    const { ticketId, telegramId, userName, ticketType, quantity, paymentMethod, purchaseDate } = body;
-
-    // 🔹 Validate required fields
-    if (!ticketId || !telegramId) {
-      console.log("❌ Missing ticketId or telegramId");
-      return NextResponse.json(
-        { success: false, message: 'Missing required fields' },
-        { status: 400 }
-      );
+    const auth = await authenticateTelegramUser(req);
+    if (!auth.isAuthenticated || !auth.telegramId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log("🔍 Searching for ticket with:", { ticketId, telegramId });
+    const telegramId = auth.telegramId;
+    const body = await req.json();
+    const { ticketId, ticketType, quantity, paymentMethod, purchaseDate } = body;
 
-    // 🔹 Find ticket in DB
+    if (!ticketId) {
+      return NextResponse.json({ success: false, message: 'Missing ticketId' }, { status: 400 });
+    }
+
+    // Verify ticket belongs to this user
     const ticket = await prisma.ticket.findFirst({
-      where: {
-        ticketId,
-        telegramId: BigInt(telegramId.toString())
-      },
+      where: { ticketId, telegramId }
     });
 
-    console.log("🧾 Ticket found:", ticket);
-
     if (!ticket) {
-      console.log("❌ Ticket not found in database");
-      return NextResponse.json(
-        { success: false, message: 'Ticket not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, message: 'Ticket not found' }, { status: 404 });
     }
 
-    // 🔹 Update status to pending
     await prisma.ticket.update({
       where: { ticketId },
       data: { status: 'pending' },
     });
-    console.log("✏️ Ticket status updated to 'pending'");
 
-    // 🔹 Load environment variables
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const ADMIN_GROUP_ID = process.env.ADMIN_GROUP_ID;
 
-    console.log("🔑 Bot token loaded:", !!TELEGRAM_BOT_TOKEN);
-    console.log("🏷️ Admin group ID loaded:", ADMIN_GROUP_ID);
-
     if (!TELEGRAM_BOT_TOKEN || !ADMIN_GROUP_ID) {
-      console.log("❌ Missing bot token or group ID in environment variables");
-      return NextResponse.json(
-        { success: false, message: 'Bot configuration missing' },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, message: 'Server configuration error' }, { status: 500 });
     }
 
-    // 🔹 Prepare Telegram message
     const message = `
 🎟️ *NEW TICKET VERIFICATION REQUEST*
-
-👤 *User:* ${userName}
-🆔 *Telegram ID:* \`${telegramId}\`
 🎫 *Ticket Type:* ${ticketType}
 🔢 *Quantity:* ${quantity}
-💳 *Payment:* ${paymentMethod.toUpperCase()}
+💳 *Payment:* ${paymentMethod?.toUpperCase()}
 💰 *Total Cost:* ${(ticket.totalCost ?? 0).toLocaleString()}
-📅 *Purchase Date:* ${new Date(purchaseDate).toLocaleString()}
-
 🆔 *Ticket ID:* \`${ticketId}\`
     `;
 
-    console.log("📨 Sending Telegram message to group...");
-
-    // 🔹 Send message via Telegram API
-    const telegramResponse = await axios.post(
+    await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
-        chat_id: ADMIN_GROUP_ID,
-        text: message,
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '✅ Approve', callback_data: `approve_ticket_${ticketId}` },
-              // { text: '❌ Reject', callback_data: `reject_ticket_${ticketId}` },
-            ],
-          ],
-        },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: ADMIN_GROUP_ID,
+          text: message,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '✅ Approve', callback_data: `approve_ticket_${ticketId}` }
+            ]]
+          }
+        })
       }
     );
 
-    console.log("✅ Telegram message sent successfully:", telegramResponse.data);
-
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error("🚨 Present ticket error:", error.response?.data || error.message || error);
-    return NextResponse.json(
-      { success: false, message: error.message || 'Unknown server error' },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
-    console.log("🔒 Prisma client disconnected");
+
+  } catch (error) {
+    return NextResponse.json({ success: false, message: 'Failed to present ticket' }, { status: 500 });
   }
 }

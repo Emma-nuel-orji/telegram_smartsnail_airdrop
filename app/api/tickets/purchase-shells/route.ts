@@ -1,60 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { authenticateTelegramUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { telegramId, userName, ticketType, quantity, paymentMethod, totalCost, pricePerTicket } = body;
-
-    // Validate inputs
-    if (!telegramId || !ticketType || !quantity || !totalCost) {
-      return NextResponse.json(
-        { success: false, message: 'Missing required fields' },
-        { status: 400 }
-      );
+    const auth = await authenticateTelegramUser(req);
+    if (!auth.isAuthenticated || !auth.telegramId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Find user and check balance
+    const telegramId = auth.telegramId;
+    const body = await req.json();
+    const { ticketType, quantity } = body;
+
+    if (!ticketType || !quantity) {
+      return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Fetch ticket price from DB — never trust client
+    const ticketConfig = await prisma.ticketType.findUnique({
+      where: { name: ticketType }
+    });
+
+    if (!ticketConfig) {
+      return NextResponse.json({ success: false, message: 'Invalid ticket type' }, { status: 400 });
+    }
+
+    // Calculate price server-side
+    const totalCost = Number(ticketConfig.priceShells) * quantity;
+
     const user = await prisma.user.findUnique({
-      where: { telegramId: BigInt(telegramId) }
+      where: { telegramId }
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, message: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
 
     if (Number(user.points) < totalCost) {
-      return NextResponse.json(
-        { success: false, message: 'Insufficient shell balance' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: 'Insufficient shell balance' }, { status: 400 });
     }
 
-    // Generate unique ticket ID
     const ticketId = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create ticket and update user balance in transaction
     const [ticket, updatedUser] = await prisma.$transaction([
       prisma.ticket.create({
         data: {
           ticketId,
-          telegramId: BigInt(telegramId),
-          userName,
+          telegramId,
           ticketType,
           quantity,
           paymentMethod: 'shells',
           totalCost,
-          pricePerTicket,
+          pricePerTicket: Number(ticketConfig.priceShells),
           status: 'purchased'
         }
       }),
       prisma.user.update({
-        where: { telegramId: BigInt(telegramId) },
+        where: { telegramId },
         data: { points: { decrement: BigInt(totalCost) } }
       })
     ]);
@@ -74,13 +77,7 @@ export async function POST(req: NextRequest) {
       newBalance: Number(updatedUser.points)
     });
 
-  } catch (error: any) {
-    console.error('Shell purchase error:', error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+  } catch (error) {
+    return NextResponse.json({ success: false, message: 'Purchase failed' }, { status: 500 });
   }
 }

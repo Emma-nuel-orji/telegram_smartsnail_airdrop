@@ -22,17 +22,26 @@ export default function InventoryPage() {
     }
 
     async function fetchMyAssets() {
-      const tgId = tg?.initDataUnsafe?.user?.id || "123456";
-      try {
-        const res = await fetch(`/api/user/assets?telegramId=${tgId}`);
-        const data = await res.json();
-        setOwnedNfts(data.nfts || []);
-      } catch (e) {
-        console.error("Failed to load assets", e);
-      } finally {
-        setLoading(false);
-      }
+  try {
+    const initData = tg?.initData;
+    if (!initData) {
+      setLoading(false);
+      return; // Don't fetch without auth
     }
+
+    const res = await fetch(`/api/user/assets`, {
+      headers: {
+        "Authorization": `tma ${initData}` // ← auth from token
+      }
+    });
+    const data = await res.json();
+    setOwnedNfts(data.nfts || []);
+  } catch (e) {
+    // silent fail
+  } finally {
+    setLoading(false);
+  }
+}
 
     fetchMyAssets();
 
