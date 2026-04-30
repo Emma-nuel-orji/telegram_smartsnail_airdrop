@@ -132,43 +132,53 @@ return () => clearTimeout(timeout);
 }, [telegramId, gymId, initData, router]);
 
   // --- 3. THE "INSTANT-UPDATE" PURCHASE LOGIC ---
- const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
+const handlePurchase = async (plan: any, currency: 'SHELLS' | 'STARS') => {
   const amount = currency === 'SHELLS' ? plan.priceShells : plan.priceStars;
 
-  // ✅ Check nickname only when paying — admins bypass this
   if (!isAdmin) {
-    // Fetch fresh user data to check nickname at payment time
     try {
       const checkRes = await fetch(`/api/user/${telegramId}`, {
         headers: { ...(initData ? { "Authorization": `tma ${initData}` } : {}) }
       });
       const userData = await checkRes.json();
-      // console.log("DEBUG userData:", JSON.stringify(userData));
-      
-      if (!userData.nickname && !userData.isAdmin && !userData.isSuperAdmin) {
-        setNotRegistered(true); // Show the register wall NOW
-        return;
+
+      // ✅ Re-check admin from fresh data too
+      const freshIsAdmin = 
+        userData.isAdmin === true || 
+        userData.isSuperAdmin === true || 
+        (Array.isArray(userData.permissions) && userData.permissions.includes('ADMIN'));
+
+      if (freshIsAdmin) {
+        // ✅ Update state and skip all checks
+        setIsAdmin(true);
+      } else {
+        // Only show register wall if not admin AND no nickname
+        if (!userData.nickname) {
+          setNotRegistered(true);
+          return;
+        }
+
+        // Balance check
+        if (currency === 'SHELLS' && userPoints < amount) {
+          return toast.error("Insufficient Shells! 🐚");
+        }
+
+        // Confirm dialog
+        const confirmed = await new Promise((resolve) => {
+          getWebApp?.showConfirm(
+            `Spend ${amount.toLocaleString()} Shells for ${plan.name}?`,
+            (ok: boolean) => resolve(ok)
+          );
+        });
+        if (!confirmed) return;
       }
     } catch {
       toast.error("Could not verify account. Try again.");
       return;
     }
-
-    // Balance check
-    if (currency === 'SHELLS' && userPoints < amount) {
-      return toast.error("Insufficient Shells! 🐚");
-    }
-
-    // Confirm dialog
-    const confirmed = await new Promise((resolve) => {
-      getWebApp?.showConfirm(
-        `Spend ${amount.toLocaleString()} Shells for ${plan.name}?`,
-        (ok: boolean) => resolve(ok)
-      );
-    });
-    if (!confirmed) return;
   }
 
+  // rest of purchase logic stays the same...
   setPurchasing(plan.id);
   try {
     const response = await fetch("/api/subscribe", {
@@ -183,7 +193,6 @@ return () => clearTimeout(timeout);
         duration: plan.duration,
         currencyType: currency,
         intensity: false
-        // amount NOT sent — server calculates from DB
       })
     });
 
@@ -252,8 +261,7 @@ if (notRegistered) {
       >
         Get My SmartSnail Pass 🐚
       </button>
-      <button
-        onClick={() => window.Telegram?.WebApp?.close()}
+      <button onClick={() => router.back()}
         className="mt-3 w-full max-w-[300px] py-4 bg-zinc-900 border border-zinc-800 text-zinc-500 rounded-2xl text-[10px] font-black uppercase tracking-widest"
       >
         Maybe Later

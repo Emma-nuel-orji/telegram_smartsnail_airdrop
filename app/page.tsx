@@ -418,7 +418,7 @@ useEffect(() => {
          
 
           {/* WALLET ADDRESS - Positioned absolute so it doesn't displace main content */}
-          <div className="absolute top-24 left-0 w-full flex justify-center z-10">
+          <div className="absolute top-20 left-0 w-full flex justify-center z-10">
             {isConnected && walletAddress && (
               <div className="px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300 backdrop-blur-sm">
                 Connected: {formatWalletAddress(walletAddress)}
