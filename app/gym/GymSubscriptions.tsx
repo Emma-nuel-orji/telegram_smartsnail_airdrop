@@ -96,7 +96,12 @@ const getWebApp = typeof window !== 'undefined' ? window.Telegram?.WebApp as Tel
    console.log("DEBUG userData:", JSON.stringify(userData));
 
       // Single clean admin check — trust backend completely
-      setIsAdmin(userData.isAdmin || userData.isSuperAdmin || false);
+      const isStaff = 
+        userData.isAdmin === true || 
+        userData.isSuperAdmin === true || 
+        (Array.isArray(userData.permissions) && userData.permissions.includes('ADMIN'));
+
+      setIsAdmin(isStaff);
       setUserPoints(Number(userData.points || 0));
 
     const subsData = await subsRes.json();

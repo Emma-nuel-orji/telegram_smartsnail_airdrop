@@ -516,312 +516,105 @@ async function validateStockAndCalculateTotals(
 
 
 async function processPayment(
-          tx: Prisma.TransactionClient, 
-          paymentMethod: string,
-          paymentReference: string | null,
-          totalAmount: number,
-          // redirectUrl: string,
-          userId:  string | null,
-          bookCount: number,
-          bookId:  string | null,
-          fxckedUpBagsQty: number,
-          humanRelationsQty: number
-        ): Promise<{ success: boolean; message?: string; orderId?: string; purchaseId?: string }> {
-          try {
-              console.log("🛠️ Received processPayment request with data:", {
-                paymentMethod,
-              paymentReference,
-              totalAmount,
-              // redirectUrl,
-              userId,
-              bookCount,
-              bookId,
-              fxckedUpBagsQty,
-              humanRelationsQty,
-            });
-              // Check if paymentReference is missing
-              if (!paymentReference) {
-                console.warn("⚠️ Missing paymentReference! Creating a new order in PENDING state.");
-                const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
-              
-                  const order = await tx.order.create({
-                    data: {
-                      orderId,
-                      paymentMethod,
-                      totalAmount,
-                      status: "PENDING",
-                      transactionReference: null,
-                    },
-                  });
-                  console.log("✅ New PENDING order created:", order);
-          
-                  return { success: true, orderId: order.orderId };
-              }
-
-            function isPurchase(purchase: any): purchase is { id: string } {
-              return purchase && typeof purchase.id === "string";
-            }
-
-              if (paymentMethod === "TON") {
-                console.log("🔍 Verifying TON payment with transaction hash:", paymentReference);
-            
-                const walletAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS ?? ""; // Provide a default value
-                if (!walletAddress) {
-                  throw new Error("Testnet wallet address is not defined");
-                }
-              const isTonPaymentValid = await verifyTonPayment(walletAddress, totalAmount, paymentReference);
-                if (!isTonPaymentValid) {
-                  console.error("❌ TON payment verification failed: Invalid transaction.");
-                  throw new Error("TON payment verification failed: Invalid transaction");
-                }
-            
-                // 🔹 Check for existing order
-                console.log("🔍 Searching for existing order with reference:", paymentReference);
-                const existingOrder = await tx.order.findFirst({
-                  where: {
-                    OR: [
-                      { orderId: paymentReference },
-                      { transactionReference: paymentReference }
-                    ]
-                  },
-                });
-
-                console.log("🔍 Existing order lookup result:", existingOrder);
-
-                if (!existingOrder) {
-                  console.log("⚠️ No existing order found. Creating a new order.");
-                } else {
-                  console.log("✅ Found existing order:", existingOrder);
-                }
-            
-                let finalOrder;
-                if (!existingOrder) {
-                  console.log("⚠️ No existing order found. Creating a new order.");
-                  const newOrderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
-
-                  finalOrder = await tx.order.create({
-                    data: {
-                      orderId: newOrderId,
-                      paymentMethod,
-                      totalAmount,
-                      status: "SUCCESS",
-                      transactionReference: paymentReference,
-                    },
-                  });
-                  console.log("✅ New SUCCESS order created:", finalOrder);
-                } else {
-                  console.log("✅ Existing order found. Updating order status to SUCCESS.");
-
-
-                  finalOrder = await tx.order.update({
-                    where: { orderId: existingOrder.orderId },
-                    data: {
-                      status: "SUCCESS",
-                      transactionReference: paymentReference,
-                    },
-                  });
-                }
-                console.log("🔍 Order retrieved for processing:", finalOrder);
-
-
-                // Add null check and error handling
-                if (!finalOrder) {
-                  throw new Error("Failed to create or retrieve order");
-                }
-                // When fetching the order after creation, ensure you include the id field:
-
-                console.log("🔍 Final order before retrieval:", finalOrder);
-
-                const confirmedOrder = await tx.order.findUnique({
-                  where: { id: finalOrder.id },
-                  select: { id: true, orderId: true }
-                });
-                
-                if (!confirmedOrder) {
-                  throw new Error("Order retrieval failed after creation.");
-                }
-                
-                finalOrder = confirmedOrder;
-                
-
-                console.log("Final order for purchase creation:", finalOrder);
-
-
-                // Only try to find the book if bookId is provided
-                let book = null;
-                let coinsReward = 0;
-                
-                if (bookId) {
-                  book = await tx.book.findUnique({
-                    where: { id: bookId },
-                  });
-                  
-                  if (book) {
-                    coinsReward = Math.floor(Number(book.coinsReward));
-                  }
-                }
-
-                
-                // 🔹 Create Purchase Record
-              try {
-    // 1. LOG THE RAW INPUT
-    console.log("🔍 [DEBUG] Starting User Lookup for TON Payment. Raw userId:", userId);
-
-    // 2. AVOID THE NUMBER CONVERSION TRAP
-    // Telegram IDs can exceed the safe integer limit for JavaScript Numbers.
-    // We validate as a string and convert directly to BigInt.
-    if (!userId || typeof userId !== 'string' && typeof userId !== 'number') {
-        throw new Error(`Invalid userId type: ${typeof userId}`);
+  tx: Prisma.TransactionClient,
+  paymentMethod: string,
+  paymentReference: string | null,
+  totalAmount: number,
+  userId: string | null,
+  bookCount: number,
+  bookId: string | null,
+  fxckedUpBagsQty: number,
+  humanRelationsQty: number
+): Promise<{ success: boolean; message?: string; orderId?: string; purchaseId?: string }> {
+  try {
+    // 1. Handle Missing Reference (PENDING state)
+    if (!paymentReference) {
+      const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const order = await tx.order.create({
+        data: {
+          orderId,
+          paymentMethod,
+          totalAmount,
+          status: "PENDING",
+        },
+      });
+      return { success: true, orderId: order.orderId };
     }
 
-    // 3. ATTEMPT DATABASE LOOKUP
-    const userTelegramId = BigInt(userId);
-    console.log("🔢 [DEBUG] Converted BigInt ID:", userTelegramId.toString());
+    // 2. TON Verification
+    if (paymentMethod === "TON") {
+      const walletAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
+      if (!walletAddress) throw new Error("Wallet address config missing");
 
-    const user = await tx.user.findUnique({
-        where: { telegramId: userTelegramId },
-    });
+      const isTonValid = await verifyTonPayment(walletAddress, totalAmount, paymentReference);
+      if (!isTonValid) throw new Error("TON transaction invalid or not found");
 
-    // 4. CHECK THE RESULT
-    if (!user) {
-        console.error(`❌ [FAILURE] User NOT found in DB for ID: ${userTelegramId.toString()}`);
-        
-        // This update is what changes your UI status to "FAILED" or "PENDING"
-        await tx.order.update({
-            where: { orderId: finalOrder.orderId },
-            data: { status: "PENDING" },
-        });
+      // 3. Find or Create Order
+      let finalOrder = await tx.order.findFirst({
+        where: {
+          OR: [{ orderId: paymentReference }, { transactionReference: paymentReference }]
+        }
+      });
 
-        return { 
-            success: false, 
-            message: `User ${userId} not found. Please ensure you have started the bot.` 
-        };
-    }
-
-    console.log("✅ [SUCCESS] User located:", user.id, "Current Tapping Rate:", user.tappingRate);
-    
-    // Proceed with purchase logic...
-
-} catch (error: any) {
-    console.error("🔥 [CRITICAL ERROR] inside TON user lookup:", error.message);
-    throw error; // Re-throw to trigger the transaction rollback
-}
-
-                    // Validate bookCount
-                    console.log("bookCount:", bookCount);
-                    const booksBoughtValue = Math.floor(Number(bookCount || 0)); 
-                    console.log("booksBought value:", booksBoughtValue);
-
-                    console.log("Order details for connection:", {
-                    id: finalOrder.id,
-                    // _id: finalOrder._id, 
-                    orderId: finalOrder.orderId
-                  });
-                    
-
-                    const purchaseData: Prisma.PurchaseCreateInput = {
-                      paymentType: "TON",
-                      
-                      amountPaid: Math.floor(Number(totalAmount)),
-                      booksBought: Math.floor(Math.max(bookCount || 0, 0)),
-                      fxckedUpBagsQty: Math.floor(Number(fxckedUpBagsQty)),
-                      humanRelationsQty: Math.floor(Number(humanRelationsQty)),
-                      coinsReward: coinsReward,
-                      createdAt: new Date(),
-
-                    
-                      user: {
-                        connect: { id: user.id }, 
-                      },
-                      book: bookId ? { connect: { id: bookId } } : undefined, 
-                      // order: {
-                      //   connect: { orderId: finalOrder.orderId }
-                      // }
-                      order: { connect: { orderId: finalOrder.orderId } }, 
-                };
-                    
-                
-                    console.log("coinsReward type:", typeof purchaseData.coinsReward);
-                
-                    if (typeof purchaseData.coinsReward !== "number") {
-                      throw new Error(`Invalid coinsReward type: ${typeof purchaseData.coinsReward}`);
-                    }
-                
-                    const createdPurchase = await tx.purchase.create({
-                      data: purchaseData,
-                    });
-                
-                    if (!createdPurchase) 
-                      throw new Error("Purchase creation failed");
-                    
-
-                
-                  console.log("✅ Purchase record created:", createdPurchase);
-
-                  // Use the type guard to ensure purchase has an id property
-                  if (!isPurchase(createdPurchase)) {
-                    throw new Error("Purchase creation failed: Invalid purchase record");
-                  }
-                  return {
-                    success: true,
-                    message: `TON payment verified successfully for Order ID: ${finalOrder.orderId}`,
-                    orderId: finalOrder.orderId,
-                    purchaseId: createdPurchase.id,
-                  };
-                } catch (error) {
-                  console.error("❌ Failed to create purchase record:", error);
-                  // Roll back the order status if purchase creation fails
-                  await tx.order.update({
-                    where: { orderId: finalOrder.orderId },
-                    data: { status: "FAILED" },
-                  });
-                  throw new Error("Failed to create purchase record");
-                }
-              }
-
-
-              // CARD payment flow
-              if (paymentMethod === "CARD") {
-                console.log("🔵 Initiating Flutterwave payment...");
-                const paymentRef = `TX-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-                const flutterwavePaymentResponse = await initiateFlutterwavePayment(
-                  paymentRef,
-                  totalAmount.toFixed(2),
-                  redirectUrl
-                );
-
-                if (!flutterwavePaymentResponse?.success) {
-                  console.error("❌ Flutterwave payment initiation failed: Invalid response.");
-                  throw new Error("Flutterwave payment initiation failed: Invalid response");
-                }
-
-                console.log("✅ Flutterwave payment successful. Updating order status.");
-                const updatedOrder = await prisma.order.update({
-                  where: { orderId: flutterwavePaymentResponse.orderId },
-                  data: {
-                    status: "SUCCESS",
-                    transactionReference: paymentRef,
-                  },
-                });
-                
-                return {
-                  success: true,
-                  message: "Flutterwave payment verified successfully",
-                  orderId: updatedOrder.orderId,
-                };
-              }
-
-              throw new Error(`Invalid payment method: ${paymentMethod}`);
-            } catch (error) {
-              // Enhanced error handling
-              const errorMessage = error instanceof Error ? error.message : "Unknown payment processing error";
-              console.error("❌ Payment processing error:", errorMessage);
-              throw new Error(errorMessage);
-            }
+      if (!finalOrder) {
+        finalOrder = await tx.order.create({
+          data: {
+            orderId: `TON-${Date.now()}`,
+            paymentMethod,
+            totalAmount,
+            status: "SUCCESS",
+            transactionReference: paymentReference,
           }
+        });
+      } else {
+        finalOrder = await tx.order.update({
+          where: { id: finalOrder.id },
+          data: { status: "SUCCESS", transactionReference: paymentReference }
+        });
+      }
 
+      // 4. User Lookup (CRITICAL FIX)
+      if (!userId) throw new Error("User ID is required for TON purchases");
+      const user = await tx.user.findUnique({
+        where: { telegramId: BigInt(userId) }
+      });
+
+      if (!user) {
+        console.error("❌ User not found for ID:", userId);
+        await tx.order.update({
+          where: { id: finalOrder.id },
+          data: { status: "FAILED" }
+        });
+        return { success: false, message: "User not found. Money received but boost failed." };
+      }
+
+      // 5. Create Purchase
+      const createdPurchase = await tx.purchase.create({
+        data: {
+          paymentType: "TON",
+          amountPaid: Math.floor(totalAmount),
+          booksBought: Math.floor(bookCount || 0),
+          fxckedUpBagsQty: Math.floor(fxckedUpBagsQty || 0),
+          humanRelationsQty: Math.floor(humanRelationsQty || 0),
+          user: { connect: { id: user.id } },
+          order: { connect: { id: finalOrder.id } },
+          book: bookId ? { connect: { id: bookId } } : undefined,
+        }
+      });
+
+      return {
+        success: true,
+        orderId: finalOrder.orderId,
+        purchaseId: createdPurchase.id
+      };
+    }
+
+    throw new Error("Unsupported payment method");
+  } catch (error: any) {
+    console.error("🔥 Payment Process Crash:", error.message);
+    throw error; // Transactions roll back on throw
+  }
+}
 
   async function updateDatabaseTransaction(
               tx: Prisma.TransactionClient, 

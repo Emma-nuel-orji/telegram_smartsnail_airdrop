@@ -29,6 +29,9 @@ function serializeUser(user: any) {
         collection: user.athleteProfile.nft.collection || "",
       } : null,
     } : null,
+    isAdmin: user.isAdmin || false,          
+    isSuperAdmin: user.isSuperAdmin || false, 
+    permissions: user.permissions || [],
     createdAt: user.createdAt?.toISOString(),
     updatedAt: user.updatedAt?.toISOString(),
   };
@@ -73,8 +76,8 @@ export async function GET(
 return NextResponse.json({
   ...serializedUser,
   ...totals,
-  isAdmin: auth.isAdmin || false,     
-  isSuperAdmin: auth.isAdmin || false, 
+  isAdmin: dbUser.isAdmin || (dbUser.permissions?.includes('ADMIN')) || false,
+  isSuperAdmin: dbUser.isSuperAdmin || false,
 });
   } catch (error) {
     console.error("GET USER ERROR:", error);
