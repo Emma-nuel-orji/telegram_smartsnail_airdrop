@@ -14,7 +14,6 @@ const BoostIndicator = ({ user }: BoostIndicatorProps) => {
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("BoostExpiresAt value:", user.boostExpiresAt);
     const update = () => {
       if (!user.boostExpiresAt) {
         setTimeLeft(null);
@@ -24,7 +23,8 @@ const BoostIndicator = ({ user }: BoostIndicatorProps) => {
       if (diff > 0) {
         const h = Math.floor(diff / (1000 * 60 * 60));
         const m = Math.floor((diff / (1000 * 60)) % 60);
-        setTimeLeft(`${h}h ${m}m`);
+        const s = Math.floor((diff / 1000) % 60);
+        setTimeLeft(`${h}h ${m}m ${s}s`);
       } else {
         setTimeLeft("Expired");
       }
@@ -34,21 +34,35 @@ const BoostIndicator = ({ user }: BoostIndicatorProps) => {
     return () => clearInterval(interval);
   }, [user.boostExpiresAt]);
 
-  const hasBoost = user.tappingRate > 1 && timeLeft && timeLeft !== "Expired";
+  // Logic: Show the Active message if there is time left, otherwise show the Inactive message.
+  const isActive = user.tappingRate > 1 && timeLeft && timeLeft !== "Expired";
   const totalBooks = (user.fxckedUpBagsQty || 0) + (user.humanRelationsQty || 0);
 
   return (
-    // 'fixed' with high z-index and no border, semi-transparent background
-    <div className="fixed top-20 left-4 right-4 z-40 bg-white/5 backdrop-blur-sm rounded-lg overflow-hidden py-1 px-3 pointer-events-none">
+    <div className="fixed top-20 left-4 right-4 z-[50] bg-black/20 backdrop-blur-md rounded-full overflow-hidden py-1.5 border border-white/5 pointer-events-none">
       <motion.div 
-        className="whitespace-nowrap"
-        animate={{ x: ["100%", "-100%"] }}
-        transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+        className="whitespace-nowrap flex items-center"
+        animate={{ x: ["100%", "-150%"] }} // Increased end range to ensure long text clears screen
+        transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
       >
-        <span className="text-zinc-300 text-[9px] font-bold uppercase tracking-tighter">
-          {user.tappingRate > 1 && timeLeft && timeLeft !== "Expired"
-            ? `⚡ BOOST x${user.tappingRate} | ${timeLeft} | BOOKS: ${user.fxckedUpBagsQty + user.humanRelationsQty}`
-            : `🚀 BOOST INACTIVE | BOOKS: ${user.fxckedUpBagsQty + user.humanRelationsQty} | Your tapping rate boost and duration shows here | Go to Boost and boost your taps. `}
+        <span className="text-zinc-100 text-[10px] font-black uppercase tracking-widest italic flex items-center gap-4">
+          {isActive ? (
+            <>
+              <span className="text-purple-400">⚡ ACTIVE BOOST x{user.tappingRate}</span>
+              <span className="text-white">|</span>
+              <span className="text-green-400">TIME REMAINING: {timeLeft}</span>
+              <span className="text-white">|</span>
+              <span className="text-purple-400">INVENTORY: {totalBooks} BOOKS</span>
+            </>
+          ) : (
+            <>
+              <span className="text-zinc-500">🚀 BOOST INACTIVE</span>
+              <span className="text-zinc-600">|</span>
+              <span>UPGRADE YOUR TAPPING RATE IN THE BOOST CENTER</span>
+              <span className="text-zinc-600">|</span>
+              <span className="text-zinc-500">CURRENT BOOKS: {totalBooks}</span>
+            </>
+          )}
         </span>
       </motion.div>
     </div>

@@ -391,80 +391,73 @@ useEffect(() => {
 
 
   return (
-    <div className="min-h-screen bg-[#0f021a] text-white flex flex-col items-center relative overflow-hidden pb-32">
-      <ToastContainer theme="dark" />
-      
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[50%] bg-purple-900/20 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[50%] bg-indigo-900/20 blur-[120px] rounded-full" />
-      </div>
+        <div className="min-h-screen bg-[#0f021a] text-white flex flex-col items-center relative overflow-hidden pb-32">
+          <ToastContainer theme="dark" />
+          
+          {/* BACKGROUND GLOWS */}
+          <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+            <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[50%] bg-purple-900/20 blur-[120px] rounded-full" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[50%] bg-indigo-900/20 blur-[120px] rounded-full" />
+          </div>
 
-      <div className="relative z-20 w-full px-6 pt-6 flex justify-between items-center">
-  <div>
-    <h1 className="text-xl font-black tracking-tight text-purple-400">SMARTSNAIL</h1>
-    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">App</p>
-  </div>
-  
-  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-lg p-1.5 rounded-2xl border border-white/10">
-    <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" className="w-6 h-6 p-1" alt="rank" /></Link>
-    <ConnectButton />
-    <Link href="/info"><img src="/images/info/output-onlinepngtools (1).png" className="w-6 h-6 p-1" alt="info" /></Link>
-  </div>
-</div>
+          {/* HEADER SECTION */}
+          <div className="relative z-20 w-full px-6 pt-6 flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-purple-400">SMARTSNAIL</h1>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">App</p>
+            </div>
+            
+            <div className="flex items-center gap-3 bg-white/5 backdrop-blur-lg p-1.5 rounded-2xl border border-white/10">
+              <Link href="/Leaderboard"><img src="/images/info/output-onlinepngtools (4).png" className="w-6 h-6 p-1" alt="rank" /></Link>
+              <ConnectButton />
+              <Link href="/info"><img src="/images/info/output-onlinepngtools (1).png" className="w-6 h-6 p-1" alt="info" /></Link>
+            </div>
+          </div>
 
-{/* WALLET & BOOST LAYER (The "No-Displacement" Zone) */}
-<div className="relative w-full flex flex-col items-center">
-  {/* Wallet Address */}
-  {isConnected && walletAddress && (
-    <div className="mt-2 px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300">
-      Connected: {formatWalletAddress(walletAddress)}
-    </div>
-  )}
+          {/* TELEPROMPTER AREA - Using fixed so it NEVER pushes content */}
+          <BoostIndicator 
+            user={{ 
+              tappingRate: user?.tappingRate || 1, 
+              boostExpiresAt: user?.boostExpiresAt || new Date().toISOString(),
+              fxckedUpBagsQty: fxckedUpBagsQty || (user as any)?.fxckedUpBagsQty || 0,
+              humanRelationsQty: humanRelationsQty || (user as any)?.humanRelationsQty || 0
+            }} 
+          />
 
-  {/* BOOST INDICATOR - Now using an absolute container so it doesn't push content below */}
-  <div className="h-0 w-full relative flex justify-center">
-    {user?.boostExpiresAt && (
-      <div className="absolute top-4 z-30 animate-in fade-in zoom-in duration-300">
-        <BoostIndicator 
-          user={{ 
-            tappingRate: user?.tappingRate || 1, 
-            boostExpiresAt: user?.boostExpiresAt,
-            fxckedUpBagsQty: (user as any)?.fxckedUpBagsQty || 0,
-            humanRelationsQty: (user as any)?.humanRelationsQty || 0
-          }} 
-        />
-      </div>
-    )}
-  </div>
-</div>
+          {/* WALLET ADDRESS - Positioned absolute so it doesn't displace main content */}
+          <div className="absolute top-24 left-0 w-full flex justify-center z-10">
+            {isConnected && walletAddress && (
+              <div className="px-3 py-1 bg-purple-900/30 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-300 backdrop-blur-sm">
+                Connected: {formatWalletAddress(walletAddress)}
+              </div>
+            )}
+          </div>
 
-{/* MAIN CONTENT - We keep a consistent margin-top here */}
-<div className="relative z-10 flex flex-col items-center mt-20">
-  <div className="flex items-center gap-3">
-    <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
-    <span className="text-5xl font-black italic tracking-tighter">
-      {user?.points.toLocaleString()}
-    </span>
-  </div>
-        
-        <Link href="/level" className="mt-4 flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-4 py-2 rounded-xl">
-          <img src="/images/trophy.png" className="w-5 h-5" alt="trophy" />
-          <span className="text-xs font-bold uppercase tracking-widest text-purple-300">
-             {getLevel(user?.points || 0)} Level
-          </span>
-        </Link>
-        {user?.fighter && (
-      <div className="flex items-center gap-2 bg-gradient-to-r from-red-600/20 to-purple-600/20 border border-red-500/40 px-3 py-2 rounded-xl backdrop-blur-md animate-in slide-in-from-left-4">
-        <div className="relative">
-           <img src="/images/boxing-gloves.png" className="w-4 h-4 brightness-125" alt="fighter icon" />
-           <div className="absolute inset-0 bg-red-500 blur-sm opacity-50 animate-pulse" />
-        </div>
-        <span className="text-[10px] font-black uppercase italic tracking-tighter text-red-400">
-          Pro Fighter
-        </span>
-      </div>
-    )}
-      </div>
+          {/* MAIN CONTENT - mt-32 ensures it stays below header/wallet/teleprompter regardless of screen size */}
+          <div className="relative z-10 flex flex-col items-center mt-32">
+            <div className="flex items-center gap-3">
+              <img src="/images/shell.png" className="w-12 h-12" alt="shell" />
+              <span className="text-5xl font-black italic tracking-tighter">
+                {user?.points.toLocaleString()}
+              </span>
+            </div>
+            
+            <Link href="/level" className="mt-4 flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-4 py-2 rounded-xl">
+              <img src="/images/trophy.png" className="w-5 h-5" alt="trophy" />
+              <span className="text-xs font-bold uppercase tracking-widest text-purple-300">
+                {getLevel(user?.points || 0)} Level
+              </span>
+            </Link>
+
+            {user?.fighter && (
+              <div className="mt-2 flex items-center gap-2 bg-gradient-to-r from-red-600/20 to-purple-600/20 border border-red-500/40 px-3 py-2 rounded-xl backdrop-blur-md">
+                <img src="/images/boxing-gloves.png" className="w-4 h-4 brightness-125" alt="fighter icon" />
+                <span className="text-[10px] font-black uppercase italic tracking-tighter text-red-400">
+                  Pro Fighter
+                </span>
+              </div>
+            )}
+          </div>
 
                   {/* <button onClick={resetAppSession} className="mt-4 text-red-600">
               Reset & Switch Account
@@ -629,26 +622,26 @@ useEffect(() => {
 
         <ScrollingText />
 
-        {/* BUTTON APPEARS ONLY AFTER LOAD */}
-        <AnimatePresence>
-          {!isVideoLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <button 
-                onClick={handleClaim}
-                className="w-full mt-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 bg-[length:200%_auto] hover:bg-right py-4 rounded-2xl font-black uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] active:scale-95 transition-all duration-500"
-              >
-                Claim Bonus
-              </button>
+                {/* BUTTON APPEARS ONLY AFTER LOAD */}
+                <AnimatePresence>
+                  {!isVideoLoading && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <button 
+                        onClick={handleClaim}
+                        className="w-full mt-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 bg-[length:200%_auto] hover:bg-right py-4 rounded-2xl font-black uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] active:scale-95 transition-all duration-500"
+                      >
+                        Claim Bonus
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </motion.div>
           )}
-        </AnimatePresence>
-      </motion.div>
-    </motion.div>
-  )}
         </AnimatePresence>
 
           {error && <div className="fixed bottom-32 bg-red-600/80 px-4 py-2 rounded-lg text-xs z-50 backdrop-blur-md">{error}</div>}
