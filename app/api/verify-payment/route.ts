@@ -90,11 +90,20 @@ export async function POST(request: Request) {
         const dbUser = await tx.user.findUnique({ where: { telegramId: BigInt(userId) } });
 
         // B. Prepare Delivery Data
-        const booksToPurchase = [
-          ...(Number(fxckedUpBagsQty) > 0 ? [{ id: "67c320d4fc2a0117cea7bbe2", qty: Number(fxckedUpBagsQty), title: "FxckedUpBags" }] : []),
-          ...(Number(humanRelationsQty) > 0 ? [{ id: "67c320d4fc2a0117cea7bbe3", qty: Number(humanRelationsQty), title: "Human Relations" }] : [])
-        ];
-
+        // B. Prepare Delivery Data
+// We change 'id' to 'bookId' and 'title' to 'book' to satisfy the Type check
+const booksToPurchase = [
+  ...(Number(fxckedUpBagsQty) > 0 ? [{ 
+    bookId: "fxcked-up-bags-id", 
+    qty: Number(fxckedUpBagsQty), 
+    book: "FxckedUpBags" 
+  }] : []),
+  ...(Number(humanRelationsQty) > 0 ? [{ 
+    bookId: "human-relations-id", 
+    qty: Number(humanRelationsQty), 
+    book: "Human Relations" 
+  }] : [])
+];
         const availableCodes = await tx.generatedCode.findMany({
           where: { bookId: { in: booksToPurchase.map(b => b.id) }, isUsed: false },
           take: Number(fxckedUpBagsQty) + Number(humanRelationsQty)
