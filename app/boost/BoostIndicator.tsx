@@ -39,7 +39,7 @@ const BoostIndicator = ({ user }: BoostIndicatorProps) => {
   const totalBooks = (user.fxckedUpBagsQty || 0) + (user.humanRelationsQty || 0);
 
   return (
-    <div className="fixed top-10 left-4 right-4 z-[50] bg-black/20 backdrop-blur-md rounded-full overflow-hidden py-1.5 border border-white/5 pointer-events-none">
+    <div className="fixed top-25 left-4 right-4 z-[50] bg-black/20 backdrop-blur-md rounded-full overflow-hidden py-1.5 border border-white/5 pointer-events-none">
       <motion.div 
         className="whitespace-nowrap flex items-center"
         animate={{ x: ["100%", "-150%"] }} // Increased end range to ensure long text clears screen
