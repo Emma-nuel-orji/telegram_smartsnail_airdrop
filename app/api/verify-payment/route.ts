@@ -92,13 +92,17 @@ export async function POST(request: Request) {
         // B. Prepare Delivery Data
         const booksToPurchase = [
           ...(Number(fxckedUpBagsQty) > 0 ? [{ 
-            bookId: "fxcked-up-bags-id", // ⚠️ MUST REPLACE WITH ACTUAL ID
+            id: "678e789d7162d05713437537", // Use the real ID here
+            bookId: "678e789d7162d05713437537", 
             qty: Number(fxckedUpBagsQty), 
+            title: "FxckedUpBags",
             book: "FxckedUpBags" 
           }] : []),
           ...(Number(humanRelationsQty) > 0 ? [{ 
-            bookId: "human-relations-id", // ⚠️ MUST REPLACE WITH ACTUAL ID
+            id: "678e7bb07162d05713437538", // Use the real ID here
+            bookId: "678e7bb07162d05713437538", 
             qty: Number(humanRelationsQty), 
+            title: "Human Relations",
             book: "Human Relations" 
           }] : [])
         ];
