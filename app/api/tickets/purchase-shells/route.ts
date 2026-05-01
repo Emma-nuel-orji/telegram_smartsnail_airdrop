@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 // Get user name from DB using verified telegramId
 const user = await prisma.user.findUnique({
   where: { telegramId },
-  select: { firstName: true, lastName: true, username: true }
+  select: { firstName: true, lastName: true, username: true,  points: true  }
 });
 
 if (!user) {
