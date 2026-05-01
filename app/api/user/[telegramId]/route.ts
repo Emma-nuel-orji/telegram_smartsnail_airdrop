@@ -52,34 +52,34 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 1. Fetch user AND their purchases
     const dbUser = await prisma.user.findUnique({
       where: { telegramId: BigInt(params.telegramId) },
       include: { 
         athleteProfile: { include: { nft: true } },
-        // Ensure your Prisma schema has this relation defined
         purchases: true 
       },
     });
 
     if (!dbUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // 2. Calculate totals from the purchase history
     const totals = dbUser.purchases.reduce((acc, p) => ({
       fxckedUpBagsQty: acc.fxckedUpBagsQty + (p.fxckedUpBagsQty || 0),
       humanRelationsQty: acc.humanRelationsQty + (p.humanRelationsQty || 0)
     }), { fxckedUpBagsQty: 0, humanRelationsQty: 0 });
 
-    // 3. Return serialized user merged with the new purchase totals
     const serializedUser = serializeUser(dbUser);
 
-return NextResponse.json({
-  ...serializedUser,
-  ...totals,
-  // We use "as any" here because the Prisma-generated type is missing these fields
-  isAdmin: (dbUser as any).isAdmin || ((dbUser as any).permissions?.includes('ADMIN')) || false,
-  isSuperAdmin: (dbUser as any).isSuperAdmin || false,
-});
+    // ✅ Derive isAdmin from env variable — same logic as auth.ts
+    const isAdmin = process.env.SUPER_ADMIN_IDS?.split(",")
+      .includes(params.telegramId) || false;
+
+    return NextResponse.json({
+      ...serializedUser,
+      ...totals,
+      isAdmin,          // ✅ from env, not database
+      isSuperAdmin: isAdmin, // ✅ same
+    });
+
   } catch (error) {
     console.error("GET USER ERROR:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
