@@ -123,16 +123,25 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  /* backdrop-filter causes white flash on mobile — replace with background color */
+  /* backdrop-filter: blur(8px); */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
   padding: 20px;
+  /* Prevents GPU repaint flash */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: opacity;
+  /* Darker background compensates for removing blur */
+  background: rgba(0, 0, 0, 0.92);
 }
-
 .web3-modal {
   background: linear-gradient(145deg, #1a0b2e, #0f051d);
+  background-color: #1a0b2e; /* Fallback prevents white flash */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   border: 1px solid rgba(0, 255, 163, 0.2);
   border-radius: 28px;
   width: 100%;

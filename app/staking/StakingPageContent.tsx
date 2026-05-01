@@ -971,7 +971,7 @@ function FighterStaking({ fighter, fight, userPoints, isActive, onImageClick, is
   const barLockedRef = useRef(false);
   const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
   const MAX_STARS = 100000;
-  const MIN_POINTS_REQUIRED = 200000;
+  const MIN_POINTS_REQUIRED = 400000;
   const isFighter = fighter?.telegramId === telegramId;
   
   const isWinner = isConcluded && fight?.winnerId === fighter?.id;

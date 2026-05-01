@@ -515,108 +515,108 @@ async function validateStockAndCalculateTotals(
           }
 
 
-async function processPayment(
-  tx: Prisma.TransactionClient,
-  paymentMethod: string,
-  paymentReference: string | null,
-  totalAmount: number,
-  userId: string | null,
-  bookCount: number,
-  bookId: string | null,
-  fxckedUpBagsQty: number,
-  humanRelationsQty: number
-): Promise<{ success: boolean; message?: string; orderId?: string; purchaseId?: string }> {
-  try {
-    // 1. Handle Missing Reference (PENDING state)
-    if (!paymentReference) {
-      const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      const order = await tx.order.create({
-        data: {
-          orderId,
-          paymentMethod,
-          totalAmount,
-          status: "PENDING",
-        },
-      });
-      return { success: true, orderId: order.orderId };
-    }
+export async function processPayment(
+          tx: Prisma.TransactionClient,
+          paymentMethod: string,
+          paymentReference: string | null,
+          totalAmount: number,
+          userId: string | null,
+          bookCount: number,
+          bookId: string | null,
+          fxckedUpBagsQty: number,
+          humanRelationsQty: number
+                ): Promise<{ success: boolean; message?: string; orderId?: string; purchaseId?: string }> {
+          try {
+            // 1. Handle Missing Reference (PENDING state)
+            if (!paymentReference) {
+              const orderId = `TON-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+              const order = await tx.order.create({
+                data: {
+                  orderId,
+                  paymentMethod,
+                  totalAmount,
+                  status: "PENDING",
+                },
+              });
+              return { success: true, orderId: order.orderId };
+            }
 
-    // 2. TON Verification
-    if (paymentMethod === "TON") {
-      const walletAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
-      if (!walletAddress) throw new Error("Wallet address config missing");
+            // 2. TON Verification
+            if (paymentMethod === "TON") {
+              const walletAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
+              if (!walletAddress) throw new Error("Wallet address config missing");
 
-      const isTonValid = await verifyTonPayment(walletAddress, totalAmount, paymentReference);
-      if (!isTonValid) throw new Error("TON transaction invalid or not found");
+              const isTonValid = await verifyTonPayment(walletAddress, totalAmount, paymentReference);
+              if (!isTonValid) throw new Error("TON transaction invalid or not found");
 
-      // 3. Find or Create Order
-      let finalOrder = await tx.order.findFirst({
-        where: {
-          OR: [{ orderId: paymentReference }, { transactionReference: paymentReference }]
-        }
-      });
+              // 3. Find or Create Order
+              let finalOrder = await tx.order.findFirst({
+                where: {
+                  OR: [{ orderId: paymentReference }, { transactionReference: paymentReference }]
+                }
+              });
 
-      if (!finalOrder) {
-        finalOrder = await tx.order.create({
-          data: {
-            orderId: `TON-${Date.now()}`,
-            paymentMethod,
-            totalAmount,
-            status: "SUCCESS",
-            transactionReference: paymentReference,
+                if (!finalOrder) {
+                  finalOrder = await tx.order.create({
+                    data: {
+                      orderId: `TON-${Date.now()}`,
+                      paymentMethod,
+                      totalAmount,
+                      status: "SUCCESS",
+                      transactionReference: paymentReference,
+                    }
+                  });
+                } else {
+                  finalOrder = await tx.order.update({
+                    where: { id: finalOrder.id },
+                    data: { status: "SUCCESS", transactionReference: paymentReference }
+                  });
+                }
+
+              // 4. User Lookup (CRITICAL FIX)
+              if (!userId) throw new Error("User ID is required for TON purchases");
+              const user = await tx.user.findUnique({
+                where: { telegramId: BigInt(userId) }
+              });
+
+              if (!user) {
+                console.error("❌ User not found for ID:", userId);
+                await tx.order.update({
+                  where: { id: finalOrder.id },
+                  data: { status: "FAILED" }
+                });
+                return { success: false, message: "User not found. Money received but boost failed." };
+              }
+
+            // 5. Create Purchase
+            const createdPurchase = await tx.purchase.create({
+              data: {
+                paymentType: "TON",
+                amountPaid: Math.floor(totalAmount),
+                booksBought: Math.floor(bookCount || 0),
+                fxckedUpBagsQty: Math.floor(fxckedUpBagsQty || 0),
+                humanRelationsQty: Math.floor(humanRelationsQty || 0),
+                user: { connect: { id: user.id } },
+                order: { connect: { id: finalOrder.id } },
+                book: bookId ? { connect: { id: bookId } } : undefined,
+              }
+            });
+
+                return {
+                  success: true,
+                  orderId: finalOrder.orderId,
+                  purchaseId: createdPurchase.id
+                };
+              }
+
+              throw new Error("Unsupported payment method");
+            } catch (error: any) {
+              console.error("🔥 Payment Process Crash:", error.message);
+              throw error; // Transactions roll back on throw
+            }
           }
-        });
-      } else {
-        finalOrder = await tx.order.update({
-          where: { id: finalOrder.id },
-          data: { status: "SUCCESS", transactionReference: paymentReference }
-        });
-      }
 
-      // 4. User Lookup (CRITICAL FIX)
-      if (!userId) throw new Error("User ID is required for TON purchases");
-      const user = await tx.user.findUnique({
-        where: { telegramId: BigInt(userId) }
-      });
-
-      if (!user) {
-        console.error("❌ User not found for ID:", userId);
-        await tx.order.update({
-          where: { id: finalOrder.id },
-          data: { status: "FAILED" }
-        });
-        return { success: false, message: "User not found. Money received but boost failed." };
-      }
-
-      // 5. Create Purchase
-      const createdPurchase = await tx.purchase.create({
-        data: {
-          paymentType: "TON",
-          amountPaid: Math.floor(totalAmount),
-          booksBought: Math.floor(bookCount || 0),
-          fxckedUpBagsQty: Math.floor(fxckedUpBagsQty || 0),
-          humanRelationsQty: Math.floor(humanRelationsQty || 0),
-          user: { connect: { id: user.id } },
-          order: { connect: { id: finalOrder.id } },
-          book: bookId ? { connect: { id: bookId } } : undefined,
-        }
-      });
-
-      return {
-        success: true,
-        orderId: finalOrder.orderId,
-        purchaseId: createdPurchase.id
-      };
-    }
-
-    throw new Error("Unsupported payment method");
-  } catch (error: any) {
-    console.error("🔥 Payment Process Crash:", error.message);
-    throw error; // Transactions roll back on throw
-  }
-}
-
-  async function updateDatabaseTransaction(
+  export async function updateDatabaseTransaction(
               tx: Prisma.TransactionClient, 
               booksToPurchase: BookPurchaseInfo[],
               codes: string[],

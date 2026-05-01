@@ -737,7 +737,7 @@ const handleShareToStory = async () => {
 
     {/* 4. REFINED MODAL SYSTEM */}
     {selectedTask && (
-      <div className="popup-overlay backdrop-blur-md" onClick={() => setSelectedTask(null)}>
+      <div className="popup-overlay" onClick={() => setSelectedTask(null)}>
         <div 
           className="web3-modal animate__animated animate__zoomIn border-white/10" 
           onClick={(e) => e.stopPropagation()}

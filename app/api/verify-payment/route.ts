@@ -1,113 +1,127 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { processPayment, updateDatabaseTransaction } from '../purchase/route';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log("🔍 VERIFY REQUEST RECEIVED:", body);
-
+    
     const {
       paymentMethod,
-      paymentReference,
       userId,
       totalAmount,
-      bookId,
       bookCount,
-      fxckedUpBagsQty = 0,
-      humanRelationsQty = 0
+      fxckedUpBagsQty,
+      humanRelationsQty,
+      email,
+      telegram_payment_charge_id,
+      payment_id
     } = body;
 
-    // 1. SILENTLY IGNORE STARS
-    // The Telegram Webhook handles Stars updates.
-    if (paymentMethod === "Stars") {
-      return NextResponse.json({ 
-        success: true, 
-        message: "Stars payment detected; processing via Bot Webhook." 
-      });
-    }
+    // Use either field for the TON hash
+    const transactionHash = body.transactionHash || body.paymentReference;
 
-    // 2. VALIDATE TON DATA
-    if (paymentMethod === "TON") {
-      if (!paymentReference || !userId) {
-        return NextResponse.json(
-          { error: "Missing TON payment reference or User ID" },
-          { status: 400 }
-        );
-      }
-
+    // 1. STARS LOGIC (Your previous working code)
+    if (paymentMethod === 'Stars') {
       const result = await prisma.$transaction(async (tx) => {
-        // Find the user by Telegram ID
-        const userTelegramId = BigInt(userId);
-        const user = await tx.user.findUnique({
-          where: { telegramId: userTelegramId },
+        const pendingTransaction = await tx.pendingTransaction.findFirst({
+          where: {
+            OR: [
+              { payloadData: { contains: telegram_payment_charge_id || '' } },
+              { id: payment_id },
+            ],
+            status: 'PENDING',
+          },
+          include: { order: true },
         });
 
-        if (!user) {
-          throw new Error(`User with Telegram ID ${userId} not found.`);
+        if (pendingTransaction?.status === 'COMPLETED') {
+          return { success: true, message: 'Payment already processed' };
         }
 
-        // 3. HANDLE ORDER
-        let order = await tx.order.findFirst({
-          where: { transactionReference: paymentReference },
-        });
-
-        if (order) {
-          order = await tx.order.update({
-            where: { id: order.id },
-            data: { status: "SUCCESS" },
+        if (pendingTransaction?.order) {
+          await tx.pendingTransaction.update({
+            where: { id: pendingTransaction.id },
+            data: { status: 'COMPLETED' },
           });
-        } else {
-          order = await tx.order.create({
+
+          await tx.order.update({
+            where: { id: pendingTransaction.order.id },
             data: {
-              orderId: `TON-${Date.now()}`,
-              paymentMethod: "TON",
-              totalAmount: Number(totalAmount || 0),
-              status: "SUCCESS",
-              transactionReference: paymentReference,
+              status: 'SUCCESS',
+              transactionReference: telegram_payment_charge_id || payment_id,
             },
           });
+
+          return {
+            success: true,
+            message: 'Stars payment verified successfully',
+            orderId: pendingTransaction.order.orderId,
+          };
         }
-
-        // 4. CREATE PURCHASE RECORD
-        // Fix: Use 'connect' for relations instead of raw 'orderId'
-        const purchase = await tx.purchase.create({
-          data: {
-            paymentType: "TON",
-            amountPaid: Number(totalAmount || 0),
-            booksBought: Number(bookCount || 0),
-            fxckedUpBagsQty: Number(fxckedUpBagsQty),
-            humanRelationsQty: Number(humanRelationsQty),
-            createdAt: new Date(),
-            // Use connect syntax to satisfy Prisma types
-            user: { connect: { id: user.id } },
-            order: { connect: { id: order.id } },
-            // Only connect book if bookId is a valid string
-            ...(bookId && typeof bookId === 'string' ? {
-              book: { connect: { id: bookId } }
-            } : {})
-          },
-        });
-
-        return { 
-          success: true, 
-          orderId: order.orderId, 
-          purchaseId: purchase.id 
-        };
+        return { success: false, error: 'Pending Stars transaction not found' };
       });
 
       return NextResponse.json(result);
     }
 
-    return NextResponse.json(
-      { error: `Unsupported payment method: ${paymentMethod}` },
-      { status: 400 }
-    );
+    // 2. TON LOGIC (Verifies Blockchain + Delivers Boost/Email)
+    if (paymentMethod === 'TON') {
+      if (!transactionHash) {
+        return NextResponse.json({ error: 'Missing transaction hash' }, { status: 400 });
+      }
+
+      const result = await prisma.$transaction(async (tx) => {
+        // A. Verify Blockchain (Security)
+        const paymentResult = await processPayment(
+          tx,
+          paymentMethod,
+          transactionHash,
+          totalAmount,
+          userId,
+          bookCount,
+          null,
+          fxckedUpBagsQty,
+          humanRelationsQty
+        );
+
+        if (!paymentResult.success) throw new Error("TON Blockchain verification failed");
+
+        const dbUser = await tx.user.findUnique({ where: { telegramId: BigInt(userId) } });
+
+        // B. Prepare Delivery Data
+        const booksToPurchase = [
+          ...(Number(fxckedUpBagsQty) > 0 ? [{ id: "67c320d4fc2a0117cea7bbe2", qty: Number(fxckedUpBagsQty), title: "FxckedUpBags" }] : []),
+          ...(Number(humanRelationsQty) > 0 ? [{ id: "67c320d4fc2a0117cea7bbe3", qty: Number(humanRelationsQty), title: "Human Relations" }] : [])
+        ];
+
+        const availableCodes = await tx.generatedCode.findMany({
+          where: { bookId: { in: booksToPurchase.map(b => b.id) }, isUsed: false },
+          take: Number(fxckedUpBagsQty) + Number(humanRelationsQty)
+        });
+
+        // C. Deliver Boost, Update Stock, Send Email
+        return await updateDatabaseTransaction(
+          tx,
+          booksToPurchase,
+          availableCodes.map(c => c.code),
+          userId.toString(),
+          email || dbUser?.email || "",
+          "TON",
+          Number(totalAmount),
+          0, // tappingRate increment
+          0, // points increment
+          transactionHash // orderId
+        );
+      });
+
+      return NextResponse.json({ success: true, ...result });
+    }
+
+    return NextResponse.json({ error: "Unsupported payment method" }, { status: 400 });
 
   } catch (error: any) {
-    console.error("❌ VERIFY ERROR:", error.message);
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error('❌ Verify Error:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
