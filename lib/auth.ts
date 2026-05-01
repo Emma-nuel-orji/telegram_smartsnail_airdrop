@@ -30,8 +30,7 @@ export async function authenticateTelegramUser(request: NextRequest): Promise<Au
       });
     }
 
-    const isAdmin = process.env.ADMIN_TELEGRAM_IDS?.split(",").includes(user.id.toString()) || false;
-
+    const isAdmin = process.env.SUPER_ADMIN_IDS?.split(",").includes(user.id.toString()) || false;
     return { isAuthenticated: true, telegramId, user: dbUser, isAdmin };
   } catch (err) {
     console.error("Auth error:", err);
