@@ -18,10 +18,9 @@ export async function POST(request: Request) {
       payment_id
     } = body;
 
-    // Use either field for the TON hash
     const transactionHash = body.transactionHash || body.paymentReference;
 
-    // 1. STARS LOGIC (Your previous working code)
+    // 1. STARS LOGIC
     if (paymentMethod === 'Stars') {
       const result = await prisma.$transaction(async (tx) => {
         const pendingTransaction = await tx.pendingTransaction.findFirst({
@@ -65,14 +64,15 @@ export async function POST(request: Request) {
       return NextResponse.json(result);
     }
 
-    // 2. TON LOGIC (Verifies Blockchain + Delivers Boost/Email)
+    // 2. TON LOGIC
     if (paymentMethod === 'TON') {
       if (!transactionHash) {
         return NextResponse.json({ error: 'Missing transaction hash' }, { status: 400 });
       }
 
+      // We wrap the logic in the transaction
       const result = await prisma.$transaction(async (tx) => {
-        // A. Verify Blockchain (Security)
+        // A. Verify Blockchain
         const paymentResult = await processPayment(
           tx,
           paymentMethod,
@@ -90,22 +90,20 @@ export async function POST(request: Request) {
         const dbUser = await tx.user.findUnique({ where: { telegramId: BigInt(userId) } });
 
         // B. Prepare Delivery Data
-        // B. Prepare Delivery Data
-const booksToPurchase = [
+        const booksToPurchase = [
           ...(Number(fxckedUpBagsQty) > 0 ? [{ 
-            bookId: "fxcked-up-bags-id", // ⚠️ REPLACE WITH ACTUAL MONGODB ID
+            bookId: "fxcked-up-bags-id", // ⚠️ MUST REPLACE WITH ACTUAL ID
             qty: Number(fxckedUpBagsQty), 
             book: "FxckedUpBags" 
           }] : []),
           ...(Number(humanRelationsQty) > 0 ? [{ 
-            bookId: "human-relations-id", // ⚠️ REPLACE WITH ACTUAL MONGODB ID
+            bookId: "human-relations-id", // ⚠️ MUST REPLACE WITH ACTUAL ID
             qty: Number(humanRelationsQty), 
             book: "Human Relations" 
           }] : [])
         ];
 
         const availableCodes = await tx.generatedCode.findMany({
-          // FIX: Changed b.id to b.bookId to match the array above
           where: { 
             bookId: { in: booksToPurchase.map(b => b.bookId) }, 
             isUsed: false 
@@ -114,6 +112,7 @@ const booksToPurchase = [
         });
 
         // C. Deliver Boost, Update Stock, Send Email
+        // This return value becomes 'result'
         return await updateDatabaseTransaction(
           tx,
           booksToPurchase,
@@ -122,10 +121,11 @@ const booksToPurchase = [
           email || dbUser?.email || "",
           "TON",
           Number(totalAmount),
-          0, // tappingRate
-          0, // points
-          transactionHash // orderId
+          0,
+          0,
+          transactionHash
         );
+      }); // <--- THIS WAS MISSING: Closes the transaction
 
       return NextResponse.json({ success: true, ...result });
     }
