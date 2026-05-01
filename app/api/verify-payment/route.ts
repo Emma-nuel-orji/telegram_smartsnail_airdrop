@@ -91,21 +91,25 @@ export async function POST(request: Request) {
 
         // B. Prepare Delivery Data
         // B. Prepare Delivery Data
-// We change 'id' to 'bookId' and 'title' to 'book' to satisfy the Type check
 const booksToPurchase = [
-  ...(Number(fxckedUpBagsQty) > 0 ? [{ 
-    bookId: "fxcked-up-bags-id", 
-    qty: Number(fxckedUpBagsQty), 
-    book: "FxckedUpBags" 
-  }] : []),
-  ...(Number(humanRelationsQty) > 0 ? [{ 
-    bookId: "human-relations-id", 
-    qty: Number(humanRelationsQty), 
-    book: "Human Relations" 
-  }] : [])
-];
+          ...(Number(fxckedUpBagsQty) > 0 ? [{ 
+            bookId: "fxcked-up-bags-id", // ⚠️ REPLACE WITH ACTUAL MONGODB ID
+            qty: Number(fxckedUpBagsQty), 
+            book: "FxckedUpBags" 
+          }] : []),
+          ...(Number(humanRelationsQty) > 0 ? [{ 
+            bookId: "human-relations-id", // ⚠️ REPLACE WITH ACTUAL MONGODB ID
+            qty: Number(humanRelationsQty), 
+            book: "Human Relations" 
+          }] : [])
+        ];
+
         const availableCodes = await tx.generatedCode.findMany({
-          where: { bookId: { in: booksToPurchase.map(b => b.id) }, isUsed: false },
+          // FIX: Changed b.id to b.bookId to match the array above
+          where: { 
+            bookId: { in: booksToPurchase.map(b => b.bookId) }, 
+            isUsed: false 
+          },
           take: Number(fxckedUpBagsQty) + Number(humanRelationsQty)
         });
 
@@ -118,11 +122,10 @@ const booksToPurchase = [
           email || dbUser?.email || "",
           "TON",
           Number(totalAmount),
-          0, // tappingRate increment
-          0, // points increment
+          0, // tappingRate
+          0, // points
           transactionHash // orderId
         );
-      });
 
       return NextResponse.json({ success: true, ...result });
     }
