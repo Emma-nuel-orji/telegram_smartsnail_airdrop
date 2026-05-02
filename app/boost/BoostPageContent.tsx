@@ -454,18 +454,17 @@ const handlePurchase = async (paymentMethod: string) => {
         console.log("6. Verifying TON transaction with backend...");
         const verifyInitData = window.Telegram?.WebApp?.initData;
         const verifyResponse = await axios.post("/api/verify-payment", {
-          paymentReference: tonResult.boc,
-          paymentMethod: "TON",
-          userId: String(telegramUserId),
-          totalAmount: priceTon,
-          fxckedUpBagsQty,
-          humanRelationsQty,
-        }, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(verifyInitData ? { "Authorization": `tma ${verifyInitData}` } : {})
-          }
-        });
+              paymentMethod: "TON",
+              transactionHash: tonResult.boc,
+              fxckedUpBagsQty,
+              humanRelationsQty,
+
+            }, {
+              headers: {
+                "Content-Type": "application/json",
+                ...(verifyInitData ? { "Authorization": `tma ${verifyInitData}` } : {})
+              }
+            });
 
         console.log("7. Verification response:", verifyResponse.data);
         if (!verifyResponse.data?.success) {
