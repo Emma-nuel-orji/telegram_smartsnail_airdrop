@@ -119,17 +119,17 @@ export async function POST(request: Request) {
         // This return value becomes 'result'
         return await updateDatabaseTransaction(
           tx,
-          booksToPurchase,
+          booksToPurchase as any, 
           availableCodes.map(c => c.code),
           userId.toString(),
           email || dbUser?.email || "",
           "TON",
           Number(totalAmount),
-          0,
-          0,
-          transactionHash
+          0, 
+          0, 
+          transactionHash 
         );
-      }); // <--- THIS WAS MISSING: Closes the transaction
+      });
 
       return NextResponse.json({ success: true, ...result });
     }
