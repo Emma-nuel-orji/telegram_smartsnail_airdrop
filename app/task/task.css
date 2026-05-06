@@ -71,9 +71,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  backdrop-filter: blur(10px);
+  /* backdrop-filter: blur(10px); */
   transition: all 0.3s ease;
   position: relative;
+  transform: translateZ(0);
 }
 
 .task-row-web3.locked {

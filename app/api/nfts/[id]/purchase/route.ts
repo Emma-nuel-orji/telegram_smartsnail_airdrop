@@ -1,31 +1,33 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateTelegramUser } from "@/lib/auth";
 import { getNftData } from "@/lib/nftHelpers";
 
-export async function POST(req: Request) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } } // ← correct way to get params
+) {
   try {
     /* =========================
-       1. AUTH (STANDARDIZED)
+       1. AUTH
     ========================= */
-    const authResult = await authenticateTelegramUser(req as any);
+    const auth = await authenticateTelegramUser(req);
 
-    if (!authResult.isAuthenticated || !authResult.telegramId) {
+    if (!auth.isAuthenticated || !auth.telegramId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const telegramId = authResult.telegramId;
+    const telegramId = auth.telegramId;
+    const nftId = params.id; // ← correct — from second argument
 
     /* =========================
        2. INPUT
     ========================= */
-    const { paymentMethod, indexNumber, collection } = await req.json();
+    const body = await req.json();
+    const { paymentMethod, indexNumber, collection } = body;
 
     if (!paymentMethod || indexNumber === undefined || !collection) {
-      return NextResponse.json(
-        { error: "Missing fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
     const method = paymentMethod.toLowerCase();
@@ -35,15 +37,11 @@ export async function POST(req: Request) {
     ========================= */
     let nft: any;
 
-    const paramsId = (req as any).params?.id;
-
-    if (paramsId?.startsWith("virtual-")) {
+    if (nftId.startsWith("virtual-")) {
       const virtualData = getNftData(indexNumber, collection);
 
       let collectionDoc = await prisma.collection.findFirst({
-        where: {
-          name: { equals: collection, mode: "insensitive" },
-        },
+        where: { name: { equals: collection, mode: "insensitive" } },
       });
 
       if (!collectionDoc) {
@@ -57,7 +55,6 @@ export async function POST(req: Request) {
         });
       }
 
-      // ✅ FIXED: use findFirst (NOT findUnique composite)
       const existing = await prisma.nft.findFirst({
         where: {
           indexNumber,
@@ -66,45 +63,35 @@ export async function POST(req: Request) {
       });
 
       if (existing?.isSold) {
-        return NextResponse.json(
-          { error: "This NFT is already sold" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "This NFT is already sold" }, { status: 400 });
       }
 
-      nft =
-        existing ||
-        (await prisma.nft.create({
-          data: {
-            name: `${collection === "manchies" ? "Manchie" : "SmartSnail"} #${indexNumber}`,
-            imageUrl: virtualData.image,
-            rarity: virtualData.rarity,
-            priceTon: virtualData.price / 1_000_000,
-            priceStars: Math.floor(virtualData.price / 1000),
-            priceShells: virtualData.price,
-            indexNumber,
-            collectionId: collectionDoc.id,
-            isSold: false,
-          },
-        }));
+      nft = existing || await prisma.nft.create({
+        data: {
+          name: `${collection === "manchies" ? "Manchie" : "SmartSnail"} #${indexNumber}`,
+          imageUrl: virtualData.image,
+          rarity: virtualData.rarity,
+          priceTon: virtualData.price / 1_000_000,
+          priceStars: Math.floor(virtualData.price / 1000),
+          priceShells: virtualData.price,
+          indexNumber,
+          collectionId: collectionDoc.id,
+          isSold: false,
+        },
+      });
+
     } else {
       nft = await prisma.nft.findUnique({
-        where: { id: paramsId },
+        where: { id: nftId },
       });
     }
 
     if (!nft) {
-      return NextResponse.json(
-        { error: "NFT not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "NFT not found" }, { status: 404 });
     }
 
     if (nft.isSold) {
-      return NextResponse.json(
-        { error: "Already sold" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Already sold" }, { status: 400 });
     }
 
     /* =========================
@@ -118,34 +105,21 @@ export async function POST(req: Request) {
       const shellPrice = Number(nft.priceShells ?? 0);
 
       if (!dbUser || Number(dbUser.points) < shellPrice) {
-        return NextResponse.json(
-          { error: "Insufficient Shells" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Insufficient Shells" }, { status: 400 });
       }
 
       await prisma.$transaction([
         prisma.user.update({
           where: { id: dbUser.id },
-          data: {
-            points: {
-              decrement: BigInt(shellPrice),
-            },
-          },
+          data: { points: { decrement: BigInt(shellPrice) } },
         }),
         prisma.nft.update({
           where: { id: nft.id },
-          data: {
-            isSold: true,
-            ownerId: dbUser.id,
-          },
+          data: { isSold: true, ownerId: dbUser.id },
         }),
       ]);
 
-      return NextResponse.json({
-        success: true,
-        message: "Purchased with Shells",
-      });
+      return NextResponse.json({ success: true, message: "Purchased with Shells" });
     }
 
     /* =========================
@@ -167,12 +141,7 @@ export async function POST(req: Request) {
             }),
             provider_token: "",
             currency: "XTR",
-            prices: [
-              {
-                label: "NFT Purchase",
-                amount: nft.priceStars,
-              },
-            ],
+            prices: [{ label: "NFT Purchase", amount: nft.priceStars }],
           }),
         }
       );
@@ -180,39 +149,26 @@ export async function POST(req: Request) {
       const data = await invoiceResponse.json();
 
       if (!data.ok) {
-        return NextResponse.json(
-          { error: data.description },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Failed to create invoice" }, { status: 400 });
       }
 
-      return NextResponse.json({
-        success: true,
-        invoiceLink: data.result,
-      });
+      return NextResponse.json({ success: true, invoiceLink: data.result });
     }
 
     /* =========================
-       6. TON
+       6. TON PAYMENT
     ========================= */
     if (method === "ton") {
       return NextResponse.json({
         success: true,
-        address:
-          process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS,
+        address: process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS,
         amount: Math.round(nft.priceTon * 1_000_000_000),
       });
     }
 
-    return NextResponse.json(
-      { error: "Invalid payment method" },
-      { status: 400 }
-    );
-  } catch (error: any) {
-    console.error("Purchase API Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
+
+  } catch (error) {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
