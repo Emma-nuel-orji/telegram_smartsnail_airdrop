@@ -1,3 +1,9 @@
+import { prisma } from '@/lib/prisma';
+import { Prisma, Book } from '@prisma/client';
+import { verifyTonPayment } from "@/src/utils/paymentUtils";
+import { sendPurchaseEmail } from '@/src/utils/emailUtils';
+import { ObjectId } from "mongodb";
+
 interface StockCalculationResult {
   totalAmount: number;
   tappingRate: number;
@@ -10,6 +16,10 @@ interface StockCalculationResult {
   }>;
 }
 
+interface BookMap {
+  [key: string]: Book;
+}
+
 interface BookPurchaseInfo {
   title: string;
   qty: number;
@@ -17,6 +27,14 @@ interface BookPurchaseInfo {
   bookId: string; 
   book: Omit<Book, 'coinsReward'> & { coinsReward: number };
 }
+
+
+// Environment variables validation
+const requiredEnv = ["SECRET_KEY", "NEXT_PUBLIC_REDIRECT_URL"];
+const redirectUrl = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://default.redirect.url';
+const JSONbig = require('json-bigint');
+
+
 
 export async function processPayment(
           tx: Prisma.TransactionClient,
