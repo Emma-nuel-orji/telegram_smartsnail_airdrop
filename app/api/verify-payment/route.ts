@@ -154,18 +154,20 @@ export async function POST(req: NextRequest) {
         }
 
         // 5. Create Purchase Record
-        const purchase = await tx.purchase.create({
-          data: {
-            paymentType: 'TON',
-            amountPaid: Math.floor(totalAmount),
-            booksBought: totalQty,
-            fxckedUpBagsQty: fubQty,
-            humanRelationsQty: hrQty,
-            coinsReward: totalPoints,
-            userId: user.id,
-            orderId: order.id,
-          }
-        });
+   
+          const purchase = await tx.purchase.create({
+            data: {
+              paymentType: 'TON',
+              amountPaid: Math.floor(totalAmount),
+              booksBought: totalQty,
+              fxckedUpBagsQty: fubQty,
+              humanRelationsQty: hrQty,
+              coinsReward: totalPoints,
+              // Use 'connect' for relations to avoid "unknown property" errors
+              user: { connect: { id: user.id } },
+              order: { connect: { id: order.id } },
+            }
+          });
 
         // 6. Update Stock and Codes
         for (const b of booksToPurchase) {
