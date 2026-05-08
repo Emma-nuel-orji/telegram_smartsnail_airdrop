@@ -145,8 +145,9 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
       });
     }
 
-    // --- TON ---
+   // --- TON ---
     else if (method === 'ton' && data.address) {
+      // Dismiss the "Preparing" toast to start fresh
       toast.dismiss(toastId);
 
       if (!isConnected || !tonConnectUI) {
@@ -162,25 +163,32 @@ export default function NFTDetailPage({ params }: { params: { id: string } }) {
 
       try {
         const tonResult = await tonConnectUI.sendTransaction(transaction);
+        
         if (tonResult?.boc) {
-          toast.loading("Verifying transaction...", { id: toastId });
+          // 1. Create a NEW toast ID for the verification step
+          const verifyToastId = toast.loading("Transaction sent! Verifying on-chain...");
 
           const verifyRes = await fetch(`/api/nfts/${params.id}/verify-ton`, {
             method: "POST",
             headers: authHeaders,
-            body: JSON.stringify({ 
-              boc: tonResult.boc
-              // REMOVED: tgUserId — server gets from token
-            }),
+            body: JSON.stringify({ boc: tonResult.boc }),
           });
 
           const verifyData = await verifyRes.json();
-          if (verifyData.success) triggerSuccessEffect();
-          else throw new Error(verifyData.error || "Verification failed");
+
+          if (verifyData.success) {
+            toast.success("Purchase successful!", { id: verifyToastId });
+            setPurchasing(false); // Clear loading state
+            triggerSuccessEffect();
+          } else {
+            throw new Error(verifyData.error || "Verification failed");
+          }
         }
-      } catch (err) {
+      } catch (err: any) {
         setPurchasing(false);
-        toast.error("Wallet transaction failed.");
+        // Error message handling
+        const errMsg = err.message || "Wallet transaction failed.";
+        toast.error(errMsg); 
       }
     }
 
