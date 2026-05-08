@@ -6,23 +6,23 @@ const transporter = nodemailer.createTransport({
   service: 'gmail',
   host: 'smtp.gmail.com',
   port: 465,
-  secure: true, // Use SSL for Port 465
+  secure: true, 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS, // MUST be a 16-character App Password
   },
-  logger: true, // This will log the SMTP traffic to your console
-  debug: true,  // This will show the detailed error steps
+  logger: true, // Log SMTP traffic to Vercel/Terminal logs
+  debug: true,  
 });
 
 /**
  * Sends the purchase email with book links and digital codes
  */
-export const sendPurchaseEmail = async (email: string, purchases: any[], codes: string[]) => {
+export const sendPurchaseEmail = async (email, purchases, codes) => {
   console.log(`--- Starting Email Flow for: ${email} ---`);
   
   try {
-    let bookDetails: string[] = [];
+    let bookDetails = [];
 
     // Fetch book details from database
     for (const purchase of purchases) {
@@ -45,7 +45,7 @@ export const sendPurchaseEmail = async (email: string, purchases: any[], codes: 
       from: `"SmartSnail Support" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: '🐚 Your SmartSnail Books and Codes',
-      text: `Thank you for your purchase! Codes: ${codes.join(', ')}`, // Text fallback
+      text: `Thank you for your purchase! Codes: ${codes.join(', ')}`, 
       html: `
         <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
           <h2 style="color: #7c3aed;">Purchase Confirmed!</h2>
@@ -61,23 +61,18 @@ export const sendPurchaseEmail = async (email: string, purchases: any[], codes: 
 
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ SMTP SUCCESS:', info.messageId);
-    console.log('--- Email Flow Completed ---');
+    return { success: true };
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ SMTP CRITICAL FAILURE:', error.message);
-    if (error.code === 'EAUTH') {
-      console.error('👉 CHECK: Your EMAIL_PASS is likely invalid or revoked. Generate a new App Password.');
-    }
-    if (error.code === 'ESOCKET') {
-      console.error('👉 CHECK: Your host (Vercel/DigitalOcean) might be blocking SMTP ports.');
-    }
+    return { success: false, error: error.message };
   }
 };
 
 /**
  * Sends a notification for successful code redemption
  */
-export const sendRedemptionEmail = async (email: string) => {
+export const sendRedemptionEmail = async (email) => {
   const mailOptions = {
     from: `"SmartSnail" <${process.env.EMAIL_USER}>`,
     to: email,
