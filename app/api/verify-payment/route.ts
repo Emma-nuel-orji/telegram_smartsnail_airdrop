@@ -7,7 +7,7 @@ import { sendPurchaseEmail } from '@/src/utils/emailUtils';
 export async function POST(req: NextRequest) {
   try {
     /* =========================
-       1. AUTH
+       1. AUTHENTICATION
     ========================= */
     const auth = await authenticateTelegramUser(req);
     if (!auth.isAuthenticated || !auth.telegramId) {
@@ -33,24 +33,20 @@ export async function POST(req: NextRequest) {
         });
 
         if (!pendingTransaction?.order) {
-          return { success: false, error: 'No pending Stars transaction found' };
+          throw new Error('No pending Stars transaction found');
         }
 
-        if (pendingTransaction.status === 'COMPLETED') {
-          return { success: true, message: 'Already processed' };
-        }
-
-        await tx.pendingTransaction.update({
+        const updatedPending = await tx.pendingTransaction.update({
           where: { id: pendingTransaction.id },
           data: { status: 'COMPLETED' },
         });
 
-        await tx.order.update({
+        const updatedOrder = await tx.order.update({
           where: { id: pendingTransaction.order.id },
           data: { status: 'SUCCESS' },
         });
 
-        return { success: true, orderId: pendingTransaction.order.orderId };
+        return { success: true, orderId: updatedOrder.orderId };
       });
 
       return NextResponse.json(result);
@@ -68,13 +64,10 @@ export async function POST(req: NextRequest) {
       const hrQty = Number(humanRelationsQty) || 0;
 
       if (fubQty <= 0 && hrQty <= 0) {
-        return NextResponse.json({ error: 'No books specified' }, { status: 400 });
+        return NextResponse.json({ error: 'No items specified' }, { status: 400 });
       }
 
-      /* =========================
-         4. FETCH BOOKS FROM DB
-         Calculate everything server-side
-      ========================= */
+      // Resolve book data
       const bookTitles = [
         ...(fubQty > 0 ? ["FxckedUpBags (Undo Yourself)"] : []),
         ...(hrQty > 0 ? ["Human Relations"] : []),
@@ -85,10 +78,10 @@ export async function POST(req: NextRequest) {
       });
 
       if (!books.length) {
-        return NextResponse.json({ error: 'Books not found' }, { status: 404 });
+        return NextResponse.json({ error: 'Books not found in database' }, { status: 404 });
       }
 
-      // Server-side calculation — never trust client
+      // Calculation logic
       let totalAmount = 0;
       let totalTappingRate = 0;
       let totalPoints = 0;
@@ -99,41 +92,25 @@ export async function POST(req: NextRequest) {
         totalTappingRate += qty * Number(book.tappingRate || 0);
         totalPoints += qty * Number(book.coinsReward || 0);
 
-        return {
-          id: book.id,
-          bookId: book.id,
-          qty,
-          title: book.title,
-          book: {
-            ...book,
-            coinsReward: Number(book.coinsReward),
-            priceCard: Number(book.priceCard),
-            priceTon: Number(book.priceTon),
-            usedStock: book.usedStock,
-            stockLimit: book.stockLimit,
-            tappingRate: Number(book.tappingRate),
-          }
-        };
+        return { id: book.id, qty, title: book.title };
       });
 
-      /* =========================
-         5. VERIFY TON PAYMENT
-      ========================= */
+      // Verification
       const walletAddress = process.env.NEXT_PUBLIC_TESTNET_TON_WALLET_ADDRESS;
       if (!walletAddress) {
-        return NextResponse.json({ error: 'Wallet not configured' }, { status: 500 });
+        return NextResponse.json({ error: 'Server wallet configuration missing' }, { status: 500 });
       }
 
       const isValid = await verifyTonPayment(walletAddress, totalAmount, transactionHash);
       if (!isValid) {
-        return NextResponse.json({ error: 'TON transaction invalid' }, { status: 400 });
+        return NextResponse.json({ error: 'TON transaction not found or invalid amount' }, { status: 400 });
       }
 
       /* =========================
-         6. PROCESS IN TRANSACTION
+         4. DATABASE TRANSACTION
       ========================= */
       const result = await prisma.$transaction(async (tx) => {
-        // Check for duplicate transaction
+        // 1. Check for double-spend
         const existingOrder = await tx.order.findFirst({
           where: { transactionReference: transactionHash }
         });
@@ -142,39 +119,29 @@ export async function POST(req: NextRequest) {
           return { success: true, message: 'Already processed', orderId: existingOrder.orderId };
         }
 
-        // Find or create order
-        let order = existingOrder;
-        if (!order) {
-          order = await tx.order.create({
-            data: {
-              orderId: `TON-${Date.now()}`,
-              paymentMethod: 'TON',
-              totalAmount,
-              status: 'SUCCESS',
-              transactionReference: transactionHash,
-            }
-          });
-        } else {
-          order = await tx.order.update({
-            where: { id: order.id },
-            data: { status: 'SUCCESS', transactionReference: transactionHash }
-          });
-        }
-
-        // Find user using VERIFIED telegramId from token
+        // 2. Find User (CRITICAL CHECK)
         const user = await tx.user.findUnique({
           where: { telegramId }
         });
 
         if (!user) {
-          await tx.order.update({
-            where: { id: order.id },
-            data: { status: 'FAILED' }
-          });
-          return { success: false, error: 'User not found' };
+          throw new Error('User not found in database');
         }
 
-        // Get available codes
+        // 3. Create/Update Order
+        const order = await tx.order.upsert({
+          where: { transactionReference: transactionHash },
+          create: {
+            orderId: `TON-${Date.now()}`,
+            paymentMethod: 'TON',
+            totalAmount,
+            status: 'SUCCESS',
+            transactionReference: transactionHash,
+          },
+          update: { status: 'SUCCESS' }
+        });
+
+        // 4. Handle Digital Codes
         const totalQty = fubQty + hrQty;
         const availableCodes = await tx.generatedCode.findMany({
           where: { isUsed: false, isReserved: false },
@@ -183,16 +150,10 @@ export async function POST(req: NextRequest) {
         });
 
         if (availableCodes.length < totalQty) {
-          return { success: false, error: 'Insufficient codes available' };
+          throw new Error('Out of digital codes. Contact support.');
         }
 
-        // Reserve codes
-        await tx.generatedCode.updateMany({
-          where: { id: { in: availableCodes.map(c => c.id) } },
-          data: { isReserved: true }
-        });
-
-        // Create purchase record
+        // 5. Create Purchase Record
         const purchase = await tx.purchase.create({
           data: {
             paymentType: 'TON',
@@ -201,12 +162,12 @@ export async function POST(req: NextRequest) {
             fxckedUpBagsQty: fubQty,
             humanRelationsQty: hrQty,
             coinsReward: totalPoints,
-            user: { connect: { id: user.id } },
-            order: { connect: { id: order.id } },
+            userId: user.id,
+            orderId: order.id,
           }
         });
 
-        // Update book stock
+        // 6. Update Stock and Codes
         for (const b of booksToPurchase) {
           await tx.book.update({
             where: { id: b.id },
@@ -214,49 +175,38 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // Mark codes as used
         await tx.generatedCode.updateMany({
           where: { id: { in: availableCodes.map(c => c.id) } },
           data: {
             isUsed: true,
-            isReserved: false,
             purchaseId: purchase.id,
             usedAt: new Date()
           }
         });
 
-        // Calculate boost
+        // 7. Update User Boosts & Points
         const MS_PER_DAY = 24 * 60 * 60 * 1000;
-        const boostDurationMs = totalQty * MS_PER_DAY;
         const now = new Date();
-        const currentExpiry = user.boostExpiresAt && user.boostExpiresAt > now
-          ? user.boostExpiresAt : now;
-        const newBoostExpiry = new Date(currentExpiry.getTime() + boostDurationMs);
-
-        // Update user — using server-calculated values
+        const currentExpiry = user.boostExpiresAt && user.boostExpiresAt > now ? user.boostExpiresAt : now;
+        
         const updatedUser = await tx.user.update({
           where: { telegramId },
           data: {
             tappingRate: { increment: totalTappingRate },
-            points: { increment: totalPoints },
-            boostExpiresAt: newBoostExpiry,
+            points: { increment: BigInt(totalPoints) }, // Ensure BigInt if schema requires it
+            boostExpiresAt: new Date(currentExpiry.getTime() + (totalQty * MS_PER_DAY)),
           }
         });
 
-        // Send email (non-blocking)
-        const purchasedBooks = booksToPurchase.map(b => ({
-          bookId: b.id,
-          quantity: b.qty
-        }));
-
-        try {
-          await sendPurchaseEmail(
-            user.email || '',
-            purchasedBooks,
+        /* =========================
+           5. ASYNC EMAIL (OUTSIDE TX LOGIC)
+        ========================= */
+        if (user.email && user.email.trim().includes('@')) {
+          sendPurchaseEmail(
+            user.email,
+            booksToPurchase.map(b => ({ bookId: b.id, quantity: b.qty })),
             availableCodes.map(c => c.code)
-          );
-        } catch {
-          // Email failure should not fail the purchase
+          ).catch(e => console.error("Email Delay Error:", e));
         }
 
         return {
@@ -270,9 +220,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result);
     }
 
-    return NextResponse.json({ error: 'Unsupported payment method' }, { status: 400 });
+    return NextResponse.json({ error: 'Unsupported method' }, { status: 400 });
 
-  } catch (error) {
-    return NextResponse.json({ error: 'Verification failed' }, { status: 500 });
+  } catch (error: any) {
+    console.error("CRITICAL VERIFY ERROR:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Internal Server Error' }, 
+      { status: 500 }
+    );
   }
 }

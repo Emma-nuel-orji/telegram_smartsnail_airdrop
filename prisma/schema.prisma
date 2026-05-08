@@ -151,7 +151,7 @@ model Order {
   totalAmount         Float
   status              String      // e.g., "PENDING", "COMPLETED"
   createdAt           DateTime    @default(now())
-  transactionReference String?
+  transactionReference String?  @unique
 
   // Relationships
   purchases           Purchase[]  @relation("OrderPurchases") // One-to-many relation to Purchase

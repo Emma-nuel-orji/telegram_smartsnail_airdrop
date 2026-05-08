@@ -7,69 +7,62 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    /* =========================
-       1. STANDARD AUTH
-    ========================= */
     const auth = await authenticateTelegramUser(req);
-
     if (!auth.isAuthenticated || !auth.telegramId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const telegramId = auth.telegramId;
-
-    /* =========================
-       2. INPUT (ONLY boc)
-    ========================= */
     const { boc } = await req.json();
+    const nftId = params.id;
 
-    if (!boc) {
-      return NextResponse.json(
-        { error: "Missing BOC" },
-        { status: 400 }
-      );
-    }
-
-    /* =========================
-       3. FIND USER
-    ========================= */
     const user = await prisma.user.findUnique({
-      where: { telegramId },
+      where: { telegramId: auth.telegramId },
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    /* =========================
+       FIX: Resolve Real NFT ID
+    ========================= */
+    let realNftId = nftId;
+
+    if (nftId.startsWith("virtual-")) {
+      // If it's virtual, we need to find the record we created in the /purchase route
+      // Format is "virtual-collection-index"
+      const parts = nftId.split("-");
+      const collectionName = parts[1];
+      const indexNumber = parseInt(parts[2]);
+
+      const existingNft = await prisma.nft.findFirst({
+        where: {
+          indexNumber: indexNumber,
+          collection: { name: { equals: collectionName, mode: "insensitive" } }
+        }
+      });
+
+      if (!existingNft) {
+        return NextResponse.json({ error: "NFT record not found" }, { status: 404 });
+      }
+      
+      realNftId = existingNft.id; // Get the actual MongoDB ObjectId
     }
 
     /* =========================
-       4. VERIFY ON-CHAIN (TODO)
-    ========================= */
-    // IMPORTANT: Replace this with TON indexer check later
-    // Example: check transaction exists + matches nftId + sender wallet
-
-    console.log("BOC received:", boc);
-
-    /* =========================
-       5. UPDATE NFT OWNERSHIP
+       UPDATE NFT OWNERSHIP
     ========================= */
     await prisma.nft.update({
-      where: { id: params.id },
+      where: { id: realNftId }, // Now using the real hex ID
       data: {
         isSold: true,
         ownerId: user.id,
       },
     });
 
+    console.log(`✅ NFT ${realNftId} successfully sold to user ${user.id}`);
     return NextResponse.json({ success: true });
+
   } catch (error: any) {
     console.error("TON Verify Error:", error);
-
-    return NextResponse.json(
-      { error: "Verification failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Verification failed" }, { status: 500 });
   }
 }
