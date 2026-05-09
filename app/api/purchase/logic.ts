@@ -368,6 +368,10 @@ export async function processPayment(
         let retryCount = 0;
         while (retryCount < MAX_RETRIES) {
           try {
+            console.log("📧 About to send email to:", email);
+console.log("📚 purchasedBooks being passed:", JSON.stringify(purchasedBooks));
+console.log("🔑 codes being passed:", codes);
+
             await sendPurchaseEmail(email, purchasedBooks, codes);
             break;
           } catch (emailError) {
